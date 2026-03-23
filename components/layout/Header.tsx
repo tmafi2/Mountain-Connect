@@ -16,13 +16,20 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
-  const [user, setUser] = useState<{ role?: string; name?: string } | null>(
-    null
-  );
+  const [user, setUser] = useState<{ role?: string; name?: string } | null>(null);
   const [checked, setChecked] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Track scroll for transparent → solid header
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
-    // Skip auth check if Supabase isn't configured
     if (
       !process.env.NEXT_PUBLIC_SUPABASE_URL ||
       !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -34,7 +41,6 @@ export default function Header() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        // Try to get role from user metadata or default
         supabase
           .from("users")
           .select("role")
@@ -56,84 +62,135 @@ export default function Header() {
   const dashboardHref =
     user?.role === "business_owner" ? "/business/dashboard" : "/dashboard";
 
+  const isHome = pathname === "/";
+  const headerBg = isHome && !scrolled
+    ? "bg-transparent border-transparent"
+    : "bg-white/90 border-accent/30 shadow-sm";
+
+  const textColor = isHome && !scrolled ? "text-white" : "text-foreground";
+  const logoTextColor = isHome && !scrolled ? "text-white" : "text-primary";
+  const hoverColor = isHome && !scrolled ? "hover:bg-white/10 hover:text-white" : "hover:bg-accent/30 hover:text-primary";
+  const activeColor = isHome && !scrolled ? "bg-white/15 text-white" : "bg-secondary/15 text-primary";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-accent bg-white/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/images/Logo.jpeg"
-            alt="Mountain Connect"
-            width={40}
-            height={40}
-            className="h-10 w-10 rounded-lg object-contain"
-            priority
-          />
-          <span className="text-lg font-semibold text-primary">
-            Mountain Connect
-          </span>
-        </Link>
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md transition-all duration-300 ${headerBg}`}
+      >
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="/images/Logo.jpeg"
+              alt="Mountain Connect"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-lg object-contain"
+              priority
+            />
+            <span className={`text-lg font-bold tracking-tight transition-colors duration-300 ${logoTextColor}`}>
+              Mountain Connect
+            </span>
+          </Link>
 
-        {/* Navigation */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {navLinks.slice(0, 2).map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                pathname === link.href
-                  ? "bg-secondary/20 text-primary"
-                  : "text-foreground hover:bg-accent/30 hover:text-primary"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <RegionsDropdown />
-          {navLinks.slice(2).map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                pathname === link.href
-                  ? "bg-secondary/20 text-primary"
-                  : "text-foreground hover:bg-accent/30 hover:text-primary"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 md:flex">
+            {navLinks.slice(0, 2).map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  pathname === link.href
+                    ? activeColor
+                    : `${textColor} ${hoverColor}`
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <RegionsDropdown />
+            {navLinks.slice(2).map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  pathname === link.href
+                    ? activeColor
+                    : `${textColor} ${hoverColor}`
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
 
-        {/* Auth area */}
-        <div className="flex items-center gap-3">
-          {checked && user ? (
-            /* Logged-in state */
-            <Link
-              href={dashboardHref}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          {/* Auth area */}
+          <div className="flex items-center gap-3">
+            {checked && user ? (
+              <Link
+                href={dashboardHref}
+                className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
+              >
+                Dashboard
+              </Link>
+            ) : checked ? (
+              <>
+                <Link
+                  href="/login"
+                  className={`hidden text-sm font-medium transition-colors sm:block ${textColor} hover:opacity-80`}
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
+                >
+                  Sign up
+                </Link>
+              </>
+            ) : null}
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className={`ml-2 rounded-lg p-2 md:hidden ${textColor} ${hoverColor}`}
             >
-              Go to Dashboard
-            </Link>
-          ) : checked ? (
-            /* Logged-out state */
-            <>
-              <Link
-                href="/login"
-                className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-              >
-                Sign up
-              </Link>
-            </>
-          ) : null}
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+
+        {/* Mobile nav */}
+        {mobileOpen && (
+          <div className="border-t border-accent/20 bg-white/95 backdrop-blur-lg md:hidden">
+            <nav className="mx-auto max-w-7xl space-y-1 px-6 py-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block rounded-lg px-4 py-2.5 text-sm font-medium ${
+                    pathname === link.href
+                      ? "bg-secondary/15 text-primary"
+                      : "text-foreground hover:bg-accent/30"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
+      </header>
+
+      {/* Spacer — only on non-home pages where header is solid */}
+      {!isHome && <div className="h-16" />}
+    </>
   );
 }
