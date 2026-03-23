@@ -8,7 +8,17 @@ import {
   type CountryEntry,
 } from "@/lib/data/region-hierarchy";
 
-export default function RegionsDropdown() {
+interface RegionsDropdownProps {
+  textColor?: string;
+  hoverColor?: string;
+  activeColor?: string;
+}
+
+export default function RegionsDropdown({
+  textColor = "text-foreground",
+  hoverColor = "hover:bg-accent/30 hover:text-primary",
+  activeColor = "bg-secondary/15 text-primary",
+}: RegionsDropdownProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -97,10 +107,10 @@ export default function RegionsDropdown() {
       {/* Trigger button */}
       <button
         onClick={toggleOpen}
-        className={`flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
           open
-            ? "bg-secondary/20 text-primary"
-            : "text-foreground hover:bg-accent/30 hover:text-primary"
+            ? activeColor
+            : `${textColor} ${hoverColor}`
         }`}
       >
         Regions

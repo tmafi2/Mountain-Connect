@@ -108,7 +108,7 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-            <RegionsDropdown />
+            <RegionsDropdown textColor={textColor} hoverColor={hoverColor} activeColor={activeColor} />
             {navLinks.slice(2).map((link) => (
               <Link
                 key={link.href}
