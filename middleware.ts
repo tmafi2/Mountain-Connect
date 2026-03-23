@@ -13,6 +13,16 @@ export async function middleware(request: NextRequest) {
   const response = await updateSession(request);
   const { pathname } = request.nextUrl;
 
+  // ── Site-wide access gate ────────────────────────────────
+  // Skip lock screen for the access page itself and the access API
+  const isAccessPage = pathname === "/access";
+  const isAccessApi = pathname === "/api/access";
+  const hasAccessCookie = request.cookies.get("site-access")?.value === "granted";
+
+  if (!isAccessPage && !isAccessApi && !hasAccessCookie) {
+    return NextResponse.redirect(new URL("/access", request.url));
+  }
+
   // Check if this is a protected portal route
   const isWorkerRoute = WORKER_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
