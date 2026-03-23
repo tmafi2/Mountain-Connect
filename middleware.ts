@@ -17,9 +17,10 @@ export async function middleware(request: NextRequest) {
   // Skip lock screen for the access page itself and the access API
   const isAccessPage = pathname === "/access";
   const isAccessApi = pathname === "/api/access";
+  const isComingSoon = pathname === "/coming-soon";
   const hasAccessCookie = request.cookies.get("site-access")?.value === "granted";
 
-  if (!isAccessPage && !isAccessApi && !hasAccessCookie) {
+  if (!isAccessPage && !isAccessApi && !isComingSoon && !hasAccessCookie) {
     return NextResponse.redirect(new URL("/access", request.url));
   }
 
