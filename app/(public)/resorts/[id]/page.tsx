@@ -137,7 +137,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
 
       {/* Hero / Header */}
       <div className="mt-6">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-4xl font-bold text-primary">{resort.name}</h1>
             <p className="mt-2 text-lg text-foreground/70">
@@ -146,7 +146,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                 .join(" · ")}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {resort.is_verified && (
               <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
                 ✓ Verified Resort

@@ -20,6 +20,88 @@ const GlobeComponent = dynamic(() => import("@/components/globe/Globe"), {
   ),
 });
 
+/* ── Continent icons for mobile explorer ─────────────────── */
+const CONTINENT_ICONS: Record<string, React.ReactNode> = {
+  "North America": (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21" />
+    </svg>
+  ),
+  Europe: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+    </svg>
+  ),
+  Asia: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+    </svg>
+  ),
+  Oceania: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 01-1.161.886l-.143.048a1.107 1.107 0 00-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 01-1.652.928l-.679-.906a1.125 1.125 0 00-1.906.172L4.5 15.75l-.612.153M12.75 3.031a9 9 0 00-8.862 12.872M12.75 3.031a9 9 0 016.69 14.036" />
+    </svg>
+  ),
+  "South America": (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  ),
+};
+
+/* ── Mobile Region Explorer ──────────────────────────────── */
+function MobileRegionExplorer({ continentFilter, onSelectContinent }: { continentFilter: string; onSelectContinent: (c: string) => void }) {
+  const continents = regionHierarchy.map((c) => ({
+    name: c.name,
+    countries: c.countries.length,
+    resorts: c.countries.reduce((sum, co) => sum + co.resorts.length, 0),
+  }));
+
+  return (
+    <div className="mt-8 space-y-3 px-2">
+      {continents.map((continent) => (
+        <button
+          key={continent.name}
+          onClick={() => onSelectContinent(continentFilter === continent.name ? "All" : continent.name)}
+          className={`group flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all ${
+            continentFilter === continent.name
+              ? "border-secondary/40 bg-white/10 shadow-lg shadow-secondary/10"
+              : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
+          }`}
+        >
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${
+            continentFilter === continent.name
+              ? "bg-secondary/20 text-secondary"
+              : "bg-white/10 text-white/50 group-hover:text-white/70"
+          }`}>
+            {CONTINENT_ICONS[continent.name]}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-base font-bold transition-colors ${
+              continentFilter === continent.name ? "text-white" : "text-white/80"
+            }`}>
+              {continent.name}
+            </p>
+            <p className="text-xs text-white/40">
+              {continent.resorts} resorts · {continent.countries} {continent.countries === 1 ? "country" : "countries"}
+            </p>
+          </div>
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all ${
+            continentFilter === continent.name
+              ? "bg-secondary text-white rotate-90"
+              : "bg-white/10 text-white/40"
+          }`}>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const resortMap = new Map(resorts.map((r) => [r.id, r]));
 
 const CONTINENTS = ["All", "North America", "Europe", "Asia", "Oceania", "South America"];
@@ -45,7 +127,7 @@ regionHierarchy.forEach((continent) => {
 const CONTINENT_IMAGES: Record<string, string> = {
   "North America": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80",
   Europe: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400&q=80",
-  Asia: "https://images.unsplash.com/photo-1547178681-1c2ab0de tried2?w=400&q=80",
+  Asia: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&q=80",
   Oceania: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=400&q=80",
   "South America": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80",
 };
@@ -109,7 +191,9 @@ export default function ExplorePage() {
               <span className="text-gradient">Worldwide</span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-white/40">
-              Spin the globe, pick a mountain, start your adventure. {resorts.length} resorts across 12 countries.
+              <span className="hidden md:inline">Spin the globe, pick a mountain, start your adventure. </span>
+              <span className="md:hidden">Pick a region, find your mountain. </span>
+              {resorts.length} resorts across 12 countries.
             </p>
           </div>
 
@@ -135,9 +219,17 @@ export default function ExplorePage() {
             ))}
           </div>
 
-          {/* Globe */}
-          <div className="mt-6">
+          {/* Globe — desktop/tablet only */}
+          <div className="mt-6 hidden md:block">
             <GlobeComponent continentFilter={continentFilter} />
+          </div>
+
+          {/* Mobile region explorer — mobile only */}
+          <div className="md:hidden pb-10">
+            <MobileRegionExplorer
+              continentFilter={continentFilter}
+              onSelectContinent={setContinentFilter}
+            />
           </div>
         </div>
 
