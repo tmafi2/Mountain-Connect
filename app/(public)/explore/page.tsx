@@ -132,37 +132,121 @@ const CONTINENT_IMAGES: Record<string, string> = {
   "South America": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80",
 };
 
+// Derive unique countries from resort data
+const ALL_COUNTRIES = Array.from(new Set(resorts.map((r) => r.country))).sort();
+
+const VERTICAL_DROP_OPTIONS = [
+  { label: "Any", min: 0, max: Infinity },
+  { label: "Under 500m", min: 0, max: 499 },
+  { label: "500 – 1,000m", min: 500, max: 1000 },
+  { label: "1,000 – 1,500m", min: 1000, max: 1500 },
+  { label: "1,500m+", min: 1500, max: Infinity },
+];
+
+const RUNS_OPTIONS = [
+  { label: "Any", min: 0, max: Infinity },
+  { label: "Under 50", min: 0, max: 49 },
+  { label: "50 – 100", min: 50, max: 100 },
+  { label: "100 – 150", min: 100, max: 150 },
+  { label: "150+", min: 150, max: Infinity },
+];
+
+const DIFFICULTY_OPTIONS = ["Beginner Friendly", "Intermediate", "Advanced"] as const;
+
 export default function ExplorePage() {
   const [continentFilter, setContinentFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [countryFilter, setCountryFilter] = useState("All");
+  const [verticalDropFilter, setVerticalDropFilter] = useState(0); // index into VERTICAL_DROP_OPTIONS
+  const [runsFilter, setRunsFilter] = useState(0); // index into RUNS_OPTIONS
+  const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   useScrollAnimation();
 
-  // Filter resorts by search
+  const activeFilterCount = [
+    countryFilter !== "All",
+    verticalDropFilter !== 0,
+    runsFilter !== 0,
+    difficultyFilter.length > 0,
+    verifiedOnly,
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setContinentFilter("All");
+    setCountryFilter("All");
+    setVerticalDropFilter(0);
+    setRunsFilter(0);
+    setDifficultyFilter([]);
+    setVerifiedOnly(false);
+  };
+
+  // Filter resorts by search + filters
   const filteredHierarchy = useMemo(() => {
+    const vd = VERTICAL_DROP_OPTIONS[verticalDropFilter];
+    const rn = RUNS_OPTIONS[runsFilter];
+
     return regionHierarchy
       .filter((continent) => continentFilter === "All" || continent.name === continentFilter)
       .map((continent) => ({
         ...continent,
         countries: continent.countries
+          .filter((country) => countryFilter === "All" || country.name === countryFilter)
           .map((country) => ({
             ...country,
             resorts: country.resorts.filter((entry) => {
-              if (!searchQuery) return true;
               const resort = resortMap.get(entry.id);
               if (!resort) return false;
-              const q = searchQuery.toLowerCase();
-              return (
-                resort.name.toLowerCase().includes(q) ||
-                (resort.nearest_town?.toLowerCase().includes(q) ?? false) ||
-                country.name.toLowerCase().includes(q)
-              );
+
+              // Search filter
+              if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const matchesSearch =
+                  resort.name.toLowerCase().includes(q) ||
+                  (resort.nearest_town?.toLowerCase().includes(q) ?? false) ||
+                  country.name.toLowerCase().includes(q);
+                if (!matchesSearch) return false;
+              }
+
+              // Vertical drop filter
+              if (verticalDropFilter !== 0 && resort.vertical_drop_m) {
+                if (resort.vertical_drop_m < vd.min || resort.vertical_drop_m > vd.max) return false;
+              }
+              if (verticalDropFilter !== 0 && !resort.vertical_drop_m) return false;
+
+              // Runs filter
+              if (runsFilter !== 0 && resort.num_runs) {
+                if (resort.num_runs < rn.min || resort.num_runs > rn.max) return false;
+              }
+              if (runsFilter !== 0 && !resort.num_runs) return false;
+
+              // Difficulty filter
+              if (difficultyFilter.length > 0 && resort.num_runs) {
+                const greenPct = (resort.runs_green ?? 0) / resort.num_runs;
+                const bluePct = (resort.runs_blue ?? 0) / resort.num_runs;
+                const blackPct = ((resort.runs_black ?? 0) + (resort.runs_double_black ?? 0)) / resort.num_runs;
+
+                const matchesDifficulty = difficultyFilter.some((d) => {
+                  if (d === "Beginner Friendly") return greenPct >= 0.3;
+                  if (d === "Intermediate") return bluePct >= 0.3;
+                  if (d === "Advanced") return blackPct >= 0.3;
+                  return false;
+                });
+                if (!matchesDifficulty) return false;
+              }
+
+              // Verified filter
+              if (verifiedOnly && !resort.is_verified) return false;
+
+              return true;
             }),
           }))
           .filter((country) => country.resorts.length > 0),
       }))
       .filter((continent) => continent.countries.length > 0);
-  }, [continentFilter, searchQuery]);
+  }, [continentFilter, searchQuery, countryFilter, verticalDropFilter, runsFilter, difficultyFilter, verifiedOnly]);
 
   const totalFiltered = filteredHierarchy.reduce(
     (sum, c) => sum + c.countries.reduce((s, co) => s + co.resorts.length, 0),
@@ -259,7 +343,7 @@ export default function ExplorePage() {
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => { setSearchQuery(""); setContinentFilter("All"); }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,6 +352,175 @@ export default function ExplorePage() {
               </button>
             )}
           </div>
+
+          {/* Filter toggle + count */}
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                showFilters || activeFilterCount > 0
+                  ? "border-secondary/40 bg-secondary/5 text-secondary"
+                  : "border-accent/50 bg-white text-foreground/60 hover:border-secondary/30 hover:text-secondary"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearAllFilters}
+                className="text-sm font-medium text-secondary hover:text-secondary/80 transition-colors"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          {/* Filter panel */}
+          {showFilters && (
+            <div className="mt-4 w-full max-w-3xl rounded-2xl border border-accent/30 bg-white p-5 shadow-sm animate-in slide-in-from-top-2 duration-200">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Country filter */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-foreground/40">Country</label>
+                  <select
+                    value={countryFilter}
+                    onChange={(e) => setCountryFilter(e.target.value)}
+                    className="w-full rounded-lg border border-accent/50 bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                  >
+                    <option value="All">All Countries</option>
+                    {ALL_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Vertical drop filter */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-foreground/40">Vertical Drop</label>
+                  <select
+                    value={verticalDropFilter}
+                    onChange={(e) => setVerticalDropFilter(Number(e.target.value))}
+                    className="w-full rounded-lg border border-accent/50 bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                  >
+                    {VERTICAL_DROP_OPTIONS.map((opt, i) => (
+                      <option key={opt.label} value={i}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Runs filter */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-foreground/40">Number of Runs</label>
+                  <select
+                    value={runsFilter}
+                    onChange={(e) => setRunsFilter(Number(e.target.value))}
+                    className="w-full rounded-lg border border-accent/50 bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                  >
+                    {RUNS_OPTIONS.map((opt, i) => (
+                      <option key={opt.label} value={i}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Difficulty filter */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-foreground/40">Difficulty</label>
+                  <div className="flex flex-wrap gap-2">
+                    {DIFFICULTY_OPTIONS.map((d) => (
+                      <button
+                        key={d}
+                        onClick={() =>
+                          setDifficultyFilter((prev) =>
+                            prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+                          )
+                        }
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                          difficultyFilter.includes(d)
+                            ? "bg-secondary text-white shadow-sm"
+                            : "bg-primary/5 text-primary/60 hover:bg-primary/10"
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Verified only toggle */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-foreground/40">Verified</label>
+                  <button
+                    onClick={() => setVerifiedOnly(!verifiedOnly)}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                      verifiedOnly
+                        ? "bg-green-500 text-white shadow-sm"
+                        : "bg-primary/5 text-primary/60 hover:bg-primary/10"
+                    }`}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verified Only
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active filter chips */}
+          {activeFilterCount > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {countryFilter !== "All" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                  {countryFilter}
+                  <button onClick={() => setCountryFilter("All")} className="ml-0.5 hover:text-secondary/70">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              )}
+              {verticalDropFilter !== 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                  Drop: {VERTICAL_DROP_OPTIONS[verticalDropFilter].label}
+                  <button onClick={() => setVerticalDropFilter(0)} className="ml-0.5 hover:text-secondary/70">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              )}
+              {runsFilter !== 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                  Runs: {RUNS_OPTIONS[runsFilter].label}
+                  <button onClick={() => setRunsFilter(0)} className="ml-0.5 hover:text-secondary/70">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              )}
+              {difficultyFilter.map((d) => (
+                <span key={d} className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                  {d}
+                  <button onClick={() => setDifficultyFilter((prev) => prev.filter((x) => x !== d))} className="ml-0.5 hover:text-secondary/70">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              ))}
+              {verifiedOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-600">
+                  Verified Only
+                  <button onClick={() => setVerifiedOnly(false)} className="ml-0.5 hover:text-green-500/70">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+
           <p className="mt-3 text-sm text-foreground/40">
             {searchQuery ? (
               <>
@@ -442,10 +695,7 @@ export default function ExplorePage() {
               <p className="mt-4 text-lg font-bold text-primary">No resorts found</p>
               <p className="mt-1 text-sm text-foreground/40">Try a different search or filter.</p>
               <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setContinentFilter("All");
-                }}
+                onClick={clearAllFilters}
                 className="mt-4 rounded-lg bg-primary px-6 py-2 text-sm font-semibold text-white hover:bg-primary/90"
               >
                 Clear filters
