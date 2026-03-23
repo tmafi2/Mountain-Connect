@@ -1,0 +1,690 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Group,
+  Mesh,
+  ConeGeometry,
+  MeshLambertMaterial,
+  MeshBasicMaterial,
+  RingGeometry,
+  SphereGeometry,
+  DoubleSide,
+  Object3D,
+  Vector3,
+  Color,
+  Scene,
+  Camera,
+} from "three";
+import { resorts } from "@/lib/data/resorts";
+
+/* ─── Types ──────────────────────────────────────────────── */
+
+interface MountainMarker {
+  id: string;
+  name: string;
+  country: string;
+  lat: number;
+  lng: number;
+  height: number;
+  region: string;
+}
+
+interface RegionCluster {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  count: number;
+  continent: string;
+}
+
+interface GlobeMethods {
+  pointOfView: (
+    pov?: { lat?: number; lng?: number; altitude?: number },
+    transitionMs?: number
+  ) => void;
+  controls: () => {
+    autoRotate: boolean;
+    autoRotateSpeed: number;
+    enableZoom: boolean;
+    minDistance: number;
+    maxDistance: number;
+  };
+  getGlobeRadius: () => number;
+  getCoords: (
+    lat: number,
+    lng: number,
+    altitude?: number
+  ) => { x: number; y: number; z: number };
+  camera: () => Camera;
+  scene: () => Scene;
+}
+
+/* ─── Region definitions ──────────────────────────────────── */
+
+const REGION_MAP: Record<string, { region: string; continent: string }> = {
+  // Alps
+  "2": { region: "alps", continent: "Europe" },     // Chamonix
+  "27": { region: "alps", continent: "Europe" },     // Val d'Isère
+  "28": { region: "alps", continent: "Europe" },     // Val Thorens
+  "29": { region: "alps", continent: "Europe" },     // Méribel
+  "30": { region: "alps", continent: "Europe" },     // Courchevel
+  "31": { region: "alps", continent: "Europe" },     // Morzine
+  "32": { region: "alps", continent: "Europe" },     // Les Arcs
+  "4": { region: "alps", continent: "Europe" },      // Zermatt
+  "33": { region: "alps", continent: "Europe" },     // Verbier
+  "34": { region: "alps", continent: "Europe" },     // St. Moritz
+  "35": { region: "alps", continent: "Europe" },     // St. Anton
+  "36": { region: "alps", continent: "Europe" },     // Kitzbühel
+  "37": { region: "alps", continent: "Europe" },     // Ischgl
+  "38": { region: "alps", continent: "Europe" },     // Sölden
+  "39": { region: "alps", continent: "Europe" },     // Mayrhofen
+  "40": { region: "alps", continent: "Europe" },     // Livigno
+  "41": { region: "alps", continent: "Europe" },     // Cortina
+  "42": { region: "alps", continent: "Europe" },     // Cervinia
+  "10": { region: "alps", continent: "Europe" },     // Grandvalira
+  // Scandinavia
+  "8": { region: "scandinavia", continent: "Europe" },  // Åre
+  // Caucasus
+  "9": { region: "caucasus", continent: "Europe" },     // Gudauri
+  // Western Canada
+  "1": { region: "western-canada", continent: "North America" },   // Whistler
+  "15": { region: "western-canada", continent: "North America" },  // Revelstoke
+  "11": { region: "western-canada", continent: "North America" },  // Banff
+  // US Rockies
+  "5": { region: "us-rockies", continent: "North America" },   // Vail
+  "16": { region: "us-rockies", continent: "North America" },  // Aspen
+  "17": { region: "us-rockies", continent: "North America" },  // Breck
+  "18": { region: "us-rockies", continent: "North America" },  // Jackson Hole
+  "19": { region: "us-rockies", continent: "North America" },  // Park City
+  "20": { region: "us-rockies", continent: "North America" },  // Big Sky
+  "21": { region: "us-rockies", continent: "North America" },  // Steamboat
+  "23": { region: "us-rockies", continent: "North America" },  // Telluride
+  "24": { region: "us-rockies", continent: "North America" },  // Sun Valley
+  "25": { region: "us-rockies", continent: "North America" },  // Mammoth
+  "26": { region: "us-rockies", continent: "North America" },  // Crested Butte
+  // US Northeast
+  "22": { region: "us-northeast", continent: "North America" },  // Stowe
+  // Japan
+  "3": { region: "japan", continent: "Asia" },    // Niseko
+  "43": { region: "japan", continent: "Asia" },   // Hakuba
+  "44": { region: "japan", continent: "Asia" },   // Rusutsu
+  "45": { region: "japan", continent: "Asia" },   // Furano
+  "46": { region: "japan", continent: "Asia" },   // Nozawa
+  "47": { region: "japan", continent: "Asia" },   // Myoko
+  "48": { region: "japan", continent: "Asia" },   // Shiga
+  "49": { region: "japan", continent: "Asia" },   // Naeba
+  // Australia
+  "50": { region: "australia", continent: "Oceania" },  // Perisher
+  "51": { region: "australia", continent: "Oceania" },  // Falls Creek
+  "52": { region: "australia", continent: "Oceania" },  // Thredbo
+  "53": { region: "australia", continent: "Oceania" },  // Mt Hotham
+  // New Zealand
+  "7": { region: "new-zealand", continent: "Oceania" },   // Queenstown
+  "54": { region: "new-zealand", continent: "Oceania" },  // Mt Hutt
+  // South America
+  "6": { region: "south-america", continent: "South America" },   // Valle Nevado
+  "55": { region: "south-america", continent: "South America" },  // Cerro Catedral
+  "56": { region: "south-america", continent: "South America" },  // Portillo
+};
+
+const REGION_CLUSTERS: RegionCluster[] = [
+  { id: "alps", name: "Alps", lat: 46.5, lng: 10.0, count: 0, continent: "Europe" },
+  { id: "scandinavia", name: "Scandinavia", lat: 63.4, lng: 13.1, count: 0, continent: "Europe" },
+  { id: "caucasus", name: "Caucasus", lat: 42.5, lng: 44.5, count: 0, continent: "Europe" },
+  { id: "western-canada", name: "Western Canada", lat: 51.0, lng: -117.0, count: 0, continent: "North America" },
+  { id: "us-rockies", name: "US Rockies", lat: 40.5, lng: -108.0, count: 0, continent: "North America" },
+  { id: "us-northeast", name: "US Northeast", lat: 44.5, lng: -72.7, count: 0, continent: "North America" },
+  { id: "japan", name: "Japan", lat: 37.5, lng: 139.5, count: 0, continent: "Asia" },
+  { id: "australia", name: "Australia", lat: -36.5, lng: 148.0, count: 0, continent: "Oceania" },
+  { id: "new-zealand", name: "New Zealand", lat: -43.5, lng: 171.0, count: 0, continent: "Oceania" },
+  { id: "south-america", name: "South America", lat: -34.0, lng: -70.0, count: 0, continent: "South America" },
+];
+
+// Count resorts per cluster
+Object.values(REGION_MAP).forEach((r) => {
+  const cluster = REGION_CLUSTERS.find((c) => c.id === r.region);
+  if (cluster) cluster.count++;
+});
+
+/* ─── Marker data ─────────────────────────────────────────── */
+
+const drops = resorts.map((r) => r.vertical_drop_m ?? 500);
+const minDrop = Math.min(...drops);
+const maxDrop = Math.max(...drops);
+
+const markerData: MountainMarker[] = resorts.map((resort) => {
+  const drop = resort.vertical_drop_m ?? 500;
+  const normalized = maxDrop > minDrop ? (drop - minDrop) / (maxDrop - minDrop) : 0.5;
+  const mapping = REGION_MAP[resort.id] || { region: "other", continent: "Other" };
+  return {
+    id: resort.id,
+    name: resort.name,
+    country: resort.country,
+    lat: resort.latitude,
+    lng: resort.longitude,
+    height: 3 + normalized * 5,
+    region: mapping.region,
+  };
+});
+
+/* ─── 3D object builders ──────────────────────────────────── */
+
+const ROCK_BASE = new Color(0x6b5b4f);
+const ROCK_DARK = new Color(0x4a3c32);
+const SNOW_COLOR = 0xf0f0f0;
+
+function createMountain(d: object): Object3D {
+  const marker = d as MountainMarker;
+  const group = new Group();
+  const height = marker.height;
+  const baseRadius = 1.6;
+
+  const hueShift = (parseFloat(marker.id) * 0.03) % 0.1;
+  const rockColor = ROCK_BASE.clone().offsetHSL(hueShift, -0.05, -0.02);
+  const darkRock = ROCK_DARK.clone().offsetHSL(hueShift, -0.03, -0.01);
+
+  const bodyGeo = new ConeGeometry(baseRadius, height, 6);
+  const bodyMat = new MeshLambertMaterial({
+    color: rockColor,
+    emissive: darkRock,
+    emissiveIntensity: 0.15,
+  });
+  const body = new Mesh(bodyGeo, bodyMat);
+  body.position.y = height / 2;
+  body.rotation.y = Math.random() * Math.PI;
+  group.add(body);
+
+  const capH = height * 0.28;
+  const capR = baseRadius * 0.42;
+  const capGeo = new ConeGeometry(capR, capH, 6);
+  const capMat = new MeshLambertMaterial({
+    color: SNOW_COLOR,
+    emissive: 0xdddddd,
+    emissiveIntensity: 0.1,
+  });
+  const cap = new Mesh(capGeo, capMat);
+  cap.position.y = height - capH / 2;
+  cap.rotation.y = body.rotation.y;
+  group.add(cap);
+
+  group.userData = { marker, currentRise: 0 };
+  return group;
+}
+
+function createClusterDot(d: object): Object3D {
+  const cluster = d as RegionCluster;
+  const group = new Group();
+
+  // Glowing sphere
+  const sphereGeo = new SphereGeometry(2.5, 16, 16);
+  const sphereMat = new MeshBasicMaterial({
+    color: 0xa9cbe3,
+    transparent: true,
+    opacity: 0.85,
+  });
+  const sphere = new Mesh(sphereGeo, sphereMat);
+  group.add(sphere);
+
+  // Outer glow ring
+  const ringGeo = new RingGeometry(3.0, 5.0, 24);
+  const ringMat = new MeshBasicMaterial({
+    color: 0xa9cbe3,
+    transparent: true,
+    opacity: 0.25,
+    side: DoubleSide,
+  });
+  const ring = new Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  group.add(ring);
+
+  group.userData = { cluster, currentRise: 0 };
+  return group;
+}
+
+/* ─── Props ───────────────────────────────────────────────── */
+
+interface GlobeProps {
+  continentFilter: string;
+}
+
+/* ─── Component ───────────────────────────────────────────── */
+
+export default function Globe({ continentFilter }: GlobeProps) {
+  const globeRef = useRef<GlobeMethods | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [GlobeGL, setGlobeGL] = useState<React.ComponentType<
+    Record<string, unknown>
+  > | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [ready, setReady] = useState(false);
+  const hoveredIdRef = useRef<string | null>(null);
+  const animFrameRef = useRef<number>(0);
+  const mountainObjectsRef = useRef<Map<string, Object3D>>(new Map());
+  const clusterObjectsRef = useRef<Map<string, Object3D>>(new Map());
+  const isMouseOverRef = useRef(false);
+  const mousePosRef = useRef({ x: 0, y: 0 });
+
+  // View mode: "clusters" or a region id for zoomed-in
+  const [activeRegion, setActiveRegion] = useState<string | null>(null);
+
+  // Hover tooltip state
+  const [tooltip, setTooltip] = useState<{
+    name: string;
+    country: string;
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Compute visible data based on activeRegion and continentFilter
+  const visibleMarkers = markerData.filter((m) => {
+    if (!activeRegion) return false; // clusters mode — hide individual markers
+    if (m.region !== activeRegion) return false;
+    const mapping = REGION_MAP[m.id];
+    if (continentFilter !== "All" && mapping && mapping.continent !== continentFilter) return false;
+    return true;
+  });
+
+  const visibleClusters = REGION_CLUSTERS.filter((c) => {
+    if (activeRegion) return false; // zoomed in — hide clusters
+    if (continentFilter !== "All" && c.continent !== continentFilter) return false;
+    return c.count > 0;
+  });
+
+  // Dynamic import
+  useEffect(() => {
+    import("react-globe.gl").then((mod) => {
+      setGlobeGL(
+        () =>
+          mod.default as unknown as React.ComponentType<Record<string, unknown>>
+      );
+    });
+  }, []);
+
+  // Responsive sizing — bigger globe
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.clientWidth;
+        const height = Math.min(700, Math.max(500, width * 0.6));
+        setDimensions({ width, height });
+      }
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Animation loop
+  useEffect(() => {
+    if (!ready) return;
+
+    const animate = () => {
+      const globe = globeRef.current;
+      if (!globe) {
+        animFrameRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      const cam = globe.camera();
+      const cameraPos = cam.position;
+      const radius = globe.getGlobeRadius();
+
+      // Animate individual mountains
+      mountainObjectsRef.current.forEach((obj) => {
+        const ud = obj.userData;
+        const marker = ud.marker as MountainMarker;
+        if (!marker) return;
+
+        const coords = globe.getCoords(marker.lat, marker.lng, 0.01);
+        const markerDir = new Vector3(coords.x, coords.y, coords.z).normalize();
+        const cameraDir = cameraPos.clone().normalize();
+        const dot = markerDir.dot(cameraDir);
+
+        let target = 0;
+        if (dot > 0.55) target = 1;
+        else if (dot > 0.15) target = (dot - 0.15) / 0.4;
+
+        const current = ud.currentRise as number;
+        const lerped = current + (target - current) * 0.06;
+        ud.currentRise = lerped;
+
+        const isHovered = hoveredIdRef.current === marker.id;
+        const baseScale = radius * (isHovered ? 0.038 : 0.028);
+        const yScale = baseScale * Math.max(lerped, 0.01);
+        obj.scale.set(baseScale, yScale, baseScale);
+
+        obj.position.set(coords.x, coords.y, coords.z);
+        obj.lookAt(0, 0, 0);
+        obj.rotateX(-Math.PI / 2);
+      });
+
+      // Animate cluster dots
+      clusterObjectsRef.current.forEach((obj) => {
+        const ud = obj.userData;
+        const cluster = ud.cluster as RegionCluster;
+        if (!cluster) return;
+
+        const coords = globe.getCoords(cluster.lat, cluster.lng, 0.015);
+        const markerDir = new Vector3(coords.x, coords.y, coords.z).normalize();
+        const cameraDir = cameraPos.clone().normalize();
+        const dot = markerDir.dot(cameraDir);
+
+        let target = 0;
+        if (dot > 0.4) target = 1;
+        else if (dot > 0.1) target = (dot - 0.1) / 0.3;
+
+        const current = ud.currentRise as number;
+        const lerped = current + (target - current) * 0.06;
+        ud.currentRise = lerped;
+
+        const isHovered = hoveredIdRef.current === cluster.id;
+        const baseScale = radius * (isHovered ? 0.05 : 0.04);
+        obj.scale.set(baseScale, baseScale * Math.max(lerped, 0.01), baseScale);
+
+        obj.position.set(coords.x, coords.y, coords.z);
+        obj.lookAt(0, 0, 0);
+        obj.rotateX(-Math.PI / 2);
+      });
+
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [ready]);
+
+  // Stop/resume auto-rotate on mouse enter/leave
+  const handleMouseEnter = useCallback(() => {
+    isMouseOverRef.current = true;
+    if (globeRef.current) {
+      globeRef.current.controls().autoRotate = false;
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isMouseOverRef.current = false;
+    setTooltip(null);
+    if (globeRef.current) {
+      globeRef.current.controls().autoRotate = true;
+    }
+  }, []);
+
+  // Track mouse position for tooltip
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    mousePosRef.current = { x: e.clientX, y: e.clientY };
+    setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+  }, []);
+
+  const onGlobeReady = useCallback(() => {
+    if (!globeRef.current) return;
+    setReady(true);
+
+    globeRef.current.pointOfView({ lat: 40, lng: 10, altitude: 2.0 }, 1000);
+
+    const controls = globeRef.current.controls();
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
+    controls.enableZoom = true;
+    controls.minDistance = 150;
+    controls.maxDistance = 600;
+  }, []);
+
+  // Click individual mountain — go to resort page
+  const handleMarkerClick = useCallback(
+    (obj: object) => {
+      const marker = obj as MountainMarker;
+      if (marker.id) router.push(`/resorts/${marker.id}`);
+    },
+    [router]
+  );
+
+  // Click cluster — zoom into region
+  const handleClusterClick = useCallback(
+    (obj: object) => {
+      const cluster = obj as RegionCluster;
+      if (!globeRef.current || !cluster.id) return;
+
+      setActiveRegion(cluster.id);
+      globeRef.current.pointOfView(
+        { lat: cluster.lat, lng: cluster.lng, altitude: 0.6 },
+        800
+      );
+    },
+    []
+  );
+
+  // Hover handlers
+  const handleMarkerHover = useCallback((obj: object | null) => {
+    const marker = obj as MountainMarker | null;
+    hoveredIdRef.current = marker?.id ?? null;
+    if (containerRef.current) {
+      containerRef.current.style.cursor = marker ? "pointer" : "default";
+    }
+    if (marker) {
+      const { x, y } = mousePosRef.current;
+      setTooltip({
+        name: marker.name,
+        country: marker.country,
+        id: marker.id,
+        x,
+        y,
+      });
+    } else {
+      setTooltip(null);
+    }
+  }, []);
+
+  const handleClusterHover = useCallback((obj: object | null) => {
+    const cluster = obj as RegionCluster | null;
+    hoveredIdRef.current = cluster?.id ?? null;
+    if (containerRef.current) {
+      containerRef.current.style.cursor = cluster ? "pointer" : "default";
+    }
+    if (cluster) {
+      const { x, y } = mousePosRef.current;
+      setTooltip({
+        name: cluster.name,
+        country: `${cluster.count} resorts`,
+        id: cluster.id,
+        x,
+        y,
+      });
+    } else {
+      setTooltip(null);
+    }
+  }, []);
+
+  // Back to clusters view
+  const handleBackToOverview = useCallback(() => {
+    setActiveRegion(null);
+    setTooltip(null);
+    if (globeRef.current) {
+      globeRef.current.pointOfView({ lat: 40, lng: 10, altitude: 2.0 }, 800);
+    }
+  }, []);
+
+  // Register mountain objects for animation
+  const customMountainUpdate = useCallback(
+    (obj: Object3D, d: object) => {
+      if (!globeRef.current) return;
+      const marker = d as MountainMarker;
+      mountainObjectsRef.current.set(marker.id, obj);
+
+      const coords = globeRef.current.getCoords(marker.lat, marker.lng, 0.01);
+      obj.position.set(coords.x, coords.y, coords.z);
+      obj.lookAt(0, 0, 0);
+      obj.rotateX(-Math.PI / 2);
+
+      const radius = globeRef.current.getGlobeRadius();
+      const baseScale = radius * 0.028;
+      obj.scale.set(baseScale, baseScale * 0.01, baseScale);
+    },
+    []
+  );
+
+  // Register cluster objects for animation
+  const customClusterUpdate = useCallback(
+    (obj: Object3D, d: object) => {
+      if (!globeRef.current) return;
+      const cluster = d as RegionCluster;
+      clusterObjectsRef.current.set(cluster.id, obj);
+
+      const coords = globeRef.current.getCoords(cluster.lat, cluster.lng, 0.015);
+      obj.position.set(coords.x, coords.y, coords.z);
+      obj.lookAt(0, 0, 0);
+      obj.rotateX(-Math.PI / 2);
+
+      const radius = globeRef.current.getGlobeRadius();
+      const baseScale = radius * 0.04;
+      obj.scale.set(baseScale, baseScale * 0.01, baseScale);
+    },
+    []
+  );
+
+  // Cluster HTML labels
+  const clusterHtmlElement = useCallback((d: object) => {
+    const c = d as RegionCluster;
+    const el = document.createElement("div");
+    el.innerHTML = `<span style="font-weight:700">${c.name}</span> <span style="opacity:0.7">· ${c.count}</span>`;
+    el.style.cssText = `
+      color: #0e2439;
+      font-size: 11px;
+      font-family: Inter, system-ui, sans-serif;
+      background: rgba(255,255,255,0.92);
+      padding: 4px 10px;
+      border-radius: 8px;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translateX(-50%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      border: 1px solid rgba(169,203,227,0.5);
+    `;
+    return el;
+  }, []);
+
+  const clusterHtmlAltitude = useCallback(() => 0.04, []);
+
+  // When continent filter changes, zoom to that region
+  useEffect(() => {
+    if (!globeRef.current || !ready) return;
+
+    const POV: Record<string, { lat: number; lng: number; altitude: number }> = {
+      "All": { lat: 40, lng: 10, altitude: 2.0 },
+      "Europe": { lat: 47, lng: 10, altitude: 1.2 },
+      "North America": { lat: 45, lng: -105, altitude: 1.2 },
+      "Asia": { lat: 37, lng: 139, altitude: 1.2 },
+      "Oceania": { lat: -38, lng: 155, altitude: 1.2 },
+      "South America": { lat: -34, lng: -70, altitude: 1.2 },
+    };
+
+    const target = POV[continentFilter] || POV["All"];
+
+    if (continentFilter === "All") {
+      setActiveRegion(null);
+    }
+
+    globeRef.current.pointOfView(target, 800);
+  }, [continentFilter, ready]);
+
+  if (!GlobeGL) {
+    return (
+      <div
+        ref={containerRef}
+        className="flex items-center justify-center text-foreground/40"
+        style={{ minHeight: 500 }}
+      >
+        Loading globe…
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative flex items-center justify-center"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+    >
+      {/* Back button when zoomed into a region */}
+      {activeRegion && (
+        <button
+          onClick={handleBackToOverview}
+          className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-2 text-sm font-medium text-primary shadow-md backdrop-blur-sm transition-colors hover:bg-white"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          All Regions
+        </button>
+      )}
+
+      <GlobeGL
+        ref={globeRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        backgroundColor="rgba(0,0,0,0)"
+        atmosphereColor="#a9cbe3"
+        atmosphereAltitude={0.25}
+        animateIn={true}
+        onGlobeReady={onGlobeReady}
+        // Individual mountains (zoomed in)
+        customLayerData={ready ? visibleMarkers : []}
+        customThreeObject={createMountain}
+        customThreeObjectUpdate={customMountainUpdate}
+        onCustomLayerClick={handleMarkerClick}
+        onCustomLayerHover={handleMarkerHover}
+        // Cluster dots (zoomed out)
+        objectsData={ready ? visibleClusters : []}
+        objectThreeObject={createClusterDot}
+        objectThreeObjectUpdate={customClusterUpdate}
+        onObjectClick={handleClusterClick}
+        onObjectHover={handleClusterHover}
+        // Cluster HTML labels (zoomed out only)
+        htmlElementsData={ready ? visibleClusters : []}
+        htmlLat="lat"
+        htmlLng="lng"
+        htmlAltitude={clusterHtmlAltitude}
+        htmlElement={clusterHtmlElement}
+        htmlTransitionDuration={0}
+      />
+
+      {/* Hover tooltip card */}
+      {tooltip && tooltip.x > 0 && tooltip.y > 0 && (
+        <div
+          className="pointer-events-none fixed z-50"
+          style={{
+            left: `${tooltip.x + 16}px`,
+            top: `${tooltip.y - 20}px`,
+          }}
+        >
+          <div className="flex items-center gap-3 rounded-xl border border-accent bg-white px-4 py-3 shadow-lg">
+            {/* Logo placeholder */}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+              {tooltip.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-primary">{tooltip.name}</p>
+              <p className="text-xs text-foreground/60">{tooltip.country}</p>
+              {/* Only show "View Resort" for individual markers, not clusters */}
+              {!REGION_CLUSTERS.find((c) => c.id === tooltip.id) && (
+                <p className="mt-0.5 text-[10px] font-medium text-secondary">Click to view resort →</p>
+              )}
+              {REGION_CLUSTERS.find((c) => c.id === tooltip.id) && (
+                <p className="mt-0.5 text-[10px] font-medium text-secondary">Click to explore →</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
