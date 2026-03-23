@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
@@ -165,9 +166,24 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
         </div>
       </div>
 
-      {/* Banner Image Placeholder */}
-      <div className="mt-6 flex h-72 items-center justify-center rounded-xl bg-gradient-to-br from-primary/5 to-secondary/20 border border-accent">
-        <span className="text-foreground/40">Resort photos coming soon</span>
+      {/* Banner Image */}
+      <div className="mt-6 relative h-72 overflow-hidden rounded-xl">
+        {resort.banner_image_url ? (
+          <>
+            <Image
+              src={resort.banner_image_url}
+              alt={resort.name}
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent" />
+          </>
+        ) : (
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/20 border border-accent">
+            <span className="text-foreground/40">Resort photos coming soon</span>
+          </div>
+        )}
       </div>
 
       {/* Quick Stats Bar */}
