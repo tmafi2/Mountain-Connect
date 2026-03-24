@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -33,6 +33,40 @@ interface ListingDetail {
   interviews: number;
   views: number;
 }
+
+type ApplicantStatus = "pending" | "reviewed" | "interview_scheduled" | "accepted" | "rejected";
+
+interface Applicant {
+  id: string;
+  name: string;
+  email: string;
+  location: string;
+  skills: string[];
+  experience: number;
+  status: ApplicantStatus;
+  appliedAt: string;
+  coverLetter: string;
+  availability: string;
+  languages: string[];
+}
+
+type ActiveTab = null | "applicants" | "interviews" | "filled";
+
+/* ─── Status badge styles ────────────────────────────────── */
+
+const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  active: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Active" },
+  paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", label: "Paused" },
+  closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", label: "Closed" },
+};
+
+const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  pending: { bg: "bg-blue-50", text: "text-blue-700", label: "Pending" },
+  reviewed: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Reviewed" },
+  interview_scheduled: { bg: "bg-purple-50", text: "text-purple-700", label: "Interview" },
+  accepted: { bg: "bg-green-50", text: "text-green-700", label: "Accepted" },
+  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Declined" },
+};
 
 /* ─── Demo data ──────────────────────────────────────────── */
 
@@ -184,11 +218,42 @@ const demoListings: Record<string, ListingDetail> = {
   },
 };
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Active" },
-  paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", label: "Paused" },
-  closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", label: "Closed" },
+const demoApplicants: Record<string, Applicant[]> = {
+  j1: [
+    { id: "a1", name: "Emma Johansson", email: "emma.j@example.com", location: "Stockholm, Sweden", skills: ["CSIA Level 3", "First Aid", "Swedish", "English", "French"], experience: 5, status: "pending", appliedAt: "Mar 10, 2026", coverLetter: "I've been teaching skiing for 5 seasons across Sweden and Canada. I hold a CSIA Level 3 certification and I'm passionate about helping beginners discover the joy of skiing.", availability: "Nov 2025 – Apr 2026 (full season)", languages: ["Swedish", "English", "French"] },
+    { id: "a2", name: "Lucas Müller", email: "lucas.m@example.com", location: "Innsbruck, Austria", skills: ["CSIA Level 2", "Avalanche Safety", "German", "English"], experience: 3, status: "reviewed", appliedAt: "Mar 8, 2026", coverLetter: "Coming from the Austrian Alps, I bring 3 seasons of instruction experience with a specialty in intermediate to advanced technique.", availability: "Dec 2025 – Apr 2026", languages: ["German", "English"] },
+    { id: "a3", name: "Marie Dubois", email: "marie.d@example.com", location: "Chamonix, France", skills: ["BASI Level 3", "First Aid", "French", "English", "Spanish"], experience: 7, status: "accepted", appliedAt: "Mar 1, 2026", coverLetter: "With 7 years of instruction across France, Spain, and Canada, I bring deep expertise in all-mountain teaching.", availability: "Nov 2025 – Apr 2026 (full season)", languages: ["French", "English", "Spanish"] },
+    { id: "a4", name: "Kenji Nakamura", email: "kenji.n@example.com", location: "Nagano, Japan", skills: ["SAJ Level 2", "Children's Instruction", "Japanese", "English"], experience: 4, status: "interview_scheduled", appliedAt: "Mar 14, 2026", coverLetter: "I specialize in children's ski instruction and have taught at several major resorts in Japan.", availability: "Dec 2025 – Mar 2026", languages: ["Japanese", "English"] },
+    { id: "a5", name: "Sofia Rodriguez", email: "sofia.r@example.com", location: "Santiago, Chile", skills: ["CSIA Level 2", "Spanish", "English"], experience: 3, status: "pending", appliedAt: "Mar 16, 2026", coverLetter: "I've instructed at resorts in Chile and Argentina during southern hemisphere winters and want to experience a northern season.", availability: "Nov 2025 – Apr 2026", languages: ["Spanish", "English"] },
+  ],
+  j2: [
+    { id: "a6", name: "Sophie Chen", email: "sophie.c@example.com", location: "Melbourne, Australia", skills: ["RSA Certified", "Cocktail Making", "English", "Mandarin"], experience: 4, status: "pending", appliedAt: "Mar 12, 2026", coverLetter: "I've worked in Melbourne's top cocktail bars for 4 years and I'm looking for a season abroad.", availability: "Nov 2025 – Apr 2026", languages: ["English", "Mandarin"] },
+    { id: "a7", name: "Tom Wilson", email: "tom.w@example.com", location: "Queenstown, NZ", skills: ["Cocktail Making", "Wine Knowledge", "English"], experience: 3, status: "interview_scheduled", appliedAt: "Mar 11, 2026", coverLetter: "I've spent 3 seasons bartending in Queenstown's famous après-ski scene.", availability: "Nov 2025 – Apr 2026", languages: ["English"] },
+  ],
+  j3: [
+    { id: "a8", name: "Ana Santos", email: "ana.s@example.com", location: "Lisbon, Portugal", skills: ["Hotel Management Diploma", "Portuguese", "English"], experience: 2, status: "pending", appliedAt: "Mar 15, 2026", coverLetter: "I recently graduated with a Hotel Management Diploma and completed internships at two 5-star hotels.", availability: "Nov 2025 – Apr 2026", languages: ["Portuguese", "English", "Spanish"] },
+    { id: "a9", name: "Jake Thompson", email: "jake.t@example.com", location: "Queenstown, NZ", skills: ["First Aid", "Customer Service", "English"], experience: 2, status: "interview_scheduled", appliedAt: "Mar 5, 2026", coverLetter: "I have 2 seasons of hotel experience in New Zealand's ski region.", availability: "Nov 2025 – Apr 2026", languages: ["English"] },
+  ],
+  j4: [
+    { id: "a10", name: "Ollie Hansen", email: "ollie.h@example.com", location: "Oslo, Norway", skills: ["Culinary Arts Diploma", "French Cuisine", "Norwegian", "English"], experience: 4, status: "reviewed", appliedAt: "Mar 9, 2026", coverLetter: "I trained in French cuisine in Lyon and have worked at mountain restaurants in Norway and Switzerland.", availability: "Dec 2025 – Mar 2026", languages: ["Norwegian", "English", "French"] },
+    { id: "a11", name: "Claire Bonnet", email: "claire.b@example.com", location: "Lyon, France", skills: ["Le Cordon Bleu", "Pastry", "French", "English"], experience: 5, status: "pending", appliedAt: "Mar 13, 2026", coverLetter: "A Le Cordon Bleu graduate with 5 years in high-end alpine restaurants across the French Alps.", availability: "Dec 2025 – Mar 2026", languages: ["French", "English"] },
+  ],
+  j5: [
+    { id: "a12", name: "Hiroshi Tanaka", email: "hiroshi.t@example.com", location: "Niseko, Japan", skills: ["Customer Service", "Japanese", "English"], experience: 3, status: "accepted", appliedAt: "Mar 14, 2026", coverLetter: "I have 3 seasons of lift operations experience in Niseko.", availability: "Nov 2025 – Apr 2026", languages: ["Japanese", "English"] },
+    { id: "a13", name: "Ryan O'Brien", email: "ryan.o@example.com", location: "Denver, USA", skills: ["Lift Maintenance", "First Aid", "English", "Spanish"], experience: 5, status: "accepted", appliedAt: "Mar 3, 2026", coverLetter: "I've been working lift operations at Colorado resorts for 5 years.", availability: "Nov 2025 – Apr 2026", languages: ["English", "Spanish"] },
+  ],
 };
+
+/* ─── Helpers ─────────────────────────────────────────────── */
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 /* ─── Page ───────────────────────────────────────────────── */
 
@@ -213,6 +278,51 @@ export default function ListingDetailPage() {
     meals: listing?.meals || false,
     visaSponsorship: listing?.visaSponsorship || false,
   });
+
+  // New state for tabs and panels
+  const [activeTab, setActiveTab] = useState<ActiveTab>(null);
+  const [applicants, setApplicants] = useState<Applicant[]>(() => demoApplicants[id] || []);
+  const [applicantSearch, setApplicantSearch] = useState("");
+  const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
+  const [expandedApplicant, setExpandedApplicant] = useState<string | null>(null);
+  const [filledSlots, setFilledSlots] = useState<string[]>(() => {
+    // Pre-fill with accepted applicants
+    const accepted = (demoApplicants[id] || []).filter((a) => a.status === "accepted");
+    return accepted.map((a) => a.id);
+  });
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+
+  // Derived data
+  const filteredApplicants = useMemo(() => {
+    let list = applicants;
+    if (applicantStatusFilter !== "all") {
+      list = list.filter((a) => a.status === applicantStatusFilter);
+    }
+    if (applicantSearch.trim()) {
+      const q = applicantSearch.toLowerCase();
+      list = list.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.skills.some((s) => s.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [applicants, applicantSearch, applicantStatusFilter]);
+
+  const interviewApplicants = useMemo(
+    () => applicants.filter((a) => a.status === "interview_scheduled"),
+    [applicants]
+  );
+
+  const acceptedApplicants = useMemo(
+    () => applicants.filter((a) => a.status === "accepted"),
+    [applicants]
+  );
+
+  const assignableApplicants = useMemo(
+    () => acceptedApplicants.filter((a) => !filledSlots.includes(a.id)),
+    [acceptedApplicants, filledSlots]
+  );
 
   if (!listing) {
     return (
@@ -261,6 +371,40 @@ export default function ListingDetailPage() {
     setEditing(false);
     setActionLoading(null);
   };
+
+  const handleApplicantStatusChange = (applicantId: string, newStatus: ApplicantStatus) => {
+    setApplicants((prev) =>
+      prev.map((a) => (a.id === applicantId ? { ...a, status: newStatus } : a))
+    );
+    // If rejected or status changed away from accepted, remove from filled slots
+    if (newStatus === "rejected" || newStatus !== "accepted") {
+      setFilledSlots((prev) => prev.filter((sid) => sid !== applicantId));
+    }
+  };
+
+  const handleTabClick = (tab: ActiveTab) => {
+    setActiveTab((prev) => (prev === tab ? null : tab));
+  };
+
+  const handleAssignWorker = (applicantId: string) => {
+    if (!filledSlots.includes(applicantId)) {
+      setFilledSlots((prev) => [...prev, applicantId]);
+    }
+    setShowAssignDropdown(false);
+  };
+
+  const handleRemoveWorker = (applicantId: string) => {
+    setFilledSlots((prev) => prev.filter((sid) => sid !== applicantId));
+  };
+
+  const statusFilterOptions: { value: "all" | ApplicantStatus; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "pending", label: "Pending" },
+    { value: "reviewed", label: "Reviewed" },
+    { value: "interview_scheduled", label: "Interview" },
+    { value: "accepted", label: "Accepted" },
+    { value: "rejected", label: "Declined" },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -352,27 +496,356 @@ export default function ListingDetailPage() {
         )}
       </div>
 
-      {/* Stats */}
+      {/* Stats — Clickable tab cards */}
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-accent bg-white p-4 text-center">
+        <button
+          onClick={() => handleTabClick("applicants")}
+          className={`rounded-xl border bg-white p-4 text-center transition-colors ${
+            activeTab === "applicants" ? "border-secondary ring-1 ring-secondary" : "border-accent hover:border-secondary/50"
+          }`}
+        >
           <p className="text-2xl font-bold text-primary">{listing.applicants}</p>
           <p className="text-xs uppercase tracking-wider text-foreground/50">Applicants</p>
-        </div>
-        <div className="rounded-xl border border-accent bg-white p-4 text-center">
+        </button>
+        <button
+          onClick={() => handleTabClick("interviews")}
+          className={`rounded-xl border bg-white p-4 text-center transition-colors ${
+            activeTab === "interviews" ? "border-secondary ring-1 ring-secondary" : "border-accent hover:border-secondary/50"
+          }`}
+        >
           <p className="text-2xl font-bold text-primary">{listing.interviews}</p>
           <p className="text-xs uppercase tracking-wider text-foreground/50">Interviews</p>
-        </div>
+        </button>
         <div className="rounded-xl border border-accent bg-white p-4 text-center">
           <p className="text-2xl font-bold text-primary">{listing.views.toLocaleString()}</p>
           <p className="text-xs uppercase tracking-wider text-foreground/50">Views</p>
         </div>
-        <div className="rounded-xl border border-accent bg-white p-4 text-center">
+        <button
+          onClick={() => handleTabClick("filled")}
+          className={`rounded-xl border bg-white p-4 text-center transition-colors ${
+            activeTab === "filled" ? "border-secondary ring-1 ring-secondary" : "border-accent hover:border-secondary/50"
+          }`}
+        >
           <p className="text-2xl font-bold text-primary">
             {listing.positionsFilled}/{listing.positionsAvailable}
           </p>
           <p className="text-xs uppercase tracking-wider text-foreground/50">Filled</p>
-        </div>
+        </button>
       </div>
+
+      {/* ─── Applicants Panel ─────────────────────────────── */}
+      {activeTab === "applicants" && (
+        <div className="mt-4 rounded-xl border border-accent bg-white p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Applicants</h2>
+
+          {/* Search */}
+          <div className="mt-4">
+            <input
+              type="text"
+              value={applicantSearch}
+              onChange={(e) => setApplicantSearch(e.target.value)}
+              placeholder="Search by name or skill..."
+              className="w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/30 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+            />
+          </div>
+
+          {/* Status filter pills */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {statusFilterOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setApplicantStatusFilter(opt.value)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  applicantStatusFilter === opt.value
+                    ? "bg-secondary text-white"
+                    : "bg-accent/10 text-foreground/60 hover:bg-accent/20"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Applicant list */}
+          <div className="mt-4 space-y-3">
+            {filteredApplicants.length === 0 ? (
+              <p className="py-6 text-center text-sm text-foreground/40">No applicants match your filters.</p>
+            ) : (
+              filteredApplicants.map((applicant) => {
+                const isExpanded = expandedApplicant === applicant.id;
+                const badge = APPLICANT_STATUS_STYLES[applicant.status];
+                return (
+                  <div
+                    key={applicant.id}
+                    className="rounded-lg border border-accent transition-colors hover:border-secondary/30"
+                  >
+                    {/* Collapsed card */}
+                    <button
+                      onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}
+                      className="flex w-full items-center gap-4 p-4 text-left"
+                    >
+                      {/* Avatar */}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-sm font-bold text-secondary">
+                        {getInitials(applicant.name)}
+                      </div>
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-primary">{applicant.name}</span>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.bg} ${badge.text}`}>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-3 text-xs text-foreground/60">
+                          <span>{applicant.location}</span>
+                          <span>{applicant.experience} yr{applicant.experience !== 1 ? "s" : ""} exp</span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {applicant.skills.slice(0, 3).map((skill) => (
+                            <span key={skill} className="inline-flex rounded bg-accent/10 px-1.5 py-0.5 text-[10px] text-foreground/60">
+                              {skill}
+                            </span>
+                          ))}
+                          {applicant.skills.length > 3 && (
+                            <span className="inline-flex rounded bg-accent/10 px-1.5 py-0.5 text-[10px] text-foreground/60">
+                              +{applicant.skills.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Applied date & expand icon */}
+                      <div className="shrink-0 text-right">
+                        <span className="text-xs text-foreground/40">Applied {applicant.appliedAt}</span>
+                        <svg
+                          className={`ml-auto mt-1 h-4 w-4 text-foreground/30 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </button>
+
+                    {/* Expanded details */}
+                    {isExpanded && (
+                      <div className="border-t border-accent px-4 pb-4 pt-3">
+                        <div className="space-y-3 text-sm">
+                          {/* Cover letter */}
+                          <div>
+                            <h4 className="font-medium text-primary">Cover Letter</h4>
+                            <p className="mt-1 text-foreground/70">{applicant.coverLetter}</p>
+                          </div>
+
+                          {/* Details grid */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <h4 className="font-medium text-primary">Languages</h4>
+                              <p className="mt-0.5 text-foreground/70">{applicant.languages.join(", ")}</p>
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-primary">Availability</h4>
+                              <p className="mt-0.5 text-foreground/70">{applicant.availability}</p>
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-primary">Email</h4>
+                              <a href={`mailto:${applicant.email}`} className="mt-0.5 block text-secondary hover:underline">
+                                {applicant.email}
+                              </a>
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-primary">All Skills</h4>
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {applicant.skills.map((skill) => (
+                                  <span key={skill} className="inline-flex rounded bg-accent/10 px-1.5 py-0.5 text-xs text-foreground/60">
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {applicant.status !== "rejected" && applicant.status !== "accepted" && (
+                              <button
+                                onClick={() => handleApplicantStatusChange(applicant.id, "rejected")}
+                                className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
+                              >
+                                Decline
+                              </button>
+                            )}
+                            {applicant.status !== "interview_scheduled" && applicant.status !== "accepted" && applicant.status !== "rejected" && (
+                              <button
+                                onClick={() => handleApplicantStatusChange(applicant.id, "interview_scheduled")}
+                                className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100"
+                              >
+                                Request Interview
+                              </button>
+                            )}
+                            {applicant.status !== "accepted" && applicant.status !== "rejected" && (
+                              <button
+                                onClick={() => handleApplicantStatusChange(applicant.id, "accepted")}
+                                className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100"
+                              >
+                                Accept
+                              </button>
+                            )}
+                            {applicant.status === "interview_scheduled" && (
+                              <button
+                                className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-secondary/90"
+                              >
+                                Schedule Interview
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Interviews Panel ─────────────────────────────── */}
+      {activeTab === "interviews" && (
+        <div className="mt-4 rounded-xl border border-accent bg-white p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Interviews</h2>
+
+          {interviewApplicants.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-sm text-foreground/40">No interviews scheduled yet.</p>
+              <p className="mt-1 text-xs text-foreground/30">Request interviews from the Applicants tab.</p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {interviewApplicants.map((applicant) => (
+                <div key={applicant.id} className="flex items-center gap-4 rounded-lg border border-accent p-4">
+                  {/* Avatar */}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-sm font-bold text-secondary">
+                    {getInitials(applicant.name)}
+                  </div>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-primary">{applicant.name}</p>
+                    <p className="text-xs text-foreground/60">{listing.title}</p>
+                    <span className="mt-1 inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+                      Scheduled
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      onClick={() => handleApplicantStatusChange(applicant.id, "accepted")}
+                      className="rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleApplicantStatusChange(applicant.id, "rejected")}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
+                    >
+                      Decline
+                    </button>
+                    <a
+                      href="#"
+                      className="rounded-lg border border-accent bg-white px-3 py-1.5 text-xs font-medium text-foreground/60 transition-colors hover:bg-accent/20"
+                    >
+                      Message
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Filled Positions Panel ───────────────────────── */}
+      {activeTab === "filled" && (
+        <div className="mt-4 rounded-xl border border-accent bg-white p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Filled Positions</h2>
+
+          <div className="mt-4 space-y-3">
+            {/* Assigned workers */}
+            {filledSlots.map((slotId) => {
+              const worker = applicants.find((a) => a.id === slotId);
+              if (!worker) return null;
+              return (
+                <div key={slotId} className="flex items-center gap-4 rounded-lg border border-green-200 bg-green-50/30 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
+                    {getInitials(worker.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-primary">{worker.name}</p>
+                    <p className="text-xs text-foreground/60">{worker.location}</p>
+                    <p className="text-[10px] text-foreground/40">Accepted {worker.appliedAt}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveWorker(slotId)}
+                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
+                  >
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* Empty slots */}
+            {Array.from({ length: Math.max(0, listing.positionsAvailable - filledSlots.length) }).map((_, i) => (
+              <div key={`empty-${i}`} className="relative flex items-center gap-4 rounded-lg border border-dashed border-accent p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-foreground/30">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-foreground/40">Empty Position</p>
+                </div>
+                {assignableApplicants.length > 0 ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowAssignDropdown(showAssignDropdown === true ? false : true)}
+                      className="rounded-lg border border-secondary bg-secondary/5 px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:bg-secondary/10"
+                    >
+                      Assign Worker
+                    </button>
+                    {showAssignDropdown && (
+                      <div className="absolute right-0 top-full z-10 mt-1 w-56 rounded-lg border border-accent bg-white py-1 shadow-lg">
+                        {assignableApplicants.map((a) => (
+                          <button
+                            key={a.id}
+                            onClick={() => handleAssignWorker(a.id)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary hover:bg-accent/10"
+                          >
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary/10 text-[10px] font-bold text-secondary">
+                              {getInitials(a.name)}
+                            </span>
+                            {a.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-xs text-foreground/30">No accepted applicants to assign</span>
+                )}
+              </div>
+            ))}
+
+            {listing.positionsAvailable === 0 && filledSlots.length === 0 && (
+              <p className="py-6 text-center text-sm text-foreground/40">No positions configured for this listing.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Positions */}
       <div className="mt-4 rounded-xl border border-accent bg-white p-5">
