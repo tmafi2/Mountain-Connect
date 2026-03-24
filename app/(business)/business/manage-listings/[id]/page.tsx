@@ -27,6 +27,8 @@ interface ListingDetail {
   language: string;
   visaSponsorship: boolean;
   urgent: boolean;
+  positionsAvailable: number;
+  positionsFilled: number;
   applicants: number;
   interviews: number;
   views: number;
@@ -58,6 +60,8 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: false,
+    positionsAvailable: 5,
+    positionsFilled: 2,
     applicants: 34,
     interviews: 3,
     views: 1240,
@@ -85,6 +89,8 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: true,
+    positionsAvailable: 3,
+    positionsFilled: 1,
     applicants: 12,
     interviews: 1,
     views: 890,
@@ -112,6 +118,8 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: false,
+    positionsAvailable: 4,
+    positionsFilled: 0,
     applicants: 8,
     interviews: 0,
     views: 560,
@@ -139,6 +147,8 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English or French",
     visaSponsorship: false,
     urgent: false,
+    positionsAvailable: 2,
+    positionsFilled: 1,
     applicants: 6,
     interviews: 2,
     views: 420,
@@ -166,6 +176,8 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: false,
+    positionsAvailable: 10,
+    positionsFilled: 5,
     applicants: 22,
     interviews: 5,
     views: 1890,
@@ -187,6 +199,7 @@ export default function ListingDetailPage() {
   const [listing, setListing] = useState(() => demoListings[id] || null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingPositions, setEditingPositions] = useState(false);
   const [editForm, setEditForm] = useState({
     title: listing?.title || "",
     description: listing?.description || "",
@@ -194,6 +207,11 @@ export default function ListingDetailPage() {
     pay: listing?.pay || "",
     startDate: listing?.startDate || "",
     endDate: listing?.endDate || "",
+    housing: listing?.housing || false,
+    housingDetails: listing?.housingDetails || "",
+    skiPass: listing?.skiPass || false,
+    meals: listing?.meals || false,
+    visaSponsorship: listing?.visaSponsorship || false,
   });
 
   if (!listing) {
@@ -234,6 +252,11 @@ export default function ListingDetailPage() {
       pay: editForm.pay,
       startDate: editForm.startDate,
       endDate: editForm.endDate,
+      housing: editForm.housing,
+      housingDetails: editForm.housing ? editForm.housingDetails : null,
+      skiPass: editForm.skiPass,
+      meals: editForm.meals,
+      visaSponsorship: editForm.visaSponsorship,
     });
     setEditing(false);
     setActionLoading(null);
@@ -330,7 +353,7 @@ export default function ListingDetailPage() {
       </div>
 
       {/* Stats */}
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-accent bg-white p-4 text-center">
           <p className="text-2xl font-bold text-primary">{listing.applicants}</p>
           <p className="text-xs uppercase tracking-wider text-foreground/50">Applicants</p>
@@ -343,6 +366,122 @@ export default function ListingDetailPage() {
           <p className="text-2xl font-bold text-primary">{listing.views.toLocaleString()}</p>
           <p className="text-xs uppercase tracking-wider text-foreground/50">Views</p>
         </div>
+        <div className="rounded-xl border border-accent bg-white p-4 text-center">
+          <p className="text-2xl font-bold text-primary">
+            {listing.positionsFilled}/{listing.positionsAvailable}
+          </p>
+          <p className="text-xs uppercase tracking-wider text-foreground/50">Filled</p>
+        </div>
+      </div>
+
+      {/* Positions */}
+      <div className="mt-4 rounded-xl border border-accent bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Positions</h2>
+          <button
+            onClick={() => setEditingPositions(!editingPositions)}
+            className="text-xs font-medium text-secondary hover:underline"
+          >
+            {editingPositions ? "Done" : "Edit"}
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-foreground/60">
+              {listing.positionsFilled} of {listing.positionsAvailable} positions filled
+            </span>
+            <span className="font-medium text-primary">
+              {listing.positionsAvailable - listing.positionsFilled} remaining
+            </span>
+          </div>
+          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-secondary transition-all"
+              style={{
+                width: `${listing.positionsAvailable > 0 ? (listing.positionsFilled / listing.positionsAvailable) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {editingPositions && (
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {/* Positions Available */}
+            <div>
+              <label className="block text-xs font-medium text-foreground/60">Positions Available</label>
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setListing({
+                      ...listing,
+                      positionsAvailable: Math.max(listing.positionsFilled, listing.positionsAvailable - 1),
+                    })
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent bg-white text-sm font-bold text-foreground/60 hover:bg-accent/20"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={listing.positionsAvailable}
+                  onChange={(e) => {
+                    const val = Math.max(listing.positionsFilled, parseInt(e.target.value) || 0);
+                    setListing({ ...listing, positionsAvailable: val });
+                  }}
+                  className="w-16 rounded-lg border border-accent bg-white px-2 py-1.5 text-center text-sm font-medium text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                />
+                <button
+                  onClick={() =>
+                    setListing({ ...listing, positionsAvailable: listing.positionsAvailable + 1 })
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent bg-white text-sm font-bold text-foreground/60 hover:bg-accent/20"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Positions Filled */}
+            <div>
+              <label className="block text-xs font-medium text-foreground/60">Positions Filled</label>
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setListing({
+                      ...listing,
+                      positionsFilled: Math.max(0, listing.positionsFilled - 1),
+                    })
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent bg-white text-sm font-bold text-foreground/60 hover:bg-accent/20"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={listing.positionsFilled}
+                  onChange={(e) => {
+                    const val = Math.min(listing.positionsAvailable, Math.max(0, parseInt(e.target.value) || 0));
+                    setListing({ ...listing, positionsFilled: val });
+                  }}
+                  className="w-16 rounded-lg border border-accent bg-white px-2 py-1.5 text-center text-sm font-medium text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                />
+                <button
+                  onClick={() =>
+                    setListing({
+                      ...listing,
+                      positionsFilled: Math.min(listing.positionsAvailable, listing.positionsFilled + 1),
+                    })
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent bg-white text-sm font-bold text-foreground/60 hover:bg-accent/20"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit mode */}
@@ -406,6 +545,73 @@ export default function ListingDetailPage() {
             </div>
           </div>
 
+          {/* Accommodation & Perks */}
+          <div className="space-y-4 rounded-lg border border-accent bg-accent/5 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Accommodation & Perks</h3>
+
+            {/* Housing Included */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground/60">Housing Included</span>
+              <button
+                type="button"
+                onClick={() => setEditForm({ ...editForm, housing: !editForm.housing })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editForm.housing ? 'bg-secondary' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.housing ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Housing Details (conditional) */}
+            {editForm.housing && (
+              <div>
+                <label className="block text-sm font-medium text-foreground">Housing Details</label>
+                <textarea
+                  value={editForm.housingDetails}
+                  onChange={(e) => setEditForm({ ...editForm, housingDetails: e.target.value })}
+                  rows={3}
+                  placeholder="Describe the housing arrangement, cost, location, amenities..."
+                  className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder:text-foreground/30 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                />
+              </div>
+            )}
+
+            {/* Ski Pass */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground/60">Ski Pass</span>
+              <button
+                type="button"
+                onClick={() => setEditForm({ ...editForm, skiPass: !editForm.skiPass })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editForm.skiPass ? 'bg-secondary' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.skiPass ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Meals */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground/60">Meals</span>
+              <button
+                type="button"
+                onClick={() => setEditForm({ ...editForm, meals: !editForm.meals })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editForm.meals ? 'bg-secondary' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.meals ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Visa Sponsorship */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground/60">Visa Sponsorship</span>
+              <button
+                type="button"
+                onClick={() => setEditForm({ ...editForm, visaSponsorship: !editForm.visaSponsorship })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editForm.visaSponsorship ? 'bg-secondary' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.visaSponsorship ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button
               onClick={handleSaveEdit}
@@ -424,6 +630,11 @@ export default function ListingDetailPage() {
                   pay: listing.pay,
                   startDate: listing.startDate,
                   endDate: listing.endDate,
+                  housing: listing.housing,
+                  housingDetails: listing.housingDetails || "",
+                  skiPass: listing.skiPass,
+                  meals: listing.meals,
+                  visaSponsorship: listing.visaSponsorship,
                 });
               }}
               className="rounded-lg border border-accent bg-white px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"

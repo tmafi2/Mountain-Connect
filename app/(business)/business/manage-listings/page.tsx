@@ -334,17 +334,61 @@ export default function ManageListingsPage() {
   const [selectedApplicant, setSelectedApplicant] = useState<string | null>(null);
   const [applicants, setApplicants] = useState(demoApplicants);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [applicantSort, setApplicantSort] = useState<"newest" | "oldest" | "experience" | "name">("newest");
+  const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
 
-  const filtered = filter === "all" ? demoListings : demoListings.filter((l) => l.status === filter);
+  const query = searchQuery.toLowerCase().trim();
+
+  const searchFiltered = demoListings.filter((listing) => {
+    if (!query) return true;
+    const listingApplicants = applicants.filter((a) => a.jobId === listing.id);
+    return (
+      listing.title.toLowerCase().includes(query) ||
+      listing.resort.toLowerCase().includes(query) ||
+      listing.location.toLowerCase().includes(query) ||
+      listingApplicants.some((a) => a.name.toLowerCase().includes(query))
+    );
+  });
+
+  const filtered = filter === "all" ? searchFiltered : searchFiltered.filter((l) => l.status === filter);
 
   const counts = {
-    all: demoListings.length,
-    active: demoListings.filter((l) => l.status === "active").length,
-    paused: demoListings.filter((l) => l.status === "paused").length,
-    closed: demoListings.filter((l) => l.status === "closed").length,
+    all: searchFiltered.length,
+    active: searchFiltered.filter((l) => l.status === "active").length,
+    paused: searchFiltered.filter((l) => l.status === "paused").length,
+    closed: searchFiltered.filter((l) => l.status === "closed").length,
   };
 
-  const getApplicantsForJob = (jobId: string) => applicants.filter((a) => a.jobId === jobId);
+  const getApplicantsForJob = (jobId: string) => {
+    let result = applicants.filter((a) => a.jobId === jobId);
+
+    // Apply status filter
+    if (applicantStatusFilter !== "all") {
+      result = result.filter((a) => a.status === applicantStatusFilter);
+    }
+
+    // Apply sort
+    result = [...result].sort((a, b) => {
+      switch (applicantSort) {
+        case "newest":
+          return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+        case "oldest":
+          return new Date(a.appliedAt).getTime() - new Date(b.appliedAt).getTime();
+        case "experience":
+          return b.experience - a.experience;
+        case "name":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  };
+
+  // Unfiltered count for the applicant toolbar
+  const getRawApplicantsForJob = (jobId: string) => applicants.filter((a) => a.jobId === jobId);
 
   const handleStatusChange = async (applicantId: string, newStatus: ApplicantStatus) => {
     setActionLoading(applicantId + newStatus);
@@ -358,6 +402,8 @@ export default function ManageListingsPage() {
   const toggleListing = (id: string) => {
     setExpandedListing(expandedListing === id ? null : id);
     setSelectedApplicant(null);
+    setApplicantSort("newest");
+    setApplicantStatusFilter("all");
   };
 
   const activeApplicant = applicants.find((a) => a.id === selectedApplicant);
@@ -379,8 +425,21 @@ export default function ManageListingsPage() {
         </Link>
       </div>
 
+      {/* Search bar */}
+      <div className="relative mt-6">
+        <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search listings, resorts, applicants..."
+          className="w-full rounded-lg border border-accent bg-white py-2.5 pl-10 pr-4 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        />
+      </div>
+
       {/* Filter tabs */}
-      <div className="mt-6 flex gap-2">
+      <div className="mt-4 flex gap-2">
         {(["all", "active", "paused", "closed"] as FilterTab[]).map((tab) => (
           <button
             key={tab}
@@ -402,6 +461,7 @@ export default function ManageListingsPage() {
           const style = LISTING_STATUS_STYLES[listing.status];
           const isExpanded = expandedListing === listing.id;
           const jobApplicants = getApplicantsForJob(listing.id);
+          const rawJobApplicants = getRawApplicantsForJob(listing.id);
 
           return (
             <div key={listing.id} className="rounded-xl border border-accent bg-white overflow-hidden">
@@ -437,7 +497,7 @@ export default function ManageListingsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-foreground/50">
-                      {jobApplicants.length} applicant{jobApplicants.length !== 1 ? "s" : ""}
+                      {rawJobApplicants.length} applicant{rawJobApplicants.length !== 1 ? "s" : ""}
                     </span>
                     <svg
                       className={`h-5 w-5 text-foreground/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -467,7 +527,7 @@ export default function ManageListingsPage() {
               {/* Expanded: applicant list + detail */}
               {isExpanded && (
                 <div className="border-t border-accent">
-                  {jobApplicants.length === 0 ? (
+                  {rawJobApplicants.length === 0 ? (
                     <div className="p-8 text-center">
                       <p className="text-sm text-foreground/50">No applicants yet for this listing.</p>
                     </div>
@@ -475,12 +535,57 @@ export default function ManageListingsPage() {
                     <div className="flex">
                       {/* Applicant list */}
                       <div className={`border-r border-accent ${selectedApplicant ? "w-2/5" : "w-full"}`}>
-                        <div className="px-4 py-3 border-b border-accent/50 bg-accent/5">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                            Applicants ({jobApplicants.length})
-                          </p>
+                        <div className="px-4 py-3 border-b border-accent/50 bg-accent/5 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                              Applicants ({jobApplicants.length}{applicantStatusFilter !== "all" ? ` of ${rawJobApplicants.length}` : ""})
+                            </p>
+                            <select
+                              value={applicantSort}
+                              onChange={(e) => setApplicantSort(e.target.value as typeof applicantSort)}
+                              className="rounded-md border border-accent bg-white px-2 py-1 text-xs text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                            >
+                              <option value="newest">Newest First</option>
+                              <option value="oldest">Oldest First</option>
+                              <option value="experience">Most Experience</option>
+                              <option value="name">Name A-Z</option>
+                            </select>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(
+                              [
+                                { value: "all", label: "All" },
+                                { value: "pending", label: "Pending" },
+                                { value: "reviewed", label: "Reviewed" },
+                                { value: "interview_scheduled", label: "Interview" },
+                                { value: "accepted", label: "Accepted" },
+                                { value: "rejected", label: "Declined" },
+                              ] as const
+                            ).map((pill) => (
+                              <button
+                                key={pill.value}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setApplicantStatusFilter(pill.value);
+                                  setSelectedApplicant(null);
+                                }}
+                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                  applicantStatusFilter === pill.value
+                                    ? "bg-secondary text-white"
+                                    : "bg-white border border-accent text-foreground/60 hover:bg-accent/20"
+                                }`}
+                              >
+                                {pill.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                         <div className="divide-y divide-accent/50">
+                          {jobApplicants.length === 0 && (
+                            <div className="px-4 py-6 text-center">
+                              <p className="text-sm text-foreground/50">No applicants match this filter.</p>
+                            </div>
+                          )}
                           {jobApplicants.map((applicant) => {
                             const aStyle = APPLICANT_STATUS_STYLES[applicant.status];
                             const isSelected = selectedApplicant === applicant.id;

@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function BusinessDashboard() {
+  const router = useRouter();
   const [userName, setUserName] = useState("");
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (
@@ -66,6 +69,24 @@ export default function BusinessDashboard() {
       <p className="mt-1 text-sm text-foreground/60">
         Manage your job listings and review applicants.
       </p>
+
+      {/* Search bar */}
+      <div className="relative mt-6">
+        <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && searchQuery.trim()) {
+              router.push(`/business/manage-listings?search=${encodeURIComponent(searchQuery.trim())}`);
+            }
+          }}
+          placeholder="Search listings, applicants, resorts..."
+          className="w-full rounded-xl border border-accent bg-white py-3 pl-10 pr-4 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        />
+      </div>
 
       {/* Stats row */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
