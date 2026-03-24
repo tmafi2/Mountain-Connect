@@ -1,5 +1,5 @@
 export type UserRole = "worker" | "business_owner";
-export type ApplicationStatus = "pending" | "reviewed" | "accepted" | "rejected" | "interview_scheduled";
+export type ApplicationStatus = "new" | "viewed" | "interview_pending" | "interview" | "offered" | "accepted" | "rejected";
 export type VisaStatus = "citizen" | "permanent_resident" | "working_holiday" | "work_visa" | "student_visa" | "no_visa" | "other";
 export type SeasonPreference = "northern_winter" | "southern_winter" | "both" | "year_round";
 export type HousingPreference = "staff_housing" | "private_rental" | "shared_rental" | "van_vehicle" | "no_preference";

@@ -3,21 +3,41 @@
 import { useState, useMemo } from "react";
 import { seedApplicants, type SeedApplicant } from "@/lib/data/applications";
 import ApplicantCard from "@/components/ui/ApplicantCard";
+import type { ApplicationStatus } from "@/types/database";
 
-type FilterStatus = "all" | "pending" | "reviewed" | "interview_scheduled" | "accepted" | "rejected";
+type FilterStatus = "all" | ApplicationStatus;
 
 export default function ApplicantsPage() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
+
+  // Get unique listings for the dropdown
+  const listings = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of seedApplicants) {
+      if (!map.has(a.job_id)) {
+        map.set(a.job_id, a.job_title);
+      }
+    }
+    return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
+  }, []);
 
   const filtered = useMemo(() => {
     let results: SeedApplicant[] = seedApplicants;
 
+    // Filter by listing
+    if (listingFilter !== "all") {
+      results = results.filter((a) => a.job_id === listingFilter);
+    }
+
+    // Filter by status
     if (filter !== "all") {
       results = results.filter((a) => a.status === filter);
     }
 
+    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       results = results.filter(
@@ -30,32 +50,48 @@ export default function ApplicantsPage() {
     }
 
     return results;
-  }, [filter, searchQuery]);
+  }, [filter, searchQuery, listingFilter]);
 
   const handleInvite = async (applicationId: string) => {
     setInvitingId(applicationId);
-    // In production this would call /api/interviews/invite
-    // For demo purposes, simulate a delay
     await new Promise((r) => setTimeout(r, 1000));
     setInvitingId(null);
     alert(`Interview invitation sent for application ${applicationId}! (Demo mode — in production this calls the invite API)`);
   };
 
+  // Count applicants per status (respecting listing filter)
   const counts = useMemo(() => {
-    const c = { all: seedApplicants.length, pending: 0, reviewed: 0, interview_scheduled: 0, accepted: 0, rejected: 0 };
-    for (const a of seedApplicants) {
-      c[a.status as keyof typeof c]++;
+    const base = listingFilter === "all"
+      ? seedApplicants
+      : seedApplicants.filter((a) => a.job_id === listingFilter);
+
+    const c = {
+      all: base.length,
+      new: 0,
+      viewed: 0,
+      interview_pending: 0,
+      interview: 0,
+      offered: 0,
+      accepted: 0,
+      rejected: 0,
+    };
+    for (const a of base) {
+      if (a.status in c) {
+        c[a.status as keyof typeof c]++;
+      }
     }
     return c;
-  }, []);
+  }, [listingFilter]);
 
-  const FILTERS: { value: FilterStatus; label: string }[] = [
-    { value: "all", label: `All (${counts.all})` },
-    { value: "pending", label: `Pending (${counts.pending})` },
-    { value: "reviewed", label: `Reviewed (${counts.reviewed})` },
-    { value: "interview_scheduled", label: `Interview (${counts.interview_scheduled})` },
-    { value: "accepted", label: `Accepted (${counts.accepted})` },
-    { value: "rejected", label: `Rejected (${counts.rejected})` },
+  const FILTERS: { value: FilterStatus; label: string; color: string }[] = [
+    { value: "all", label: "All", color: "" },
+    { value: "new", label: "New", color: "bg-blue-50 text-blue-700" },
+    { value: "viewed", label: "Viewed", color: "bg-sky-50 text-sky-700" },
+    { value: "interview_pending", label: "Interview Pending", color: "bg-yellow-50 text-yellow-700" },
+    { value: "interview", label: "Interview", color: "bg-purple-50 text-purple-700" },
+    { value: "offered", label: "Offered / Contract Sent", color: "bg-orange-50 text-orange-700" },
+    { value: "accepted", label: "Accepted", color: "bg-green-50 text-green-700" },
+    { value: "rejected", label: "Rejected", color: "bg-red-50 text-red-700" },
   ];
 
   return (
@@ -65,31 +101,57 @@ export default function ApplicantsPage() {
         Review and manage applications across all your job listings.
       </p>
 
-      {/* Search + Filters */}
-      <div className="mt-6 space-y-4">
-        <input
-          type="text"
-          placeholder="Search by name, job, resort, or skill…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-        />
+      {/* Search + Listing Filter */}
+      <div className="mt-6 flex gap-3">
+        <div className="relative flex-1">
+          <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by name, job, resort, or skill…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-accent bg-white py-2.5 pl-10 pr-4 text-sm text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+          />
+        </div>
+        <select
+          value={listingFilter}
+          onChange={(e) => setListingFilter(e.target.value)}
+          className="rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        >
+          <option value="all">All Listings</option>
+          {listings.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.title}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        <div className="flex flex-wrap gap-2">
-          {FILTERS.map((f) => (
+      {/* Status filter tabs */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {FILTERS.map((f) => {
+          const count = counts[f.value as keyof typeof counts] ?? 0;
+          const isActive = filter === f.value;
+
+          return (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                filter === f.value
+                isActive
                   ? "bg-primary text-white"
-                  : "bg-accent/20 text-foreground/70 hover:bg-accent/40"
+                  : "border border-accent bg-white text-foreground/70 hover:bg-accent/20"
               }`}
             >
               {f.label}
+              <span className={`ml-1.5 ${isActive ? "text-white/70" : "text-foreground/40"}`}>
+                {count}
+              </span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       {/* Results */}
@@ -101,14 +163,22 @@ export default function ApplicantsPage() {
             </p>
           </div>
         ) : (
-          filtered.map((applicant) => (
-            <ApplicantCard
-              key={applicant.application_id}
-              applicant={applicant}
-              onInvite={handleInvite}
-              inviting={invitingId === applicant.application_id}
-            />
-          ))
+          <>
+            <p className="text-xs text-foreground/40">
+              Showing {filtered.length} applicant{filtered.length !== 1 ? "s" : ""}
+              {listingFilter !== "all" && (
+                <> for <span className="font-medium text-foreground/60">{listings.find((l) => l.id === listingFilter)?.title}</span></>
+              )}
+            </p>
+            {filtered.map((applicant) => (
+              <ApplicantCard
+                key={applicant.application_id}
+                applicant={applicant}
+                onInvite={handleInvite}
+                inviting={invitingId === applicant.application_id}
+              />
+            ))}
+          </>
         )}
       </div>
     </div>

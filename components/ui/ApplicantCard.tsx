@@ -9,9 +9,11 @@ interface ApplicantCardProps {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending" },
-  reviewed: { bg: "bg-blue-50", text: "text-blue-700", label: "Reviewed" },
-  interview_scheduled: { bg: "bg-purple-50", text: "text-purple-700", label: "Interview" },
+  new: { bg: "bg-blue-50", text: "text-blue-700", label: "New" },
+  viewed: { bg: "bg-sky-50", text: "text-sky-700", label: "Viewed" },
+  interview_pending: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Interview Pending" },
+  interview: { bg: "bg-purple-50", text: "text-purple-700", label: "Interview" },
+  offered: { bg: "bg-orange-50", text: "text-orange-700", label: "Offered" },
   accepted: { bg: "bg-green-50", text: "text-green-700", label: "Accepted" },
   rejected: { bg: "bg-red-50", text: "text-red-700", label: "Rejected" },
 };
@@ -39,7 +41,7 @@ export default function ApplicantCard({
     .toUpperCase();
 
   const canInvite =
-    applicant.status === "pending" || applicant.status === "reviewed";
+    applicant.status === "new" || applicant.status === "viewed";
 
   return (
     <div className="rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary/50 hover:shadow-sm">
@@ -105,7 +107,7 @@ export default function ApplicantCard({
                   {inviting ? "Inviting…" : "Invite to Interview"}
                 </button>
               )}
-              {applicant.interview_status === "scheduled" && (
+              {applicant.status === "interview" && (
                 <span className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700">
                   <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -113,9 +115,9 @@ export default function ApplicantCard({
                   Interview Scheduled
                 </span>
               )}
-              {applicant.interview_status === "completed" && (
-                <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700">
-                  Interview Complete
+              {applicant.status === "offered" && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700">
+                  Contract Sent
                 </span>
               )}
             </div>

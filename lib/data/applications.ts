@@ -14,7 +14,6 @@ export interface SeedApplicant {
   years_experience: number;
   status: ApplicationStatus;
   applied_at: string;
-  interview_status?: "invited" | "scheduled" | "completed" | "cancelled" | null;
 }
 
 export const seedApplicants: SeedApplicant[] = [
@@ -30,7 +29,7 @@ export const seedApplicants: SeedApplicant[] = [
     worker_location: "Stockholm, Sweden",
     worker_skills: ["CSIA Level 3", "First Aid", "Swedish", "English", "French"],
     years_experience: 5,
-    status: "pending",
+    status: "new",
     applied_at: "2026-03-10T14:30:00Z",
   },
   {
@@ -45,7 +44,7 @@ export const seedApplicants: SeedApplicant[] = [
     worker_location: "Innsbruck, Austria",
     worker_skills: ["CSIA Level 2", "Avalanche Safety", "German", "English"],
     years_experience: 3,
-    status: "reviewed",
+    status: "viewed",
     applied_at: "2026-03-08T09:15:00Z",
   },
   {
@@ -60,7 +59,7 @@ export const seedApplicants: SeedApplicant[] = [
     worker_location: "Melbourne, Australia",
     worker_skills: ["RSA Certified", "Cocktail Making", "English", "Mandarin"],
     years_experience: 4,
-    status: "pending",
+    status: "new",
     applied_at: "2026-03-12T18:45:00Z",
   },
   {
@@ -75,9 +74,8 @@ export const seedApplicants: SeedApplicant[] = [
     worker_location: "Queenstown, New Zealand",
     worker_skills: ["First Aid", "Customer Service", "English"],
     years_experience: 2,
-    status: "interview_scheduled",
+    status: "interview",
     applied_at: "2026-03-05T11:20:00Z",
-    interview_status: "scheduled",
   },
   {
     id: "w5",
@@ -93,7 +91,6 @@ export const seedApplicants: SeedApplicant[] = [
     years_experience: 7,
     status: "accepted",
     applied_at: "2026-03-01T08:00:00Z",
-    interview_status: "completed",
   },
   {
     id: "w6",
@@ -107,7 +104,7 @@ export const seedApplicants: SeedApplicant[] = [
     worker_location: "Niseko, Japan",
     worker_skills: ["Customer Service", "Japanese", "English", "Hospitality"],
     years_experience: 3,
-    status: "pending",
+    status: "interview_pending",
     applied_at: "2026-03-14T06:30:00Z",
   },
   {
@@ -122,7 +119,7 @@ export const seedApplicants: SeedApplicant[] = [
     worker_location: "Oslo, Norway",
     worker_skills: ["CASI Level 2", "Park Instruction", "Norwegian", "English"],
     years_experience: 4,
-    status: "reviewed",
+    status: "offered",
     applied_at: "2026-03-09T15:00:00Z",
   },
   {
