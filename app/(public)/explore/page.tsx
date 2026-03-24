@@ -188,8 +188,11 @@ export default function ExplorePage() {
     const vd = VERTICAL_DROP_OPTIONS[verticalDropFilter];
     const rn = RUNS_OPTIONS[runsFilter];
 
+    // When searching, show results across all continents regardless of filter
+    const effectiveContinentFilter = searchQuery ? "All" : continentFilter;
+
     return regionHierarchy
-      .filter((continent) => continentFilter === "All" || continent.name === continentFilter)
+      .filter((continent) => effectiveContinentFilter === "All" || continent.name === effectiveContinentFilter)
       .map((continent) => ({
         ...continent,
         countries: continent.countries
@@ -343,7 +346,7 @@ export default function ExplorePage() {
             />
             {searchQuery && (
               <button
-                onClick={() => { setSearchQuery(""); setContinentFilter("All"); }}
+                onClick={() => { setSearchQuery(""); }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

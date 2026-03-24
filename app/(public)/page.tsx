@@ -130,7 +130,7 @@ export default function HomePage() {
           </div>
 
           <h1
-            className={`max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-white md:text-7xl lg:text-8xl transition-all duration-[1500ms] delay-200 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+            className={`max-w-4xl text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-7xl lg:text-8xl transition-all duration-[1500ms] delay-200 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
           >
             Find Your Season
             <br />
@@ -367,39 +367,67 @@ export default function HomePage() {
             {/* Right — Image stack */}
             <div className="animate-on-scroll-right relative">
               <div className="relative mx-auto max-w-md">
-                {/* Back card */}
-                <div
-                  className="absolute -right-4 -top-4 h-72 w-full rounded-2xl shadow-xl overflow-hidden"
-                  style={{ transform: `translateY(${scrollY * 0.02}px)` }}
-                >
-                  <Image
-                    src="https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600&q=80"
-                    alt="Ski resort village"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                {/* Front card */}
-                <div
-                  className="relative z-10 mt-8 ml-4 h-72 w-full rounded-2xl shadow-2xl overflow-hidden"
-                  style={{ transform: `translateY(${scrollY * -0.02}px)` }}
-                >
-                  <Image
-                    src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"
-                    alt="Mountain panorama"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                {/* Floating badge */}
-                <div className="absolute -left-6 bottom-4 z-20 rounded-xl bg-white p-4 shadow-xl animate-float">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/10">
-                      <span className="text-lg">🏔️</span>
+                {/* Mobile: Single clean image */}
+                <div className="block lg:hidden">
+                  <div className="relative h-64 w-full overflow-hidden rounded-2xl shadow-xl sm:h-72">
+                    <Image
+                      src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"
+                      alt="Mountain panorama"
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent" />
+                  </div>
+                  {/* Floating badge — mobile */}
+                  <div className="absolute -bottom-4 left-4 z-20 rounded-xl bg-white p-3 shadow-xl sm:p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10 sm:h-10 sm:w-10">
+                        <span className="text-base sm:text-lg">🏔️</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-primary">50+ Resorts</p>
+                        <p className="text-xs text-foreground/50">12 Countries</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-primary">50+ Resorts</p>
-                      <p className="text-xs text-foreground/50">12 Countries</p>
+                  </div>
+                </div>
+
+                {/* Desktop: Parallax stacked cards */}
+                <div className="hidden lg:block">
+                  {/* Back card */}
+                  <div
+                    className="absolute -right-4 -top-4 h-72 w-full rounded-2xl shadow-xl overflow-hidden"
+                    style={{ transform: `translateY(${scrollY * 0.02}px)` }}
+                  >
+                    <Image
+                      src="https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600&q=80"
+                      alt="Ski resort village"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  {/* Front card */}
+                  <div
+                    className="relative z-10 mt-8 ml-4 h-72 w-full rounded-2xl shadow-2xl overflow-hidden"
+                    style={{ transform: `translateY(${scrollY * -0.02}px)` }}
+                  >
+                    <Image
+                      src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"
+                      alt="Mountain panorama"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  {/* Floating badge — desktop */}
+                  <div className="absolute -left-6 bottom-4 z-20 rounded-xl bg-white p-4 shadow-xl animate-float">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/10">
+                        <span className="text-lg">🏔️</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-primary">50+ Resorts</p>
+                        <p className="text-xs text-foreground/50">12 Countries</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -416,7 +444,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
             {/* Left — Cards */}
             <div className="animate-on-scroll-left order-2 lg:order-1">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
                   { icon: "📋", title: "Post Jobs", desc: "Create detailed listings in minutes" },
                   { icon: "✅", title: "Get Verified", desc: "Build trust with job seekers" },
