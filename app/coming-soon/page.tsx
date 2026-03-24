@@ -3,22 +3,24 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import Image from "next/image";
 
-/* ── Waitlist Counter Hook ─────────────────────────────────── */
+/* ── Waitlist Counter Hook — fetches real count from API ───── */
 function useWaitlistCounter(start = 1247) {
   const [count, setCount] = useState(start);
 
   useEffect(() => {
-    const stored = localStorage.getItem("mc-waitlist-count");
-    if (stored) setCount(parseInt(stored, 10));
-  }, []);
+    // Fetch real count on load
+    fetch("/api/waitlist")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.count && data.count > 0) setCount(data.count + start);
+      })
+      .catch(() => {});
+  }, [start]);
 
+  // Simulate slow growth for social proof
   useEffect(() => {
     const interval = setInterval(() => {
-      setCount((prev) => {
-        const next = prev + Math.floor(Math.random() * 3) + 1;
-        localStorage.setItem("mc-waitlist-count", String(next));
-        return next;
-      });
+      setCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
     }, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -66,26 +68,72 @@ const inputClassHero =
 const inputClassCard =
   "w-full rounded-xl border border-gray-200/80 bg-white px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 transition-all focus:border-[#3b9ede] focus:ring-2 focus:ring-[#3b9ede]/20";
 
-/* ── Success Message ───────────────────────────────────────── */
-function SuccessMessage({ variant }: { variant: "hero" | "card" }) {
+/* ── Success Message with "Add Another" ───────────────────── */
+function SuccessMessage({
+  variant,
+  onAddAnother,
+}: {
+  variant: "hero" | "card";
+  onAddAnother: () => void;
+}) {
   return (
-    <div
-      className={`flex items-center gap-3 rounded-2xl border px-6 py-4 ${
-        variant === "hero"
-          ? "border-white/20 bg-white/10 backdrop-blur-lg"
-          : "border-green-200 bg-green-50"
-      }`}
-    >
-      <span className="text-2xl">🏔️</span>
-      <p
-        className={`text-sm font-medium ${
-          variant === "hero" ? "text-white" : "text-green-800"
+    <div className="space-y-4">
+      <div
+        className={`flex items-center gap-3 rounded-2xl border px-6 py-4 ${
+          variant === "hero"
+            ? "border-white/20 bg-white/10 backdrop-blur-lg"
+            : "border-green-200 bg-green-50"
         }`}
       >
-        You&apos;re on the list! We&apos;ll be in touch before launch.
-      </p>
+        <span className="text-2xl">🏔️</span>
+        <p
+          className={`text-sm font-medium ${
+            variant === "hero" ? "text-white" : "text-green-800"
+          }`}
+        >
+          You&apos;re on the list! We&apos;ll be in touch before launch.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onAddAnother}
+        className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-all ${
+          variant === "hero"
+            ? "border-white/20 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white backdrop-blur-sm"
+            : "border-gray-200 bg-white text-gray-600 hover:border-[#3b9ede]/40 hover:text-[#3b9ede]"
+        }`}
+      >
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 4.5v15m7.5-7.5h-15"
+          />
+        </svg>
+        Sign up another person
+      </button>
     </div>
   );
+}
+
+/* ── API submit helper ──────────────────────────────────────── */
+async function submitToWaitlist(data: Record<string, string>) {
+  const res = await fetch("/api/waitlist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.error || "Something went wrong");
+  }
+  return json;
 }
 
 /* ── Hero Signup Form (with Worker / Business toggle) ──────── */
@@ -96,14 +144,19 @@ function HeroSignupForm() {
   const [country, setCountry] = useState("");
   const [resort, setResort] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("mc-waitlist-email");
-    if (stored) setSubmitted(true);
-  }, []);
+  const resetForm = () => {
+    setEmail("");
+    setBusinessName("");
+    setCountry("");
+    setResort("");
+    setError("");
+    setSubmitted(false);
+  };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -118,20 +171,25 @@ function HeroSignupForm() {
       if (!resort.trim()) { setError("Please enter your resort"); return; }
     }
 
-    const entry = role === "worker"
-      ? { type: "worker", email, timestamp: new Date().toISOString() }
-      : { type: "business", email, businessName, country, resort, timestamp: new Date().toISOString() };
-
-    const key = role === "worker" ? "mc-waitlist-workers" : "mc-waitlist-businesses";
-    const existing = JSON.parse(localStorage.getItem(key) || "[]");
-    existing.push(entry);
-    localStorage.setItem(key, JSON.stringify(existing));
-    localStorage.setItem("mc-waitlist-email", email);
-
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      const data: Record<string, string> = { type: role, email };
+      if (role === "business") {
+        data.business_name = businessName;
+        data.country = country;
+        data.resort = resort;
+      }
+      await submitToWaitlist(data);
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (submitted) return <SuccessMessage variant="hero" />;
+  if (submitted) return <SuccessMessage variant="hero" onAddAnother={resetForm} />;
 
   return (
     <div className="w-full max-w-lg">
@@ -201,9 +259,20 @@ function HeroSignupForm() {
           />
           <button
             type="submit"
-            className="shrink-0 rounded-xl bg-gradient-to-r from-[#3b9ede] to-[#22d3ee] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#3b9ede]/30 transition-all hover:shadow-xl hover:shadow-[#3b9ede]/40 hover:brightness-110 active:scale-[0.98]"
+            disabled={submitting}
+            className="shrink-0 rounded-xl bg-gradient-to-r from-[#3b9ede] to-[#22d3ee] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#3b9ede]/30 transition-all hover:shadow-xl hover:shadow-[#3b9ede]/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
           >
-            Join Waitlist
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Joining...
+              </span>
+            ) : (
+              "Join Waitlist"
+            )}
           </button>
         </div>
 
@@ -217,27 +286,34 @@ function HeroSignupForm() {
 function WorkerCardForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("mc-waitlist-email");
-    if (stored) setSubmitted(true);
-  }, []);
+  const resetForm = () => {
+    setEmail("");
+    setError("");
+    setSubmitted(false);
+  };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) { setError("Please enter a valid email address"); return; }
 
-    const existing = JSON.parse(localStorage.getItem("mc-waitlist-workers") || "[]");
-    existing.push({ type: "worker", email, timestamp: new Date().toISOString() });
-    localStorage.setItem("mc-waitlist-workers", JSON.stringify(existing));
-    localStorage.setItem("mc-waitlist-email", email);
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      await submitToWaitlist({ type: "worker", email });
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (submitted) return <SuccessMessage variant="card" />;
+  if (submitted) return <SuccessMessage variant="card" onAddAnother={resetForm} />;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -251,9 +327,10 @@ function WorkerCardForm() {
         />
         <button
           type="submit"
-          className="shrink-0 rounded-xl bg-gradient-to-r from-[#3b9ede] to-[#22d3ee] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#3b9ede]/30 transition-all hover:shadow-xl hover:shadow-[#3b9ede]/40 hover:brightness-110 active:scale-[0.98]"
+          disabled={submitting}
+          className="shrink-0 rounded-xl bg-gradient-to-r from-[#3b9ede] to-[#22d3ee] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#3b9ede]/30 transition-all hover:shadow-xl hover:shadow-[#3b9ede]/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
-          Join Waitlist
+          {submitting ? "Joining..." : "Join Waitlist"}
         </button>
       </div>
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
@@ -268,14 +345,19 @@ function BusinessCardForm() {
   const [country, setCountry] = useState("");
   const [resort, setResort] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("mc-waitlist-email");
-    if (stored) setSubmitted(true);
-  }, []);
+  const resetForm = () => {
+    setEmail("");
+    setBusinessName("");
+    setCountry("");
+    setResort("");
+    setError("");
+    setSubmitted(false);
+  };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     if (!businessName.trim()) { setError("Please enter your business name"); return; }
@@ -284,14 +366,25 @@ function BusinessCardForm() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) { setError("Please enter a valid email address"); return; }
 
-    const existing = JSON.parse(localStorage.getItem("mc-waitlist-businesses") || "[]");
-    existing.push({ type: "business", email, businessName, country, resort, timestamp: new Date().toISOString() });
-    localStorage.setItem("mc-waitlist-businesses", JSON.stringify(existing));
-    localStorage.setItem("mc-waitlist-email", email);
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      await submitToWaitlist({
+        type: "business",
+        email,
+        business_name: businessName,
+        country,
+        resort,
+      });
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (submitted) return <SuccessMessage variant="card" />;
+  if (submitted) return <SuccessMessage variant="card" onAddAnother={resetForm} />;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -328,9 +421,10 @@ function BusinessCardForm() {
         />
         <button
           type="submit"
-          className="shrink-0 rounded-xl bg-gradient-to-r from-[#3b9ede] to-[#22d3ee] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#3b9ede]/30 transition-all hover:shadow-xl hover:shadow-[#3b9ede]/40 hover:brightness-110 active:scale-[0.98]"
+          disabled={submitting}
+          className="shrink-0 rounded-xl bg-gradient-to-r from-[#3b9ede] to-[#22d3ee] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#3b9ede]/30 transition-all hover:shadow-xl hover:shadow-[#3b9ede]/40 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
-          Join Waitlist
+          {submitting ? "Joining..." : "Join Waitlist"}
         </button>
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
