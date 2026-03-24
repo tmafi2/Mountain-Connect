@@ -8,12 +8,24 @@ export interface SeedApplicant {
   resort_name: string;
   worker_name: string;
   worker_email: string;
+  worker_phone: string;
   worker_avatar: string | null;
   worker_location: string;
   worker_skills: string[];
   years_experience: number;
   status: ApplicationStatus;
   applied_at: string;
+  // Profile / Application details
+  cover_letter: string;
+  languages: string[];
+  availability: string;
+  bio: string;
+  certifications: string[];
+  work_history: { role: string; company: string; period: string }[];
+  education: string;
+  visa_status: string;
+  date_of_birth: string;
+  nationality: string;
 }
 
 export const seedApplicants: SeedApplicant[] = [
@@ -25,12 +37,27 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Whistler Blackcomb",
     worker_name: "Emma Johansson",
     worker_email: "emma.j@example.com",
+    worker_phone: "+46 70 123 4567",
     worker_avatar: null,
     worker_location: "Stockholm, Sweden",
     worker_skills: ["CSIA Level 3", "First Aid", "Swedish", "English", "French"],
     years_experience: 5,
     status: "new",
     applied_at: "2026-03-10T14:30:00Z",
+    cover_letter: "I've been teaching skiing for 5 seasons across Sweden and Canada. I hold a CSIA Level 3 certification and I'm passionate about helping beginners discover the joy of skiing. I'm fluent in three languages which helps me connect with international guests. I'm available for the full season and excited about the opportunity at Whistler Blackcomb.",
+    languages: ["Swedish", "English", "French"],
+    availability: "Nov 2025 – Apr 2026 (full season)",
+    bio: "Passionate ski instructor from Stockholm with a love for backcountry skiing and teaching. When I'm not on the slopes, you'll find me hiking, photographing Nordic landscapes, or volunteering with youth outdoor programs.",
+    certifications: ["CSIA Level 3", "Wilderness First Aid", "Avalanche Safety Level 1"],
+    work_history: [
+      { role: "Ski Instructor", company: "Åre Ski School, Sweden", period: "2023 – 2025" },
+      { role: "Ski Instructor", company: "Lake Louise Ski Resort, Canada", period: "2022 – 2023" },
+      { role: "Junior Instructor", company: "Hemavan Ski School, Sweden", period: "2021 – 2022" },
+    ],
+    education: "BSc Sport Science — Stockholm University (2021)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "1999-04-12",
+    nationality: "Swedish",
   },
   {
     id: "w2",
@@ -40,12 +67,27 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Whistler Blackcomb",
     worker_name: "Lucas Müller",
     worker_email: "lucas.m@example.com",
+    worker_phone: "+43 664 987 6543",
     worker_avatar: null,
     worker_location: "Innsbruck, Austria",
     worker_skills: ["CSIA Level 2", "Avalanche Safety", "German", "English"],
     years_experience: 3,
     status: "viewed",
     applied_at: "2026-03-08T09:15:00Z",
+    cover_letter: "Coming from the Austrian Alps, I bring 3 seasons of instruction experience with a specialty in intermediate to advanced technique. I also hold an Avalanche Safety certification. I'm looking to broaden my experience internationally and Whistler would be the perfect fit.",
+    languages: ["German", "English"],
+    availability: "Dec 2025 – Apr 2026",
+    bio: "Austrian-born skier who grew up racing gates in the Stubai Valley. I transitioned into instruction after university and haven't looked back. I specialise in technique refinement for intermediate skiers and love off-piste guiding.",
+    certifications: ["CSIA Level 2", "Austrian Ski Instructor Anwärter", "Avalanche Safety Level 2"],
+    work_history: [
+      { role: "Ski Instructor", company: "Stubai Glacier Ski School, Austria", period: "2024 – 2025" },
+      { role: "Ski Instructor", company: "St. Anton Ski School, Austria", period: "2023 – 2024" },
+      { role: "Ski Guide Assistant", company: "Innsbruck Alpine Club", period: "2022 – 2023" },
+    ],
+    education: "Diploma in Sport Management — University of Innsbruck (2022)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "2000-11-28",
+    nationality: "Austrian",
   },
   {
     id: "w3",
@@ -55,12 +97,27 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Whistler Blackcomb",
     worker_name: "Sophie Chen",
     worker_email: "sophie.c@example.com",
+    worker_phone: "+61 412 345 678",
     worker_avatar: null,
     worker_location: "Melbourne, Australia",
     worker_skills: ["RSA Certified", "Cocktail Making", "English", "Mandarin"],
     years_experience: 4,
     status: "new",
     applied_at: "2026-03-12T18:45:00Z",
+    cover_letter: "I've worked in Melbourne's top cocktail bars for 4 years and I'm looking for a season abroad. I'm RSA certified with expertise in craft cocktails and high-volume service. I thrive in fast-paced environments and love the energy of après-ski culture.",
+    languages: ["English", "Mandarin"],
+    availability: "Nov 2025 – Apr 2026 (full season)",
+    bio: "Melbourne-based bartender and cocktail enthusiast. I've competed in regional cocktail competitions and love creating seasonal menus. Looking for an adventure abroad combining my love of snowboarding with hospitality.",
+    certifications: ["RSA (Responsible Service of Alcohol)", "Food Safety Level 2", "Barista Certificate"],
+    work_history: [
+      { role: "Head Bartender", company: "The Everleigh, Melbourne", period: "2024 – 2026" },
+      { role: "Bartender", company: "Bar Americano, Melbourne", period: "2023 – 2024" },
+      { role: "Bar Back / Junior Bartender", company: "Eau de Vie, Melbourne", period: "2022 – 2023" },
+    ],
+    education: "Advanced Diploma of Hospitality — William Angliss Institute (2022)",
+    visa_status: "Working Holiday Visa (subclass 417)",
+    date_of_birth: "2000-07-03",
+    nationality: "Australian",
   },
   {
     id: "w4",
@@ -70,12 +127,26 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Whistler Blackcomb",
     worker_name: "Jake Thompson",
     worker_email: "jake.t@example.com",
+    worker_phone: "+64 21 876 5432",
     worker_avatar: null,
     worker_location: "Queenstown, New Zealand",
     worker_skills: ["First Aid", "Customer Service", "English"],
     years_experience: 2,
     status: "interview",
     applied_at: "2026-03-05T11:20:00Z",
+    cover_letter: "I have 2 seasons of hotel experience in New Zealand's ski region. I'm reliable, detail-oriented, and take pride in maintaining high standards. I'm looking for a full-season role with staff housing.",
+    languages: ["English"],
+    availability: "Nov 2025 – Apr 2026 (full season)",
+    bio: "Kiwi adventure seeker with a passion for the mountains. I've spent two seasons working in Queenstown and love being part of a resort team. I'm reliable, always early to shifts, and great with guests.",
+    certifications: ["First Aid Certificate (NZQA)", "Health & Safety in the Workplace"],
+    work_history: [
+      { role: "Lift Operator", company: "The Remarkables, NZ", period: "2025" },
+      { role: "Hotel Porter", company: "Heritage Queenstown, NZ", period: "2024 – 2025" },
+    ],
+    education: "NCEA Level 3 — Wakatipu High School (2023)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "2003-02-15",
+    nationality: "New Zealander",
   },
   {
     id: "w5",
@@ -85,12 +156,27 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Whistler Blackcomb",
     worker_name: "Marie Dubois",
     worker_email: "marie.d@example.com",
+    worker_phone: "+33 6 12 34 56 78",
     worker_avatar: null,
     worker_location: "Chamonix, France",
     worker_skills: ["BASI Level 3", "First Aid", "French", "English", "Spanish"],
     years_experience: 7,
     status: "accepted",
     applied_at: "2026-03-01T08:00:00Z",
+    cover_letter: "With 7 years of instruction across France, Spain, and Canada, I bring deep expertise in all-mountain teaching. I hold BASI Level 3 and have consistently received top guest ratings. I'm looking forward to joining the Whistler Blackcomb team for another season.",
+    languages: ["French", "English", "Spanish"],
+    availability: "Nov 2025 – Apr 2026 (full season)",
+    bio: "Chamonix native and lifelong skier. I've taught across three countries and specialise in advanced all-mountain instruction and off-piste guiding. I'm also a qualified mountain guide and love sharing the mountains with guests from around the world.",
+    certifications: ["BASI Level 3 (ISTD)", "Wilderness First Responder", "French Mountain Guide (aspirant)", "Avalanche Safety Level 2"],
+    work_history: [
+      { role: "Senior Ski Instructor", company: "Whistler Blackcomb, Canada", period: "2024 – 2025" },
+      { role: "Ski Instructor", company: "ESF Chamonix, France", period: "2021 – 2024" },
+      { role: "Ski Instructor", company: "Baqueira Beret, Spain", period: "2019 – 2021" },
+    ],
+    education: "Master of Sport Science — Université Grenoble Alpes (2019)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "1996-12-08",
+    nationality: "French",
   },
   {
     id: "w6",
@@ -100,12 +186,26 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Revelstoke Mountain Resort",
     worker_name: "Hiroshi Tanaka",
     worker_email: "hiroshi.t@example.com",
+    worker_phone: "+81 90 1234 5678",
     worker_avatar: null,
     worker_location: "Niseko, Japan",
     worker_skills: ["Customer Service", "Japanese", "English", "Hospitality"],
     years_experience: 3,
     status: "interview_pending",
     applied_at: "2026-03-14T06:30:00Z",
+    cover_letter: "I have 3 seasons of guest services experience at resorts in Niseko. I'm bilingual in Japanese and English and have a strong background in hospitality. I'm looking to experience a Canadian resort and bring my skills to a new environment.",
+    languages: ["Japanese", "English"],
+    availability: "Nov 2025 – Apr 2026 (full season)",
+    bio: "Hospitality professional from Hokkaido, Japan. I grew up skiing in Niseko and have spent three seasons working at resort front desks. I'm passionate about creating memorable guest experiences and love helping international visitors discover the best of mountain culture.",
+    certifications: ["Japanese Hotel Management Certificate", "TOEIC 920", "First Aid (Japanese Red Cross)"],
+    work_history: [
+      { role: "Guest Relations Agent", company: "Hilton Niseko Village, Japan", period: "2024 – 2026" },
+      { role: "Front Desk Associate", company: "The Green Leaf Niseko, Japan", period: "2023 – 2024" },
+    ],
+    education: "BA in Tourism & Hospitality — Hokkaido University (2023)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "2000-09-22",
+    nationality: "Japanese",
   },
   {
     id: "w7",
@@ -115,12 +215,27 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Revelstoke Mountain Resort",
     worker_name: "Ollie Hansen",
     worker_email: "ollie.h@example.com",
+    worker_phone: "+47 412 34 567",
     worker_avatar: null,
     worker_location: "Oslo, Norway",
     worker_skills: ["CASI Level 2", "Park Instruction", "Norwegian", "English"],
     years_experience: 4,
     status: "offered",
     applied_at: "2026-03-09T15:00:00Z",
+    cover_letter: "I'm a CASI Level 2 snowboard instructor with 4 seasons of experience across Norway and Canada. I specialise in park and freestyle instruction and have a strong following on social media from my riding content. I'm stoked about the opportunity at Revelstoke.",
+    languages: ["Norwegian", "English"],
+    availability: "Dec 2025 – Mar 2026",
+    bio: "Norwegian snowboarder and content creator. I've been riding since age 8 and instructing since 18. My specialty is park and freestyle, but I love teaching all levels. When I'm not on the hill, I'm filming content or building features in the terrain park.",
+    certifications: ["CASI Level 2", "Park Instructor Certification", "Wilderness First Aid"],
+    work_history: [
+      { role: "Snowboard Instructor", company: "Trysil Ski Resort, Norway", period: "2024 – 2025" },
+      { role: "Snowboard Instructor", company: "Sun Peaks, Canada", period: "2023 – 2024" },
+      { role: "Terrain Park Crew / Instructor", company: "Hemsedal, Norway", period: "2022 – 2023" },
+    ],
+    education: "Diploma in Outdoor Recreation — Norwegian School of Sport Sciences (2022)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "2001-01-17",
+    nationality: "Norwegian",
   },
   {
     id: "w8",
@@ -130,11 +245,26 @@ export const seedApplicants: SeedApplicant[] = [
     resort_name: "Whistler Blackcomb",
     worker_name: "Isabella Rossi",
     worker_email: "isabella.r@example.com",
+    worker_phone: "+39 333 456 7890",
     worker_avatar: null,
     worker_location: "Milan, Italy",
     worker_skills: ["RSA Certified", "Barista", "Italian", "English", "Spanish"],
     years_experience: 6,
     status: "rejected",
     applied_at: "2026-03-02T12:00:00Z",
+    cover_letter: "With 6 years in Italian hospitality, I bring a strong cocktail and espresso background. I've worked seasons at alpine bars in the Dolomites and am looking to experience the Canadian scene. I'm RSA certified and comfortable in high-volume environments.",
+    languages: ["Italian", "English", "Spanish"],
+    availability: "Dec 2025 – Mar 2026",
+    bio: "Italian hospitality professional with a deep love for craft cocktails and specialty coffee. I've worked in Milan's best bars and spent two alpine seasons in the Dolomites. I bring Italian warmth and flair to every shift.",
+    certifications: ["RSA (Responsible Service of Alcohol)", "Specialty Coffee Association Level 2", "HACCP Food Safety"],
+    work_history: [
+      { role: "Bar Manager", company: "Hotel Cristallo, Cortina d'Ampezzo", period: "2024 – 2025" },
+      { role: "Head Bartender", company: "Nottingham Forest, Milan", period: "2022 – 2024" },
+      { role: "Bartender", company: "Ceresio 7, Milan", period: "2020 – 2022" },
+    ],
+    education: "Diploma in Food & Beverage Management — ALMA, Parma (2020)",
+    visa_status: "Working Holiday Visa (IEC)",
+    date_of_birth: "1998-06-25",
+    nationality: "Italian",
   },
 ];

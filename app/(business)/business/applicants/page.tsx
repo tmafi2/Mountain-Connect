@@ -12,6 +12,7 @@ export default function ApplicantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [applicants, setApplicants] = useState(seedApplicants);
 
   // Get unique listings for the dropdown
   const listings = useMemo(() => {
@@ -24,8 +25,18 @@ export default function ApplicantsPage() {
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
   }, []);
 
+  const handleStatusChange = (applicationId: string, newStatus: string) => {
+    setApplicants((prev) =>
+      prev.map((a) =>
+        a.application_id === applicationId
+          ? { ...a, status: newStatus as ApplicationStatus }
+          : a
+      )
+    );
+  };
+
   const filtered = useMemo(() => {
-    let results: SeedApplicant[] = seedApplicants;
+    let results: SeedApplicant[] = applicants;
 
     // Filter by listing
     if (listingFilter !== "all") {
@@ -50,7 +61,7 @@ export default function ApplicantsPage() {
     }
 
     return results;
-  }, [filter, searchQuery, listingFilter]);
+  }, [filter, searchQuery, listingFilter, applicants]);
 
   const handleInvite = async (applicationId: string) => {
     setInvitingId(applicationId);
@@ -62,8 +73,8 @@ export default function ApplicantsPage() {
   // Count applicants per status (respecting listing filter)
   const counts = useMemo(() => {
     const base = listingFilter === "all"
-      ? seedApplicants
-      : seedApplicants.filter((a) => a.job_id === listingFilter);
+      ? applicants
+      : applicants.filter((a) => a.job_id === listingFilter);
 
     const c = {
       all: base.length,
@@ -81,7 +92,7 @@ export default function ApplicantsPage() {
       }
     }
     return c;
-  }, [listingFilter]);
+  }, [listingFilter, applicants]);
 
   const FILTERS: { value: FilterStatus; label: string; color: string }[] = [
     { value: "all", label: "All", color: "" },
@@ -176,6 +187,7 @@ export default function ApplicantsPage() {
                 applicant={applicant}
                 onInvite={handleInvite}
                 inviting={invitingId === applicant.application_id}
+                onStatusChange={handleStatusChange}
               />
             ))}
           </>
