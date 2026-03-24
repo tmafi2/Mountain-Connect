@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function BusinessDashboard() {
   const [userName, setUserName] = useState("");
+  const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,8 +18,34 @@ export default function BusinessDashboard() {
       return;
     }
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUserName(data.user?.user_metadata?.full_name || "there");
+    supabase.auth.getUser().then(async ({ data }) => {
+      const user = data.user;
+      setUserName(user?.user_metadata?.full_name || "there");
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("business_profiles")
+          .select("business_name, description, category, year_established, website, phone, email, location, standard_perks")
+          .eq("user_id", user.id)
+          .single();
+
+        if (profile) {
+          const fields = [
+            profile.business_name,
+            profile.description,
+            profile.category,
+            profile.year_established,
+            profile.website,
+            profile.phone,
+            profile.email,
+            profile.location,
+            profile.standard_perks?.length > 0 ? "has_perks" : "",
+          ];
+          const filled = fields.filter((f) => f && String(f).length > 0).length;
+          setProfileCompletion(Math.round((filled / fields.length) * 100));
+        }
+      }
+
       setLoading(false);
     });
   }, []);
@@ -45,7 +72,7 @@ export default function BusinessDashboard() {
         <StatCard href="/business/manage-listings" label="Active Listings" value="3" sub="Currently posted" />
         <StatCard href="/business/applicants" label="Total Applicants" value="8" sub="Across all jobs" />
         <StatCard href="/business/interviews" label="Interviews" value="3" sub="Upcoming scheduled" />
-        <StatCard href="/business/company-profile" label="Company Profile" value="40%" sub="Completion" accent />
+        <StatCard href="/business/company-profile" label="Company Profile" value={`${profileCompletion}%`} sub="Completion" accent />
       </div>
 
       {/* Quick actions */}

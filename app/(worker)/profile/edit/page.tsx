@@ -1,0 +1,1466 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import type {
+  VisaStatus,
+  SeasonPreference,
+  HousingPreference,
+  PositionType,
+  LanguageProficiency,
+  WorkHistoryEntry,
+  Certification,
+} from "@/types/database";
+
+/* ─── step definitions ────────────────────────────────────── */
+const STEPS = [
+  "Core Info",
+  "Eligibility",
+  "Availability",
+  "Experience",
+  "Preferences",
+  "Community",
+  "Review",
+] as const;
+
+type Step = (typeof STEPS)[number];
+
+/* ─── form state ──────────────────────────────────────────── */
+interface FormState {
+  // Core
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  phone: string;
+  location_current: string;
+  country_of_residence: string;
+
+  // Eligibility
+  nationality: string;
+  second_nationality: string;
+  visa_status: VisaStatus | "";
+  visa_expiry_date: string;
+  work_eligible_countries: string[];
+  languages: LanguageProficiency[];
+  drivers_license: boolean;
+  drivers_license_country: string;
+  has_car: boolean;
+
+  // Availability
+  availability_start: string;
+  availability_end: string;
+  season_preference: SeasonPreference | "";
+  preferred_countries: string[];
+  housing_preference: HousingPreference | "";
+  willing_to_relocate: boolean;
+  available_immediately: boolean;
+
+  // Experience
+  work_history: WorkHistoryEntry[];
+  certifications: Certification[];
+  skills: string[];
+  years_seasonal_experience: string;
+
+  // Preferences
+  preferred_job_types: string[];
+  pay_range_min: string;
+  pay_range_max: string;
+  pay_currency: string;
+  available_nights: boolean;
+  available_weekends: boolean;
+  position_type: PositionType | "";
+  open_to_second_job: boolean;
+
+  // Community
+  bio: string;
+  housing_needs_description: string;
+  traveling_with_partner: boolean;
+  traveling_with_pets: boolean;
+}
+
+const INITIAL: FormState = {
+  first_name: "",
+  last_name: "",
+  date_of_birth: "",
+  phone: "",
+  location_current: "",
+  country_of_residence: "",
+
+  nationality: "",
+  second_nationality: "",
+  visa_status: "",
+  visa_expiry_date: "",
+  work_eligible_countries: [],
+  languages: [],
+  drivers_license: false,
+  drivers_license_country: "",
+  has_car: false,
+
+  availability_start: "",
+  availability_end: "",
+  season_preference: "",
+  preferred_countries: [],
+  housing_preference: "",
+  willing_to_relocate: false,
+  available_immediately: false,
+
+  work_history: [],
+  certifications: [],
+  skills: [],
+  years_seasonal_experience: "",
+
+  preferred_job_types: [],
+  pay_range_min: "",
+  pay_range_max: "",
+  pay_currency: "USD",
+  available_nights: false,
+  available_weekends: false,
+  position_type: "",
+  open_to_second_job: false,
+
+  bio: "",
+  housing_needs_description: "",
+  traveling_with_partner: false,
+  traveling_with_pets: false,
+};
+
+/* ─── option lists ────────────────────────────────────────── */
+const VISA_OPTIONS: { value: VisaStatus; label: string }[] = [
+  { value: "citizen", label: "Citizen" },
+  { value: "permanent_resident", label: "Permanent Resident" },
+  { value: "working_holiday", label: "Working Holiday Visa" },
+  { value: "work_visa", label: "Work Visa" },
+  { value: "student_visa", label: "Student Visa" },
+  { value: "no_visa", label: "No Visa" },
+  { value: "other", label: "Other" },
+];
+
+const SEASON_OPTIONS: { value: SeasonPreference; label: string }[] = [
+  { value: "northern_winter", label: "Northern Winter (Nov–Apr)" },
+  { value: "southern_winter", label: "Southern Winter (Jun–Oct)" },
+  { value: "both", label: "Both Hemispheres" },
+  { value: "year_round", label: "Year Round" },
+];
+
+const HOUSING_OPTIONS: { value: HousingPreference; label: string }[] = [
+  { value: "staff_housing", label: "Staff Housing" },
+  { value: "private_rental", label: "Private Rental" },
+  { value: "shared_rental", label: "Shared Rental" },
+  { value: "van_vehicle", label: "Van / Vehicle" },
+  { value: "no_preference", label: "No Preference" },
+];
+
+const POSITION_OPTIONS: { value: PositionType; label: string }[] = [
+  { value: "full_time", label: "Full Time" },
+  { value: "part_time", label: "Part Time" },
+  { value: "casual", label: "Casual" },
+];
+
+const JOB_TYPE_OPTIONS = [
+  "Ski Instructor",
+  "Snowboard Instructor",
+  "Lift Operator",
+  "Ski Patrol",
+  "Rental Tech",
+  "Hospitality",
+  "Food & Beverage",
+  "Bartender",
+  "Chef / Cook",
+  "Hotel / Front Desk",
+  "Housekeeping",
+  "Retail",
+  "Childcare",
+  "Maintenance",
+  "Snow Grooming",
+  "Admin / Office",
+  "Marketing",
+  "Events",
+  "Other",
+];
+
+const WORK_CATEGORIES = [
+  { value: "hospitality", label: "Hospitality" },
+  { value: "retail", label: "Retail" },
+  { value: "outdoor", label: "Outdoor / On-Mountain" },
+  { value: "food_beverage", label: "Food & Beverage" },
+  { value: "admin", label: "Admin / Office" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "instruction", label: "Instruction / Teaching" },
+  { value: "other", label: "Other" },
+] as const;
+
+const PROFICIENCY_OPTIONS = [
+  { value: "native", label: "Native" },
+  { value: "fluent", label: "Fluent" },
+  { value: "conversational", label: "Conversational" },
+  { value: "basic", label: "Basic" },
+] as const;
+
+const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "AUD", "NZD", "CAD", "JPY", "CHF"];
+
+/* ─── helpers ─────────────────────────────────────────────── */
+function toggleInArray(arr: string[], item: string) {
+  return arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item];
+}
+
+function calcCompletion(f: FormState): number {
+  let filled = 0;
+  let total = 0;
+  const check = (v: unknown) => {
+    total++;
+    if (typeof v === "string" && v) filled++;
+    else if (typeof v === "boolean" && v) filled++;
+    else if (Array.isArray(v) && v.length > 0) filled++;
+    else if (typeof v === "number" && v > 0) filled++;
+  };
+  check(f.first_name);
+  check(f.last_name);
+  check(f.date_of_birth);
+  check(f.phone);
+  check(f.location_current);
+  check(f.country_of_residence);
+  check(f.nationality);
+  check(f.visa_status);
+  check(f.languages);
+  check(f.availability_start);
+  check(f.season_preference);
+  check(f.work_history);
+  check(f.skills);
+  check(f.preferred_job_types);
+  check(f.position_type);
+  check(f.bio);
+  return Math.round((filled / total) * 100);
+}
+
+/* ─── shared UI components ────────────────────────────────── */
+function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-primary">
+      {children}
+    </label>
+  );
+}
+
+function Input({
+  id,
+  type = "text",
+  placeholder,
+  value,
+  onChange,
+}: {
+  id: string;
+  type?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <input
+      id={id}
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+    />
+  );
+}
+
+function Select({
+  id,
+  value,
+  onChange,
+  children,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+    >
+      {children}
+    </select>
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+          checked ? "bg-primary" : "bg-accent"
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+            checked ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </button>
+      <span className="text-sm text-foreground">{label}</span>
+    </label>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-accent bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-primary">{title}</h2>
+      {description && (
+        <p className="mt-1 text-sm text-foreground/60">{description}</p>
+      )}
+      <div className="mt-5 space-y-5">{children}</div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  PAGE COMPONENT                                            */
+/* ═══════════════════════════════════════════════════════════ */
+export default function ProfileEditPage() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [form, setForm] = useState<FormState>(INITIAL);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Language temp state
+  const [newLang, setNewLang] = useState("");
+  const [newLangProf, setNewLangProf] = useState<LanguageProficiency["proficiency"]>("conversational");
+
+  // Skill temp state
+  const [newSkill, setNewSkill] = useState("");
+
+  // Country temp state
+  const [newCountry, setNewCountry] = useState("");
+
+  // Work eligible country temp state
+  const [newEligibleCountry, setNewEligibleCountry] = useState("");
+
+  // Certification temp state
+  const [newCert, setNewCert] = useState<Certification>({
+    name: "",
+    issuing_body: null,
+    date_obtained: null,
+    expiry_date: null,
+    credential_url: null,
+  });
+
+  // Work history temp state
+  const [newWork, setNewWork] = useState<Partial<WorkHistoryEntry>>({
+    title: "",
+    company: "",
+    location: "",
+    country: "",
+    start_date: "",
+    end_date: "",
+    is_current: false,
+    description: "",
+    category: "hospitality",
+  });
+
+  /* ─── load existing profile on mount ─────────────────────── */
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+      setUserId(user.id);
+
+      const { data: profile } = await supabase
+        .from("worker_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile) {
+        setForm({
+          first_name: profile.first_name || "",
+          last_name: profile.last_name || "",
+          date_of_birth: profile.date_of_birth || "",
+          phone: profile.phone || "",
+          location_current: profile.location_current || "",
+          country_of_residence: profile.country_of_residence || "",
+          nationality: profile.nationality || "",
+          second_nationality: profile.second_nationality || "",
+          visa_status: profile.visa_status || "",
+          visa_expiry_date: profile.visa_expiry_date || "",
+          work_eligible_countries: profile.work_eligible_countries || [],
+          languages: profile.languages || [],
+          drivers_license: profile.drivers_license || false,
+          drivers_license_country: profile.drivers_license_country || "",
+          has_car: profile.has_car || false,
+          availability_start: profile.availability_start || "",
+          availability_end: profile.availability_end || "",
+          season_preference: profile.season_preference || "",
+          preferred_countries: profile.preferred_countries || [],
+          housing_preference: profile.housing_preference || "",
+          willing_to_relocate: profile.willing_to_relocate || false,
+          available_immediately: profile.available_immediately || false,
+          work_history: profile.work_history || [],
+          certifications: profile.certifications || [],
+          skills: profile.skills || [],
+          years_seasonal_experience: profile.years_seasonal_experience?.toString() || "",
+          preferred_job_types: profile.preferred_job_types || [],
+          pay_range_min: profile.pay_range_min?.toString() || "",
+          pay_range_max: profile.pay_range_max?.toString() || "",
+          pay_currency: profile.pay_currency || "USD",
+          available_nights: profile.available_nights || false,
+          available_weekends: profile.available_weekends || false,
+          position_type: profile.position_type || "",
+          open_to_second_job: profile.open_to_second_job || false,
+          bio: profile.bio || "",
+          housing_needs_description: profile.housing_needs_description || "",
+          traveling_with_partner: profile.traveling_with_partner || false,
+          traveling_with_pets: profile.traveling_with_pets || false,
+        });
+      }
+      setLoading(false);
+    }
+    loadProfile();
+  }, [router]);
+
+  /* ─── save profile to Supabase ───────────────────────────── */
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+
+    const supabase = createClient();
+    const completion = calcCompletion(form);
+
+    const { error } = await supabase
+      .from("worker_profiles")
+      .update({
+        first_name: form.first_name || null,
+        last_name: form.last_name || null,
+        date_of_birth: form.date_of_birth || null,
+        phone: form.phone || null,
+        location_current: form.location_current || null,
+        country_of_residence: form.country_of_residence || null,
+        nationality: form.nationality || null,
+        second_nationality: form.second_nationality || null,
+        visa_status: form.visa_status || null,
+        visa_expiry_date: form.visa_expiry_date || null,
+        work_eligible_countries: form.work_eligible_countries,
+        languages: form.languages,
+        drivers_license: form.drivers_license,
+        drivers_license_country: form.drivers_license_country || null,
+        has_car: form.has_car,
+        availability_start: form.availability_start || null,
+        availability_end: form.availability_end || null,
+        season_preference: form.season_preference || null,
+        preferred_countries: form.preferred_countries,
+        housing_preference: form.housing_preference || null,
+        willing_to_relocate: form.willing_to_relocate,
+        available_immediately: form.available_immediately,
+        work_history: form.work_history,
+        certifications: form.certifications,
+        skills: form.skills,
+        years_seasonal_experience: form.years_seasonal_experience ? parseInt(form.years_seasonal_experience) : null,
+        preferred_job_types: form.preferred_job_types,
+        pay_range_min: form.pay_range_min ? parseFloat(form.pay_range_min) : null,
+        pay_range_max: form.pay_range_max ? parseFloat(form.pay_range_max) : null,
+        pay_currency: form.pay_currency || null,
+        available_nights: form.available_nights,
+        available_weekends: form.available_weekends,
+        position_type: form.position_type || null,
+        open_to_second_job: form.open_to_second_job,
+        bio: form.bio || null,
+        housing_needs_description: form.housing_needs_description || null,
+        traveling_with_partner: form.traveling_with_partner,
+        traveling_with_pets: form.traveling_with_pets,
+        profile_completion_pct: completion,
+      })
+      .eq("user_id", userId);
+
+    setSaving(false);
+
+    if (error) {
+      console.error("Save error:", error);
+      alert("Failed to save profile. Please try again.");
+    } else {
+      router.push("/profile");
+    }
+  };
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const step = STEPS[currentStep];
+  const completion = calcCompletion(form);
+
+  const next = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const prev = () => setCurrentStep((s) => Math.max(s - 1, 0));
+
+  /* ─── loading state ──────────────────────────────────────── */
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+          <p className="text-sm text-foreground/50">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── render step content ───────────────────────────────── */
+  function renderStep(step: Step) {
+    switch (step) {
+      /* ── CORE INFO ─────────────────────────────────────── */
+      case "Core Info":
+        return (
+          <SectionCard
+            title="Core Account Info"
+            description="Let's start with the basics. This information helps employers identify you."
+          >
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="first_name">First Name *</Label>
+                <Input id="first_name" value={form.first_name} onChange={(v) => set("first_name", v)} placeholder="John" />
+              </div>
+              <div>
+                <Label htmlFor="last_name">Last Name *</Label>
+                <Input id="last_name" value={form.last_name} onChange={(v) => set("last_name", v)} placeholder="Smith" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input id="dob" type="date" value={form.date_of_birth} onChange={(v) => set("date_of_birth", v)} />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" type="tel" value={form.phone} onChange={(v) => set("phone", v)} placeholder="+1 555 123 4567" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="location">Current Location</Label>
+                <Input id="location" value={form.location_current} onChange={(v) => set("location_current", v)} placeholder="Vancouver, BC" />
+              </div>
+              <div>
+                <Label htmlFor="country_res">Country of Residence</Label>
+                <Input id="country_res" value={form.country_of_residence} onChange={(v) => set("country_of_residence", v)} placeholder="Canada" />
+              </div>
+            </div>
+            {/* Photo upload placeholder */}
+            <div>
+              <Label>Profile Photo</Label>
+              <div className="mt-1 flex items-center gap-4">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/40 text-2xl text-foreground/40">
+                  {form.first_name ? form.first_name[0].toUpperCase() : "?"}
+                </div>
+                <button
+                  type="button"
+                  className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-secondary hover:text-primary"
+                >
+                  Upload Photo
+                </button>
+              </div>
+            </div>
+          </SectionCard>
+        );
+
+      /* ── ELIGIBILITY ───────────────────────────────────── */
+      case "Eligibility":
+        return (
+          <SectionCard
+            title="Work Eligibility & Legal"
+            description="Help employers understand your work rights and language skills."
+          >
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="nationality">Nationality *</Label>
+                <Input id="nationality" value={form.nationality} onChange={(v) => set("nationality", v)} placeholder="Australian" />
+              </div>
+              <div>
+                <Label htmlFor="second_nat">Second Nationality</Label>
+                <Input id="second_nat" value={form.second_nationality} onChange={(v) => set("second_nationality", v)} placeholder="Optional" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="visa_status">Visa Status</Label>
+                <Select id="visa_status" value={form.visa_status} onChange={(v) => set("visa_status", v as VisaStatus)}>
+                  <option value="">Select...</option>
+                  {VISA_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="visa_exp">Visa Expiry Date</Label>
+                <Input id="visa_exp" type="date" value={form.visa_expiry_date} onChange={(v) => set("visa_expiry_date", v)} />
+              </div>
+            </div>
+
+            {/* Work-eligible countries */}
+            <div>
+              <Label>Countries You Can Legally Work In</Label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newEligibleCountry}
+                  onChange={(e) => setNewEligibleCountry(e.target.value)}
+                  placeholder="e.g. Canada"
+                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newEligibleCountry.trim()) {
+                      e.preventDefault();
+                      set("work_eligible_countries", [...form.work_eligible_countries, newEligibleCountry.trim()]);
+                      setNewEligibleCountry("");
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newEligibleCountry.trim()) {
+                      set("work_eligible_countries", [...form.work_eligible_countries, newEligibleCountry.trim()]);
+                      setNewEligibleCountry("");
+                    }
+                  }}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  Add
+                </button>
+              </div>
+              {form.work_eligible_countries.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {form.work_eligible_countries.map((c) => (
+                    <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-primary">
+                      {c}
+                      <button type="button" onClick={() => set("work_eligible_countries", form.work_eligible_countries.filter((x) => x !== c))} className="ml-1 text-foreground/50 hover:text-red-500">&times;</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Languages */}
+            <div>
+              <Label>Languages</Label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newLang}
+                  onChange={(e) => setNewLang(e.target.value)}
+                  placeholder="e.g. English"
+                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                />
+                <select
+                  value={newLangProf}
+                  onChange={(e) => setNewLangProf(e.target.value as LanguageProficiency["proficiency"])}
+                  className="rounded-lg border border-accent bg-white px-3 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none"
+                >
+                  {PROFICIENCY_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newLang.trim()) {
+                      set("languages", [...form.languages, { language: newLang.trim(), proficiency: newLangProf }]);
+                      setNewLang("");
+                    }
+                  }}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  Add
+                </button>
+              </div>
+              {form.languages.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {form.languages.map((l, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-lg border border-accent bg-background px-4 py-2">
+                      <div>
+                        <span className="text-sm font-medium text-primary">{l.language}</span>
+                        <span className="ml-2 text-xs text-foreground/50 capitalize">{l.proficiency}</span>
+                      </div>
+                      <button type="button" onClick={() => set("languages", form.languages.filter((_, idx) => idx !== i))} className="text-sm text-foreground/50 hover:text-red-500">&times;</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-3">
+                <Toggle checked={form.drivers_license} onChange={(v) => set("drivers_license", v)} label="I have a driver's license" />
+                {form.drivers_license && (
+                  <div>
+                    <Label htmlFor="dl_country">License Country</Label>
+                    <Input id="dl_country" value={form.drivers_license_country} onChange={(v) => set("drivers_license_country", v)} placeholder="Australia" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <Toggle checked={form.has_car} onChange={(v) => set("has_car", v)} label="I have access to a car" />
+              </div>
+            </div>
+          </SectionCard>
+        );
+
+      /* ── AVAILABILITY ──────────────────────────────────── */
+      case "Availability":
+        return (
+          <SectionCard
+            title="Availability"
+            description="When and where are you looking to work?"
+          >
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="avail_start">Available From</Label>
+                <Input id="avail_start" type="date" value={form.availability_start} onChange={(v) => set("availability_start", v)} />
+              </div>
+              <div>
+                <Label htmlFor="avail_end">Available Until</Label>
+                <Input id="avail_end" type="date" value={form.availability_end} onChange={(v) => set("availability_end", v)} />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="season_pref">Season Preference</Label>
+              <Select id="season_pref" value={form.season_preference} onChange={(v) => set("season_preference", v as SeasonPreference)}>
+                <option value="">Select...</option>
+                {SEASON_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="housing_pref">Housing Preference</Label>
+              <Select id="housing_pref" value={form.housing_preference} onChange={(v) => set("housing_preference", v as HousingPreference)}>
+                <option value="">Select...</option>
+                {HOUSING_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Preferred countries */}
+            <div>
+              <Label>Preferred Countries to Work In</Label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newCountry}
+                  onChange={(e) => setNewCountry(e.target.value)}
+                  placeholder="e.g. Japan"
+                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newCountry.trim()) {
+                      e.preventDefault();
+                      set("preferred_countries", [...form.preferred_countries, newCountry.trim()]);
+                      setNewCountry("");
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCountry.trim()) {
+                      set("preferred_countries", [...form.preferred_countries, newCountry.trim()]);
+                      setNewCountry("");
+                    }
+                  }}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  Add
+                </button>
+              </div>
+              {form.preferred_countries.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {form.preferred_countries.map((c) => (
+                    <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-primary">
+                      {c}
+                      <button type="button" onClick={() => set("preferred_countries", form.preferred_countries.filter((x) => x !== c))} className="ml-1 text-foreground/50 hover:text-red-500">&times;</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <Toggle checked={form.willing_to_relocate} onChange={(v) => set("willing_to_relocate", v)} label="I'm willing to relocate" />
+              <Toggle checked={form.available_immediately} onChange={(v) => set("available_immediately", v)} label="Available immediately" />
+            </div>
+          </SectionCard>
+        );
+
+      /* ── EXPERIENCE ────────────────────────────────────── */
+      case "Experience":
+        return (
+          <div className="space-y-6">
+            {/* Work History */}
+            <SectionCard
+              title="Work Experience"
+              description="Add your seasonal or relevant work history. Employers love seeing mountain town experience."
+            >
+              {/* Existing entries */}
+              {form.work_history.length > 0 && (
+                <div className="space-y-3">
+                  {form.work_history.map((entry, i) => (
+                    <div key={i} className="relative rounded-lg border border-accent bg-background p-4">
+                      <button
+                        type="button"
+                        onClick={() => set("work_history", form.work_history.filter((_, idx) => idx !== i))}
+                        className="absolute right-3 top-3 text-foreground/40 hover:text-red-500"
+                      >
+                        &times;
+                      </button>
+                      <p className="font-medium text-primary">{entry.title}</p>
+                      <p className="text-sm text-foreground">{entry.company} &middot; {entry.location}</p>
+                      <p className="mt-1 text-xs text-foreground/50">
+                        {entry.start_date} &ndash; {entry.is_current ? "Present" : entry.end_date}
+                        <span className="ml-2 rounded bg-secondary/20 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+                          {entry.category?.replace("_", " ")}
+                        </span>
+                      </p>
+                      {entry.description && <p className="mt-2 text-sm text-foreground/70">{entry.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add new entry form */}
+              <div className="rounded-lg border-2 border-dashed border-accent p-4">
+                <p className="mb-3 text-sm font-medium text-foreground/60">Add a role</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="wh_title">Job Title *</Label>
+                    <Input id="wh_title" value={newWork.title || ""} onChange={(v) => setNewWork((p) => ({ ...p, title: v }))} placeholder="Lift Operator" />
+                  </div>
+                  <div>
+                    <Label htmlFor="wh_company">Company *</Label>
+                    <Input id="wh_company" value={newWork.company || ""} onChange={(v) => setNewWork((p) => ({ ...p, company: v }))} placeholder="Whistler Blackcomb" />
+                  </div>
+                  <div>
+                    <Label htmlFor="wh_location">Location</Label>
+                    <Input id="wh_location" value={newWork.location || ""} onChange={(v) => setNewWork((p) => ({ ...p, location: v }))} placeholder="Whistler, BC" />
+                  </div>
+                  <div>
+                    <Label htmlFor="wh_country">Country</Label>
+                    <Input id="wh_country" value={newWork.country || ""} onChange={(v) => setNewWork((p) => ({ ...p, country: v }))} placeholder="Canada" />
+                  </div>
+                  <div>
+                    <Label htmlFor="wh_start">Start Date</Label>
+                    <Input id="wh_start" type="date" value={newWork.start_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, start_date: v }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="wh_end">End Date</Label>
+                    <Input id="wh_end" type="date" value={newWork.end_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, end_date: v }))} />
+                    <div className="mt-2">
+                      <Toggle checked={newWork.is_current || false} onChange={(v) => setNewWork((p) => ({ ...p, is_current: v }))} label="Currently working here" />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="wh_cat">Category</Label>
+                  <select
+                    id="wh_cat"
+                    value={newWork.category || "hospitality"}
+                    onChange={(e) => setNewWork((p) => ({ ...p, category: e.target.value as WorkHistoryEntry["category"] }))}
+                    className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                  >
+                    {WORK_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="wh_desc">Description</Label>
+                  <textarea
+                    id="wh_desc"
+                    rows={2}
+                    value={newWork.description || ""}
+                    onChange={(e) => setNewWork((p) => ({ ...p, description: e.target.value }))}
+                    placeholder="Brief description of your role and responsibilities..."
+                    className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newWork.title && newWork.company) {
+                      set("work_history", [
+                        ...form.work_history,
+                        {
+                          id: crypto.randomUUID(),
+                          title: newWork.title || "",
+                          company: newWork.company || "",
+                          resort_id: null,
+                          location: newWork.location || "",
+                          country: newWork.country || null,
+                          start_date: newWork.start_date || "",
+                          end_date: newWork.end_date || null,
+                          is_current: newWork.is_current || false,
+                          description: newWork.description || "",
+                          category: (newWork.category as WorkHistoryEntry["category"]) || "other",
+                          is_verified: false,
+                          verified_by_business_id: null,
+                        },
+                      ]);
+                      setNewWork({ title: "", company: "", location: "", country: "", start_date: "", end_date: "", is_current: false, description: "", category: "hospitality" });
+                    }
+                  }}
+                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  + Add Role
+                </button>
+              </div>
+
+              <div>
+                <Label htmlFor="years_exp">Years of Seasonal Experience</Label>
+                <Input id="years_exp" type="number" value={form.years_seasonal_experience} onChange={(v) => set("years_seasonal_experience", v)} placeholder="2" />
+              </div>
+            </SectionCard>
+
+            {/* Skills */}
+            <SectionCard title="Skills" description="List skills relevant to mountain resort work.">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  placeholder="e.g. First Aid, Barista, Snowboard Instructor"
+                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newSkill.trim()) {
+                      e.preventDefault();
+                      set("skills", [...form.skills, newSkill.trim()]);
+                      setNewSkill("");
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newSkill.trim()) {
+                      set("skills", [...form.skills, newSkill.trim()]);
+                      setNewSkill("");
+                    }
+                  }}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  Add
+                </button>
+              </div>
+              {form.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.skills.map((s) => (
+                    <span key={s} className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1.5 text-sm font-medium text-primary">
+                      {s}
+                      <button type="button" onClick={() => set("skills", form.skills.filter((x) => x !== s))} className="ml-1 text-foreground/50 hover:text-red-500">&times;</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+
+            {/* Certifications */}
+            <SectionCard title="Certifications" description="Add any relevant certifications (First Aid, RSA, ski instructor level, etc.)">
+              {form.certifications.length > 0 && (
+                <div className="space-y-2">
+                  {form.certifications.map((cert, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-lg border border-accent bg-background px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-primary">{cert.name}</p>
+                        {cert.issuing_body && <p className="text-xs text-foreground/50">{cert.issuing_body}</p>}
+                      </div>
+                      <button type="button" onClick={() => set("certifications", form.certifications.filter((_, idx) => idx !== i))} className="text-foreground/40 hover:text-red-500">&times;</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rounded-lg border-2 border-dashed border-accent p-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="cert_name">Certification Name</Label>
+                    <Input id="cert_name" value={newCert.name} onChange={(v) => setNewCert((p) => ({ ...p, name: v }))} placeholder="First Aid Level 2" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cert_body">Issuing Body</Label>
+                    <Input id="cert_body" value={newCert.issuing_body || ""} onChange={(v) => setNewCert((p) => ({ ...p, issuing_body: v || null }))} placeholder="Red Cross" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cert_date">Date Obtained</Label>
+                    <Input id="cert_date" type="date" value={newCert.date_obtained || ""} onChange={(v) => setNewCert((p) => ({ ...p, date_obtained: v || null }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cert_exp">Expiry Date</Label>
+                    <Input id="cert_exp" type="date" value={newCert.expiry_date || ""} onChange={(v) => setNewCert((p) => ({ ...p, expiry_date: v || null }))} />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCert.name.trim()) {
+                      set("certifications", [...form.certifications, { ...newCert }]);
+                      setNewCert({ name: "", issuing_body: null, date_obtained: null, expiry_date: null, credential_url: null });
+                    }
+                  }}
+                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  + Add Certification
+                </button>
+              </div>
+
+              {/* Upload placeholders */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>Resume / CV</Label>
+                  <button type="button" className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-background px-4 py-4 text-sm text-foreground/50 hover:border-secondary hover:text-primary">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    Upload CV
+                  </button>
+                </div>
+                <div>
+                  <Label>Cover Letter</Label>
+                  <button type="button" className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-background px-4 py-4 text-sm text-foreground/50 hover:border-secondary hover:text-primary">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    Upload Cover Letter
+                  </button>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        );
+
+      /* ── PREFERENCES ───────────────────────────────────── */
+      case "Preferences":
+        return (
+          <SectionCard
+            title="Job Preferences"
+            description="What kind of work are you looking for?"
+          >
+            {/* Job types - multi-select as tag chips */}
+            <div>
+              <Label>Preferred Job Types</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {JOB_TYPE_OPTIONS.map((jt) => (
+                  <button
+                    key={jt}
+                    type="button"
+                    onClick={() => set("preferred_job_types", toggleInArray(form.preferred_job_types, jt))}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                      form.preferred_job_types.includes(jt)
+                        ? "bg-primary text-white"
+                        : "bg-accent/40 text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {jt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="pos_type">Position Type</Label>
+              <Select id="pos_type" value={form.position_type} onChange={(v) => set("position_type", v as PositionType)}>
+                <option value="">Select...</option>
+                {POSITION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Pay range */}
+            <div>
+              <Label>Pay Range (hourly)</Label>
+              <div className="mt-1 flex items-center gap-3">
+                <select
+                  value={form.pay_currency}
+                  onChange={(e) => set("pay_currency", e.target.value)}
+                  className="rounded-lg border border-accent bg-white px-3 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none"
+                >
+                  {CURRENCY_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={form.pay_range_min}
+                  onChange={(e) => set("pay_range_min", e.target.value)}
+                  className="w-24 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                />
+                <span className="text-foreground/40">&ndash;</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={form.pay_range_max}
+                  onChange={(e) => set("pay_range_max", e.target.value)}
+                  className="w-24 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Toggle checked={form.available_nights} onChange={(v) => set("available_nights", v)} label="Available for night shifts" />
+              <Toggle checked={form.available_weekends} onChange={(v) => set("available_weekends", v)} label="Available on weekends" />
+              <Toggle checked={form.open_to_second_job} onChange={(v) => set("open_to_second_job", v)} label="Open to a second job" />
+            </div>
+          </SectionCard>
+        );
+
+      /* ── COMMUNITY ─────────────────────────────────────── */
+      case "Community":
+        return (
+          <SectionCard
+            title="Community & Bio"
+            description="Tell employers a bit about yourself beyond work."
+          >
+            <div>
+              <Label htmlFor="bio">About Me</Label>
+              <textarea
+                id="bio"
+                rows={4}
+                value={form.bio}
+                onChange={(e) => set("bio", e.target.value)}
+                placeholder="Share a bit about yourself — what drives you, why you love seasonal work, your hobbies and interests..."
+                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+              />
+              <p className="mt-1 text-xs text-foreground/40">{form.bio.length}/500 characters</p>
+            </div>
+
+            <div>
+              <Label htmlFor="housing_desc">Housing Needs</Label>
+              <textarea
+                id="housing_desc"
+                rows={2}
+                value={form.housing_needs_description}
+                onChange={(e) => set("housing_needs_description", e.target.value)}
+                placeholder="e.g. Looking for shared staff accommodation, have my own gear..."
+                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Toggle checked={form.traveling_with_partner} onChange={(v) => set("traveling_with_partner", v)} label="Traveling with a partner" />
+              <Toggle checked={form.traveling_with_pets} onChange={(v) => set("traveling_with_pets", v)} label="Traveling with pets" />
+            </div>
+          </SectionCard>
+        );
+
+      /* ── REVIEW ────────────────────────────────────────── */
+      case "Review":
+        return (
+          <div className="space-y-6">
+            {/* Completion */}
+            <div className="rounded-xl border border-accent bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-primary">Profile Completion</h2>
+                <span className="text-2xl font-bold text-primary">{completion}%</span>
+              </div>
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-accent/40">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-secondary to-primary transition-all duration-500"
+                  style={{ width: `${completion}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm text-foreground/60">
+                {completion < 50
+                  ? "Keep going! Add more details to stand out to employers."
+                  : completion < 80
+                  ? "Looking good! A few more details will complete your profile."
+                  : "Great job! Your profile is looking strong."}
+              </p>
+            </div>
+
+            {/* Summary cards */}
+            <SectionCard title="Core Info">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Name</dt>
+                  <dd className="text-sm text-primary">{form.first_name} {form.last_name || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Location</dt>
+                  <dd className="text-sm text-primary">{form.location_current || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Phone</dt>
+                  <dd className="text-sm text-primary">{form.phone || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Country</dt>
+                  <dd className="text-sm text-primary">{form.country_of_residence || "—"}</dd>
+                </div>
+              </dl>
+            </SectionCard>
+
+            <SectionCard title="Eligibility">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Nationality</dt>
+                  <dd className="text-sm text-primary">{form.nationality || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Visa Status</dt>
+                  <dd className="text-sm text-primary capitalize">{form.visa_status?.replace("_", " ") || "—"}</dd>
+                </div>
+              </dl>
+              {form.languages.length > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Languages</dt>
+                  <dd className="mt-1 flex flex-wrap gap-2">
+                    {form.languages.map((l, i) => (
+                      <span key={i} className="rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-primary">
+                        {l.language} ({l.proficiency})
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {form.work_eligible_countries.length > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Can Work In</dt>
+                  <dd className="mt-1 text-sm text-primary">{form.work_eligible_countries.join(", ")}</dd>
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard title="Availability">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Dates</dt>
+                  <dd className="text-sm text-primary">
+                    {form.availability_start && form.availability_end
+                      ? `${form.availability_start} – ${form.availability_end}`
+                      : form.available_immediately
+                      ? "Available immediately"
+                      : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Season</dt>
+                  <dd className="text-sm text-primary capitalize">{form.season_preference?.replace("_", " ") || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Housing</dt>
+                  <dd className="text-sm text-primary capitalize">{form.housing_preference?.replace("_", " ") || "—"}</dd>
+                </div>
+              </dl>
+              {form.preferred_countries.length > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Preferred Countries</dt>
+                  <dd className="mt-1 text-sm text-primary">{form.preferred_countries.join(", ")}</dd>
+                </div>
+              )}
+            </SectionCard>
+
+            {form.work_history.length > 0 && (
+              <SectionCard title={`Experience (${form.work_history.length} role${form.work_history.length > 1 ? "s" : ""})`}>
+                <div className="space-y-3">
+                  {form.work_history.map((w, i) => (
+                    <div key={i} className="border-l-2 border-secondary pl-4">
+                      <p className="font-medium text-primary">{w.title}</p>
+                      <p className="text-sm text-foreground">{w.company} &middot; {w.location}</p>
+                      <p className="text-xs text-foreground/50">{w.start_date} &ndash; {w.is_current ? "Present" : w.end_date}</p>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {(form.skills.length > 0 || form.certifications.length > 0) && (
+              <SectionCard title="Skills & Certifications">
+                {form.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {form.skills.map((s) => (
+                      <span key={s} className="rounded-full bg-secondary/20 px-3 py-1.5 text-sm font-medium text-primary">{s}</span>
+                    ))}
+                  </div>
+                )}
+                {form.certifications.length > 0 && (
+                  <div className="space-y-2">
+                    {form.certifications.map((c, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-secondary">&#10003;</span>
+                        <span className="text-sm text-primary">{c.name}</span>
+                        {c.issuing_body && <span className="text-xs text-foreground/50">({c.issuing_body})</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+            )}
+
+            <SectionCard title="Preferences">
+              {form.preferred_job_types.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.preferred_job_types.map((jt) => (
+                    <span key={jt} className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">{jt}</span>
+                  ))}
+                </div>
+              )}
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Position Type</dt>
+                  <dd className="text-sm text-primary capitalize">{form.position_type?.replace("_", " ") || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50">Pay Range</dt>
+                  <dd className="text-sm text-primary">
+                    {form.pay_range_min && form.pay_range_max
+                      ? `${form.pay_currency} ${form.pay_range_min}–${form.pay_range_max}/hr`
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+              <div className="flex flex-wrap gap-3 text-sm text-foreground/70">
+                {form.available_nights && <span className="rounded bg-accent/40 px-2 py-0.5">Night shifts</span>}
+                {form.available_weekends && <span className="rounded bg-accent/40 px-2 py-0.5">Weekends</span>}
+                {form.open_to_second_job && <span className="rounded bg-accent/40 px-2 py-0.5">Open to 2nd job</span>}
+              </div>
+            </SectionCard>
+
+            {form.bio && (
+              <SectionCard title="About Me">
+                <p className="text-sm leading-relaxed text-foreground">{form.bio}</p>
+              </SectionCard>
+            )}
+
+            {/* Save button */}
+            <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-6 text-center">
+              <p className="text-sm font-medium text-primary">
+                Review your profile above, then save your changes.
+              </p>
+              <button
+                type="button"
+                disabled={saving}
+                className="mt-4 rounded-lg bg-primary px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                onClick={handleSave}
+              >
+                {saving ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+          </div>
+        );
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════ */
+  /*  MAIN RENDER                                           */
+  /* ═══════════════════════════════════════════════════════ */
+  return (
+    <div className="mx-auto max-w-4xl px-6 py-10">
+      {/* Header */}
+      <div className="mb-8">
+        <button onClick={() => router.push("/profile")} className="text-sm text-foreground/50 hover:text-primary">
+          &larr; Back to Profile
+        </button>
+        <h1 className="mt-3 text-3xl font-bold text-primary">Edit Your Worker Profile</h1>
+        <p className="mt-1 text-foreground/60">
+          Complete your profile to connect with ski resort employers worldwide.
+        </p>
+      </div>
+
+      {/* Progress stepper */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {STEPS.map((s, i) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setCurrentStep(i)}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                  i === currentStep
+                    ? "bg-primary text-white"
+                    : i < currentStep
+                    ? "bg-secondary text-white"
+                    : "bg-accent/40 text-foreground/50"
+                }`}
+              >
+                {i < currentStep ? (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                ) : (
+                  i + 1
+                )}
+              </div>
+              <span
+                className={`hidden text-xs font-medium sm:block ${
+                  i === currentStep ? "text-primary" : "text-foreground/40"
+                }`}
+              >
+                {s}
+              </span>
+            </button>
+          ))}
+        </div>
+        {/* Progress bar */}
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-accent/30">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-secondary to-primary transition-all duration-300"
+            style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Step content */}
+      <form onSubmit={(e) => e.preventDefault()}>
+        {renderStep(step)}
+      </form>
+
+      {/* Navigation buttons */}
+      <div className="mt-8 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={prev}
+          disabled={currentStep === 0}
+          className={`rounded-lg px-6 py-2.5 text-sm font-medium transition-colors ${
+            currentStep === 0
+              ? "cursor-not-allowed text-foreground/30"
+              : "border border-accent text-foreground hover:border-secondary hover:text-primary"
+          }`}
+        >
+          &larr; Back
+        </button>
+        {currentStep < STEPS.length - 1 ? (
+          <button
+            type="button"
+            onClick={next}
+            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+          >
+            Continue &rarr;
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}

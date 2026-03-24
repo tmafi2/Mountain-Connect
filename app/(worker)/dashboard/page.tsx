@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function WorkerDashboard() {
   const [userName, setUserName] = useState("");
+  const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,8 +18,21 @@ export default function WorkerDashboard() {
       return;
     }
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUserName(data.user?.user_metadata?.full_name || "there");
+    supabase.auth.getUser().then(async ({ data }) => {
+      const user = data.user;
+      setUserName(user?.user_metadata?.full_name || "there");
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("worker_profiles")
+          .select("profile_completion_pct")
+          .eq("user_id", user.id)
+          .single();
+        if (profile?.profile_completion_pct != null) {
+          setProfileCompletion(profile.profile_completion_pct);
+        }
+      }
+
       setLoading(false);
     });
   }, []);
@@ -45,7 +59,7 @@ export default function WorkerDashboard() {
         <StatCard href="/applications" label="Applications" value="5" sub="Total submitted" />
         <StatCard href="/interviews" label="Interviews" value="2" sub="Upcoming" />
         <StatCard href="/saved-jobs" label="Saved Jobs" value="0" sub="Bookmarked" />
-        <StatCard href="/profile" label="Profile" value="30%" sub="Completion" accent />
+        <StatCard href="/profile" label="Profile" value={`${profileCompletion}%`} sub="Completion" accent />
       </div>
 
       {/* Quick actions */}

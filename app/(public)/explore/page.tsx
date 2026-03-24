@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -162,6 +162,7 @@ export default function ExplorePage() {
   const [runsFilter, setRunsFilter] = useState(0); // index into RUNS_OPTIONS
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const hasInteracted = useRef(false);
 
   useScrollAnimation();
 
@@ -172,6 +173,10 @@ export default function ExplorePage() {
     difficultyFilter.length > 0,
     verifiedOnly,
   ].filter(Boolean).length;
+
+  // Track if user has changed any filter — skip scroll animations after first interaction
+  const isFiltered = continentFilter !== "All" || searchQuery !== "" || activeFilterCount > 0;
+  if (isFiltered) hasInteracted.current = true;
 
   const clearAllFilters = () => {
     setSearchQuery("");
@@ -542,7 +547,7 @@ export default function ExplorePage() {
         {/* Resort grid grouped by continent → country */}
         <div className="mt-12 space-y-16">
           {filteredHierarchy.map((continent) => (
-            <section key={continent.name} className="animate-on-scroll">
+            <section key={continent.name} className={hasInteracted.current ? "" : "animate-on-scroll"}>
               {/* Continent header */}
               <div className="flex items-center gap-4">
                 <h2 className="text-2xl font-extrabold text-primary">{continent.name}</h2>

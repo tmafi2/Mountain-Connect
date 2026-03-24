@@ -1,0 +1,104 @@
+/* Stream Chat theme overrides for Mountain Connect */
+
+.str-chat {
+  --str-chat__font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Primary colors */
+  --str-chat__primary-color: #1a365d;
+  --str-chat__active-primary-color: #2b6cb0;
+  --str-chat__surface-color: #ffffff;
+  --str-chat__secondary-surface-color: #f7fafc;
+  --str-chat__primary-surface-color: #ebf4ff;
+  --str-chat__primary-surface-color-low-emphasis: #f0f7ff;
+  --str-chat__border-radius-circle: 0.75rem;
+
+  /* Text colors */
+  --str-chat__text-color: #1a365d;
+  --str-chat__text-low-emphasis-color: #718096;
+
+  /* Message bubbles */
+  --str-chat__own-message-bubble-color: #2b6cb0;
+  --str-chat__others-message-bubble-color: #f7fafc;
+
+  /* Borders */
+  --str-chat__channel-preview-active-background: rgba(43, 108, 176, 0.08);
+
+  height: 100%;
+}
+
+/* Remove default Stream Chat borders that conflict with our layout */
+.str-chat-channel-list {
+  border: none !important;
+  background: transparent !important;
+}
+
+.str-chat__channel-list-messenger {
+  background: transparent !important;
+  padding: 0.5rem;
+}
+
+/* Channel search input */
+.str-chat__channel-search-input {
+  border-radius: 0.5rem !important;
+  border-color: #e2e8f0 !important;
+  font-size: 0.875rem !important;
+}
+
+.str-chat__channel-search-input:focus {
+  border-color: #2b6cb0 !important;
+  box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.1) !important;
+}
+
+/* Message input area */
+.str-chat__message-input {
+  border-top: 1px solid #e2e8f0 !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.str-chat__textarea textarea {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 0.875rem !important;
+  border-radius: 0.5rem !important;
+}
+
+/* Message list padding */
+.str-chat__list {
+  padding: 1rem !important;
+}
+
+/* Thread panel */
+.str-chat__thread {
+  border-left: 1px solid #e2e8f0 !important;
+}
+
+/* Header area */
+.str-chat__header-livestream {
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0.75rem 1rem !important;
+}
+
+/* Send button */
+.str-chat__send-button {
+  color: #2b6cb0 !important;
+}
+
+.str-chat__send-button:hover {
+  color: #1a365d !important;
+}
+
+/* Date separator */
+.str-chat__date-separator-date {
+  font-size: 0.75rem !important;
+  color: #718096 !important;
+}
+
+/* Typing indicator */
+.str-chat__typing-indicator {
+  font-size: 0.75rem !important;
+  color: #718096 !important;
+}
+
+/* Empty state */
+.str-chat__channel-list-empty {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif !important;
+}

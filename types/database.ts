@@ -319,6 +319,7 @@ export type NotificationType =
   | "business_new_job"
   | "business_closed_job"
   | "business_update"
+  | "new_message"
   | "general";
 
 export interface InterviewAvailability {

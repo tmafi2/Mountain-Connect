@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { resorts } from "@/lib/data/resorts";
-import { getCategoryLabel } from "@/lib/data/businesses";
 import PhotoUpload, { type UploadedPhoto } from "@/components/ui/PhotoUpload";
 import type { BusinessCategory, BusinessVerificationStatus } from "@/types/database";
 
@@ -85,6 +86,9 @@ const VERIFICATION_STATUS_INFO: Record<
 /* ─── Page ───────────────────────────────────────────────── */
 
 export default function CompanyProfilePage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<BusinessVerificationStatus>("unverified");
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -93,21 +97,73 @@ export default function CompanyProfilePage() {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
 
   const [form, setForm] = useState<ProfileFormData>({
-    business_name: "Whistler Blackcomb Ski & Snowboard School",
-    description:
-      "North America's largest ski and snowboard school, offering group and private lessons for all ages and abilities across two mountains.",
-    category: "ski_school",
-    year_established: "1966",
-    website: "https://www.whistlerblackcomb.com/lessons",
-    phone: "+1 604-967-8950",
-    email: "jobs@whistlerblackcomb.com",
-    location: "Whistler, BC, Canada",
-    instagram: "@whistlerblackcomb",
-    facebook: "WhistlerBlackcomb",
+    business_name: "",
+    description: "",
+    category: "",
+    year_established: "",
+    website: "",
+    phone: "",
+    email: "",
+    location: "",
+    instagram: "",
+    facebook: "",
     linkedin: "",
-    perks: ["Season ski pass", "Staff housing", "Pro deals on gear", "Free lessons"],
-    resort_ids: ["1"],
+    perks: [],
+    resort_ids: [],
   });
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("business_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile) {
+        setProfileId(profile.id);
+        setVerificationStatus(profile.verification_status ?? "unverified");
+        const social = (profile.social_links as Record<string, string>) ?? {};
+        setForm({
+          business_name: profile.business_name ?? "",
+          description: profile.description ?? "",
+          category: (profile.category as BusinessCategory) ?? "",
+          year_established: profile.year_established ? String(profile.year_established) : "",
+          website: profile.website ?? "",
+          phone: profile.phone ?? "",
+          email: profile.email ?? "",
+          location: profile.location ?? "",
+          instagram: social.instagram ?? "",
+          facebook: social.facebook ?? "",
+          linkedin: social.linkedin ?? "",
+          perks: profile.standard_perks ?? [],
+          resort_ids: [],
+        });
+
+        // Load associated resorts
+        const { data: bizResorts } = await supabase
+          .from("business_resorts")
+          .select("resort_id")
+          .eq("business_id", profile.id);
+        if (bizResorts) {
+          setForm((prev) => ({
+            ...prev,
+            resort_ids: bizResorts.map((r: { resort_id: string }) => r.resort_id),
+          }));
+        }
+      }
+
+      setLoading(false);
+    }
+    load();
+  }, [router]);
 
   // Calculate profile completion
   const fields = [
@@ -160,14 +216,54 @@ export default function CompanyProfilePage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !profileId) {
+      setSaving(false);
+      return;
+    }
+
+    const socialLinks: Record<string, string> = {};
+    if (form.instagram) socialLinks.instagram = form.instagram;
+    if (form.facebook) socialLinks.facebook = form.facebook;
+    if (form.linkedin) socialLinks.linkedin = form.linkedin;
+
+    await supabase.from("business_profiles").update({
+      business_name: form.business_name,
+      description: form.description || null,
+      category: form.category || null,
+      year_established: form.year_established ? parseInt(form.year_established) : null,
+      website: form.website || null,
+      phone: form.phone || null,
+      email: form.email || null,
+      location: form.location || null,
+      social_links: Object.keys(socialLinks).length > 0 ? socialLinks : null,
+      standard_perks: form.perks.length > 0 ? form.perks : [],
+    }).eq("id", profileId);
+
+    // Sync resort associations: delete old, insert new
+    await supabase.from("business_resorts").delete().eq("business_id", profileId);
+    if (form.resort_ids.length > 0) {
+      await supabase.from("business_resorts").insert(
+        form.resort_ids.map((rid) => ({
+          business_id: profileId,
+          resort_id: rid,
+        }))
+      );
+    }
+
     setSaving(false);
     setSaved(true);
   };
 
   const handleSubmitForVerification = async () => {
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1200));
+    const supabase = createClient();
+    if (profileId) {
+      await supabase.from("business_profiles").update({
+        verification_status: "pending_review",
+      }).eq("id", profileId);
+    }
     setVerificationStatus("pending_review");
     setSubmitting(false);
   };
@@ -180,6 +276,14 @@ export default function CompanyProfilePage() {
     r.name.toLowerCase().includes(resortSearch.toLowerCase()) ||
     r.country.toLowerCase().includes(resortSearch.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl">

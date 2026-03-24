@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const NAV_ITEMS = [
   {
@@ -73,6 +74,7 @@ const NAV_ITEMS = [
 export default function WorkerSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const unreadMessages = useUnreadMessages();
 
   return (
     <aside
@@ -114,7 +116,12 @@ export default function WorkerSidebar() {
               title={collapsed ? item.label : undefined}
             >
               <span className="shrink-0">{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span className="flex-1">{item.label}</span>}
+              {item.href === "/messages" && unreadMessages > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-white">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                </span>
+              )}
             </Link>
           );
         })}
