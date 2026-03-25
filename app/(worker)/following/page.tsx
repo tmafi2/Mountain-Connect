@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { seedBusinesses, getCategoryLabel } from "@/lib/data/businesses";
 import type { SeedBusiness } from "@/lib/data/businesses";
 
 /* ─── Demo followed businesses ───────────────────────────── */
 
-const initialFollowed = seedBusinesses
+const demoFollowed = seedBusinesses
   .filter((b) => ["biz-1", "biz-2", "biz-6", "biz-9"].includes(b.id))
   .map((b) => ({ ...b, followedAt: "2026-02-15T00:00:00Z" }));
 
@@ -21,9 +21,44 @@ const VERIFICATION_BADGE: Record<string, { bg: string; text: string; label: stri
 /* ─── Page ───────────────────────────────────────────────── */
 
 export default function FollowingPage() {
-  const [followed, setFollowed] = useState(initialFollowed);
+  const [followed, setFollowed] = useState(demoFollowed);
   const [unfollowLoading, setUnfollowLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | string>("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/follow");
+        if (!res.ok) { setLoading(false); return; }
+        const { follows } = await res.json();
+
+        if (follows && follows.length > 0) {
+          const mapped = follows.map((f: Record<string, unknown>) => {
+            const biz = f.business as Record<string, unknown> | null;
+            if (!biz) return null;
+            return {
+              id: biz.id as string,
+              business_name: (biz.business_name as string) || "Unknown",
+              description: (biz.description as string) || "",
+              location: (biz.location as string) || "",
+              category: (biz.category as string) || "other",
+              verification_status: (biz.verification_status as string) || "unverified",
+              slug: (biz.slug as string) || "",
+              logo_url: (biz.logo_url as string) || null,
+              open_positions: 0,
+              standard_perks: [],
+              followedAt: f.created_at as string,
+            };
+          }).filter(Boolean);
+          if (mapped.length > 0) setFollowed(mapped);
+        }
+      } catch {
+        // Keep demo data on error
+      }
+      setLoading(false);
+    })();
+  }, []);
 
   // Get unique categories from followed businesses
   const categories = [...new Set(followed.map((b) => b.category).filter(Boolean))] as string[];
@@ -33,10 +68,22 @@ export default function FollowingPage() {
 
   const handleUnfollow = async (bizId: string) => {
     setUnfollowLoading(bizId);
-    await new Promise((r) => setTimeout(r, 500));
+    try {
+      await fetch(`/api/follow?business_id=${bizId}`, { method: "DELETE" });
+    } catch {
+      // Ignore API errors — still remove from UI
+    }
     setFollowed((prev) => prev.filter((b) => b.id !== bizId));
     setUnfollowLoading(null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl">

@@ -11,6 +11,9 @@ export default function BusinessDashboard() {
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [listingCount, setListingCount] = useState("0");
+  const [applicantCount, setApplicantCount] = useState("0");
+  const [interviewCount, setInterviewCount] = useState("0");
 
   useEffect(() => {
     if (
@@ -28,7 +31,7 @@ export default function BusinessDashboard() {
       if (user) {
         const { data: profile } = await supabase
           .from("business_profiles")
-          .select("business_name, description, category, year_established, website, phone, email, location, standard_perks")
+          .select("id, business_name, description, category, year_established, website, phone, email, location, standard_perks")
           .eq("user_id", user.id)
           .single();
 
@@ -46,6 +49,28 @@ export default function BusinessDashboard() {
           ];
           const filled = fields.filter((f) => f && String(f).length > 0).length;
           setProfileCompletion(Math.round((filled / fields.length) * 100));
+
+          // Fetch real counts
+          const [listings, applicants, interviews] = await Promise.all([
+            supabase
+              .from("job_posts")
+              .select("id", { count: "exact", head: true })
+              .eq("business_id", profile.id)
+              .eq("status", "active"),
+            supabase
+              .from("applications")
+              .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
+              .eq("job_posts.business_id", profile.id),
+            supabase
+              .from("interviews")
+              .select("id", { count: "exact", head: true })
+              .eq("business_id", profile.id)
+              .in("status", ["scheduled", "invited"]),
+          ]);
+
+          setListingCount(String(listings.count ?? 0));
+          setApplicantCount(String(applicants.count ?? 0));
+          setInterviewCount(String(interviews.count ?? 0));
         }
       }
 
@@ -90,9 +115,9 @@ export default function BusinessDashboard() {
 
       {/* Stats row */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard href="/business/manage-listings" label="Active Listings" value="3" sub="Currently posted" />
-        <StatCard href="/business/applicants" label="Total Applicants" value="8" sub="Across all jobs" />
-        <StatCard href="/business/interviews" label="Interviews" value="3" sub="Upcoming scheduled" />
+        <StatCard href="/business/manage-listings" label="Active Listings" value={listingCount} sub="Currently posted" />
+        <StatCard href="/business/applicants" label="Total Applicants" value={applicantCount} sub="Across all jobs" />
+        <StatCard href="/business/interviews" label="Interviews" value={interviewCount} sub="Upcoming scheduled" />
         <StatCard href="/business/company-profile" label="Company Profile" value={`${profileCompletion}%`} sub="Completion" accent />
       </div>
 

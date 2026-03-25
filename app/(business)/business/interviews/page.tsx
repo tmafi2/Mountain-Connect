@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
+import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------------------------------------------ */
 /*  Types & Data                                                       */
@@ -278,9 +279,9 @@ function addDays(date: Date, n: number) {
 }
 
 /* Build map: dateKey -> interviews */
-function buildInterviewMap() {
+function buildInterviewMap(interviews: Interview[]) {
   const map: Record<string, Interview[]> = {};
-  demoInterviews.forEach((iv) => {
+  interviews.forEach((iv) => {
     if (iv.scheduled_date) {
       if (!map[iv.scheduled_date]) map[iv.scheduled_date] = [];
       map[iv.scheduled_date].push(iv);
@@ -289,7 +290,6 @@ function buildInterviewMap() {
   return map;
 }
 
-const interviewsByDate = buildInterviewMap();
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
@@ -621,11 +621,13 @@ function MonthlyCalendar({
   month,
   selectedDate,
   onSelectDate,
+  interviewsByDate,
 }: {
   year: number;
   month: number;
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;
+  interviewsByDate: Record<string, Interview[]>;
 }) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -695,11 +697,13 @@ function WeeklyCalendar({
   selectedDate,
   onSelectDate,
   onSelectInterview,
+  interviewsByDate,
 }: {
   weekStart: Date;
   selectedDate: Date | null;
   onSelectDate: (d: Date) => void;
   onSelectInterview: (iv: Interview) => void;
+  interviewsByDate: Record<string, Interview[]>;
 }) {
   const hours = Array.from({ length: 12 }, (_, i) => i + 7); // 7 AM - 6 PM
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -791,18 +795,85 @@ export default function BusinessInterviewsPage() {
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(today));
+  const [interviews, setInterviews] = useState<Interview[]>(demoInterviews);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setLoading(false); return; }
+
+        const { data: profile } = await supabase
+          .from("business_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+        if (!profile) { setLoading(false); return; }
+
+        const { data } = await supabase
+          .from("interviews")
+          .select(`
+            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes,
+            applications(cover_letter, job_posts(title)),
+            worker_profiles(first_name, last_name, location_current, skills, years_seasonal_experience, languages, cv_url, profile_photo_url, users(email))
+          `)
+          .eq("business_id", profile.id)
+          .order("created_at", { ascending: false });
+
+        if (data && data.length > 0) {
+          const mapped: Interview[] = data.map((iv: Record<string, unknown>) => {
+            const wp = iv.worker_profiles as Record<string, unknown> | null;
+            const app = iv.applications as Record<string, unknown> | null;
+            const jp = app?.job_posts as { title: string } | null;
+            const wpUser = wp?.users as { email: string } | null;
+            const langs = (wp?.languages as { language: string }[] | null) || [];
+            const statusVal = iv.status as string;
+            const validStatuses = ["scheduled", "invited", "completed", "cancelled"];
+            return {
+              id: iv.id as string,
+              job_title: jp?.title || "Unknown Position",
+              worker_name: `${(wp?.first_name as string) || ""} ${(wp?.last_name as string) || ""}`.trim() || "Unknown",
+              worker_email: wpUser?.email || "",
+              worker_location: (wp?.location_current as string) || "",
+              worker_skills: (wp?.skills as string[]) || [],
+              years_experience: (wp?.years_seasonal_experience as number) || 0,
+              languages: langs.map((l) => typeof l === "string" ? l : l.language),
+              cover_letter: (app?.cover_letter as string) || "",
+              status: (validStatuses.includes(statusVal) ? statusVal : "invited") as Interview["status"],
+              scheduled_date: iv.scheduled_date as string | null,
+              scheduled_start_time: iv.scheduled_start_time ? (iv.scheduled_start_time as string).slice(0, 5) : null,
+              scheduled_end_time: iv.scheduled_end_time ? (iv.scheduled_end_time as string).slice(0, 5) : null,
+              timezone: iv.timezone as string | null,
+              worker_resume_url: (wp?.cv_url as string) || null,
+              worker_avatar_url: (wp?.profile_photo_url as string) || null,
+            };
+          });
+          setInterviews(mapped);
+        } else {
+          // No interviews in DB — keep demo data as fallback
+        }
+      } catch {
+        // Keep demo data on error
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const interviewsByDate = buildInterviewMap(interviews);
 
   /* ---- list sections ---- */
-  const scheduled = demoInterviews
+  const scheduled = interviews
     .filter((i) => i.status === "scheduled")
     .sort((a, b) => {
       if (!a.scheduled_date || !b.scheduled_date) return 0;
       return a.scheduled_date.localeCompare(b.scheduled_date);
     });
 
-  const awaiting = demoInterviews.filter((i) => i.status === "invited");
+  const awaiting = interviews.filter((i) => i.status === "invited");
 
-  const past = demoInterviews.filter(
+  const past = interviews.filter(
     (i) => i.status === "completed" || i.status === "cancelled"
   );
 
@@ -852,6 +923,14 @@ export default function BusinessInterviewsPage() {
   const selectedDayInterviews = selectedDate
     ? interviewsByDate[toDateKey(selectedDate)] || []
     : [];
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      </div>
+    );
+  }
 
   /* ---- render ---- */
   return (
@@ -1082,6 +1161,7 @@ export default function BusinessInterviewsPage() {
                       month={calMonth}
                       selectedDate={selectedDate}
                       onSelectDate={setSelectedDate}
+                      interviewsByDate={interviewsByDate}
                     />
                   </div>
                   {/* Side panel for selected day */}
@@ -1136,6 +1216,7 @@ export default function BusinessInterviewsPage() {
                   selectedDate={selectedDate}
                   onSelectDate={setSelectedDate}
                   onSelectInterview={setSelectedInterview}
+                  interviewsByDate={interviewsByDate}
                 />
               )}
             </div>

@@ -82,11 +82,106 @@ export default function BookingContent() {
       return;
     }
 
-    // Real mode — fetch interview and slots from API
+    // Real mode — fetch interview and availability from Supabase
     try {
-      // We'd need an API to look up interview by token
-      // For now, this will be connected in Phase 5
-      setError("Interview booking requires a valid invite token.");
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+
+      // Look up interview by invite_token
+      const { data: iv, error: ivErr } = await supabase
+        .from("interviews")
+        .select(`
+          id, status, business_id,
+          applications(job_posts(title, business_profiles(business_name)))
+        `)
+        .eq("invite_token", token)
+        .single();
+
+      if (ivErr || !iv) {
+        setError("Invalid or expired invite link.");
+        setLoading(false);
+        return;
+      }
+
+      if (iv.status !== "invited" && iv.status !== "rescheduled") {
+        setError(`This interview has already been ${iv.status}.`);
+        setLoading(false);
+        return;
+      }
+
+      const app = iv.applications as unknown as Record<string, unknown> | null;
+      const jp = app?.job_posts as unknown as Record<string, unknown> | null;
+      const bp = jp?.business_profiles as unknown as { business_name: string } | null;
+
+      setInterview({
+        id: iv.id,
+        status: iv.status,
+        business_name: bp?.business_name || "Unknown Business",
+        job_title: (jp?.title as string) || "Unknown Position",
+        business_id: iv.business_id,
+      });
+
+      // Fetch availability windows for the business
+      const todayStr = new Date().toISOString().split("T")[0];
+      const { data: windows } = await supabase
+        .from("interview_availability")
+        .select("date, start_time, end_time, timezone, slot_duration_minutes")
+        .eq("business_id", iv.business_id)
+        .gte("date", todayStr)
+        .order("date", { ascending: true })
+        .limit(30);
+
+      // Fetch existing booked interviews on these dates to exclude taken slots
+      const { data: booked } = await supabase
+        .from("interviews")
+        .select("scheduled_date, scheduled_start_time, scheduled_end_time")
+        .eq("business_id", iv.business_id)
+        .eq("status", "scheduled");
+
+      const bookedSlots = (booked || []).map((b) => ({
+        date: b.scheduled_date,
+        start: b.scheduled_start_time?.slice(0, 5),
+        end: b.scheduled_end_time?.slice(0, 5),
+      }));
+
+      // Generate available time slots from windows
+      const availableSlots: TimeSlot[] = [];
+      for (const w of windows || []) {
+        const slotMins = w.slot_duration_minutes || 30;
+        const tz = w.timezone || "America/Denver";
+        const [sh, sm] = (w.start_time as string).split(":").map(Number);
+        const [eh, em] = (w.end_time as string).split(":").map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+
+        for (let m = startMin; m + slotMins <= endMin; m += slotMins) {
+          const sH = Math.floor(m / 60).toString().padStart(2, "0");
+          const sM = (m % 60).toString().padStart(2, "0");
+          const eMin = m + slotMins;
+          const eH = Math.floor(eMin / 60).toString().padStart(2, "0");
+          const eM = (eMin % 60).toString().padStart(2, "0");
+          const slotStart = `${sH}:${sM}`;
+          const slotEnd = `${eH}:${eM}`;
+
+          // Check if this slot overlaps with any booked interview
+          const isBooked = bookedSlots.some(
+            (b) => b.date === w.date && slotStart < b.end && slotEnd > b.start
+          );
+          if (!isBooked) {
+            availableSlots.push({
+              date: w.date,
+              start_time: slotStart,
+              end_time: slotEnd,
+              timezone: tz,
+            });
+          }
+        }
+      }
+
+      if (availableSlots.length === 0) {
+        setError("No available time slots. The employer may not have set their availability yet.");
+      }
+      setSlots(availableSlots);
       setLoading(false);
     } catch {
       setError("Failed to load interview details.");
