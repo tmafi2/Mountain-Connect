@@ -408,6 +408,76 @@ export default function ProfileEditPage() {
   const [editingWorkIndex, setEditingWorkIndex] = useState<number | null>(null);
   const [expandedWorkIndex, setExpandedWorkIndex] = useState<number | null>(null);
 
+  // Document upload state
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [coverLetterUrl, setCoverLetterUrl] = useState<string | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [coverLetterUploading, setCoverLetterUploading] = useState(false);
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [coverLetterFileName, setCoverLetterFileName] = useState<string | null>(null);
+
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_TYPES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+
+  async function uploadDocument(file: File, type: "resume" | "cover_letter") {
+    if (!userId) return;
+    if (file.size > MAX_FILE_SIZE) { alert("File must be under 5MB"); return; }
+    if (!ALLOWED_TYPES.includes(file.type)) { alert("Please upload a PDF, DOC, or DOCX file"); return; }
+
+    const isResume = type === "resume";
+    isResume ? setResumeUploading(true) : setCoverLetterUploading(true);
+
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+      const path = `${userId}/${type}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from("documents").getPublicUrl(path);
+
+      // Save signed URL path to profile
+      const columnName = isResume ? "resume_url" : "cover_letter_url";
+      await supabase.from("worker_profiles").update({ [columnName]: path }).eq("user_id", userId);
+
+      if (isResume) { setResumeUrl(path); setResumeFileName(file.name); }
+      else { setCoverLetterUrl(path); setCoverLetterFileName(file.name); }
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Upload failed. Please try again.");
+    } finally {
+      isResume ? setResumeUploading(false) : setCoverLetterUploading(false);
+    }
+  }
+
+  async function removeDocument(type: "resume" | "cover_letter") {
+    if (!userId) return;
+    const isResume = type === "resume";
+    const currentPath = isResume ? resumeUrl : coverLetterUrl;
+
+    if (currentPath) {
+      await supabase.storage.from("documents").remove([currentPath]);
+    }
+
+    const columnName = isResume ? "resume_url" : "cover_letter_url";
+    await supabase.from("worker_profiles").update({ [columnName]: null }).eq("user_id", userId);
+
+    if (isResume) { setResumeUrl(null); setResumeFileName(null); }
+    else { setCoverLetterUrl(null); setCoverLetterFileName(null); }
+  }
+
+  async function downloadDocument(type: "resume" | "cover_letter") {
+    const path = type === "resume" ? resumeUrl : coverLetterUrl;
+    if (!path) return;
+
+    const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) { alert("Could not generate download link"); return; }
+    window.open(data.signedUrl, "_blank");
+  }
+
   // Debounced business search
   useEffect(() => {
     if (businessQuery.length < 1) { setBusinessResults([]); return; }
@@ -492,6 +562,16 @@ export default function ProfileEditPage() {
           traveling_with_partner: profile.traveling_with_partner || false,
           traveling_with_pets: profile.traveling_with_pets || false,
         });
+
+        // Load document URLs
+        if (profile.resume_url) {
+          setResumeUrl(profile.resume_url);
+          setResumeFileName(profile.resume_url.split("/").pop() || "resume");
+        }
+        if (profile.cover_letter_url) {
+          setCoverLetterUrl(profile.cover_letter_url);
+          setCoverLetterFileName(profile.cover_letter_url.split("/").pop() || "cover_letter");
+        }
       }
       setLoading(false);
     }
@@ -1581,21 +1661,64 @@ export default function ProfileEditPage() {
                 </button>
               </div>
 
-              {/* Upload placeholders */}
+              {/* Document uploads */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Resume */}
                 <div>
                   <Label>Resume / CV</Label>
-                  <button type="button" className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-background px-4 py-4 text-sm text-foreground/50 hover:border-secondary hover:text-primary">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                    Upload CV
-                  </button>
+                  {resumeUrl ? (
+                    <div className="mt-1 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                      <svg className="h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-800 truncate">{resumeFileName}</p>
+                        <p className="text-xs text-green-600">Uploaded</p>
+                      </div>
+                      <button type="button" onClick={() => downloadDocument("resume")} className="rounded p-1 text-green-600 hover:bg-green-100" title="Download">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      </button>
+                      <button type="button" onClick={() => removeDocument("resume")} className="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600" title="Remove">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`mt-1 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-background px-4 py-4 text-sm text-foreground/50 hover:border-secondary hover:text-primary transition-colors ${resumeUploading ? "opacity-50 pointer-events-none" : ""}`}>
+                      <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "resume"); e.target.value = ""; }} />
+                      {resumeUploading ? (
+                        <><svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Uploading...</>
+                      ) : (
+                        <><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>Upload CV (PDF, DOC, DOCX — max 5MB)</>
+                      )}
+                    </label>
+                  )}
                 </div>
+
+                {/* Cover Letter */}
                 <div>
                   <Label>Cover Letter</Label>
-                  <button type="button" className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-background px-4 py-4 text-sm text-foreground/50 hover:border-secondary hover:text-primary">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                    Upload Cover Letter
-                  </button>
+                  {coverLetterUrl ? (
+                    <div className="mt-1 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                      <svg className="h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-800 truncate">{coverLetterFileName}</p>
+                        <p className="text-xs text-green-600">Uploaded</p>
+                      </div>
+                      <button type="button" onClick={() => downloadDocument("cover_letter")} className="rounded p-1 text-green-600 hover:bg-green-100" title="Download">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      </button>
+                      <button type="button" onClick={() => removeDocument("cover_letter")} className="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600" title="Remove">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`mt-1 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-accent bg-background px-4 py-4 text-sm text-foreground/50 hover:border-secondary hover:text-primary transition-colors ${coverLetterUploading ? "opacity-50 pointer-events-none" : ""}`}>
+                      <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "cover_letter"); e.target.value = ""; }} />
+                      {coverLetterUploading ? (
+                        <><svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Uploading...</>
+                      ) : (
+                        <><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>Upload Cover Letter (PDF, DOC, DOCX — max 5MB)</>
+                      )}
+                    </label>
+                  )}
                 </div>
               </div>
             </SectionCard>
