@@ -218,7 +218,7 @@ export default function ApplicationsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("Newest First");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [applications, setApplications] = useState<Application[]>(demoApplications);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
@@ -226,7 +226,12 @@ export default function ApplicationsPage() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setPageLoading(false); return; }
+        if (!user) {
+          // Not logged in — show demo data
+          setApplications(demoApplications);
+          setPageLoading(false);
+          return;
+        }
 
         const { data: wp } = await supabase
           .from("worker_profiles")
@@ -282,8 +287,9 @@ export default function ApplicationsPage() {
           });
           setApplications(mapped);
         }
+        // else: user has no applications — keep empty array
       } catch {
-        // Fallback to demo data
+        // On error for non-authenticated, show demo data
       }
       setPageLoading(false);
     })();

@@ -460,7 +460,8 @@ export default function ProfileEditPage() {
 
     const { error } = await supabase
       .from("worker_profiles")
-      .update({
+      .upsert({
+        user_id: userId,
         first_name: form.first_name || null,
         last_name: form.last_name || null,
         date_of_birth: form.date_of_birth || null,
@@ -500,8 +501,7 @@ export default function ProfileEditPage() {
         traveling_with_partner: form.traveling_with_partner,
         traveling_with_pets: form.traveling_with_pets,
         profile_completion_pct: completion,
-      })
-      .eq("user_id", userId);
+      }, { onConflict: "user_id" });
 
     setSaving(false);
 

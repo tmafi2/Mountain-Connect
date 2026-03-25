@@ -795,7 +795,7 @@ export default function BusinessInterviewsPage() {
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(today));
-  const [interviews, setInterviews] = useState<Interview[]>(demoInterviews);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -803,7 +803,12 @@ export default function BusinessInterviewsPage() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setLoading(false); return; }
+        if (!user) {
+          // Not logged in — show demo data
+          setInterviews(demoInterviews);
+          setLoading(false);
+          return;
+        }
 
         const { data: profile } = await supabase
           .from("business_profiles")
@@ -851,11 +856,9 @@ export default function BusinessInterviewsPage() {
             };
           });
           setInterviews(mapped);
-        } else {
-          // No interviews in DB — keep demo data as fallback
         }
       } catch {
-        // Keep demo data on error
+        // On error, keep current state
       }
       setLoading(false);
     })();

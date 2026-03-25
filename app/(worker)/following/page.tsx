@@ -21,7 +21,7 @@ const VERIFICATION_BADGE: Record<string, { bg: string; text: string; label: stri
 /* ─── Page ───────────────────────────────────────────────── */
 
 export default function FollowingPage() {
-  const [followed, setFollowed] = useState(demoFollowed);
+  const [followed, setFollowed] = useState<typeof demoFollowed>([]);
   const [unfollowLoading, setUnfollowLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | string>("all");
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,12 @@ export default function FollowingPage() {
     (async () => {
       try {
         const res = await fetch("/api/follow");
-        if (!res.ok) { setLoading(false); return; }
+        if (!res.ok) {
+          // Not authenticated or error — show demo data
+          setFollowed(demoFollowed);
+          setLoading(false);
+          return;
+        }
         const { follows } = await res.json();
 
         if (follows && follows.length > 0) {
@@ -51,10 +56,12 @@ export default function FollowingPage() {
               followedAt: f.created_at as string,
             };
           }).filter(Boolean);
-          if (mapped.length > 0) setFollowed(mapped);
+          setFollowed(mapped);
         }
+        // else: authenticated but no follows — keep empty array
       } catch {
-        // Keep demo data on error
+        // On error, show demo data for non-auth visitors
+        setFollowed(demoFollowed);
       }
       setLoading(false);
     })();

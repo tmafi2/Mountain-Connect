@@ -333,12 +333,12 @@ export default function ManageListingsPage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [selectedApplicant, setSelectedApplicant] = useState<string | null>(null);
-  const [applicants, setApplicants] = useState(demoApplicants);
+  const [applicants, setApplicants] = useState<typeof demoApplicants>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [applicantSort, setApplicantSort] = useState<"newest" | "oldest" | "experience" | "name">("newest");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
-  const [listings, setListings] = useState<DemoListing[]>(demoListings);
+  const [listings, setListings] = useState<DemoListing[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
   // Fetch real listings from Supabase
@@ -347,7 +347,13 @@ export default function ManageListingsPage() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setPageLoading(false); return; }
+        if (!user) {
+          // Not logged in — show demo data
+          setListings(demoListings);
+          setApplicants(demoApplicants);
+          setPageLoading(false);
+          return;
+        }
 
         const { data: bp } = await supabase
           .from("business_profiles")
@@ -385,7 +391,7 @@ export default function ManageListingsPage() {
           setListings(mapped);
         }
       } catch {
-        // Fallback to demo data
+        // On error, keep current state
       }
       setPageLoading(false);
     })();
