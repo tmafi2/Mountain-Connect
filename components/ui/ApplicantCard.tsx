@@ -3,6 +3,25 @@
 import { useState } from "react";
 import type { SeedApplicant } from "@/lib/data/applications";
 
+// Helpers to normalize union types from seed data vs Supabase
+function getLangLabel(lang: string | { language: string; proficiency: string }): string {
+  return typeof lang === "string" ? lang : lang.language;
+}
+
+function getCertLabel(cert: string | { name: string; issuing_body: string | null }): string {
+  return typeof cert === "string" ? cert : cert.name;
+}
+
+function getWorkRole(job: { role?: string; title?: string }): string {
+  return job.role || job.title || "";
+}
+
+function getWorkPeriod(job: { period?: string; start_date?: string; end_date?: string | null }): string {
+  if (job.period) return job.period;
+  if (job.start_date) return job.end_date ? `${job.start_date} – ${job.end_date}` : `${job.start_date} – Present`;
+  return "";
+}
+
 interface ApplicantCardProps {
   applicant: SeedApplicant;
   onInvite?: (applicationId: string) => void;
@@ -255,8 +274,8 @@ export default function ApplicantCard({
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Languages</h4>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {applicant.languages.map((lang) => (
-                      <span key={lang} className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                        {lang}
+                      <span key={getLangLabel(lang)} className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                        {getLangLabel(lang)}
                       </span>
                     ))}
                   </div>
@@ -281,7 +300,7 @@ export default function ApplicantCard({
                   </div>
                   <div>
                     <p className="text-xs text-foreground/50">Date of Birth</p>
-                    <p className="mt-0.5 text-sm font-medium text-primary">{formatDate(applicant.date_of_birth)}</p>
+                    <p className="mt-0.5 text-sm font-medium text-primary">{applicant.date_of_birth ? formatDate(applicant.date_of_birth) : "—"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-foreground/50">Location</p>
@@ -309,8 +328,8 @@ export default function ApplicantCard({
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Certifications</h4>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {applicant.certifications.map((cert) => (
-                      <span key={cert} className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                        {cert}
+                      <span key={getCertLabel(cert)} className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                        {getCertLabel(cert)}
                       </span>
                     ))}
                   </div>
@@ -321,8 +340,8 @@ export default function ApplicantCard({
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Languages</h4>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {applicant.languages.map((lang) => (
-                      <span key={lang} className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                        {lang}
+                      <span key={getLangLabel(lang)} className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                        {getLangLabel(lang)}
                       </span>
                     ))}
                   </div>
@@ -388,9 +407,9 @@ export default function ApplicantCard({
                         {/* Dot */}
                         <div className="relative mt-1.5 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-secondary bg-white" />
                         <div className="flex-1 rounded-lg border border-accent/50 p-3">
-                          <p className="text-sm font-semibold text-primary">{job.role}</p>
+                          <p className="text-sm font-semibold text-primary">{getWorkRole(job)}</p>
                           <p className="text-sm text-foreground/60">{job.company}</p>
-                          <p className="mt-1 text-xs text-foreground/40">{job.period}</p>
+                          <p className="mt-1 text-xs text-foreground/40">{getWorkPeriod(job)}</p>
                         </div>
                       </div>
                     ))}
@@ -402,11 +421,11 @@ export default function ApplicantCard({
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Certifications</h4>
                   <div className="mt-2 space-y-2">
                     {applicant.certifications.map((cert) => (
-                      <div key={cert} className="flex items-center gap-2.5 rounded-lg border border-accent/50 px-4 py-2.5">
+                      <div key={getCertLabel(cert)} className="flex items-center gap-2.5 rounded-lg border border-accent/50 px-4 py-2.5">
                         <svg className="h-4 w-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-sm text-primary">{cert}</span>
+                        <span className="text-sm text-primary">{getCertLabel(cert)}</span>
                       </div>
                     ))}
                   </div>

@@ -6,16 +6,6 @@ export interface SeedJob extends JobPost {
   business_verified: boolean;
   resort_name: string;
   resort_country: string;
-  category: string;
-  position_type: "full_time" | "part_time" | "casual";
-  pay_amount: string;
-  pay_currency: string;
-  housing_details: string | null;
-  meal_perks: boolean;
-  ski_pass_included: boolean;
-  language_required: string;
-  visa_sponsorship: boolean;
-  urgently_hiring: boolean;
   applications_count: number;
 }
 
@@ -51,6 +41,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 34,
   },
   {
@@ -82,6 +76,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: true,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 12,
   },
   {
@@ -113,6 +111,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 48,
   },
 
@@ -146,6 +148,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "French",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 22,
   },
   {
@@ -177,6 +183,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: true,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 8,
   },
 
@@ -210,6 +220,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: true,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 56,
   },
   {
@@ -241,6 +255,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: true,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 29,
   },
 
@@ -274,6 +292,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 41,
   },
 
@@ -307,6 +329,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: true,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 19,
   },
   {
@@ -338,6 +364,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 7,
   },
 
@@ -371,6 +401,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 15,
   },
 
@@ -404,6 +438,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 24,
   },
 
@@ -437,6 +475,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "French",
     visa_sponsorship: false,
     urgently_hiring: true,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 31,
   },
 
@@ -470,6 +512,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 37,
   },
 
@@ -503,6 +549,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: true,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 5,
   },
 
@@ -536,6 +586,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 18,
   },
 
@@ -569,6 +623,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 11,
   },
 
@@ -602,6 +660,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 9,
   },
 
@@ -635,6 +697,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: true,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 14,
   },
 
@@ -668,6 +734,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 20,
   },
 
@@ -701,6 +771,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 6,
   },
 
@@ -734,6 +808,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 42,
   },
 
@@ -767,6 +845,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 10,
   },
 
@@ -800,6 +882,10 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 16,
   },
   {
@@ -831,12 +917,16 @@ export const seedJobs: SeedJob[] = [
     language_required: "English",
     visa_sponsorship: false,
     urgently_hiring: false,
+    positions_available: 1,
+    accommodation_type: null,
+    accommodation_cost: null,
+    status: "active" as const,
     applications_count: 3,
   },
 ];
 
 /* ─── Derived filter options from seed data ───────────────── */
-export const JOB_CATEGORIES = [...new Set(seedJobs.map((j) => j.category))].sort();
+export const JOB_CATEGORIES = [...new Set(seedJobs.map((j) => j.category).filter((c): c is string => c !== null))].sort();
 export const JOB_COUNTRIES = [...new Set(seedJobs.map((j) => j.resort_country))].sort();
 export const JOB_RESORTS = [...new Set(seedJobs.map((j) => j.resort_name))].sort();
-export const JOB_CURRENCIES = [...new Set(seedJobs.map((j) => j.pay_currency))].sort();
+export const JOB_CURRENCIES = [...new Set(seedJobs.map((j) => j.pay_currency).filter((c): c is string => c !== null))].sort();

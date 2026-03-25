@@ -8,6 +8,9 @@ export default function WorkerDashboard() {
   const [userName, setUserName] = useState("");
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [appCount, setAppCount] = useState(0);
+  const [interviewCount, setInterviewCount] = useState(0);
+  const [savedCount, setSavedCount] = useState(0);
 
   useEffect(() => {
     if (
@@ -25,11 +28,23 @@ export default function WorkerDashboard() {
       if (user) {
         const { data: profile } = await supabase
           .from("worker_profiles")
-          .select("profile_completion_pct")
+          .select("id, profile_completion_pct")
           .eq("user_id", user.id)
           .single();
         if (profile?.profile_completion_pct != null) {
           setProfileCompletion(profile.profile_completion_pct);
+        }
+
+        // Fetch real counts
+        if (profile?.id) {
+          const [apps, interviews, saved] = await Promise.all([
+            supabase.from("applications").select("id", { count: "exact", head: true }).eq("worker_id", profile.id),
+            supabase.from("interviews").select("id", { count: "exact", head: true }).eq("worker_id", profile.id).in("status", ["invited", "scheduled"]),
+            supabase.from("saved_jobs").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          ]);
+          setAppCount(apps.count ?? 0);
+          setInterviewCount(interviews.count ?? 0);
+          setSavedCount(saved.count ?? 0);
         }
       }
 
@@ -56,9 +71,9 @@ export default function WorkerDashboard() {
 
       {/* Stats row */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard href="/applications" label="Applications" value="5" sub="Total submitted" />
-        <StatCard href="/interviews" label="Interviews" value="2" sub="Upcoming" />
-        <StatCard href="/saved-jobs" label="Saved Jobs" value="0" sub="Bookmarked" />
+        <StatCard href="/applications" label="Applications" value={String(appCount)} sub="Total submitted" />
+        <StatCard href="/interviews" label="Interviews" value={String(interviewCount)} sub="Upcoming" />
+        <StatCard href="/saved-jobs" label="Saved Jobs" value={String(savedCount)} sub="Bookmarked" />
         <StatCard href="/profile" label="Profile" value={`${profileCompletion}%`} sub="Completion" accent />
       </div>
 

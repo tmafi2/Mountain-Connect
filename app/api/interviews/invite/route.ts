@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   // Update application status
   await admin
     .from("applications")
-    .update({ status: "interview_scheduled" })
+    .update({ status: "interview" })
     .eq("id", application_id);
 
   const workerName = [workerProfile.first_name, workerProfile.last_name]

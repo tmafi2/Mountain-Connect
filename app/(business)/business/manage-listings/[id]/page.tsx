@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -292,6 +293,116 @@ export default function ListingDetailPage() {
     return accepted.map((a) => a.id);
   });
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Fetch real listing + applicants from Supabase
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setPageLoading(false); return; }
+
+        // Fetch the listing
+        const { data: jobData } = await supabase
+          .from("job_posts")
+          .select("*, resorts(name, country), applications(count)")
+          .eq("id", id)
+          .single();
+
+        if (jobData) {
+          const resort = jobData.resorts as { name: string; country: string } | null;
+          setListing({
+            id: jobData.id,
+            title: jobData.title,
+            status: jobData.status || "active",
+            resort: resort?.name || "",
+            location: resort ? `${resort.name}, ${resort.country}` : "",
+            businessName: "",
+            description: jobData.description || "",
+            requirements: jobData.requirements || "",
+            pay: jobData.pay_amount || jobData.salary_range || "",
+            type: jobData.position_type === "full_time" ? "Full-time" : jobData.position_type === "part_time" ? "Part-time" : "Casual",
+            startDate: jobData.start_date || "",
+            endDate: jobData.end_date || "",
+            posted: jobData.created_at,
+            housing: jobData.accommodation_included,
+            housingDetails: jobData.housing_details || null,
+            skiPass: jobData.ski_pass_included || false,
+            meals: jobData.meal_perks || false,
+            language: jobData.language_required || "English",
+            visaSponsorship: jobData.visa_sponsorship || false,
+            urgent: jobData.urgently_hiring || false,
+            positionsAvailable: jobData.positions_available || 1,
+            positionsFilled: 0,
+            applicants: 0,
+            interviews: 0,
+            views: 0,
+          });
+          setEditForm({
+            title: jobData.title,
+            description: jobData.description || "",
+            requirements: jobData.requirements || "",
+            pay: jobData.pay_amount || jobData.salary_range || "",
+            startDate: jobData.start_date || "",
+            endDate: jobData.end_date || "",
+            housing: jobData.accommodation_included,
+            housingDetails: jobData.housing_details || "",
+            skiPass: jobData.ski_pass_included || false,
+            meals: jobData.meal_perks || false,
+            visaSponsorship: jobData.visa_sponsorship || false,
+          });
+        }
+
+        // Fetch applicants for this listing
+        const { data: appData } = await supabase
+          .from("applications")
+          .select("*, worker_profiles(id, first_name, last_name, phone, location_current, skills, years_seasonal_experience, languages, cv_url)")
+          .eq("job_post_id", id);
+
+        if (appData && appData.length > 0) {
+          const statusMap: Record<string, ApplicantStatus> = {
+            new: "pending",
+            viewed: "reviewed",
+            interview_pending: "interview_scheduled",
+            interview: "interview_scheduled",
+            offered: "accepted",
+            accepted: "accepted",
+            rejected: "rejected",
+          };
+
+          const mappedApplicants: Applicant[] = appData.map((a: Record<string, unknown>) => {
+            const wp = a.worker_profiles as Record<string, unknown> | null;
+            const firstName = (wp?.first_name as string) || "";
+            const lastName = (wp?.last_name as string) || "";
+            const langs = (wp?.languages as { language: string }[]) || [];
+
+            return {
+              id: (wp?.id as string) || (a.worker_id as string),
+              name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
+              email: "",
+              location: (wp?.location_current as string) || "",
+              skills: (wp?.skills as string[]) || [],
+              experience: (wp?.years_seasonal_experience as number) || 0,
+              status: statusMap[a.status as string] || "pending",
+              appliedAt: a.applied_at as string,
+              coverLetter: (a.cover_letter as string) || "",
+              availability: "",
+              languages: langs.map((l) => l.language),
+              resumeUrl: (a.resume_url as string) || (wp?.cv_url as string) || null,
+            };
+          });
+          setApplicants(mappedApplicants);
+
+          const accepted = mappedApplicants.filter((a) => a.status === "accepted");
+          setFilledSlots(accepted.map((a) => a.id));
+        }
+      } catch {
+        // Fallback to demo data
+      }
+      setPageLoading(false);
+    })();
+  }, [id]);
 
   // Derived data
   const filteredApplicants = useMemo(() => {
@@ -324,6 +435,14 @@ export default function ListingDetailPage() {
     () => acceptedApplicants.filter((a) => !filledSlots.includes(a.id)),
     [acceptedApplicants, filledSlots]
   );
+
+  if (pageLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      </div>
+    );
+  }
 
   if (!listing) {
     return (

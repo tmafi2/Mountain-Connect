@@ -245,32 +245,34 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          {/* Test Portal Buttons */}
-          <div className="mt-8 rounded-xl border border-dashed border-secondary/30 bg-secondary/5 p-4">
-            <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-foreground/30">
-              Test Portals
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => router.push("/dashboard?test=true")}
-                className="flex-1 rounded-lg border border-accent bg-white py-2 text-xs font-semibold text-primary transition-colors hover:bg-accent/20"
-              >
-                Worker
-              </button>
-              <button
-                onClick={() => router.push("/business/dashboard?test=true")}
-                className="flex-1 rounded-lg border border-accent bg-white py-2 text-xs font-semibold text-primary transition-colors hover:bg-accent/20"
-              >
-                Business
-              </button>
-              <button
-                onClick={() => router.push("/admin/dashboard?test=true")}
-                className="flex-1 rounded-lg border border-red-200 bg-red-50 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-              >
-                Admin
-              </button>
+          {/* Test Portal Buttons — dev only */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-8 rounded-xl border border-dashed border-secondary/30 bg-secondary/5 p-4">
+              <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-foreground/30">
+                Test Portals
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.push("/dashboard?test=true")}
+                  className="flex-1 rounded-lg border border-accent bg-white py-2 text-xs font-semibold text-primary transition-colors hover:bg-accent/20"
+                >
+                  Worker
+                </button>
+                <button
+                  onClick={() => router.push("/business/dashboard?test=true")}
+                  className="flex-1 rounded-lg border border-accent bg-white py-2 text-xs font-semibold text-primary transition-colors hover:bg-accent/20"
+                >
+                  Business
+                </button>
+                <button
+                  onClick={() => router.push("/admin/dashboard?test=true")}
+                  className="flex-1 rounded-lg border border-red-200 bg-red-50 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+                >
+                  Admin
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

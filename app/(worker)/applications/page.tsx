@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 interface Application {
   id: string;
@@ -217,6 +218,76 @@ export default function ApplicationsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("Newest First");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [applications, setApplications] = useState<Application[]>(demoApplications);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setPageLoading(false); return; }
+
+        const { data: wp } = await supabase
+          .from("worker_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!wp) { setPageLoading(false); return; }
+
+        const { data } = await supabase
+          .from("applications")
+          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location), resorts(name)), interviews(status, scheduled_date, scheduled_start_time)")
+          .eq("worker_id", wp.id)
+          .order("applied_at", { ascending: false });
+
+        if (data && data.length > 0) {
+          const statusMap: Record<string, Application["status"]> = {
+            new: "applied",
+            viewed: "viewed",
+            interview_pending: "interview",
+            interview: "interview",
+            offered: "offered",
+            accepted: "accepted",
+            rejected: "rejected",
+          };
+
+          const mapped: Application[] = data.map((a: Record<string, unknown>) => {
+            const jp = a.job_posts as Record<string, unknown> | null;
+            const bp = jp?.business_profiles as { business_name: string; location: string | null } | null;
+            const resort = jp?.resorts as { name: string } | null;
+            const interviews = a.interviews as { status: string; scheduled_date: string | null; scheduled_start_time: string | null }[] | null;
+            const latestInterview = interviews?.[0] || null;
+            const posType = (jp?.position_type as string) || "full_time";
+
+            return {
+              id: a.id as string,
+              job_title: (jp?.title as string) || "Unknown Position",
+              business_name: bp?.business_name || "Unknown Business",
+              business_location: bp?.location || "",
+              resort_name: resort?.name || "",
+              status: statusMap[a.status as string] || "applied",
+              applied_at: a.applied_at as string,
+              cover_letter: (a.cover_letter as string) || "",
+              has_resume: !!(a.resume_url),
+              salary_range: (jp?.salary_range as string) || "",
+              employment_type: posType === "full_time" ? "Full-Time" : posType === "part_time" ? "Part-Time" : "Casual",
+              start_date: (jp?.start_date as string) || "",
+              interview_status: latestInterview ? (latestInterview.status as "invited" | "scheduled" | "completed") : null,
+              interview_date: latestInterview?.scheduled_date || null,
+              interview_time: latestInterview?.scheduled_start_time || null,
+              last_updated: (a.updated_at as string) || (a.applied_at as string),
+            };
+          });
+          setApplications(mapped);
+        }
+      } catch {
+        // Fallback to demo data
+      }
+      setPageLoading(false);
+    })();
+  }, []);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -243,8 +314,16 @@ export default function ApplicationsPage() {
     return `${hour % 12 || 12}:${m} ${ampm}`;
   };
 
+  if (pageLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      </div>
+    );
+  }
+
   // Filter by search
-  const searchFiltered = demoApplications.filter((app) => {
+  const searchFiltered = applications.filter((app) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (

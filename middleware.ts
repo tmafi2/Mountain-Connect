@@ -18,9 +18,11 @@ export async function middleware(request: NextRequest) {
   const isAccessPage = pathname === "/access";
   const isAccessApi = pathname === "/api/access";
   const isComingSoon = pathname === "/coming-soon";
+  const isTestPortals = pathname === "/test-portals";
+  const isTestPortalApi = pathname === "/api/test-portal";
   const hasAccessCookie = request.cookies.get("site-access")?.value === "granted";
 
-  if (!isAccessPage && !isAccessApi && !isComingSoon && !hasAccessCookie) {
+  if (!isAccessPage && !isAccessApi && !isComingSoon && !isTestPortals && !isTestPortalApi && !hasAccessCookie) {
     return NextResponse.redirect(new URL("/access", request.url));
   }
 
@@ -43,23 +45,25 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Allow test mode access (skip auth check)
-  // When ?test=true is in the URL, set a cookie so test mode persists across navigation
-  const isTestParam = request.nextUrl.searchParams.get("test") === "true";
-  if (isTestParam) {
-    response.cookies.set("test-mode", "true", {
-      path: "/",
-      maxAge: 60 * 60 * 4, // 4 hours
-      httpOnly: true,
-      sameSite: "lax",
-    });
-    return response;
-  }
-
-  // Check for existing test mode cookie
+  // Allow test mode access:
+  // - In development: ?test=true sets the cookie directly
+  // - In production: cookie is set via /test-portals page (requires access code)
   const hasTestCookie = request.cookies.get("test-mode")?.value === "true";
   if (hasTestCookie) {
     return response;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    const isTestParam = request.nextUrl.searchParams.get("test") === "true";
+    if (isTestParam) {
+      response.cookies.set("test-mode", "true", {
+        path: "/",
+        maxAge: 60 * 60 * 4, // 4 hours
+        httpOnly: true,
+        sameSite: "lax",
+      });
+      return response;
+    }
   }
 
   // Check for auth session via cookie (lightweight check)

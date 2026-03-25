@@ -295,6 +295,21 @@ export interface JobPost {
   end_date: string | null;
   is_active: boolean;
   created_at: string;
+  // Extended fields (migration 00006)
+  category: string | null;
+  position_type: "full_time" | "part_time" | "casual";
+  pay_amount: string | null;
+  pay_currency: string | null;
+  housing_details: string | null;
+  meal_perks: boolean;
+  ski_pass_included: boolean;
+  language_required: string | null;
+  visa_sponsorship: boolean;
+  urgently_hiring: boolean;
+  positions_available: number;
+  accommodation_type: string | null;
+  accommodation_cost: string | null;
+  status: "active" | "paused" | "closed" | "draft";
 }
 
 export interface Application {
@@ -303,6 +318,9 @@ export interface Application {
   worker_id: string;
   status: ApplicationStatus;
   applied_at: string;
+  cover_letter: string | null;
+  resume_url: string | null;
+  updated_at: string | null;
 }
 
 // ── Interview Scheduling ──────────────────────────────

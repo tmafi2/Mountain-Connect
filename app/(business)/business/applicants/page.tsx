@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { seedApplicants, type SeedApplicant } from "@/lib/data/applications";
 import ApplicantCard from "@/components/ui/ApplicantCard";
 import type { ApplicationStatus } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
 
 type FilterStatus = "all" | ApplicationStatus;
 
@@ -12,7 +13,75 @@ export default function ApplicantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
-  const [applicants, setApplicants] = useState(seedApplicants);
+  const [applicants, setApplicants] = useState<SeedApplicant[]>(seedApplicants);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setPageLoading(false); return; }
+
+        const { data: business } = await supabase
+          .from("business_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!business) { setPageLoading(false); return; }
+
+        const { data } = await supabase
+          .from("applications")
+          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, cv_url)")
+          .eq("job_posts.business_id", business.id);
+
+        if (data && data.length > 0) {
+          const mapped: SeedApplicant[] = data
+            .filter((a: Record<string, unknown>) => a.job_posts !== null)
+            .map((a: Record<string, unknown>) => {
+              const jp = a.job_posts as Record<string, unknown>;
+              const resort = jp.resorts as { name: string } | null;
+              const wp = a.worker_profiles as Record<string, unknown> | null;
+              const firstName = (wp?.first_name as string) || "";
+              const lastName = (wp?.last_name as string) || "";
+
+              return {
+                id: (wp?.id as string) || (a.worker_id as string),
+                application_id: a.id as string,
+                job_id: jp.id as string,
+                job_title: jp.title as string,
+                resort_name: resort?.name || "",
+                worker_name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
+                worker_email: "",
+                worker_phone: (wp?.phone as string) || null,
+                worker_avatar: (wp?.profile_photo_url as string) || null,
+                worker_location: (wp?.location_current as string) || null,
+                worker_skills: (wp?.skills as string[]) || [],
+                years_experience: (wp?.years_seasonal_experience as number) || 0,
+                status: a.status as ApplicationStatus,
+                applied_at: a.applied_at as string,
+                cover_letter: (a.cover_letter as string) || "",
+                languages: (wp?.languages as { language: string; proficiency: string }[]) || [],
+                availability: null,
+                bio: (wp?.bio as string) || null,
+                certifications: (wp?.certifications as { name: string; issuing_body: string | null }[]) || [],
+                work_history: (wp?.work_history as { title: string; company: string; location: string; start_date: string; end_date: string | null; description: string }[]) || [],
+                education: null,
+                visa_status: (wp?.visa_status as string) || null,
+                date_of_birth: (wp?.date_of_birth as string) || null,
+                nationality: (wp?.nationality as string) || null,
+                worker_resume_url: (a.resume_url as string) || (wp?.cv_url as string) || null,
+              };
+            });
+          setApplicants(mapped);
+        }
+      } catch {
+        // Fallback to seed data
+      }
+      setPageLoading(false);
+    })();
+  }, []);
 
   // Get unique listings for the dropdown
   const listings = useMemo(() => {
@@ -25,7 +94,7 @@ export default function ApplicantsPage() {
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
   }, []);
 
-  const handleStatusChange = (applicationId: string, newStatus: string) => {
+  const handleStatusChange = async (applicationId: string, newStatus: string) => {
     setApplicants((prev) =>
       prev.map((a) =>
         a.application_id === applicationId
@@ -33,6 +102,15 @@ export default function ApplicantsPage() {
           : a
       )
     );
+    try {
+      const supabase = createClient();
+      await supabase
+        .from("applications")
+        .update({ status: newStatus })
+        .eq("id", applicationId);
+    } catch {
+      // Optimistic update already applied
+    }
   };
 
   const filtered = useMemo(() => {
@@ -65,9 +143,22 @@ export default function ApplicantsPage() {
 
   const handleInvite = async (applicationId: string) => {
     setInvitingId(applicationId);
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const res = await fetch("/api/interviews/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: applicationId }),
+      });
+      if (res.ok) {
+        handleStatusChange(applicationId, "interview");
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to send invitation");
+      }
+    } catch {
+      alert("Failed to send invitation");
+    }
     setInvitingId(null);
-    alert(`Interview invitation sent for application ${applicationId}! (Demo mode — in production this calls the invite API)`);
   };
 
   // Count applicants per status (respecting listing filter)
@@ -104,6 +195,14 @@ export default function ApplicantsPage() {
     { value: "accepted", label: "Accepted", color: "bg-green-50 text-green-700" },
     { value: "rejected", label: "Rejected", color: "bg-red-50 text-red-700" },
   ];
+
+  if (pageLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl">

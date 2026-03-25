@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -13,6 +13,7 @@ import {
 import { resorts } from "@/lib/data/resorts";
 import ResortMap from "@/components/ui/ResortMap";
 import type { MapPin } from "@/components/ui/Map";
+import { createClient } from "@/lib/supabase/client";
 
 /* ─── filter state ────────────────────────────────────────── */
 interface Filters {
@@ -85,6 +86,67 @@ export default function FindAJobPage() {
 
 function FindAJobContent() {
   const searchParams = useSearchParams();
+  const [allJobs, setAllJobs] = useState<SeedJob[]>(seedJobs);
+  const [jobsLoading, setJobsLoading] = useState(true);
+
+  // Fetch real jobs from Supabase, fallback to seed data
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("job_posts")
+          .select("*, business_profiles(business_name, verification_status), resorts(name, country)")
+          .eq("is_active", true);
+
+        if (data && data.length > 0) {
+          const mapped: SeedJob[] = data.map((j: Record<string, unknown>) => {
+            const bp = j.business_profiles as { business_name: string; verification_status: string } | null;
+            const resort = j.resorts as { name: string; country: string } | null;
+            const posType = (j.position_type as string) || "full_time";
+            return {
+              id: j.id as string,
+              business_id: j.business_id as string,
+              resort_id: j.resort_id as string,
+              title: j.title as string,
+              description: j.description as string,
+              requirements: (j.requirements as string) || null,
+              accommodation_included: j.accommodation_included as boolean,
+              salary_range: (j.salary_range as string) || null,
+              start_date: (j.start_date as string) || null,
+              end_date: (j.end_date as string) || null,
+              is_active: true,
+              created_at: j.created_at as string,
+              business_name: bp?.business_name || "Unknown Business",
+              business_verified: bp?.verification_status === "verified",
+              resort_name: resort?.name || "",
+              resort_country: resort?.country || "",
+              category: (j.category as string) || "Other",
+              position_type: posType as "full_time" | "part_time" | "casual",
+              pay_amount: (j.pay_amount as string) || (j.salary_range as string) || "",
+              pay_currency: (j.pay_currency as string) || "USD",
+              housing_details: (j.housing_details as string) || null,
+              meal_perks: (j.meal_perks as boolean) || false,
+              ski_pass_included: (j.ski_pass_included as boolean) || false,
+              language_required: (j.language_required as string) || "English",
+              visa_sponsorship: (j.visa_sponsorship as boolean) || false,
+              urgently_hiring: (j.urgently_hiring as boolean) || false,
+              positions_available: (j.positions_available as number) || 1,
+              accommodation_type: (j.accommodation_type as string) || null,
+              accommodation_cost: (j.accommodation_cost as string) || null,
+              status: ((j.status as string) || "active") as "active" | "paused" | "closed" | "draft",
+              applications_count: 0,
+            };
+          });
+          setAllJobs(mapped);
+        }
+      } catch {
+        // Fallback to seed data (already set)
+      }
+      setJobsLoading(false);
+    })();
+  }, []);
+
   const [filters, setFilters] = useState<Filters>(() => {
     // Pre-populate filters from URL query params
     const initial = { ...INITIAL_FILTERS };
@@ -102,17 +164,56 @@ function FindAJobContent() {
     // Auto-open a specific job if ?open=jobId is in the URL
     const openId = searchParams.get("open");
     if (openId) {
-      return seedJobs.find((j) => j.id === openId) ?? null;
+      return allJobs.find((j) => j.id === openId) ?? null;
     }
     return null;
   });
+
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+
+  // Load saved job IDs on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("saved_jobs")
+          .select("job_post_id")
+          .eq("user_id", user.id);
+        if (data) {
+          setSavedJobIds(new Set(data.map((d: { job_post_id: string }) => d.job_post_id)));
+        }
+      } catch {
+        // Not logged in or table doesn't exist yet
+      }
+    })();
+  }, []);
+
+  const toggleSaveJob = async (jobId: string) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = `/login?redirect=/jobs`;
+      return;
+    }
+    const isSaved = savedJobIds.has(jobId);
+    if (isSaved) {
+      setSavedJobIds((prev) => { const next = new Set(prev); next.delete(jobId); return next; });
+      await supabase.from("saved_jobs").delete().eq("user_id", user.id).eq("job_post_id", jobId);
+    } else {
+      setSavedJobIds((prev) => new Set(prev).add(jobId));
+      await supabase.from("saved_jobs").insert({ user_id: user.id, job_post_id: jobId });
+    }
+  };
 
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
   /* ─── filter + sort logic ───────────────────────────────── */
   const filteredJobs = useMemo(() => {
-    let jobs = [...seedJobs];
+    let jobs = [...allJobs];
 
     // Text search
     if (filters.search) {
@@ -123,7 +224,7 @@ function FindAJobContent() {
           j.business_name.toLowerCase().includes(q) ||
           j.resort_name.toLowerCase().includes(q) ||
           j.description.toLowerCase().includes(q) ||
-          j.category.toLowerCase().includes(q)
+          (j.category || "").toLowerCase().includes(q)
       );
     }
 
@@ -578,6 +679,8 @@ function FindAJobContent() {
                     key={job.id}
                     job={job}
                     isSelected={selectedJob?.id === job.id}
+                    isSaved={savedJobIds.has(job.id)}
+                    onToggleSave={() => toggleSaveJob(job.id)}
                     onClick={() =>
                       setSelectedJob(
                         selectedJob?.id === job.id ? null : job
@@ -610,22 +713,25 @@ function FindAJobContent() {
 function JobCard({
   job,
   isSelected,
+  isSaved,
+  onToggleSave,
   onClick,
 }: {
   job: SeedJob;
   isSelected: boolean;
+  isSaved: boolean;
+  onToggleSave: () => void;
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={`w-full rounded-xl border bg-white p-5 text-left transition-all hover:shadow-md ${
         isSelected
           ? "border-primary ring-2 ring-primary/20"
           : "border-accent hover:border-secondary"
       }`}
     >
+      <button type="button" onClick={onClick} className="w-full text-left">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -667,7 +773,7 @@ function JobCard({
 
       {/* Tags */}
       <div className="mt-3 flex flex-wrap gap-2">
-        <PerkTag label={job.category} />
+        <PerkTag label={job.category || "Other"} />
         {job.accommodation_included && <PerkTag label="Accommodation" variant="green" />}
         {job.ski_pass_included && <PerkTag label="Ski Pass" variant="blue" />}
         {job.meal_perks && <PerkTag label="Meals" variant="amber" />}
@@ -680,7 +786,22 @@ function JobCard({
         {job.start_date && <span>{daysUntil(job.start_date)}</span>}
         <span>{job.applications_count} applicants</span>
       </div>
-    </button>
+      </button>
+
+      {/* Bookmark button */}
+      <div className="mt-2 flex justify-end">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          className={`rounded-lg p-1.5 transition-colors ${isSaved ? "text-primary" : "text-foreground/30 hover:text-primary/60"}`}
+          title={isSaved ? "Remove bookmark" : "Save job"}
+        >
+          <svg className="h-5 w-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -714,6 +835,53 @@ function JobDetailPanel({
   job: SeedJob;
   onClose: () => void;
 }) {
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  const [applyError, setApplyError] = useState("");
+
+  const handleApply = async () => {
+    setApplying(true);
+    setApplyError("");
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = `/login?redirect=/jobs`;
+        return;
+      }
+      const { data: wp } = await supabase
+        .from("worker_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      if (!wp) {
+        setApplyError("You need a worker profile to apply.");
+        setApplying(false);
+        return;
+      }
+      const { error } = await supabase.from("applications").insert({
+        job_post_id: job.id,
+        worker_id: wp.id,
+        cover_letter: coverLetter || null,
+      });
+      if (error) {
+        if (error.code === "23505") {
+          setApplyError("You have already applied to this job.");
+        } else {
+          setApplyError(error.message);
+        }
+      } else {
+        setApplied(true);
+        setShowApplyForm(false);
+      }
+    } catch {
+      setApplyError("Something went wrong. Please try again.");
+    }
+    setApplying(false);
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -761,7 +929,7 @@ function JobDetailPanel({
             {/* Quick info grid */}
             <div className="grid grid-cols-2 gap-3">
               <InfoBox label="Location" value={`${job.resort_name}, ${job.resort_country}`} />
-              <InfoBox label="Pay" value={job.pay_amount} />
+              <InfoBox label="Pay" value={job.pay_amount || job.salary_range || "TBD"} />
               <InfoBox
                 label="Position"
                 value={
@@ -772,7 +940,7 @@ function JobDetailPanel({
                       : "Casual"
                 }
               />
-              <InfoBox label="Category" value={job.category} />
+              <InfoBox label="Category" value={job.category || "Other"} />
               <InfoBox
                 label="Season"
                 value={
@@ -781,7 +949,7 @@ function JobDetailPanel({
                     : "Flexible"
                 }
               />
-              <InfoBox label="Language" value={job.language_required} />
+              <InfoBox label="Language" value={job.language_required || "Not specified"} />
             </div>
 
             {/* Perks */}
@@ -886,20 +1054,47 @@ function JobDetailPanel({
 
         {/* Footer CTA */}
         <div className="border-t border-accent bg-white p-6">
-          <button
-            type="button"
-            onClick={() =>
-              alert(
-                "Application submitted! (Test mode — no backend connected)"
-              )
-            }
-            className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-          >
-            Apply Now
-          </button>
-          <p className="mt-2 text-center text-xs text-foreground/40">
-            Test mode — in production this would submit your worker profile as an application.
-          </p>
+          {applied ? (
+            <div className="rounded-lg bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-700">
+              Application submitted successfully!
+            </div>
+          ) : showApplyForm ? (
+            <div className="space-y-3">
+              <textarea
+                value={coverLetter}
+                onChange={(e) => setCoverLetter(e.target.value)}
+                placeholder="Add a cover letter (optional)..."
+                rows={4}
+                className="w-full rounded-lg border border-accent bg-background p-3 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              {applyError && (
+                <p className="text-xs text-red-600">{applyError}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleApply}
+                  disabled={applying}
+                  className="flex-1 rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {applying ? "Submitting..." : "Submit Application"}
+                </button>
+                <button
+                  onClick={() => { setShowApplyForm(false); setApplyError(""); }}
+                  className="rounded-lg border border-accent px-4 py-3 text-sm font-medium text-foreground/60 hover:bg-accent/20"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowApplyForm(true)}
+              className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            >
+              Apply Now
+            </button>
+          )}
         </div>
       </div>
     </>

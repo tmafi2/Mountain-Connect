@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -337,10 +338,62 @@ export default function ManageListingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [applicantSort, setApplicantSort] = useState<"newest" | "oldest" | "experience" | "name">("newest");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
+  const [listings, setListings] = useState<DemoListing[]>(demoListings);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Fetch real listings from Supabase
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setPageLoading(false); return; }
+
+        const { data: bp } = await supabase
+          .from("business_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+        if (!bp) { setPageLoading(false); return; }
+
+        const { data: jobs } = await supabase
+          .from("job_posts")
+          .select("*, resorts(name, country)")
+          .eq("business_id", bp.id)
+          .order("created_at", { ascending: false });
+
+        if (jobs && jobs.length > 0) {
+          const mapped: DemoListing[] = jobs.map((j: Record<string, unknown>) => {
+            const resort = j.resorts as { name: string; country: string } | null;
+            const posType = j.position_type === "full_time" ? "Full-time" : j.position_type === "part_time" ? "Part-time" : "Casual";
+            return {
+              id: j.id as string,
+              title: j.title as string,
+              resort: resort?.name || "",
+              location: resort ? `${resort.name}, ${resort.country}` : "",
+              status: (j.status as string) === "draft" ? "paused" : (j.status as string) as "active" | "paused" | "closed",
+              pay: (j.pay_amount as string) || (j.salary_range as string) || "",
+              type: posType,
+              posted: new Date(j.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              startDate: j.start_date ? new Date(j.start_date as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+              endDate: j.end_date ? new Date(j.end_date as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+              housing: j.accommodation_included as boolean,
+              skiPass: j.ski_pass_included as boolean,
+              urgent: j.urgently_hiring as boolean,
+            };
+          });
+          setListings(mapped);
+        }
+      } catch {
+        // Fallback to demo data
+      }
+      setPageLoading(false);
+    })();
+  }, []);
 
   const query = searchQuery.toLowerCase().trim();
 
-  const searchFiltered = demoListings.filter((listing) => {
+  const searchFiltered = listings.filter((listing) => {
     if (!query) return true;
     const listingApplicants = applicants.filter((a) => a.jobId === listing.id);
     return (
@@ -407,6 +460,14 @@ export default function ManageListingsPage() {
   };
 
   const activeApplicant = applicants.find((a) => a.id === selectedApplicant);
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary/30 border-t-secondary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl">

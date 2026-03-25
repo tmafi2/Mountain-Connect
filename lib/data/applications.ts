@@ -8,24 +8,24 @@ export interface SeedApplicant {
   resort_name: string;
   worker_name: string;
   worker_email: string;
-  worker_phone: string;
+  worker_phone: string | null;
   worker_avatar: string | null;
-  worker_location: string;
+  worker_location: string | null;
   worker_skills: string[];
   years_experience: number;
   status: ApplicationStatus;
   applied_at: string;
   // Profile / Application details
   cover_letter: string;
-  languages: string[];
-  availability: string;
-  bio: string;
-  certifications: string[];
-  work_history: { role: string; company: string; period: string }[];
-  education: string;
-  visa_status: string;
-  date_of_birth: string;
-  nationality: string;
+  languages: { language: string; proficiency: string }[] | string[];
+  availability: string | null;
+  bio: string | null;
+  certifications: { name: string; issuing_body: string | null }[] | string[];
+  work_history: { role?: string; title?: string; company: string; period?: string; location?: string; start_date?: string; end_date?: string | null; description?: string }[];
+  education: string | null;
+  visa_status: string | null;
+  date_of_birth: string | null;
+  nationality: string | null;
   worker_resume_url: string | null;
 }
 
