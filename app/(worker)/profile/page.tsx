@@ -1,9 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkerProfile } from "@/types/database";
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Australia": "🇦🇺", "Austria": "🇦🇹", "Argentina": "🇦🇷", "Brazil": "🇧🇷",
+  "Canada": "🇨🇦", "Chile": "🇨🇱", "France": "🇫🇷", "Germany": "🇩🇪",
+  "Ireland": "🇮🇪", "Italy": "🇮🇹", "Japan": "🇯🇵", "Mexico": "🇲🇽",
+  "Netherlands": "🇳🇱", "New Zealand": "🇳🇿", "Norway": "🇳🇴", "Poland": "🇵🇱",
+  "Portugal": "🇵🇹", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
+  "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "United Kingdom": "🇬🇧", "USA": "🇺🇸",
+  "United States": "🇺🇸",
+};
 
 function calcCompletion(p: WorkerProfile): number {
   let filled = 0;
@@ -37,6 +48,11 @@ function calcCompletion(p: WorkerProfile): number {
 export default function WorkerProfilePage() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showFlagPicker, setShowFlagPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const flagPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -55,11 +71,57 @@ export default function WorkerProfilePage() {
         .eq("user_id", user.id)
         .single();
 
-      if (data) setProfile(data as WorkerProfile);
+      if (data) {
+        setProfile(data as WorkerProfile);
+        if ((data as WorkerProfile).profile_photo_url) {
+          setAvatarUrl((data as WorkerProfile).profile_photo_url ?? null);
+        }
+      }
       setLoading(false);
     }
     load();
   }, []);
+
+  // Close flag picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (flagPickerRef.current && !flagPickerRef.current.contains(e.target as Node)) {
+        setShowFlagPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+
+    setUploading(true);
+    const supabase = createClient();
+    const fileExt = file.name.split(".").pop();
+    const filePath = `avatars/${profile.user_id}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const url = urlData.publicUrl;
+      await supabase.from("worker_profiles").update({ profile_photo_url: url }).eq("user_id", profile.user_id);
+      setAvatarUrl(url);
+    }
+    setUploading(false);
+  };
+
+  const handleFlagSelect = async (flag: string) => {
+    if (!profile) return;
+    const supabase = createClient();
+    await supabase.from("worker_profiles").update({ profile_photo_url: `flag:${flag}` }).eq("user_id", profile.user_id);
+    setAvatarUrl(`flag:${flag}`);
+    setShowFlagPicker(false);
+  };
 
   if (loading) {
     return (
@@ -94,8 +156,71 @@ export default function WorkerProfilePage() {
       {/* Completion card */}
       <div className="mt-8 rounded-xl border border-accent bg-white p-8">
         <div className="flex items-center gap-5">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-2xl font-bold text-primary">
-            {name ? name[0].toUpperCase() : "?"}
+          {/* Profile picture */}
+          <div className="relative" ref={flagPickerRef}>
+            <div className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary/20">
+              {avatarUrl && avatarUrl.startsWith("flag:") ? (
+                <span className="text-4xl">{avatarUrl.replace("flag:", "")}</span>
+              ) : avatarUrl ? (
+                <Image src={avatarUrl} alt="Profile" fill className="object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-primary">
+                  {name ? name[0].toUpperCase() : "?"}
+                </span>
+              )}
+              {/* Hover overlay */}
+              <div
+                className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={() => setShowFlagPicker(!showFlagPicker)}
+              >
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                </svg>
+              </div>
+              {uploading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                </div>
+              )}
+            </div>
+
+            {/* Photo/Flag picker dropdown */}
+            {showFlagPicker && (
+              <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-accent bg-white p-3 shadow-xl">
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setShowFlagPicker(false); }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-primary transition-colors hover:bg-accent/20"
+                >
+                  <svg className="h-5 w-5 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  Upload photo
+                </button>
+                <div className="my-2 h-px bg-accent" />
+                <p className="px-3 py-1 text-xs font-medium text-foreground/40">Or choose a country flag</p>
+                <div className="mt-1 grid max-h-40 grid-cols-6 gap-1 overflow-y-auto">
+                  {Object.entries(COUNTRY_FLAGS).map(([country, flag]) => (
+                    <button
+                      key={country}
+                      onClick={() => handleFlagSelect(flag)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-accent/20"
+                      title={country}
+                    >
+                      {flag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-primary">
