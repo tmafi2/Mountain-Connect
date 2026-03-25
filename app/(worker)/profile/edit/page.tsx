@@ -445,9 +445,9 @@ export default function ProfileEditPage() {
 
       if (isResume) { setResumeUrl(path); setResumeFileName(file.name); }
       else { setCoverLetterUrl(path); setCoverLetterFileName(file.name); }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload error:", err);
-      alert("Upload failed. Please try again.");
+      alert(`Upload failed: ${err?.message || err?.error || JSON.stringify(err)}`);
     } finally {
       isResume ? setResumeUploading(false) : setCoverLetterUploading(false);
     }
