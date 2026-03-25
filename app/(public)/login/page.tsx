@@ -60,57 +60,50 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen">
-      {/* Left — mountain image panel */}
-      <div className="relative hidden w-1/2 lg:block">
-        <Image
-          src="https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80"
-          alt="Mountain landscape"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-primary/30" />
-
-        {/* Branding overlay */}
-        <div className="relative z-10 flex h-full flex-col justify-between p-12">
+      {/* Left — branded panel */}
+      <div className="relative hidden w-1/2 lg:flex flex-col items-center justify-between bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] p-12">
+        {/* Top — nav link */}
+        <div className="w-full">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo.svg" alt="Mountain Connect" width={40} height={40} />
+            <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={40} height={40} className="rounded-lg" />
             <span className="text-xl font-bold text-white">Mountain Connect</span>
           </Link>
+        </div>
 
-          <div className="max-w-md">
-            <h2 className="text-4xl font-extrabold leading-tight text-white">
-              Your next season
-              <br />
-              <span className="text-secondary">starts here.</span>
-            </h2>
-            <p className="mt-4 text-base text-white/70">
-              Connect with ski resorts worldwide. Find seasonal work, housing,
-              and your mountain community.
-            </p>
+        {/* Center — large logo + tagline */}
+        <div className="flex flex-col items-center text-center">
+          <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={180} height={180} className="rounded-2xl shadow-2xl shadow-black/30" />
+          <h2 className="mt-8 text-4xl font-extrabold leading-tight text-white">
+            Your next season
+            <br />
+            <span className="text-secondary">starts here.</span>
+          </h2>
+          <p className="mt-4 max-w-sm text-base text-white/70">
+            Connect with ski resorts worldwide. Find seasonal work, housing,
+            and your mountain community.
+          </p>
 
-            {/* Stats */}
-            <div className="mt-8 flex gap-8">
-              <div>
-                <p className="text-2xl font-bold text-white">56+</p>
-                <p className="text-sm text-white/50">Resorts</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">14</p>
-                <p className="text-sm text-white/50">Countries</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">1000+</p>
-                <p className="text-sm text-white/50">Seasonal Jobs</p>
-              </div>
+          {/* Stats */}
+          <div className="mt-8 flex gap-8">
+            <div>
+              <p className="text-2xl font-bold text-white">56+</p>
+              <p className="text-sm text-white/50">Resorts</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">14</p>
+              <p className="text-sm text-white/50">Countries</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">1000+</p>
+              <p className="text-sm text-white/50">Seasonal Jobs</p>
             </div>
           </div>
-
-          <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} Mountain Connect
-          </p>
         </div>
+
+        {/* Bottom — copyright */}
+        <p className="text-xs text-white/30">
+          &copy; {new Date().getFullYear()} Mountain Connect
+        </p>
       </div>
 
       {/* Right — login form */}
@@ -118,7 +111,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Image src="/logo.svg" alt="Mountain Connect" width={32} height={32} />
+            <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={32} height={32} className="rounded-md" />
             <span className="text-lg font-bold text-primary">Mountain Connect</span>
           </div>
 
