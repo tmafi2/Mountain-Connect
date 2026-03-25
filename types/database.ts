@@ -98,7 +98,7 @@ export interface WorkHistoryEntry {
   end_date: string | null;
   is_current: boolean;
   description: string;
-  category: "hospitality" | "retail" | "outdoor" | "food_beverage" | "admin" | "maintenance" | "instruction" | "other";
+  category: "hospitality" | "retail" | "outdoor" | "food_beverage" | "admin" | "maintenance" | "instruction" | "cleaning_housekeeping" | "other";
   is_verified: boolean;
   verified_by_business_id: string | null;
 }

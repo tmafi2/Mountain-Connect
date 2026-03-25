@@ -184,6 +184,7 @@ const WORK_CATEGORIES = [
   { value: "retail", label: "Retail" },
   { value: "outdoor", label: "Outdoor / On-Mountain" },
   { value: "food_beverage", label: "Food & Beverage" },
+  { value: "cleaning_housekeeping", label: "Cleaning / Housekeeping" },
   { value: "admin", label: "Admin / Office" },
   { value: "maintenance", label: "Maintenance" },
   { value: "instruction", label: "Instruction / Teaching" },
@@ -386,6 +387,48 @@ export default function ProfileEditPage() {
     description: "",
     category: "hospitality",
   });
+
+  // Verified business search state
+  const [businessQuery, setBusinessQuery] = useState("");
+  const [businessResults, setBusinessResults] = useState<{ id: string; name: string; location: string; verified: boolean }[]>([]);
+  const [businessSearchOpen, setBusinessSearchOpen] = useState(false);
+  const [isVerifiedBusiness, setIsVerifiedBusiness] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+
+  // Ski resort search state
+  const [resortQuery, setResortQuery] = useState("");
+  const [resortResults, setResortResults] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [resortSearchOpen, setResortSearchOpen] = useState(false);
+  const [selectedResortName, setSelectedResortName] = useState("");
+  const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
+
+  // Debounced business search
+  useEffect(() => {
+    if (businessQuery.length < 1) { setBusinessResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search-businesses?q=${encodeURIComponent(businessQuery)}`);
+        const data = await res.json();
+        setBusinessResults(data);
+        setBusinessSearchOpen(data.length > 0);
+      } catch { setBusinessResults([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [businessQuery]);
+
+  // Debounced resort search
+  useEffect(() => {
+    if (resortQuery.length < 1) { setResortResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search-resorts?q=${encodeURIComponent(resortQuery)}`);
+        const data = await res.json();
+        setResortResults(data);
+        setResortSearchOpen(data.length > 0);
+      } catch { setResortResults([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [resortQuery]);
 
   /* ─── load existing profile on mount ─────────────────────── */
   useEffect(() => {
@@ -634,7 +677,35 @@ export default function ProfileEditPage() {
               </div>
               <div>
                 <Label htmlFor="visa_exp">Visa Expiry Date</Label>
-                <Input id="visa_exp" type="date" value={form.visa_expiry_date} onChange={(v) => set("visa_expiry_date", v)} />
+                {form.visa_expiry_date === "n/a" ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="flex-1 rounded-lg border border-accent bg-accent/20 px-4 py-2.5 text-sm text-foreground/60">N/A — No expiry</span>
+                    <button
+                      type="button"
+                      onClick={() => set("visa_expiry_date", "")}
+                      className="rounded-lg border border-accent px-3 py-2 text-xs font-medium text-foreground/60 hover:border-secondary hover:text-primary"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      id="visa_exp"
+                      type="date"
+                      value={form.visa_expiry_date}
+                      onChange={(e) => set("visa_expiry_date", e.target.value)}
+                      className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => set("visa_expiry_date", "n/a")}
+                      className="whitespace-nowrap rounded-lg border border-accent bg-white px-3 py-2 text-xs font-medium text-foreground/60 hover:border-secondary hover:text-primary"
+                    >
+                      N/A
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -756,7 +827,22 @@ export default function ProfileEditPage() {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
                 <Label htmlFor="avail_start">Available From</Label>
-                <Input id="avail_start" type="date" value={form.availability_start} onChange={(v) => set("availability_start", v)} />
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    id="avail_start"
+                    type="date"
+                    value={form.availability_start}
+                    onChange={(e) => set("availability_start", e.target.value)}
+                    className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => set("availability_start", new Date().toISOString().split("T")[0])}
+                    className="whitespace-nowrap rounded-lg bg-secondary/20 px-3 py-2 text-xs font-semibold text-primary hover:bg-secondary/30"
+                  >
+                    From Now
+                  </button>
+                </div>
               </div>
               <div>
                 <Label htmlFor="avail_end">Available Until</Label>
@@ -856,7 +942,16 @@ export default function ProfileEditPage() {
                         &times;
                       </button>
                       <p className="font-medium text-primary">{entry.title}</p>
-                      <p className="text-sm text-foreground">{entry.company} &middot; {entry.location}</p>
+                      <p className="text-sm text-foreground">
+                        {entry.company}
+                        {entry.is_verified && (
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                            <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            Verified
+                          </span>
+                        )}
+                        {entry.location && <> &middot; {entry.location}</>}
+                      </p>
                       <p className="mt-1 text-xs text-foreground/50">
                         {entry.start_date} &ndash; {entry.is_current ? "Present" : entry.end_date}
                         <span className="ml-2 rounded bg-secondary/20 px-2 py-0.5 text-xs font-medium text-primary capitalize">
@@ -877,9 +972,59 @@ export default function ProfileEditPage() {
                     <Label htmlFor="wh_title">Job Title *</Label>
                     <Input id="wh_title" value={newWork.title || ""} onChange={(v) => setNewWork((p) => ({ ...p, title: v }))} placeholder="Lift Operator" />
                   </div>
-                  <div>
+                  <div className="relative">
                     <Label htmlFor="wh_company">Company *</Label>
-                    <Input id="wh_company" value={newWork.company || ""} onChange={(v) => setNewWork((p) => ({ ...p, company: v }))} placeholder="Whistler Blackcomb" />
+                    <div className="relative">
+                      <input
+                        id="wh_company"
+                        type="text"
+                        value={businessQuery || newWork.company || ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setBusinessQuery(v);
+                          setNewWork((p) => ({ ...p, company: v }));
+                          setIsVerifiedBusiness(false);
+                          setSelectedBusinessId(null);
+                        }}
+                        placeholder="Search verified businesses or type name..."
+                        className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                        onFocus={() => businessResults.length > 0 && setBusinessSearchOpen(true)}
+                        onBlur={() => setTimeout(() => setBusinessSearchOpen(false), 200)}
+                      />
+                      {isVerifiedBusiness && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    {businessSearchOpen && businessResults.length > 0 && (
+                      <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                        {businessResults.map((b) => (
+                          <button
+                            key={b.id}
+                            type="button"
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setNewWork((p) => ({ ...p, company: b.name }));
+                              setBusinessQuery(b.name);
+                              setIsVerifiedBusiness(true);
+                              setSelectedBusinessId(b.id);
+                              setBusinessSearchOpen(false);
+                            }}
+                          >
+                            <svg className="h-4 w-4 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            <div>
+                              <span className="font-medium text-primary">{b.name}</span>
+                              {b.location && <span className="ml-2 text-xs text-foreground/50">{b.location}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="wh_location">Location</Label>
@@ -889,6 +1034,59 @@ export default function ProfileEditPage() {
                     <Label htmlFor="wh_country">Country</Label>
                     <Input id="wh_country" value={newWork.country || ""} onChange={(v) => setNewWork((p) => ({ ...p, country: v }))} placeholder="Canada" />
                   </div>
+                </div>
+                <div className="mt-4 relative">
+                  <Label htmlFor="wh_resort">Ski Resort</Label>
+                  <div className="relative">
+                    <input
+                      id="wh_resort"
+                      type="text"
+                      value={resortQuery || selectedResortName}
+                      onChange={(e) => {
+                        setResortQuery(e.target.value);
+                        setSelectedResortName("");
+                        setSelectedResortId(null);
+                      }}
+                      placeholder="Search for a ski resort..."
+                      className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                      onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+                      onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
+                    />
+                    {selectedResortId && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Linked
+                      </span>
+                    )}
+                  </div>
+                  {resortSearchOpen && resortResults.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                      {resortResults.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSelectedResortName(r.name);
+                            setSelectedResortId(r.id);
+                            setResortQuery("");
+                            setResortSearchOpen(false);
+                          }}
+                        >
+                          <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          </svg>
+                          <div>
+                            <span className="font-medium text-primary">{r.name}</span>
+                            <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="wh_start">Start Date</Label>
                     <Input id="wh_start" type="date" value={newWork.start_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, start_date: v }))} />
@@ -935,7 +1133,7 @@ export default function ProfileEditPage() {
                           id: crypto.randomUUID(),
                           title: newWork.title || "",
                           company: newWork.company || "",
-                          resort_id: null,
+                          resort_id: selectedResortId || null,
                           location: newWork.location || "",
                           country: newWork.country || null,
                           start_date: newWork.start_date || "",
@@ -943,11 +1141,17 @@ export default function ProfileEditPage() {
                           is_current: newWork.is_current || false,
                           description: newWork.description || "",
                           category: (newWork.category as WorkHistoryEntry["category"]) || "other",
-                          is_verified: false,
-                          verified_by_business_id: null,
+                          is_verified: isVerifiedBusiness,
+                          verified_by_business_id: selectedBusinessId || null,
                         },
                       ]);
                       setNewWork({ title: "", company: "", location: "", country: "", start_date: "", end_date: "", is_current: false, description: "", category: "hospitality" });
+                      setBusinessQuery("");
+                      setIsVerifiedBusiness(false);
+                      setSelectedBusinessId(null);
+                      setResortQuery("");
+                      setSelectedResortName("");
+                      setSelectedResortId(null);
                     }
                   }}
                   className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
