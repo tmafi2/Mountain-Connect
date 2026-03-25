@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -164,6 +164,43 @@ export default function ExplorePage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const hasInteracted = useRef(false);
 
+  // Globe search
+  const [globeSearch, setGlobeSearch] = useState("");
+  const [globeSearchSelection, setGlobeSearchSelection] = useState<string | null>(null); // country slug
+  const [showGlobeSuggestions, setShowGlobeSuggestions] = useState(false);
+  const globeSearchRef = useRef<HTMLDivElement>(null);
+
+  const globeSuggestions = useMemo(() => {
+    if (!globeSearch.trim()) return [];
+    const q = globeSearch.toLowerCase();
+    const results: { type: "country" | "resort"; name: string; country: string; countrySlug: string }[] = [];
+    regionHierarchy.forEach((continent) => {
+      continent.countries.forEach((country) => {
+        const slug = country.name.toLowerCase().replace(/\s+/g, "-");
+        if (country.name.toLowerCase().includes(q)) {
+          results.push({ type: "country", name: country.name, country: country.name, countrySlug: slug });
+        }
+        country.resorts.forEach((resort) => {
+          if (resort.name.toLowerCase().includes(q)) {
+            results.push({ type: "resort", name: resort.name, country: country.name, countrySlug: slug });
+          }
+        });
+      });
+    });
+    return results.slice(0, 8);
+  }, [globeSearch]);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (globeSearchRef.current && !globeSearchRef.current.contains(e.target as Node)) {
+        setShowGlobeSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   useScrollAnimation();
 
   const activeFilterCount = [
@@ -313,7 +350,64 @@ export default function ExplorePage() {
 
           {/* Globe — desktop/tablet only */}
           <div className="mt-6 hidden md:block">
-            <GlobeComponent continentFilter={continentFilter} />
+            <div className="relative">
+              {/* Globe search bar — overlaid top-left */}
+              <div ref={globeSearchRef} className="absolute left-4 top-4 z-10 w-72">
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search countries or resorts..."
+                    value={globeSearch}
+                    onChange={(e) => {
+                      setGlobeSearch(e.target.value);
+                      setGlobeSearchSelection(null);
+                      setShowGlobeSuggestions(true);
+                    }}
+                    onFocus={() => setShowGlobeSuggestions(true)}
+                    className="w-full rounded-lg border border-white/20 bg-white/10 py-2.5 pl-10 pr-8 text-sm text-white placeholder:text-white/40 backdrop-blur-md focus:border-secondary/50 focus:outline-none"
+                  />
+                  {globeSearch && (
+                    <button
+                      onClick={() => { setGlobeSearch(""); setGlobeSearchSelection(null); }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {showGlobeSuggestions && globeSuggestions.length > 0 && (
+                  <div className="mt-1 max-h-64 overflow-y-auto rounded-lg border border-white/20 bg-white/95 shadow-xl backdrop-blur-md">
+                    {globeSuggestions.map((s, i) => (
+                      <button
+                        key={`${s.type}-${s.name}-${i}`}
+                        onClick={() => {
+                          setGlobeSearchSelection(s.countrySlug);
+                          setGlobeSearch(s.name);
+                          setShowGlobeSuggestions(false);
+                        }}
+                        className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-secondary/10"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-primary">{s.name}</p>
+                          {s.type === "resort" && (
+                            <p className="text-xs text-foreground/50">{s.country}</p>
+                          )}
+                        </div>
+                        <span className="rounded-full bg-accent/50 px-2 py-0.5 text-[10px] font-medium text-foreground/40">
+                          {s.type === "country" ? "Country" : "Resort"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <GlobeComponent continentFilter={globeSearchSelection ? "All" : continentFilter} selectedCountry={globeSearchSelection} />
+            </div>
           </div>
 
           {/* Mobile region explorer — mobile only */}

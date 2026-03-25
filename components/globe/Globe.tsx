@@ -18,6 +18,7 @@ import {
   Camera,
 } from "three";
 import { resorts } from "@/lib/data/resorts";
+import { regionHierarchy } from "@/lib/data/region-hierarchy";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -31,7 +32,7 @@ interface MountainMarker {
   region: string;
 }
 
-interface RegionCluster {
+interface CountryCluster {
   id: string;
   name: string;
   lat: number;
@@ -62,91 +63,50 @@ interface GlobeMethods {
   scene: () => Scene;
 }
 
-/* ─── Region definitions ──────────────────────────────────── */
+/* ─── Country definitions (derived from regionHierarchy) ── */
 
-const REGION_MAP: Record<string, { region: string; continent: string }> = {
-  // Alps
-  "2": { region: "alps", continent: "Europe" },     // Chamonix
-  "27": { region: "alps", continent: "Europe" },     // Val d'Isère
-  "28": { region: "alps", continent: "Europe" },     // Val Thorens
-  "29": { region: "alps", continent: "Europe" },     // Méribel
-  "30": { region: "alps", continent: "Europe" },     // Courchevel
-  "31": { region: "alps", continent: "Europe" },     // Morzine
-  "32": { region: "alps", continent: "Europe" },     // Les Arcs
-  "4": { region: "alps", continent: "Europe" },      // Zermatt
-  "33": { region: "alps", continent: "Europe" },     // Verbier
-  "34": { region: "alps", continent: "Europe" },     // St. Moritz
-  "35": { region: "alps", continent: "Europe" },     // St. Anton
-  "36": { region: "alps", continent: "Europe" },     // Kitzbühel
-  "37": { region: "alps", continent: "Europe" },     // Ischgl
-  "38": { region: "alps", continent: "Europe" },     // Sölden
-  "39": { region: "alps", continent: "Europe" },     // Mayrhofen
-  "40": { region: "alps", continent: "Europe" },     // Livigno
-  "41": { region: "alps", continent: "Europe" },     // Cortina
-  "42": { region: "alps", continent: "Europe" },     // Cervinia
-  "10": { region: "alps", continent: "Europe" },     // Grandvalira
-  // Scandinavia
-  "8": { region: "scandinavia", continent: "Europe" },  // Åre
-  // Caucasus
-  "9": { region: "caucasus", continent: "Europe" },     // Gudauri
-  // Western Canada
-  "1": { region: "western-canada", continent: "North America" },   // Whistler
-  "15": { region: "western-canada", continent: "North America" },  // Revelstoke
-  "11": { region: "western-canada", continent: "North America" },  // Banff
-  // US Rockies
-  "5": { region: "us-rockies", continent: "North America" },   // Vail
-  "16": { region: "us-rockies", continent: "North America" },  // Aspen
-  "17": { region: "us-rockies", continent: "North America" },  // Breck
-  "18": { region: "us-rockies", continent: "North America" },  // Jackson Hole
-  "19": { region: "us-rockies", continent: "North America" },  // Park City
-  "20": { region: "us-rockies", continent: "North America" },  // Big Sky
-  "21": { region: "us-rockies", continent: "North America" },  // Steamboat
-  "23": { region: "us-rockies", continent: "North America" },  // Telluride
-  "24": { region: "us-rockies", continent: "North America" },  // Sun Valley
-  "25": { region: "us-rockies", continent: "North America" },  // Mammoth
-  "26": { region: "us-rockies", continent: "North America" },  // Crested Butte
-  // US Northeast
-  "22": { region: "us-northeast", continent: "North America" },  // Stowe
-  // Japan
-  "3": { region: "japan", continent: "Asia" },    // Niseko
-  "43": { region: "japan", continent: "Asia" },   // Hakuba
-  "44": { region: "japan", continent: "Asia" },   // Rusutsu
-  "45": { region: "japan", continent: "Asia" },   // Furano
-  "46": { region: "japan", continent: "Asia" },   // Nozawa
-  "47": { region: "japan", continent: "Asia" },   // Myoko
-  "48": { region: "japan", continent: "Asia" },   // Shiga
-  "49": { region: "japan", continent: "Asia" },   // Naeba
-  // Australia
-  "50": { region: "australia", continent: "Oceania" },  // Perisher
-  "51": { region: "australia", continent: "Oceania" },  // Falls Creek
-  "52": { region: "australia", continent: "Oceania" },  // Thredbo
-  "53": { region: "australia", continent: "Oceania" },  // Mt Hotham
-  // New Zealand
-  "7": { region: "new-zealand", continent: "Oceania" },   // Queenstown
-  "54": { region: "new-zealand", continent: "Oceania" },  // Mt Hutt
-  // South America
-  "6": { region: "south-america", continent: "South America" },   // Valle Nevado
-  "55": { region: "south-america", continent: "South America" },  // Cerro Catedral
-  "56": { region: "south-america", continent: "South America" },  // Portillo
+const COUNTRY_MAP: Record<string, { country: string; countrySlug: string; continent: string }> = {};
+regionHierarchy.forEach((continent) => {
+  continent.countries.forEach((country) => {
+    const slug = country.name.toLowerCase().replace(/\s+/g, "-");
+    country.resorts.forEach((resort) => {
+      COUNTRY_MAP[resort.id] = { country: country.name, countrySlug: slug, continent: continent.name };
+    });
+  });
+});
+
+const COUNTRY_COORDS: Record<string, { lat: number; lng: number; altitude?: number }> = {
+  "Andorra": { lat: 42.5, lng: 1.5 },
+  "Argentina": { lat: -38.4, lng: -63.6 },
+  "Australia": { lat: -37.0, lng: 147.0 },
+  "Austria": { lat: 47.2, lng: 13.4 },
+  "Canada": { lat: 51.0, lng: -116.0 },
+  "Chile": { lat: -33.4, lng: -70.6 },
+  "France": { lat: 45.8, lng: 6.2 },
+  "Georgia": { lat: 42.3, lng: 44.5 },
+  "Italy": { lat: 46.5, lng: 11.5 },
+  "Japan": { lat: 43.0, lng: 141.0 },
+  "New Zealand": { lat: -44.5, lng: 168.5 },
+  "Sweden": { lat: 63.0, lng: 13.0 },
+  "Switzerland": { lat: 46.8, lng: 8.2 },
+  "USA": { lat: 40.0, lng: -111.5, altitude: 0.8 },
 };
 
-const REGION_CLUSTERS: RegionCluster[] = [
-  { id: "alps", name: "Alps", lat: 46.5, lng: 10.0, count: 0, continent: "Europe" },
-  { id: "scandinavia", name: "Scandinavia", lat: 63.4, lng: 13.1, count: 0, continent: "Europe" },
-  { id: "caucasus", name: "Caucasus", lat: 42.5, lng: 44.5, count: 0, continent: "Europe" },
-  { id: "western-canada", name: "Western Canada", lat: 51.0, lng: -117.0, count: 0, continent: "North America" },
-  { id: "us-rockies", name: "US Rockies", lat: 40.5, lng: -108.0, count: 0, continent: "North America" },
-  { id: "us-northeast", name: "US Northeast", lat: 44.5, lng: -72.7, count: 0, continent: "North America" },
-  { id: "japan", name: "Japan", lat: 37.5, lng: 139.5, count: 0, continent: "Asia" },
-  { id: "australia", name: "Australia", lat: -36.5, lng: 148.0, count: 0, continent: "Oceania" },
-  { id: "new-zealand", name: "New Zealand", lat: -43.5, lng: 171.0, count: 0, continent: "Oceania" },
-  { id: "south-america", name: "South America", lat: -34.0, lng: -70.0, count: 0, continent: "South America" },
-];
-
-// Count resorts per cluster
-Object.values(REGION_MAP).forEach((r) => {
-  const cluster = REGION_CLUSTERS.find((c) => c.id === r.region);
-  if (cluster) cluster.count++;
+const COUNTRY_CLUSTERS: CountryCluster[] = [];
+regionHierarchy.forEach((continent) => {
+  continent.countries.forEach((country) => {
+    const coords = COUNTRY_COORDS[country.name];
+    if (!coords) return;
+    const slug = country.name.toLowerCase().replace(/\s+/g, "-");
+    COUNTRY_CLUSTERS.push({
+      id: slug,
+      name: country.name,
+      lat: coords.lat,
+      lng: coords.lng,
+      count: country.resorts.length,
+      continent: continent.name,
+    });
+  });
 });
 
 /* ─── Marker data ─────────────────────────────────────────── */
@@ -158,7 +118,7 @@ const maxDrop = Math.max(...drops);
 const markerData: MountainMarker[] = resorts.map((resort) => {
   const drop = resort.vertical_drop_m ?? 500;
   const normalized = maxDrop > minDrop ? (drop - minDrop) / (maxDrop - minDrop) : 0.5;
-  const mapping = REGION_MAP[resort.id] || { region: "other", continent: "Other" };
+  const mapping = COUNTRY_MAP[resort.id];
   return {
     id: resort.id,
     name: resort.name,
@@ -166,7 +126,7 @@ const markerData: MountainMarker[] = resorts.map((resort) => {
     lat: resort.latitude,
     lng: resort.longitude,
     height: 3 + normalized * 5,
-    region: mapping.region,
+    region: mapping ? mapping.countrySlug : "other",
   };
 });
 
@@ -215,7 +175,7 @@ function createMountain(d: object): Object3D {
 }
 
 function createClusterDot(d: object): Object3D {
-  const cluster = d as RegionCluster;
+  const cluster = d as CountryCluster;
   const group = new Group();
 
   // Glowing sphere
@@ -248,11 +208,12 @@ function createClusterDot(d: object): Object3D {
 
 interface GlobeProps {
   continentFilter: string;
+  selectedCountry?: string | null;
 }
 
 /* ─── Component ───────────────────────────────────────────── */
 
-export default function Globe({ continentFilter }: GlobeProps) {
+export default function Globe({ continentFilter, selectedCountry }: GlobeProps) {
   const globeRef = useRef<GlobeMethods | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -267,8 +228,9 @@ export default function Globe({ continentFilter }: GlobeProps) {
   const clusterObjectsRef = useRef<Map<string, Object3D>>(new Map());
   const isMouseOverRef = useRef(false);
   const mousePosRef = useRef({ x: 0, y: 0 });
+  const shouldAutoRotateRef = useRef(true);
 
-  // View mode: "clusters" or a region id for zoomed-in
+  // View mode: "clusters" or a country slug for zoomed-in
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
 
   // Hover tooltip state
@@ -284,12 +246,12 @@ export default function Globe({ continentFilter }: GlobeProps) {
   const visibleMarkers = markerData.filter((m) => {
     if (!activeRegion) return false; // clusters mode — hide individual markers
     if (m.region !== activeRegion) return false;
-    const mapping = REGION_MAP[m.id];
+    const mapping = COUNTRY_MAP[m.id];
     if (continentFilter !== "All" && mapping && mapping.continent !== continentFilter) return false;
     return true;
   });
 
-  const visibleClusters = REGION_CLUSTERS.filter((c) => {
+  const visibleClusters = COUNTRY_CLUSTERS.filter((c) => {
     if (activeRegion) return false; // zoomed in — hide clusters
     if (continentFilter !== "All" && c.continent !== continentFilter) return false;
     return c.count > 0;
@@ -367,7 +329,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
       // Animate cluster dots
       clusterObjectsRef.current.forEach((obj) => {
         const ud = obj.userData;
-        const cluster = ud.cluster as RegionCluster;
+        const cluster = ud.cluster as CountryCluster;
         if (!cluster) return;
 
         const coords = globe.getCoords(cluster.lat, cluster.lng, 0.015);
@@ -410,7 +372,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
   const handleMouseLeave = useCallback(() => {
     isMouseOverRef.current = false;
     setTooltip(null);
-    if (globeRef.current) {
+    if (globeRef.current && shouldAutoRotateRef.current) {
       globeRef.current.controls().autoRotate = true;
     }
   }, []);
@@ -444,11 +406,16 @@ export default function Globe({ continentFilter }: GlobeProps) {
     [router]
   );
 
-  // Click cluster — zoom into region
+  // Click cluster — zoom into country
   const handleClusterClick = useCallback(
     (obj: object) => {
-      const cluster = obj as RegionCluster;
+      const cluster = obj as CountryCluster;
       if (!globeRef.current || !cluster.id) return;
+
+      shouldAutoRotateRef.current = false;
+      if (globeRef.current) {
+        globeRef.current.controls().autoRotate = false;
+      }
 
       setActiveRegion(cluster.id);
       globeRef.current.pointOfView(
@@ -481,7 +448,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
   }, []);
 
   const handleClusterHover = useCallback((obj: object | null) => {
-    const cluster = obj as RegionCluster | null;
+    const cluster = obj as CountryCluster | null;
     hoveredIdRef.current = cluster?.id ?? null;
     if (containerRef.current) {
       containerRef.current.style.cursor = cluster ? "pointer" : "default";
@@ -504,7 +471,9 @@ export default function Globe({ continentFilter }: GlobeProps) {
   const handleBackToOverview = useCallback(() => {
     setActiveRegion(null);
     setTooltip(null);
+    shouldAutoRotateRef.current = true;
     if (globeRef.current) {
+      globeRef.current.controls().autoRotate = true;
       globeRef.current.pointOfView({ lat: 40, lng: 10, altitude: 2.0 }, 800);
     }
   }, []);
@@ -532,7 +501,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
   const customClusterUpdate = useCallback(
     (obj: Object3D, d: object) => {
       if (!globeRef.current) return;
-      const cluster = d as RegionCluster;
+      const cluster = d as CountryCluster;
       clusterObjectsRef.current.set(cluster.id, obj);
 
       const coords = globeRef.current.getCoords(cluster.lat, cluster.lng, 0.015);
@@ -549,7 +518,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
 
   // Cluster HTML labels
   const clusterHtmlElement = useCallback((d: object) => {
-    const c = d as RegionCluster;
+    const c = d as CountryCluster;
     const el = document.createElement("div");
     el.innerHTML = `<span style="font-weight:700">${c.name}</span> <span style="opacity:0.7">· ${c.count}</span>`;
     el.style.cssText = `
@@ -587,10 +556,41 @@ export default function Globe({ continentFilter }: GlobeProps) {
 
     if (continentFilter === "All") {
       setActiveRegion(null);
+    } else if (activeRegion) {
+      // If active region (country) is not in the selected continent, clear it
+      const activeCluster = COUNTRY_CLUSTERS.find((c) => c.id === activeRegion);
+      if (activeCluster && activeCluster.continent !== continentFilter) {
+        setActiveRegion(null);
+      }
     }
 
     globeRef.current.pointOfView(target, 800);
   }, [continentFilter, ready]);
+
+  // Respond to selectedCountry prop
+  useEffect(() => {
+    if (!globeRef.current || !ready) return;
+
+    if (selectedCountry) {
+      const cluster = COUNTRY_CLUSTERS.find((c) => c.id === selectedCountry);
+      if (cluster) {
+        shouldAutoRotateRef.current = false;
+        globeRef.current.controls().autoRotate = false;
+        setActiveRegion(cluster.id);
+        globeRef.current.pointOfView(
+          { lat: cluster.lat, lng: cluster.lng, altitude: 0.6 },
+          800
+        );
+      }
+    } else {
+      shouldAutoRotateRef.current = true;
+      if (globeRef.current) {
+        globeRef.current.controls().autoRotate = true;
+      }
+      setActiveRegion(null);
+      globeRef.current.pointOfView({ lat: 40, lng: 10, altitude: 2.0 }, 800);
+    }
+  }, [selectedCountry, ready]);
 
   if (!GlobeGL) {
     return (
@@ -612,7 +612,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
     >
-      {/* Back button when zoomed into a region */}
+      {/* Back button when zoomed into a country */}
       {activeRegion && (
         <button
           onClick={handleBackToOverview}
@@ -621,7 +621,7 @@ export default function Globe({ continentFilter }: GlobeProps) {
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          All Regions
+          All Countries
         </button>
       )}
 
@@ -675,10 +675,10 @@ export default function Globe({ continentFilter }: GlobeProps) {
               <p className="text-sm font-semibold text-primary">{tooltip.name}</p>
               <p className="text-xs text-foreground/60">{tooltip.country}</p>
               {/* Only show "View Resort" for individual markers, not clusters */}
-              {!REGION_CLUSTERS.find((c) => c.id === tooltip.id) && (
+              {!COUNTRY_CLUSTERS.find((c) => c.id === tooltip.id) && (
                 <p className="mt-0.5 text-[10px] font-medium text-secondary">Click to view resort →</p>
               )}
-              {REGION_CLUSTERS.find((c) => c.id === tooltip.id) && (
+              {COUNTRY_CLUSTERS.find((c) => c.id === tooltip.id) && (
                 <p className="mt-0.5 text-[10px] font-medium text-secondary">Click to explore →</p>
               )}
             </div>
