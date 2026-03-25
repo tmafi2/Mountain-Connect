@@ -449,7 +449,9 @@ export default function ProfileEditPage() {
   }, [router]);
 
   /* ─── save profile to Supabase ───────────────────────────── */
-  const handleSave = async () => {
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+
+  const saveToSupabase = async (redirect?: boolean) => {
     if (!userId) return;
     setSaving(true);
 
@@ -507,9 +509,15 @@ export default function ProfileEditPage() {
       console.error("Save error:", error);
       alert("Failed to save profile. Please try again.");
     } else {
-      router.push("/profile");
+      setLastSaved(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      if (redirect) {
+        router.push("/profile");
+      }
     }
   };
+
+  // Legacy name for the final save button
+  const handleSave = () => saveToSupabase(true);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -517,8 +525,15 @@ export default function ProfileEditPage() {
   const step = STEPS[currentStep];
   const completion = calcCompletion(form);
 
-  const next = () => setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
-  const prev = () => setCurrentStep((s) => Math.max(s - 1, 0));
+  // Auto-save when navigating between steps
+  const next = () => {
+    saveToSupabase();
+    setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
+  };
+  const prev = () => {
+    saveToSupabase();
+    setCurrentStep((s) => Math.max(s - 1, 0));
+  };
 
   /* ─── loading state ──────────────────────────────────────── */
   if (loading) {
@@ -1379,9 +1394,32 @@ export default function ProfileEditPage() {
     <div className="mx-auto max-w-4xl px-6 py-10">
       {/* Header */}
       <div className="mb-8">
-        <button onClick={() => router.push("/profile")} className="text-sm text-foreground/50 hover:text-primary">
-          &larr; Back to Profile
-        </button>
+        <div className="flex items-center justify-between">
+          <button onClick={() => router.push("/profile")} className="text-sm text-foreground/50 hover:text-primary">
+            &larr; Back to Profile
+          </button>
+          <div className="flex items-center gap-3">
+            {saving && (
+              <span className="flex items-center gap-1.5 text-xs text-foreground/50">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+                Saving...
+              </span>
+            )}
+            {!saving && lastSaved && (
+              <span className="text-xs text-green-600">
+                Saved at {lastSaved}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => saveToSupabase()}
+              disabled={saving}
+              className="rounded-lg border border-accent bg-white px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:border-secondary hover:text-primary disabled:opacity-50"
+            >
+              Save Progress
+            </button>
+          </div>
+        </div>
         <h1 className="mt-3 text-3xl font-bold text-primary">Edit Your Worker Profile</h1>
         <p className="mt-1 text-foreground/60">
           Complete your profile to connect with ski resort employers worldwide.
