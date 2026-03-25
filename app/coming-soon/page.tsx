@@ -759,10 +759,16 @@ export default function ComingSoonPage() {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-        <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-12 px-6 md:grid-cols-3">
-          <AnimatedStat value="200+" label="Resorts" />
-          <TickerStat startValue={1232} label="Verified Businesses" />
-          <AnimatedStat value="Worldwide" label="Reach" />
+        <div className="relative mx-auto flex max-w-5xl flex-col items-center justify-evenly gap-12 px-6 md:flex-row">
+          <div className="flex-1 text-center">
+            <AnimatedStat value="200+" label="Resorts" />
+          </div>
+          <div className="flex-1 text-center">
+            <TickerStat startValue={1232} label="Verified Businesses" />
+          </div>
+          <div className="flex-1 text-center">
+            <AnimatedStat value="Worldwide" label="Reach" />
+          </div>
         </div>
       </section>
 
