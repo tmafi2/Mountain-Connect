@@ -22,6 +22,8 @@ interface Interview {
   scheduled_start_time: string | null;
   scheduled_end_time: string | null;
   timezone: string | null;
+  worker_resume_url: string | null;
+  worker_avatar_url: string | null;
 }
 
 const demoInterviews: Interview[] = [
@@ -41,6 +43,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "10:00",
     scheduled_end_time: "10:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/emma-johansson-resume.pdf",
+    worker_avatar_url: "flag:🇸🇪",
   },
   {
     id: "int2",
@@ -58,6 +62,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: null,
     scheduled_end_time: null,
     timezone: null,
+    worker_resume_url: "/resumes/sophie-chen-resume.pdf",
+    worker_avatar_url: "flag:🇦🇺",
   },
   {
     id: "int3",
@@ -75,6 +81,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "14:00",
     scheduled_end_time: "14:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/jake-thompson-resume.pdf",
+    worker_avatar_url: "flag:🇳🇿",
   },
   {
     id: "int4",
@@ -92,6 +100,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "09:00",
     scheduled_end_time: "09:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/lucas-muller-resume.pdf",
+    worker_avatar_url: "flag:🇦🇹",
   },
   {
     id: "int5",
@@ -109,6 +119,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: null,
     scheduled_end_time: null,
     timezone: null,
+    worker_resume_url: null,
+    worker_avatar_url: "flag:🇯🇵",
   },
   {
     id: "int6",
@@ -126,6 +138,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "11:00",
     scheduled_end_time: "11:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/marie-dubois-resume.pdf",
+    worker_avatar_url: "flag:🇫🇷",
   },
   {
     id: "int7",
@@ -143,6 +157,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "15:00",
     scheduled_end_time: "15:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/ollie-hansen-resume.pdf",
+    worker_avatar_url: "flag:🇳🇴",
   },
   {
     id: "int8",
@@ -160,6 +176,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "13:00",
     scheduled_end_time: "13:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/isabella-rossi-resume.pdf",
+    worker_avatar_url: "flag:🇮🇹",
   },
   {
     id: "int9",
@@ -177,6 +195,8 @@ const demoInterviews: Interview[] = [
     scheduled_start_time: "11:00",
     scheduled_end_time: "11:30",
     timezone: "America/Vancouver",
+    worker_resume_url: "/resumes/ana-santos-resume.pdf",
+    worker_avatar_url: "flag:🇵🇹",
   },
 ];
 
@@ -277,6 +297,25 @@ today.setHours(0, 0, 0, 0);
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
+/* ---------- Avatar helper ---------- */
+function Avatar({ interview, size = "md" }: { interview: Interview; size?: "sm" | "md" | "lg" }) {
+  const sizeClass = size === "lg" ? "h-14 w-14 text-2xl" : size === "md" ? "h-10 w-10 text-xs" : "h-8 w-8 text-[10px]";
+  const isFlag = interview.worker_avatar_url?.startsWith("flag:");
+  if (isFlag) {
+    const emoji = interview.worker_avatar_url!.replace("flag:", "");
+    return (
+      <div className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full bg-accent/50`}>
+        {emoji}
+      </div>
+    );
+  }
+  return (
+    <div className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full bg-secondary/20 font-bold text-primary`}>
+      {initials(interview.worker_name)}
+    </div>
+  );
+}
+
 /* ---------- Interview Card (List View) ---------- */
 function InterviewCard({
   interview,
@@ -288,16 +327,13 @@ function InterviewCard({
   faded?: boolean;
 }) {
   return (
-    <button
-      onClick={() => onSelect(interview)}
-      className={`w-full text-left rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary/50 hover:shadow-sm ${faded ? "opacity-50" : ""}`}
+    <div
+      className={`w-full rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary/50 hover:shadow-sm ${faded ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-xs font-bold text-primary">
-            {initials(interview.worker_name)}
-          </div>
-          <div>
+        <button onClick={() => onSelect(interview)} className="flex items-start gap-4 text-left flex-1 min-w-0">
+          <Avatar interview={interview} />
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-primary">
                 {interview.worker_name}
@@ -318,14 +354,48 @@ function InterviewCard({
               </p>
             )}
           </div>
+        </button>
+        {/* Quick action icons */}
+        <div className="flex items-center gap-1 shrink-0 ml-3">
+          <button
+            onClick={() => onSelect(interview)}
+            title="View Profile"
+            className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </button>
+          {interview.worker_resume_url && (
+            <a
+              href={interview.worker_resume_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="View Resume"
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </a>
+          )}
+          <button
+            title="Message"
+            className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
+          {interview.status === "scheduled" && (
+            <span className="rounded-lg bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-primary whitespace-nowrap ml-1">
+              Join Call
+            </span>
+          )}
         </div>
-        {interview.status === "scheduled" && (
-          <span className="rounded-lg bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-primary whitespace-nowrap">
-            Join Call
-          </span>
-        )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -373,9 +443,7 @@ function ApplicantPanel({
         <div className="space-y-6 p-6">
           {/* Avatar + name */}
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-base font-bold text-primary">
-              {initials(interview.worker_name)}
-            </div>
+            <Avatar interview={interview} size="lg" />
             <div>
               <h3 className="text-lg font-semibold text-primary">
                 {interview.worker_name}
@@ -388,6 +456,67 @@ function ApplicantPanel({
               </p>
             </div>
           </div>
+
+          {/* Quick action bar — Profile, Resume, Message */}
+          <div className="flex gap-2">
+            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent bg-accent/20 py-2.5 text-sm font-semibold text-primary hover:bg-accent/40 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Profile
+            </button>
+            {interview.worker_resume_url ? (
+              <a
+                href={interview.worker_resume_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent bg-accent/20 py-2.5 text-sm font-semibold text-primary hover:bg-accent/40 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Resume
+              </a>
+            ) : (
+              <span className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent bg-accent/10 py-2.5 text-sm font-semibold text-foreground/30 cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                No Resume
+              </span>
+            )}
+            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Message
+            </button>
+          </div>
+
+          {/* Resume file indicator */}
+          {interview.worker_resume_url && (
+            <a
+              href={interview.worker_resume_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-accent bg-accent/10 p-3 hover:bg-accent/20 transition-colors group"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-primary truncate">
+                  {interview.worker_name.replace(/\s+/g, "-").toLowerCase()}-resume.pdf
+                </p>
+                <p className="text-xs text-foreground/40">PDF Document</p>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-foreground/30 group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </a>
+          )}
 
           {/* Job + Status */}
           <div className="rounded-xl border border-accent bg-accent/20 p-4 space-y-2">
