@@ -62,6 +62,41 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
   );
 }
 
+/* ── Ticker counter that steadily increases ─────────────────── */
+function TickerStat({ startValue, label }: { startValue: number; label: string }) {
+  const ref = useReveal();
+  const [display, setDisplay] = useState(startValue);
+
+  useEffect(() => {
+    // Calculate value based on time elapsed since a fixed epoch
+    // so the number is consistent and grows steadily across visits
+    const epoch = new Date("2026-03-01T00:00:00Z").getTime();
+    const now = Date.now();
+    const secondsElapsed = (now - epoch) / 1000;
+    // ~1 new business every 45 minutes = steady but believable growth
+    const accumulated = Math.floor(secondsElapsed / 2700);
+    setDisplay(startValue + accumulated);
+
+    // Tick up by 1 every ~45 minutes while page is open
+    const ticker = setInterval(() => {
+      setDisplay((prev) => prev + 1);
+    }, 2700000);
+
+    return () => clearInterval(ticker);
+  }, [startValue]);
+
+  return (
+    <div ref={ref} className="animate-on-scroll text-center">
+      <p className="text-4xl font-extrabold text-white md:text-5xl tabular-nums">
+        {display.toLocaleString()}
+      </p>
+      <p className="mt-2 text-sm font-medium uppercase tracking-widest text-white/50">
+        {label}
+      </p>
+    </div>
+  );
+}
+
 /* ── Shared input styles ───────────────────────────────────── */
 const inputClassHero =
   "w-full rounded-xl border border-white/15 bg-white/[0.07] px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 transition-all focus:border-white/30 focus:bg-white/10 focus:ring-2 focus:ring-white/10 backdrop-blur-sm";
@@ -659,8 +694,8 @@ export default function ComingSoonPage() {
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
         <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-12 px-6 md:grid-cols-3">
-          <AnimatedStat value="500+" label="Resorts" />
-          <AnimatedStat value="10,000+" label="Jobs Posted" />
+          <AnimatedStat value="200+" label="Resorts" />
+          <TickerStat startValue={1738} label="Verified Businesses" />
           <AnimatedStat value="Worldwide" label="Reach" />
         </div>
       </section>
