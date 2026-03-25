@@ -67,6 +67,7 @@ interface FormState {
   pay_range_min: string;
   pay_range_max: string;
   pay_currency: string;
+  show_pay_range: boolean;
   available_nights: boolean;
   available_weekends: boolean;
   position_type: PositionType | "";
@@ -114,6 +115,7 @@ const INITIAL: FormState = {
   pay_range_min: "",
   pay_range_max: "",
   pay_currency: "USD",
+  show_pay_range: true,
   available_nights: false,
   available_weekends: false,
   position_type: "",
@@ -480,6 +482,7 @@ export default function ProfileEditPage() {
           pay_range_min: profile.pay_range_min?.toString() || "",
           pay_range_max: profile.pay_range_max?.toString() || "",
           pay_currency: profile.pay_currency || "USD",
+          show_pay_range: profile.show_pay_range ?? true,
           available_nights: profile.available_nights || false,
           available_weekends: profile.available_weekends || false,
           position_type: profile.position_type || "",
@@ -539,6 +542,7 @@ export default function ProfileEditPage() {
         pay_range_min: form.pay_range_min ? parseFloat(form.pay_range_min) : null,
         pay_range_max: form.pay_range_max ? parseFloat(form.pay_range_max) : null,
         pay_currency: form.pay_currency || null,
+        show_pay_range: form.show_pay_range,
         available_nights: form.available_nights,
         available_weekends: form.available_weekends,
         position_type: form.position_type || null,
@@ -1638,8 +1642,11 @@ export default function ProfileEditPage() {
 
             {/* Pay range */}
             <div>
-              <Label>Pay Range (hourly)</Label>
-              <div className="mt-1 flex items-center gap-3">
+              <div className="flex items-center justify-between">
+                <Label>Pay Range (hourly)</Label>
+                <Toggle checked={form.show_pay_range} onChange={(v) => set("show_pay_range", v)} label="Display on profile" />
+              </div>
+              <div className={`mt-1 flex items-center gap-3 transition-opacity ${form.show_pay_range ? "opacity-100" : "opacity-40"}`}>
                 <select
                   value={form.pay_currency}
                   onChange={(e) => set("pay_currency", e.target.value)}
@@ -1877,6 +1884,7 @@ export default function ProfileEditPage() {
                     {form.pay_range_min && form.pay_range_max
                       ? `${form.pay_currency} ${form.pay_range_min}–${form.pay_range_max}/hr`
                       : "—"}
+                    {!form.show_pay_range && <span className="ml-2 text-xs text-foreground/40">(hidden)</span>}
                   </dd>
                 </div>
               </dl>
