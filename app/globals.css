@@ -193,6 +193,13 @@ body {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
 }
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(14deg); }
+  50% { transform: rotate(-4deg); }
+  75% { transform: rotate(10deg); }
+}
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
