@@ -1,11 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[80vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const searchParams = useSearchParams();
   const typeParam = searchParams.get("type");
   const initialStep: "role" | "worker" | "business" =
