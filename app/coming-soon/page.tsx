@@ -62,33 +62,99 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
   );
 }
 
-/* ── Ticker counter that steadily increases ─────────────────── */
+/* ── Number Ticker — spring-animated count from 0 on scroll ── */
 function TickerStat({ startValue, label }: { startValue: number; label: string }) {
-  const ref = useReveal();
-  const [display, setDisplay] = useState(startValue);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const numberRef = useRef<HTMLSpanElement>(null);
+  const hasAnimated = useRef(false);
+  const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    // Calculate value based on time elapsed since a fixed epoch
-    // so the number is consistent and grows steadily across visits
+  // Calculate the real target: startValue + growth over time
+  const getTarget = () => {
     const epoch = new Date("2026-03-01T00:00:00Z").getTime();
     const now = Date.now();
     const secondsElapsed = (now - epoch) / 1000;
-    // ~1 new business every 45 minutes = steady but believable growth
     const accumulated = Math.floor(secondsElapsed / 2700);
-    setDisplay(startValue + accumulated);
+    return startValue + accumulated;
+  };
 
-    // Tick up by 1 every ~45 minutes while page is open
-    const ticker = setInterval(() => {
-      setDisplay((prev) => prev + 1);
-    }, 2700000);
+  useEffect(() => {
+    const el = containerRef.current;
+    const numEl = numberRef.current;
+    if (!el || !numEl) return;
 
-    return () => clearInterval(ticker);
+    // Start at 0
+    numEl.textContent = "0";
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          el.classList.add("is-visible");
+          observer.unobserve(el);
+
+          const target = getTarget();
+
+          // Spring-like animation using critically damped spring simulation
+          // Mirrors Magic UI approach: damping=60, stiffness=100
+          const damping = 60;
+          const stiffness = 100;
+          let currentValue = 0;
+          let velocity = 0;
+          const dt = 1 / 60; // 60fps timestep
+          let lastTime = performance.now();
+          const formatter = new Intl.NumberFormat("en-US");
+
+          function springTick(now: number) {
+            const frameDt = Math.min((now - lastTime) / 1000, 0.05); // cap at 50ms
+            lastTime = now;
+
+            // Spring physics: F = -stiffness * (x - target) - damping * velocity
+            const displacement = currentValue - target;
+            const springForce = -stiffness * displacement;
+            const dampingForce = -damping * velocity;
+            const acceleration = springForce + dampingForce;
+
+            velocity += acceleration * frameDt;
+            currentValue += velocity * frameDt;
+
+            // Update DOM directly for performance (like Magic UI)
+            if (numEl) {
+              numEl.textContent = formatter.format(Math.round(currentValue));
+            }
+
+            // Check if settled (close enough and barely moving)
+            if (Math.abs(currentValue - target) < 0.5 && Math.abs(velocity) < 0.1) {
+              if (numEl) numEl.textContent = formatter.format(target);
+              // Keep growing slowly after animation
+              let current = target;
+              tickerRef.current = setInterval(() => {
+                current += 1;
+                if (numEl) numEl.textContent = formatter.format(current);
+              }, 2700000);
+              return;
+            }
+
+            requestAnimationFrame(springTick);
+          }
+
+          requestAnimationFrame(springTick);
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (tickerRef.current) clearInterval(tickerRef.current);
+    };
   }, [startValue]);
 
   return (
-    <div ref={ref} className="animate-on-scroll text-center">
-      <p className="text-4xl font-extrabold text-white md:text-5xl tabular-nums">
-        {display.toLocaleString()}
+    <div ref={containerRef} className="animate-on-scroll text-center">
+      <p className="text-4xl font-extrabold text-white md:text-5xl">
+        <span ref={numberRef} className="inline-block tabular-nums tracking-wider">0</span>
       </p>
       <p className="mt-2 text-sm font-medium uppercase tracking-widest text-white/50">
         {label}
@@ -695,7 +761,7 @@ export default function ComingSoonPage() {
 
         <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-12 px-6 md:grid-cols-3">
           <AnimatedStat value="200+" label="Resorts" />
-          <TickerStat startValue={1738} label="Verified Businesses" />
+          <TickerStat startValue={1232} label="Verified Businesses" />
           <AnimatedStat value="Worldwide" label="Reach" />
         </div>
       </section>
