@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const TEST_PORTAL_CODE = process.env.TEST_PORTAL_CODE || "mountainconnectaccessportal";
+const TEST_PORTAL_CODE = process.env.TEST_PORTAL_CODE || "mountainconnectaccess";
 
 export async function POST(request: NextRequest) {
   try {
