@@ -250,7 +250,7 @@ export default function WorkerProfilePage() {
       {profile && (
         <div className="mt-6 space-y-4">
           {/* Location & Eligibility */}
-          {(profile.location_current || profile.nationality || profile.visa_status) && (
+          {(profile.location_current || profile.country_of_residence || profile.nationality || profile.visa_status) && (
             <div className="rounded-xl border border-accent bg-white p-6">
               <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/50">
                 Location & Eligibility
@@ -260,6 +260,12 @@ export default function WorkerProfilePage() {
                   <div>
                     <span className="text-foreground/50">Location</span>
                     <p className="font-medium text-primary">{profile.location_current}</p>
+                  </div>
+                )}
+                {profile.country_of_residence && (
+                  <div>
+                    <span className="text-foreground/50">Country</span>
+                    <p className="font-medium text-primary">{profile.country_of_residence}</p>
                   </div>
                 )}
                 {profile.nationality && (
