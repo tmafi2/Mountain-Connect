@@ -1640,39 +1640,6 @@ export default function ProfileEditPage() {
               </Select>
             </div>
 
-            {/* Pay range */}
-            <div>
-              <div className="flex items-center justify-between">
-                <Label>Pay Range (hourly)</Label>
-                <Toggle checked={form.show_pay_range} onChange={(v) => set("show_pay_range", v)} label="Display on profile" />
-              </div>
-              <div className={`mt-1 flex items-center gap-3 transition-opacity ${form.show_pay_range ? "opacity-100" : "opacity-40"}`}>
-                <select
-                  value={form.pay_currency}
-                  onChange={(e) => set("pay_currency", e.target.value)}
-                  className="rounded-lg border border-accent bg-white px-3 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none"
-                >
-                  {CURRENCY_OPTIONS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={form.pay_range_min}
-                  onChange={(e) => set("pay_range_min", e.target.value)}
-                  className="w-24 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                />
-                <span className="text-foreground/40">&ndash;</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={form.pay_range_max}
-                  onChange={(e) => set("pay_range_max", e.target.value)}
-                  className="w-24 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                />
-              </div>
-            </div>
 
             <div className="space-y-3">
               <Toggle checked={form.available_nights} onChange={(v) => set("available_nights", v)} label="Available for night shifts" />
@@ -1877,15 +1844,6 @@ export default function ProfileEditPage() {
                 <div>
                   <dt className="text-xs font-medium uppercase text-foreground/50">Position Type</dt>
                   <dd className="text-sm text-primary capitalize">{form.position_type?.replace("_", " ") || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-medium uppercase text-foreground/50">Pay Range</dt>
-                  <dd className="text-sm text-primary">
-                    {form.pay_range_min && form.pay_range_max
-                      ? `${form.pay_currency} ${form.pay_range_min}–${form.pay_range_max}/hr`
-                      : "—"}
-                    {!form.show_pay_range && <span className="ml-2 text-xs text-foreground/40">(hidden)</span>}
-                  </dd>
                 </div>
               </dl>
               <div className="flex flex-wrap gap-3 text-sm text-foreground/70">
