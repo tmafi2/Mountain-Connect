@@ -26,6 +26,7 @@ export interface SeedApplicant {
   visa_status: string;
   date_of_birth: string;
   nationality: string;
+  worker_resume_url: string | null;
 }
 
 export const seedApplicants: SeedApplicant[] = [
@@ -58,6 +59,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "1999-04-12",
     nationality: "Swedish",
+    worker_resume_url: "/resumes/emma-johansson-resume.pdf",
   },
   {
     id: "w2",
@@ -88,6 +90,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "2000-11-28",
     nationality: "Austrian",
+    worker_resume_url: "/resumes/lucas-muller-resume.pdf",
   },
   {
     id: "w3",
@@ -118,6 +121,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (subclass 417)",
     date_of_birth: "2000-07-03",
     nationality: "Australian",
+    worker_resume_url: "/resumes/sophie-chen-resume.pdf",
   },
   {
     id: "w4",
@@ -147,6 +151,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "2003-02-15",
     nationality: "New Zealander",
+    worker_resume_url: "/resumes/jake-thompson-resume.pdf",
   },
   {
     id: "w5",
@@ -177,6 +182,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "1996-12-08",
     nationality: "French",
+    worker_resume_url: "/resumes/marie-dubois-resume.pdf",
   },
   {
     id: "w6",
@@ -206,6 +212,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "2000-09-22",
     nationality: "Japanese",
+    worker_resume_url: null,
   },
   {
     id: "w7",
@@ -236,6 +243,7 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "2001-01-17",
     nationality: "Norwegian",
+    worker_resume_url: "/resumes/ollie-hansen-resume.pdf",
   },
   {
     id: "w8",
@@ -266,5 +274,6 @@ export const seedApplicants: SeedApplicant[] = [
     visa_status: "Working Holiday Visa (IEC)",
     date_of_birth: "1998-06-25",
     nationality: "Italian",
+    worker_resume_url: "/resumes/isabella-rossi-resume.pdf",
   },
 ];

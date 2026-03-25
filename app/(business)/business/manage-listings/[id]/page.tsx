@@ -48,6 +48,7 @@ interface Applicant {
   coverLetter: string;
   availability: string;
   languages: string[];
+  resumeUrl: string | null;
 }
 
 type ActiveTab = null | "applicants" | "interviews" | "filled";
@@ -220,27 +221,27 @@ const demoListings: Record<string, ListingDetail> = {
 
 const demoApplicants: Record<string, Applicant[]> = {
   j1: [
-    { id: "a1", name: "Emma Johansson", email: "emma.j@example.com", location: "Stockholm, Sweden", skills: ["CSIA Level 3", "First Aid", "Swedish", "English", "French"], experience: 5, status: "pending", appliedAt: "Mar 10, 2026", coverLetter: "I've been teaching skiing for 5 seasons across Sweden and Canada. I hold a CSIA Level 3 certification and I'm passionate about helping beginners discover the joy of skiing.", availability: "Nov 2025 – Apr 2026 (full season)", languages: ["Swedish", "English", "French"] },
-    { id: "a2", name: "Lucas Müller", email: "lucas.m@example.com", location: "Innsbruck, Austria", skills: ["CSIA Level 2", "Avalanche Safety", "German", "English"], experience: 3, status: "reviewed", appliedAt: "Mar 8, 2026", coverLetter: "Coming from the Austrian Alps, I bring 3 seasons of instruction experience with a specialty in intermediate to advanced technique.", availability: "Dec 2025 – Apr 2026", languages: ["German", "English"] },
-    { id: "a3", name: "Marie Dubois", email: "marie.d@example.com", location: "Chamonix, France", skills: ["BASI Level 3", "First Aid", "French", "English", "Spanish"], experience: 7, status: "accepted", appliedAt: "Mar 1, 2026", coverLetter: "With 7 years of instruction across France, Spain, and Canada, I bring deep expertise in all-mountain teaching.", availability: "Nov 2025 – Apr 2026 (full season)", languages: ["French", "English", "Spanish"] },
-    { id: "a4", name: "Kenji Nakamura", email: "kenji.n@example.com", location: "Nagano, Japan", skills: ["SAJ Level 2", "Children's Instruction", "Japanese", "English"], experience: 4, status: "interview_scheduled", appliedAt: "Mar 14, 2026", coverLetter: "I specialize in children's ski instruction and have taught at several major resorts in Japan.", availability: "Dec 2025 – Mar 2026", languages: ["Japanese", "English"] },
-    { id: "a5", name: "Sofia Rodriguez", email: "sofia.r@example.com", location: "Santiago, Chile", skills: ["CSIA Level 2", "Spanish", "English"], experience: 3, status: "pending", appliedAt: "Mar 16, 2026", coverLetter: "I've instructed at resorts in Chile and Argentina during southern hemisphere winters and want to experience a northern season.", availability: "Nov 2025 – Apr 2026", languages: ["Spanish", "English"] },
+    { id: "a1", name: "Emma Johansson", email: "emma.j@example.com", location: "Stockholm, Sweden", skills: ["CSIA Level 3", "First Aid", "Swedish", "English", "French"], experience: 5, status: "pending", appliedAt: "Mar 10, 2026", coverLetter: "I've been teaching skiing for 5 seasons across Sweden and Canada. I hold a CSIA Level 3 certification and I'm passionate about helping beginners discover the joy of skiing.", availability: "Nov 2025 – Apr 2026 (full season)", languages: ["Swedish", "English", "French"], resumeUrl: "/resumes/emma-johansson-resume.pdf" },
+    { id: "a2", name: "Lucas Müller", email: "lucas.m@example.com", location: "Innsbruck, Austria", skills: ["CSIA Level 2", "Avalanche Safety", "German", "English"], experience: 3, status: "reviewed", appliedAt: "Mar 8, 2026", coverLetter: "Coming from the Austrian Alps, I bring 3 seasons of instruction experience with a specialty in intermediate to advanced technique.", availability: "Dec 2025 – Apr 2026", languages: ["German", "English"], resumeUrl: "/resumes/lucas-muller-resume.pdf" },
+    { id: "a3", name: "Marie Dubois", email: "marie.d@example.com", location: "Chamonix, France", skills: ["BASI Level 3", "First Aid", "French", "English", "Spanish"], experience: 7, status: "accepted", appliedAt: "Mar 1, 2026", coverLetter: "With 7 years of instruction across France, Spain, and Canada, I bring deep expertise in all-mountain teaching.", availability: "Nov 2025 – Apr 2026 (full season)", languages: ["French", "English", "Spanish"], resumeUrl: "/resumes/marie-dubois-resume.pdf" },
+    { id: "a4", name: "Kenji Nakamura", email: "kenji.n@example.com", location: "Nagano, Japan", skills: ["SAJ Level 2", "Children's Instruction", "Japanese", "English"], experience: 4, status: "interview_scheduled", appliedAt: "Mar 14, 2026", coverLetter: "I specialize in children's ski instruction and have taught at several major resorts in Japan.", availability: "Dec 2025 – Mar 2026", languages: ["Japanese", "English"], resumeUrl: null },
+    { id: "a5", name: "Sofia Rodriguez", email: "sofia.r@example.com", location: "Santiago, Chile", skills: ["CSIA Level 2", "Spanish", "English"], experience: 3, status: "pending", appliedAt: "Mar 16, 2026", coverLetter: "I've instructed at resorts in Chile and Argentina during southern hemisphere winters and want to experience a northern season.", availability: "Nov 2025 – Apr 2026", languages: ["Spanish", "English"], resumeUrl: "/resumes/sofia-rodriguez-resume.pdf" },
   ],
   j2: [
-    { id: "a6", name: "Sophie Chen", email: "sophie.c@example.com", location: "Melbourne, Australia", skills: ["RSA Certified", "Cocktail Making", "English", "Mandarin"], experience: 4, status: "pending", appliedAt: "Mar 12, 2026", coverLetter: "I've worked in Melbourne's top cocktail bars for 4 years and I'm looking for a season abroad.", availability: "Nov 2025 – Apr 2026", languages: ["English", "Mandarin"] },
-    { id: "a7", name: "Tom Wilson", email: "tom.w@example.com", location: "Queenstown, NZ", skills: ["Cocktail Making", "Wine Knowledge", "English"], experience: 3, status: "interview_scheduled", appliedAt: "Mar 11, 2026", coverLetter: "I've spent 3 seasons bartending in Queenstown's famous après-ski scene.", availability: "Nov 2025 – Apr 2026", languages: ["English"] },
+    { id: "a6", name: "Sophie Chen", email: "sophie.c@example.com", location: "Melbourne, Australia", skills: ["RSA Certified", "Cocktail Making", "English", "Mandarin"], experience: 4, status: "pending", appliedAt: "Mar 12, 2026", coverLetter: "I've worked in Melbourne's top cocktail bars for 4 years and I'm looking for a season abroad.", availability: "Nov 2025 – Apr 2026", languages: ["English", "Mandarin"], resumeUrl: "/resumes/sophie-chen-resume.pdf" },
+    { id: "a7", name: "Tom Wilson", email: "tom.w@example.com", location: "Queenstown, NZ", skills: ["Cocktail Making", "Wine Knowledge", "English"], experience: 3, status: "interview_scheduled", appliedAt: "Mar 11, 2026", coverLetter: "I've spent 3 seasons bartending in Queenstown's famous après-ski scene.", availability: "Nov 2025 – Apr 2026", languages: ["English"], resumeUrl: "/resumes/tom-wilson-resume.pdf" },
   ],
   j3: [
-    { id: "a8", name: "Ana Santos", email: "ana.s@example.com", location: "Lisbon, Portugal", skills: ["Hotel Management Diploma", "Portuguese", "English"], experience: 2, status: "pending", appliedAt: "Mar 15, 2026", coverLetter: "I recently graduated with a Hotel Management Diploma and completed internships at two 5-star hotels.", availability: "Nov 2025 – Apr 2026", languages: ["Portuguese", "English", "Spanish"] },
-    { id: "a9", name: "Jake Thompson", email: "jake.t@example.com", location: "Queenstown, NZ", skills: ["First Aid", "Customer Service", "English"], experience: 2, status: "interview_scheduled", appliedAt: "Mar 5, 2026", coverLetter: "I have 2 seasons of hotel experience in New Zealand's ski region.", availability: "Nov 2025 – Apr 2026", languages: ["English"] },
+    { id: "a8", name: "Ana Santos", email: "ana.s@example.com", location: "Lisbon, Portugal", skills: ["Hotel Management Diploma", "Portuguese", "English"], experience: 2, status: "pending", appliedAt: "Mar 15, 2026", coverLetter: "I recently graduated with a Hotel Management Diploma and completed internships at two 5-star hotels.", availability: "Nov 2025 – Apr 2026", languages: ["Portuguese", "English", "Spanish"], resumeUrl: "/resumes/ana-santos-resume.pdf" },
+    { id: "a9", name: "Jake Thompson", email: "jake.t@example.com", location: "Queenstown, NZ", skills: ["First Aid", "Customer Service", "English"], experience: 2, status: "interview_scheduled", appliedAt: "Mar 5, 2026", coverLetter: "I have 2 seasons of hotel experience in New Zealand's ski region.", availability: "Nov 2025 – Apr 2026", languages: ["English"], resumeUrl: "/resumes/jake-thompson-resume.pdf" },
   ],
   j4: [
-    { id: "a10", name: "Ollie Hansen", email: "ollie.h@example.com", location: "Oslo, Norway", skills: ["Culinary Arts Diploma", "French Cuisine", "Norwegian", "English"], experience: 4, status: "reviewed", appliedAt: "Mar 9, 2026", coverLetter: "I trained in French cuisine in Lyon and have worked at mountain restaurants in Norway and Switzerland.", availability: "Dec 2025 – Mar 2026", languages: ["Norwegian", "English", "French"] },
-    { id: "a11", name: "Claire Bonnet", email: "claire.b@example.com", location: "Lyon, France", skills: ["Le Cordon Bleu", "Pastry", "French", "English"], experience: 5, status: "pending", appliedAt: "Mar 13, 2026", coverLetter: "A Le Cordon Bleu graduate with 5 years in high-end alpine restaurants across the French Alps.", availability: "Dec 2025 – Mar 2026", languages: ["French", "English"] },
+    { id: "a10", name: "Ollie Hansen", email: "ollie.h@example.com", location: "Oslo, Norway", skills: ["Culinary Arts Diploma", "French Cuisine", "Norwegian", "English"], experience: 4, status: "reviewed", appliedAt: "Mar 9, 2026", coverLetter: "I trained in French cuisine in Lyon and have worked at mountain restaurants in Norway and Switzerland.", availability: "Dec 2025 – Mar 2026", languages: ["Norwegian", "English", "French"], resumeUrl: "/resumes/ollie-hansen-resume.pdf" },
+    { id: "a11", name: "Claire Bonnet", email: "claire.b@example.com", location: "Lyon, France", skills: ["Le Cordon Bleu", "Pastry", "French", "English"], experience: 5, status: "pending", appliedAt: "Mar 13, 2026", coverLetter: "A Le Cordon Bleu graduate with 5 years in high-end alpine restaurants across the French Alps.", availability: "Dec 2025 – Mar 2026", languages: ["French", "English"], resumeUrl: "/resumes/claire-bonnet-resume.pdf" },
   ],
   j5: [
-    { id: "a12", name: "Hiroshi Tanaka", email: "hiroshi.t@example.com", location: "Niseko, Japan", skills: ["Customer Service", "Japanese", "English"], experience: 3, status: "accepted", appliedAt: "Mar 14, 2026", coverLetter: "I have 3 seasons of lift operations experience in Niseko.", availability: "Nov 2025 – Apr 2026", languages: ["Japanese", "English"] },
-    { id: "a13", name: "Ryan O'Brien", email: "ryan.o@example.com", location: "Denver, USA", skills: ["Lift Maintenance", "First Aid", "English", "Spanish"], experience: 5, status: "accepted", appliedAt: "Mar 3, 2026", coverLetter: "I've been working lift operations at Colorado resorts for 5 years.", availability: "Nov 2025 – Apr 2026", languages: ["English", "Spanish"] },
+    { id: "a12", name: "Hiroshi Tanaka", email: "hiroshi.t@example.com", location: "Niseko, Japan", skills: ["Customer Service", "Japanese", "English"], experience: 3, status: "accepted", appliedAt: "Mar 14, 2026", coverLetter: "I have 3 seasons of lift operations experience in Niseko.", availability: "Nov 2025 – Apr 2026", languages: ["Japanese", "English"], resumeUrl: null },
+    { id: "a13", name: "Ryan O'Brien", email: "ryan.o@example.com", location: "Denver, USA", skills: ["Lift Maintenance", "First Aid", "English", "Spanish"], experience: 5, status: "accepted", appliedAt: "Mar 3, 2026", coverLetter: "I've been working lift operations at Colorado resorts for 5 years.", availability: "Nov 2025 – Apr 2026", languages: ["English", "Spanish"], resumeUrl: "/resumes/ryan-obrien-resume.pdf" },
   ],
 };
 
@@ -580,17 +581,20 @@ export default function ListingDetailPage() {
                     className="rounded-lg border border-accent transition-colors hover:border-secondary/30"
                   >
                     {/* Collapsed card */}
-                    <button
-                      onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}
-                      className="flex w-full items-center gap-4 p-4 text-left"
-                    >
+                    <div className="flex w-full items-center gap-4 p-4">
                       {/* Avatar */}
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-sm font-bold text-secondary">
+                      <button
+                        onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-sm font-bold text-secondary"
+                      >
                         {getInitials(applicant.name)}
-                      </div>
+                      </button>
 
                       {/* Info */}
-                      <div className="min-w-0 flex-1">
+                      <button
+                        onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-primary">{applicant.name}</span>
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.bg} ${badge.text}`}>
@@ -613,21 +617,67 @@ export default function ListingDetailPage() {
                             </span>
                           )}
                         </div>
+                      </button>
+
+                      {/* Quick action icons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setExpandedApplicant(applicant.id)}
+                          title="View Profile"
+                          className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </button>
+                        {applicant.resumeUrl ? (
+                          <a
+                            href={applicant.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View Resume"
+                            className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => setExpandedApplicant(applicant.id)}
+                            title="View Resume"
+                            className="rounded-lg p-2 text-foreground/30 hover:bg-secondary/10 hover:text-primary transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
+                        )}
+                        <button
+                          title="Message"
+                          className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        </button>
                       </div>
 
                       {/* Applied date & expand icon */}
                       <div className="shrink-0 text-right">
                         <span className="text-xs text-foreground/40">Applied {applicant.appliedAt}</span>
-                        <svg
-                          className={`ml-auto mt-1 h-4 w-4 text-foreground/30 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <button onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}>
+                          <svg
+                            className={`ml-auto mt-1 h-4 w-4 text-foreground/30 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
                       </div>
-                    </button>
+                    </div>
 
                     {/* Expanded details */}
                     {isExpanded && (

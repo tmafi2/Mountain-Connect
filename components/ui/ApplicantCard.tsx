@@ -51,18 +51,15 @@ export default function ApplicantCard({
   return (
     <div className={`rounded-xl border bg-white transition-all ${expanded ? "border-secondary shadow-md" : "border-accent hover:border-secondary/50 hover:shadow-sm"}`}>
       {/* Collapsed card — clickable header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full p-5 text-left"
-      >
+      <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-sm font-bold text-primary">
+          <button onClick={() => setExpanded(!expanded)} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-sm font-bold text-primary">
             {initials}
-          </div>
+          </button>
 
           {/* Info */}
-          <div className="min-w-0 flex-1">
+          <button onClick={() => setExpanded(!expanded)} className="min-w-0 flex-1 text-left">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-primary">{applicant.worker_name}</h3>
               <span
@@ -98,27 +95,73 @@ export default function ApplicantCard({
                 </span>
               )}
             </div>
+          </button>
 
-            {/* Bottom row */}
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-3 text-xs text-foreground/40">
-                <span>{applicant.years_experience} yrs experience</span>
-                <span>Applied {formatDate(applicant.applied_at)}</span>
-              </div>
-
-              {/* Expand indicator */}
-              <svg
-                className={`h-4 w-4 text-foreground/30 transition-transform ${expanded ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          {/* Quick action icons */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => { setExpanded(true); setActiveTab("profile"); }}
+              title="View Profile"
+              className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-            </div>
+            </button>
+            {applicant.worker_resume_url ? (
+              <a
+                href={applicant.worker_resume_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View Resume"
+                className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </a>
+            ) : (
+              <button
+                onClick={() => { setExpanded(true); setActiveTab("resume"); }}
+                title="View Resume"
+                className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+            )}
+            <button
+              title="Message"
+              className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </button>
           </div>
         </div>
-      </button>
+
+        {/* Bottom row */}
+        <div className="mt-3 flex items-center justify-between pl-16">
+          <div className="flex items-center gap-3 text-xs text-foreground/40">
+            <span>{applicant.years_experience} yrs experience</span>
+            <span>Applied {formatDate(applicant.applied_at)}</span>
+          </div>
+
+          {/* Expand indicator */}
+          <button onClick={() => setExpanded(!expanded)}>
+            <svg
+              className={`h-4 w-4 text-foreground/30 transition-transform ${expanded ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
       {/* Expanded detail panel */}
       {expanded && (
@@ -290,6 +333,40 @@ export default function ApplicantCard({
             {/* ── RESUME TAB ── */}
             {activeTab === "resume" && (
               <div className="space-y-5">
+                {/* Resume download */}
+                {applicant.worker_resume_url ? (
+                  <a
+                    href={applicant.worker_resume_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-xl border border-accent bg-accent/10 p-3 hover:bg-accent/20 transition-colors group"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-primary truncate">
+                        {applicant.worker_name.replace(/\s+/g, "-").toLowerCase()}-resume.pdf
+                      </p>
+                      <p className="text-xs text-foreground/40">PDF Document — Click to download</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-foreground/30 group-hover:text-primary transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/5 p-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-foreground/40">No resume uploaded</p>
+                  </div>
+                )}
+
                 {/* Education */}
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Education</h4>
