@@ -416,6 +416,7 @@ export default function ProfileEditPage() {
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
   const [coverLetterFileName, setCoverLetterFileName] = useState<string | null>(null);
 
+  const supabaseClient = createClient();
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const ALLOWED_TYPES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 
@@ -431,17 +432,15 @@ export default function ProfileEditPage() {
       const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
       const path = `${userId}/${type}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabaseClient.storage
         .from("documents")
         .upload(path, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from("documents").getPublicUrl(path);
-
-      // Save signed URL path to profile
+      // Save path to profile
       const columnName = isResume ? "resume_url" : "cover_letter_url";
-      await supabase.from("worker_profiles").update({ [columnName]: path }).eq("user_id", userId);
+      await supabaseClient.from("worker_profiles").update({ [columnName]: path }).eq("user_id", userId);
 
       if (isResume) { setResumeUrl(path); setResumeFileName(file.name); }
       else { setCoverLetterUrl(path); setCoverLetterFileName(file.name); }
@@ -459,11 +458,11 @@ export default function ProfileEditPage() {
     const currentPath = isResume ? resumeUrl : coverLetterUrl;
 
     if (currentPath) {
-      await supabase.storage.from("documents").remove([currentPath]);
+      await supabaseClient.storage.from("documents").remove([currentPath]);
     }
 
     const columnName = isResume ? "resume_url" : "cover_letter_url";
-    await supabase.from("worker_profiles").update({ [columnName]: null }).eq("user_id", userId);
+    await supabaseClient.from("worker_profiles").update({ [columnName]: null }).eq("user_id", userId);
 
     if (isResume) { setResumeUrl(null); setResumeFileName(null); }
     else { setCoverLetterUrl(null); setCoverLetterFileName(null); }
@@ -473,7 +472,7 @@ export default function ProfileEditPage() {
     const path = type === "resume" ? resumeUrl : coverLetterUrl;
     if (!path) return;
 
-    const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 60);
+    const { data, error } = await supabaseClient.storage.from("documents").createSignedUrl(path, 60);
     if (error || !data?.signedUrl) { alert("Could not generate download link"); return; }
     window.open(data.signedUrl, "_blank");
   }
