@@ -3,8 +3,10 @@ import { interviewInviteEmail } from "./templates/interview-invite";
 import { interviewConfirmationEmail } from "./templates/interview-confirmation";
 import { interviewCancelledEmail } from "./templates/interview-cancelled";
 import { businessNewJobEmail } from "./templates/business-new-job";
+import { waitlistWorkerEmail } from "./templates/waitlist-worker";
+import { waitlistBusinessEmail } from "./templates/waitlist-business";
 
-const FROM_EMAIL = "Mountain Connect <onboarding@resend.dev>";
+const FROM_EMAIL = "Mountain Connect <hello@mountainconnects.com>";
 
 export async function sendInterviewInviteEmail(params: {
   to: string;
@@ -81,6 +83,40 @@ export async function sendBusinessNewJobEmail(params: {
   if (!resend) return null;
 
   const { subject, html } = businessNewJobEmail(params);
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: params.to,
+    subject,
+    html,
+  });
+}
+
+export async function sendWaitlistWorkerEmail(params: { to: string }) {
+  const resend = getResendClient();
+  if (!resend) return null;
+
+  const { subject, html } = waitlistWorkerEmail({ email: params.to });
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: params.to,
+    subject,
+    html,
+  });
+}
+
+export async function sendWaitlistBusinessEmail(params: {
+  to: string;
+  businessName: string;
+  resort: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+
+  const { subject, html } = waitlistBusinessEmail({
+    email: params.to,
+    businessName: params.businessName,
+    resort: params.resort,
+  });
   return resend.emails.send({
     from: FROM_EMAIL,
     to: params.to,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendWaitlistWorkerEmail, sendWaitlistBusinessEmail } from "@/lib/email/send";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,6 +56,21 @@ export async function POST(req: NextRequest) {
       }
       console.error("Waitlist insert error:", error);
       return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    }
+
+    // Send confirmation email (don't block the response if it fails)
+    try {
+      if (type === "worker") {
+        await sendWaitlistWorkerEmail({ to: email.toLowerCase().trim() });
+      } else {
+        await sendWaitlistBusinessEmail({
+          to: email.toLowerCase().trim(),
+          businessName: business_name.trim(),
+          resort: resort.trim(),
+        });
+      }
+    } catch (emailErr) {
+      console.error("Waitlist email failed (non-blocking):", emailErr);
     }
 
     // Get total count for the live counter
