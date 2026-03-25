@@ -236,30 +236,53 @@ export default function PostJobPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary/30 border-t-secondary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
       </div>
     );
   }
 
   const inputClass =
-    "mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary";
+    "mt-1 w-full rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary";
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-primary">Post a New Job</h1>
-        <p className="mt-1 text-sm text-foreground/60">
-          Create a job listing to find seasonal workers for your business.
-        </p>
+      {/* Corporate gradient header */}
+      <div
+        className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a1e33] via-[#0f2942] to-[#132d4a] px-8 py-8"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)",
+          backgroundSize: "32px 32px",
+        }}
+      >
+        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-3xl bg-secondary/8 blur-2xl" style={{ transform: "rotate(12deg)" }} />
+        <div className="pointer-events-none absolute -bottom-6 right-24 h-24 w-24 rounded-2xl bg-secondary/5 blur-xl" style={{ transform: "rotate(-8deg)" }} />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="h-4 w-4 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Talent Acquisition</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white">Post a New Job</h1>
+          <p className="mt-1 text-sm text-white/50">
+            Create a job listing to find seasonal workers for your business.
+          </p>
+        </div>
       </div>
 
       {/* ── Section 1: Basic Info ─────────────────────────── */}
-      <div className="mt-6 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Basic Information
-        </h2>
+      <div className="rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">1</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Basic Information
+          </h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground">
               Job Title <span className="text-red-400">*</span>
@@ -327,7 +350,7 @@ export default function PostJobPage() {
                 </span>
               )}
               {showResortDropdown && resortResults.length > 0 && (
-                <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-20 mt-1 w-full rounded-xl border border-accent/40 bg-white shadow-lg max-h-48 overflow-y-auto">
                   {resortResults.map((r) => (
                     <button
                       key={r.id}
@@ -337,7 +360,7 @@ export default function PostJobPage() {
                         setForm((prev) => ({ ...prev, resortName: r.name, location: `${r.name}, ${r.country}` }));
                         setShowResortDropdown(false);
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent/30 transition-colors"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent/20 transition-colors"
                     >
                       <span className="font-medium text-primary">{r.name}</span>
                       <span className="ml-2 text-foreground/40">{r.country}</span>
@@ -362,12 +385,17 @@ export default function PostJobPage() {
       </div>
 
       {/* ── Section 2: Pay & Dates ────────────────────────── */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Pay &amp; Dates
-        </h2>
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">2</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Pay &amp; Dates
+          </h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground">
               Pay / Salary
@@ -408,12 +436,17 @@ export default function PostJobPage() {
       </div>
 
       {/* ── Section 3: Description & Requirements ─────────── */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Description &amp; Requirements
-        </h2>
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">3</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Description &amp; Requirements
+          </h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground">
               Job Description
@@ -457,12 +490,17 @@ export default function PostJobPage() {
       </div>
 
       {/* ── Section 4: Perks & Accommodation ──────────────── */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Perks &amp; Accommodation
-        </h2>
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">4</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Perks &amp; Accommodation
+          </h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <Toggle
             label="Housing Included"
             value={form.housingIncluded}
@@ -537,12 +575,17 @@ export default function PostJobPage() {
       </div>
 
       {/* ── Section 5: Listing Options ────────────────────── */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Listing Options
-        </h2>
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">5</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Listing Options
+          </h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <Toggle
             label="Urgently Hiring"
             value={form.urgentlyHiring}
@@ -568,24 +611,24 @@ export default function PostJobPage() {
 
       {/* Error display */}
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
       {/* ── Actions ───────────────────────────────────────── */}
-      <div className="mt-6 flex items-center justify-between rounded-xl border border-accent bg-white p-5">
+      <div className="mt-6 flex items-center justify-between rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
         <button
           onClick={handleSaveDraft}
           disabled={savingDraft || posting}
-          className="rounded-lg border border-accent bg-white px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent/20 disabled:opacity-50"
+          className="rounded-xl border border-accent/50 bg-white px-5 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
         >
           {savingDraft ? "Saving..." : "Save as Draft"}
         </button>
         <button
           onClick={handlePost}
           disabled={posting || !form.title.trim()}
-          className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
         >
           {posting ? (
             <span className="flex items-center gap-2">

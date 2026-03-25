@@ -280,49 +280,70 @@ export default function CompanyProfilePage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
       </div>
     );
   }
 
+  const inputClass = "mt-1 w-full rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary";
+
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Company Profile</h1>
-          <p className="mt-1 text-sm text-foreground/60">
-            Manage your business details and public presence.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {saved && (
-            <span className="text-sm text-green-600 font-medium">Saved!</span>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Profile"}
-          </button>
+      {/* Corporate gradient header */}
+      <div
+        className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a1e33] via-[#0f2942] to-[#132d4a] px-8 py-8"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)",
+          backgroundSize: "32px 32px",
+        }}
+      >
+        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-3xl bg-secondary/8 blur-2xl" style={{ transform: "rotate(12deg)" }} />
+        <div className="pointer-events-none absolute -bottom-6 right-24 h-24 w-24 rounded-2xl bg-secondary/5 blur-xl" style={{ transform: "rotate(-8deg)" }} />
+
+        <div className="relative flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="h-4 w-4 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Business Identity</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Company Profile</h1>
+            <p className="mt-1 text-sm text-white/50">
+              Manage your business details and public presence.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {saved && (
+              <span className="text-sm text-green-400 font-medium">Saved!</span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-xl bg-white/10 border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 hover:-translate-y-0.5 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Profile"}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Verification status banner */}
-      <div className={`mt-6 rounded-xl border p-4 ${statusInfo.bg}`}>
+      <div className={`rounded-2xl border p-5 mb-4 ${statusInfo.bg}`}>
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${statusInfo.bg} ${statusInfo.text}`}>
+          <div className="flex items-start gap-3">
+            <span className={`inline-flex shrink-0 rounded-full border px-3 py-1 text-sm font-semibold ${statusInfo.bg} ${statusInfo.text}`}>
               {statusInfo.label}
             </span>
-            <p className="text-sm text-foreground/70">{statusInfo.description}</p>
+            <p className="text-sm text-foreground/70 pt-0.5">{statusInfo.description}</p>
           </div>
         </div>
         {(verificationStatus === "unverified" || verificationStatus === "rejected") && completionPct >= 70 && (
           <button
             onClick={handleSubmitForVerification}
             disabled={submitting}
-            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 disabled:opacity-50"
           >
             {submitting ? "Submitting..." : "Submit for Verification"}
           </button>
@@ -335,12 +356,12 @@ export default function CompanyProfilePage() {
       </div>
 
       {/* Profile completion bar */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-4">
-        <div className="flex items-center justify-between text-sm">
+      <div className="mb-6 rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between text-sm mb-2">
           <span className="font-medium text-foreground">Profile Completion</span>
           <span className="font-bold text-primary">{completionPct}%</span>
         </div>
-        <div className="mt-2 h-2 w-full rounded-full bg-accent/30">
+        <div className="h-2 w-full rounded-full bg-accent/30">
           <div
             className="h-2 rounded-full bg-secondary transition-all duration-500"
             style={{ width: `${completionPct}%` }}
@@ -351,16 +372,21 @@ export default function CompanyProfilePage() {
       {/* ── Form Sections ─────────────────────────────────── */}
 
       {/* Basic Info */}
-      <div className="mt-6 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Basic Information</h2>
+      <div className="rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">1</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Basic Information</h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground">Business Name *</label>
             <input
               value={form.business_name}
               onChange={(e) => updateField("business_name", e.target.value)}
-              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className={inputClass}
             />
           </div>
 
@@ -370,7 +396,7 @@ export default function CompanyProfilePage() {
               value={form.description}
               onChange={(e) => updateField("description", e.target.value)}
               rows={4}
-              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className={inputClass}
               placeholder="Tell workers about your business, culture, and what makes working with you special..."
             />
           </div>
@@ -381,7 +407,7 @@ export default function CompanyProfilePage() {
               <select
                 value={form.category}
                 onChange={(e) => updateField("category", e.target.value)}
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               >
                 <option value="">Select a category</option>
                 {CATEGORIES.map((cat) => (
@@ -399,7 +425,7 @@ export default function CompanyProfilePage() {
                 type="number"
                 min="1800"
                 max="2026"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               />
             </div>
           </div>
@@ -410,17 +436,22 @@ export default function CompanyProfilePage() {
               value={form.location}
               onChange={(e) => updateField("location", e.target.value)}
               placeholder="e.g. Whistler, BC, Canada"
-              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className={inputClass}
             />
           </div>
         </div>
       </div>
 
       {/* Contact & Links */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Contact & Links</h2>
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">2</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Contact &amp; Links</h2>
+        </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground">Email *</label>
@@ -428,7 +459,7 @@ export default function CompanyProfilePage() {
                 value={form.email}
                 onChange={(e) => updateField("email", e.target.value)}
                 type="email"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               />
             </div>
             <div>
@@ -437,7 +468,7 @@ export default function CompanyProfilePage() {
                 value={form.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
                 type="tel"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               />
             </div>
           </div>
@@ -449,7 +480,7 @@ export default function CompanyProfilePage() {
               onChange={(e) => updateField("website", e.target.value)}
               type="url"
               placeholder="https://"
-              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              className={inputClass}
             />
           </div>
 
@@ -460,7 +491,7 @@ export default function CompanyProfilePage() {
                 value={form.instagram}
                 onChange={(e) => updateField("instagram", e.target.value)}
                 placeholder="@handle"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               />
             </div>
             <div>
@@ -469,7 +500,7 @@ export default function CompanyProfilePage() {
                 value={form.facebook}
                 onChange={(e) => updateField("facebook", e.target.value)}
                 placeholder="Page name"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               />
             </div>
             <div>
@@ -478,7 +509,7 @@ export default function CompanyProfilePage() {
                 value={form.linkedin}
                 onChange={(e) => updateField("linkedin", e.target.value)}
                 placeholder="Company page"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className={inputClass}
               />
             </div>
           </div>
@@ -486,29 +517,34 @@ export default function CompanyProfilePage() {
       </div>
 
       {/* Resort Selection */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Resorts You Operate At *
-        </h2>
-        <p className="mt-1 text-xs text-foreground/50">
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">3</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Resorts You Operate At *
+          </h2>
+        </div>
+        <p className="mb-4 ml-9 text-xs text-foreground/50">
           Select the ski resorts where your business operates. You&apos;ll appear in the Verified Employers section on these resort pages.
         </p>
 
         {/* Selected resorts */}
         {form.resort_ids.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2">
             {form.resort_ids.map((rid) => {
               const resort = resorts.find((r) => r.id === rid);
               if (!resort) return null;
               return (
                 <span
                   key={rid}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-secondary/20 px-3 py-1 text-sm font-medium text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-secondary/15 px-3 py-1 text-sm font-medium text-primary"
                 >
                   {resort.name}
                   <button
                     onClick={() => toggleResort(rid)}
-                    className="text-foreground/40 hover:text-red-500"
+                    className="text-foreground/40 hover:text-red-500 transition-colors"
                   >
                     &times;
                   </button>
@@ -523,10 +559,10 @@ export default function CompanyProfilePage() {
           value={resortSearch}
           onChange={(e) => setResortSearch(e.target.value)}
           placeholder="Search resorts..."
-          className="mt-3 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+          className="w-full rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         />
 
-        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-accent/50">
+        <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-accent/40">
           {filteredResorts.slice(0, 20).map((resort) => {
             const isSelected = form.resort_ids.includes(resort.id);
             return (
@@ -553,25 +589,30 @@ export default function CompanyProfilePage() {
       </div>
 
       {/* Perks */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Standard Perks
-        </h2>
-        <p className="mt-1 text-xs text-foreground/50">
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">4</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Standard Perks
+          </h2>
+        </div>
+        <p className="mb-4 ml-9 text-xs text-foreground/50">
           Select perks you typically offer to seasonal staff. These display on your public profile.
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {COMMON_PERKS.map((perk) => {
             const isSelected = form.perks.includes(perk);
             return (
               <button
                 key={perk}
                 onClick={() => togglePerk(perk)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
                   isSelected
                     ? "border-green-200 bg-green-50 text-green-700"
-                    : "border-accent bg-white text-foreground/60 hover:bg-accent/20"
+                    : "border-accent/50 bg-white text-foreground/60 hover:bg-accent/20 hover:border-accent"
                 }`}
               >
                 {isSelected && (
@@ -596,7 +637,7 @@ export default function CompanyProfilePage() {
                   &#10003; {perk}
                   <button
                     onClick={() => togglePerk(perk)}
-                    className="text-green-400 hover:text-red-500"
+                    className="text-green-400 hover:text-red-500 transition-colors"
                   >
                     &times;
                   </button>
@@ -612,11 +653,11 @@ export default function CompanyProfilePage() {
             onChange={(e) => setNewPerk(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCustomPerk()}
             placeholder="Add a custom perk..."
-            className="flex-1 rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+            className="flex-1 rounded-xl border border-accent/40 bg-white px-3 py-2 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
           />
           <button
             onClick={addCustomPerk}
-            className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
+            className="rounded-xl border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5"
           >
             Add
           </button>
@@ -624,14 +665,19 @@ export default function CompanyProfilePage() {
       </div>
 
       {/* Photos */}
-      <div className="mt-4 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-          Photos
-        </h2>
-        <p className="mt-1 text-xs text-foreground/50">
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">5</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            Photos
+          </h2>
+        </div>
+        <p className="mb-4 ml-9 text-xs text-foreground/50">
           Upload photos of your workplace, team, and location. These display on your public employer profile.
         </p>
-        <div className="mt-4">
+        <div>
           <PhotoUpload
             photos={photos}
             onChange={setPhotos}
@@ -642,7 +688,7 @@ export default function CompanyProfilePage() {
       </div>
 
       {/* Bottom save */}
-      <div className="mt-6 flex items-center justify-between rounded-xl border border-accent bg-white p-5">
+      <div className="mt-6 flex items-center justify-between rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
         <div className="text-sm text-foreground/60">
           {completionPct < 70 ? (
             <span>Complete at least 70% to submit for verification ({completionPct}% done)</span>
@@ -653,7 +699,7 @@ export default function CompanyProfilePage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Profile"}
         </button>

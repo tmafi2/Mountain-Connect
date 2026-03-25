@@ -14,11 +14,11 @@ function MessagesContent() {
 
 export default function BusinessMessagesPage() {
   return (
-    <div className="h-full">
+    <div className="h-full rounded-2xl overflow-hidden border border-accent/40 bg-white shadow-sm">
       <Suspense
         fallback={
           <div className="flex h-full items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
           </div>
         }
       >

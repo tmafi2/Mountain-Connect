@@ -199,20 +199,42 @@ export default function ApplicantsPage() {
   if (pageLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="text-2xl font-bold text-primary">Applicants</h1>
-      <p className="mt-1 text-sm text-foreground/60">
-        Review and manage applications across all your job listings.
-      </p>
+      {/* Corporate gradient header */}
+      <div
+        className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a1e33] via-[#0f2942] to-[#132d4a] px-8 py-8"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)",
+          backgroundSize: "32px 32px",
+        }}
+      >
+        {/* Geometric accent */}
+        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-3xl bg-secondary/8 blur-2xl" style={{ transform: "rotate(12deg)" }} />
+        <div className="pointer-events-none absolute -bottom-6 right-24 h-24 w-24 rounded-2xl bg-secondary/5 blur-xl" style={{ transform: "rotate(-8deg)" }} />
+
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="h-4 w-4 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Talent Pipeline</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white">Applicants</h1>
+          <p className="mt-1 text-sm text-white/50">
+            Review and manage applications across all your job listings.
+          </p>
+        </div>
+      </div>
 
       {/* Search + Listing Filter */}
-      <div className="mt-6 flex gap-3">
+      <div className="flex gap-3">
         <div className="relative flex-1">
           <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -222,13 +244,13 @@ export default function ApplicantsPage() {
             placeholder="Search by name, job, resort, or skill…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-accent bg-white py-2.5 pl-10 pr-4 text-sm text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+            className="w-full rounded-xl border border-accent/40 bg-white py-2.5 pl-10 pr-4 text-sm text-primary placeholder-foreground/40 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
           />
         </div>
         <select
           value={listingFilter}
           onChange={(e) => setListingFilter(e.target.value)}
-          className="rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         >
           <option value="all">All Listings</option>
           {listings.map((l) => (
@@ -249,10 +271,10 @@ export default function ApplicantsPage() {
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                 isActive
-                  ? "bg-primary text-white"
-                  : "border border-accent bg-white text-foreground/70 hover:bg-accent/20"
+                  ? "bg-primary text-white shadow-sm"
+                  : "border border-accent/50 bg-white text-foreground/70 hover:bg-accent/20 hover:border-accent"
               }`}
             >
               {f.label}
@@ -267,10 +289,14 @@ export default function ApplicantsPage() {
       {/* Results */}
       <div className="mt-6 space-y-3">
         {filtered.length === 0 ? (
-          <div className="rounded-xl border border-accent bg-white p-8 text-center">
-            <p className="text-sm text-foreground/50">
-              No applicants match your filters.
-            </p>
+          <div className="rounded-2xl border border-accent/40 bg-white p-10 text-center shadow-sm">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20">
+              <svg className="h-6 w-6 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground/60">No applicants match your filters.</p>
+            <p className="mt-1 text-xs text-foreground/40">Try adjusting your search criteria.</p>
           </div>
         ) : (
           <>

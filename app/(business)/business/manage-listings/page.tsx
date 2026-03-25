@@ -311,10 +311,10 @@ const demoApplicants: DemoApplicant[] = [
 
 /* ─── Style helpers ──────────────────────────────────────── */
 
-const LISTING_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Active" },
-  paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", label: "Paused" },
-  closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", label: "Closed" },
+const LISTING_STATUS_STYLES: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+  active: { bg: "bg-green-50 border-green-200", text: "text-green-700", dot: "bg-green-500", label: "Active" },
+  paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", dot: "bg-yellow-400", label: "Paused" },
+  closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", dot: "bg-gray-400", label: "Closed" },
 };
 
 const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -470,51 +470,70 @@ export default function ManageListingsPage() {
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-secondary/30 border-t-secondary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Manage Listings</h1>
-          <p className="mt-1 text-sm text-foreground/60">
-            View, edit, and manage all your job postings.
-          </p>
+      {/* Corporate gradient header */}
+      <div
+        className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#0a1e33] via-[#0f2942] to-[#132d4a] px-8 py-8"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)",
+          backgroundSize: "32px 32px",
+        }}
+      >
+        <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-3xl bg-secondary/8 blur-2xl" style={{ transform: "rotate(12deg)" }} />
+        <div className="pointer-events-none absolute -bottom-6 right-24 h-24 w-24 rounded-2xl bg-secondary/5 blur-xl" style={{ transform: "rotate(-8deg)" }} />
+
+        <div className="relative flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="h-4 w-4 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Job Board</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Manage Listings</h1>
+            <p className="mt-1 text-sm text-white/50">
+              View, edit, and manage all your job postings.
+            </p>
+          </div>
+          <Link
+            href="/business/post-job"
+            className="shrink-0 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 hover:-translate-y-0.5"
+          >
+            + Post New Job
+          </Link>
         </div>
-        <Link
-          href="/business/post-job"
-          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-        >
-          + Post New Job
-        </Link>
       </div>
 
       {/* Search bar */}
-      <div className="relative mt-6">
-        <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="relative mb-4">
+        <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search listings, resorts, applicants..."
-          className="w-full rounded-lg border border-accent bg-white py-2.5 pl-10 pr-4 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+          className="w-full rounded-xl border border-accent/40 bg-white py-2.5 pl-10 pr-4 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         />
       </div>
 
       {/* Filter tabs */}
-      <div className="mt-4 flex gap-2">
+      <div className="mb-6 flex gap-2">
         {(["all", "active", "paused", "closed"] as FilterTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition-all ${
               filter === tab
-                ? "border-primary bg-primary text-white"
-                : "border-accent bg-white text-foreground/70 hover:bg-accent/20"
+                ? "border-primary bg-primary text-white shadow-sm"
+                : "border-accent/50 bg-white text-foreground/70 hover:bg-accent/20 hover:border-accent"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)} ({counts[tab]})
@@ -523,7 +542,18 @@ export default function ManageListingsPage() {
       </div>
 
       {/* Listings */}
-      <div className="mt-6 space-y-4">
+      <div className="space-y-4">
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-accent/40 bg-white p-10 text-center shadow-sm">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20">
+              <svg className="h-6 w-6 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground/60">No listings found.</p>
+            <p className="mt-1 text-xs text-foreground/40">Try adjusting your filters or post a new job.</p>
+          </div>
+        )}
         {filtered.map((listing) => {
           const style = LISTING_STATUS_STYLES[listing.status];
           const isExpanded = expandedListing === listing.id;
@@ -531,7 +561,7 @@ export default function ManageListingsPage() {
           const rawJobApplicants = getRawApplicantsForJob(listing.id);
 
           return (
-            <div key={listing.id} className="rounded-xl border border-accent bg-white overflow-hidden">
+            <div key={listing.id} className="rounded-2xl border border-accent/40 bg-white overflow-hidden shadow-sm transition-all hover:shadow-md">
               {/* Listing header — clickable */}
               <button
                 onClick={() => toggleListing(listing.id)}
@@ -539,7 +569,7 @@ export default function ManageListingsPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 flex-wrap">
                       <Link
                         href={`/business/manage-listings/${listing.id}`}
                         onClick={(e) => e.stopPropagation()}
@@ -548,22 +578,23 @@ export default function ManageListingsPage() {
                         {listing.title}
                       </Link>
                       <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${style.bg} ${style.text}`}
                       >
+                        <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                         {style.label}
                       </span>
                       {listing.urgent && (
-                        <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                        <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                           Urgently Hiring
                         </span>
                       )}
                     </div>
                     <p className="mt-1 text-sm text-foreground/60">
-                      {listing.resort} · {listing.location}
+                      {listing.resort} &middot; {listing.location}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-foreground/50">
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <span className="text-sm font-medium text-foreground/50">
                       {rawJobApplicants.length} applicant{rawJobApplicants.length !== 1 ? "s" : ""}
                     </span>
                     <svg
@@ -578,31 +609,38 @@ export default function ManageListingsPage() {
                 </div>
 
                 {/* Details row */}
-                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-foreground/60">
-                  <span>{listing.pay}</span>
-                  <span>{listing.type}</span>
-                  <span>{listing.startDate} – {listing.endDate}</span>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                  <span className="text-sm text-foreground/60">{listing.pay}</span>
+                  <span className="text-xs text-foreground/30">·</span>
+                  <span className="text-sm text-foreground/60">{listing.type}</span>
+                  <span className="text-xs text-foreground/30">·</span>
+                  <span className="text-sm text-foreground/60">{listing.startDate} – {listing.endDate}</span>
                   {listing.housing && (
-                    <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">Housing</span>
+                    <span className="inline-flex rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-primary">Housing</span>
                   )}
                   {listing.skiPass && (
-                    <span className="inline-flex rounded-full bg-purple-50 px-2 py-0.5 text-xs text-purple-700">Ski Pass</span>
+                    <span className="inline-flex rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-primary">Ski Pass</span>
                   )}
                 </div>
               </button>
 
               {/* Expanded: applicant list + detail */}
               {isExpanded && (
-                <div className="border-t border-accent">
+                <div className="border-t border-accent/40">
                   {rawJobApplicants.length === 0 ? (
                     <div className="p-8 text-center">
+                      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20">
+                        <svg className="h-5 w-5 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
                       <p className="text-sm text-foreground/50">No applicants yet for this listing.</p>
                     </div>
                   ) : (
                     <div className="flex">
                       {/* Applicant list */}
-                      <div className={`border-r border-accent ${selectedApplicant ? "w-2/5" : "w-full"}`}>
-                        <div className="px-4 py-3 border-b border-accent/50 bg-accent/5 space-y-2.5">
+                      <div className={`border-r border-accent/40 ${selectedApplicant ? "w-2/5" : "w-full"}`}>
+                        <div className="px-4 py-3 border-b border-accent/30 bg-background/50 space-y-2.5">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
                               Applicants ({jobApplicants.length}{applicantStatusFilter !== "all" ? ` of ${rawJobApplicants.length}` : ""})
@@ -610,7 +648,7 @@ export default function ManageListingsPage() {
                             <select
                               value={applicantSort}
                               onChange={(e) => setApplicantSort(e.target.value as typeof applicantSort)}
-                              className="rounded-md border border-accent bg-white px-2 py-1 text-xs text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                              className="rounded-lg border border-accent/40 bg-white px-2 py-1 text-xs text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                             >
                               <option value="newest">Newest First</option>
                               <option value="oldest">Oldest First</option>
@@ -639,7 +677,7 @@ export default function ManageListingsPage() {
                                 className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                   applicantStatusFilter === pill.value
                                     ? "bg-secondary text-white"
-                                    : "bg-white border border-accent text-foreground/60 hover:bg-accent/20"
+                                    : "bg-white border border-accent/50 text-foreground/60 hover:bg-accent/20"
                                 }`}
                               >
                                 {pill.label}
@@ -647,7 +685,7 @@ export default function ManageListingsPage() {
                             ))}
                           </div>
                         </div>
-                        <div className="divide-y divide-accent/50">
+                        <div className="divide-y divide-accent/30">
                           {jobApplicants.length === 0 && (
                             <div className="px-4 py-6 text-center">
                               <p className="text-sm text-foreground/50">No applicants match this filter.</p>
@@ -684,7 +722,7 @@ export default function ManageListingsPage() {
                                         {aStyle.label}
                                       </span>
                                     </div>
-                                    <p className="text-xs text-foreground/50 truncate">{applicant.location} · {applicant.experience}y exp</p>
+                                    <p className="text-xs text-foreground/50 truncate">{applicant.location} &middot; {applicant.experience}y exp</p>
                                   </div>
                                   <svg className="h-4 w-4 text-foreground/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -710,7 +748,7 @@ export default function ManageListingsPage() {
                                 <p className="text-sm text-foreground/60">{activeApplicant.location}</p>
                               </div>
                             </div>
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${APPLICANT_STATUS_STYLES[activeApplicant.status].bg} ${APPLICANT_STATUS_STYLES[activeApplicant.status].text}`}>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${APPLICANT_STATUS_STYLES[activeApplicant.status].bg} ${APPLICANT_STATUS_STYLES[activeApplicant.status].text}`}>
                               {APPLICANT_STATUS_STYLES[activeApplicant.status].label}
                             </span>
                           </div>
@@ -725,15 +763,15 @@ export default function ManageListingsPage() {
 
                           {/* Quick stats */}
                           <div className="mt-4 grid grid-cols-3 gap-3">
-                            <div className="rounded-lg bg-accent/20 p-3 text-center">
+                            <div className="rounded-xl bg-accent/20 p-3 text-center">
                               <p className="text-lg font-bold text-primary">{activeApplicant.experience}</p>
                               <p className="text-[10px] uppercase tracking-wider text-foreground/50">Years Exp.</p>
                             </div>
-                            <div className="rounded-lg bg-accent/20 p-3 text-center">
+                            <div className="rounded-xl bg-accent/20 p-3 text-center">
                               <p className="text-lg font-bold text-primary">{activeApplicant.languages.length}</p>
                               <p className="text-[10px] uppercase tracking-wider text-foreground/50">Languages</p>
                             </div>
-                            <div className="rounded-lg bg-accent/20 p-3 text-center">
+                            <div className="rounded-xl bg-accent/20 p-3 text-center">
                               <p className="text-lg font-bold text-primary">{activeApplicant.skills.length}</p>
                               <p className="text-[10px] uppercase tracking-wider text-foreground/50">Skills</p>
                             </div>
@@ -741,7 +779,7 @@ export default function ManageListingsPage() {
 
                           {/* Skills */}
                           <div className="mt-5">
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Skills & Certifications</h4>
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Skills &amp; Certifications</h4>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {activeApplicant.skills.map((skill) => (
                                 <span key={skill} className="inline-flex rounded-full bg-accent/30 px-2.5 py-0.5 text-xs text-foreground/70">
@@ -756,7 +794,7 @@ export default function ManageListingsPage() {
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Languages</h4>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {activeApplicant.languages.map((lang) => (
-                                <span key={lang} className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">
+                                <span key={lang} className="inline-flex rounded-full bg-secondary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                                   {lang}
                                 </span>
                               ))}
@@ -772,7 +810,7 @@ export default function ManageListingsPage() {
                           {/* Cover letter */}
                           <div className="mt-4">
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Cover Letter</h4>
-                            <div className="mt-2 rounded-lg bg-accent/10 p-4">
+                            <div className="mt-2 rounded-xl bg-accent/10 p-4">
                               <p className="text-sm leading-relaxed text-foreground/80">{activeApplicant.coverLetter}</p>
                             </div>
                           </div>
@@ -781,14 +819,14 @@ export default function ManageListingsPage() {
                           <p className="mt-4 text-xs text-foreground/40">Applied {activeApplicant.appliedAt}</p>
 
                           {/* Action buttons */}
-                          <div className="mt-5 border-t border-accent pt-4">
+                          <div className="mt-5 border-t border-accent/40 pt-4">
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-3">Actions</h4>
                             <div className="flex flex-wrap gap-2">
                               {activeApplicant.status !== "rejected" && (
                                 <button
                                   onClick={() => handleStatusChange(activeApplicant.id, "rejected")}
                                   disabled={actionLoading !== null}
-                                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100 hover:-translate-y-0.5 disabled:opacity-50"
                                 >
                                   {actionLoading === activeApplicant.id + "rejected" ? "Declining…" : "Decline"}
                                 </button>
@@ -797,7 +835,7 @@ export default function ManageListingsPage() {
                                 <button
                                   onClick={() => handleStatusChange(activeApplicant.id, "interview_scheduled")}
                                   disabled={actionLoading !== null}
-                                  className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-50"
+                                  className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
                                 >
                                   {actionLoading === activeApplicant.id + "interview_scheduled" ? "Requesting…" : "Request Interview"}
                                 </button>
@@ -806,7 +844,7 @@ export default function ManageListingsPage() {
                                 <button
                                   onClick={() => handleStatusChange(activeApplicant.id, "accepted")}
                                   disabled={actionLoading !== null}
-                                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 hover:-translate-y-0.5 disabled:opacity-50"
                                 >
                                   {actionLoading === activeApplicant.id + "accepted" ? "Accepting…" : "Mark Successful"}
                                 </button>
@@ -815,7 +853,7 @@ export default function ManageListingsPage() {
                                 <button
                                   onClick={() => handleStatusChange(activeApplicant.id, "pending")}
                                   disabled={actionLoading !== null}
-                                  className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20 disabled:opacity-50"
+                                  className="rounded-xl border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
                                 >
                                   {actionLoading === activeApplicant.id + "pending" ? "Reverting…" : "Undo Decline"}
                                 </button>
@@ -824,7 +862,7 @@ export default function ManageListingsPage() {
                                 <button
                                   onClick={() => handleStatusChange(activeApplicant.id, "reviewed")}
                                   disabled={actionLoading !== null}
-                                  className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20 disabled:opacity-50"
+                                  className="rounded-xl border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
                                 >
                                   {actionLoading === activeApplicant.id + "reviewed" ? "Reverting…" : "Undo Accept"}
                                 </button>

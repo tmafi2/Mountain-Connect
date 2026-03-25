@@ -218,14 +218,27 @@ function InterviewCard({
   onSelect: (iv: Interview) => void;
   faded?: boolean;
 }) {
+  const statusBubble: Record<string, string> = {
+    scheduled: "bg-green-500/15",
+    invited: "bg-yellow-400/15",
+    completed: "bg-gray-400/15",
+    cancelled: "bg-red-400/15",
+  };
+  const statusIcon: Record<string, string> = {
+    scheduled: "text-green-600",
+    invited: "text-yellow-600",
+    completed: "text-gray-500",
+    cancelled: "text-red-500",
+  };
+
   return (
     <button
       onClick={() => onSelect(interview)}
-      className={`w-full text-left rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary/50 hover:shadow-sm ${faded ? "opacity-50" : ""}`}
+      className={`w-full text-left rounded-2xl border border-accent/50 bg-white/70 p-5 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5 ${faded ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-xs font-bold text-primary">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${statusBubble[interview.status] || "bg-secondary/15"} text-xs font-bold ${statusIcon[interview.status] || "text-secondary"}`}>
             {businessInitials(interview.business_name)}
           </div>
           <div>
@@ -242,7 +255,7 @@ function InterviewCard({
               {interview.business_location}
             </p>
             {interview.scheduled_date && interview.scheduled_start_time && (
-              <p className="mt-2 text-sm font-medium text-primary">
+              <p className="mt-2 text-sm font-medium text-secondary">
                 {formatDate(interview.scheduled_date)} at{" "}
                 {formatTime12(interview.scheduled_start_time)} &ndash;{" "}
                 {formatTime12(interview.scheduled_end_time!)}
@@ -252,12 +265,12 @@ function InterviewCard({
         </div>
         <div className="flex gap-2">
           {interview.status === "invited" && (
-            <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap">
+            <span className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap shadow-sm shadow-primary/20">
               Book Time
             </span>
           )}
           {interview.status === "scheduled" && (
-            <span className="rounded-lg bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-primary whitespace-nowrap">
+            <span className="rounded-xl bg-secondary/15 px-3 py-1.5 text-xs font-semibold text-secondary whitespace-nowrap">
               Join Call
             </span>
           )}
@@ -278,15 +291,15 @@ function InterviewDetailPanel({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end">
       {/* overlay */}
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
       {/* panel */}
-      <div className="relative z-10 h-full w-full max-w-md overflow-y-auto bg-white shadow-xl border-l border-accent">
+      <div className="relative z-10 h-full w-full max-w-md overflow-y-auto bg-white/95 shadow-2xl border-l border-accent/50 backdrop-blur-md">
         {/* header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-accent bg-white px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-accent/50 bg-white/90 px-6 py-4 backdrop-blur-sm">
           <h2 className="text-lg font-bold text-primary">Interview Details</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-foreground/40 hover:bg-accent/50 hover:text-foreground/70"
+            className="rounded-xl p-1.5 text-foreground/40 transition-colors hover:bg-accent/50 hover:text-foreground/70"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -308,7 +321,7 @@ function InterviewDetailPanel({
         <div className="space-y-6 p-6">
           {/* Business avatar + name */}
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-base font-bold text-primary">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary/15 text-base font-bold text-secondary">
               {businessInitials(interview.business_name)}
             </div>
             <div>
@@ -322,7 +335,7 @@ function InterviewDetailPanel({
           </div>
 
           {/* Job + Status + Date/Time */}
-          <div className="rounded-xl border border-accent bg-accent/20 p-4 space-y-2">
+          <div className="rounded-2xl border border-accent/50 bg-accent/20 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-foreground/50">
                 Position
@@ -372,18 +385,18 @@ function InterviewDetailPanel({
           {/* Action buttons */}
           <div className="space-y-2 pt-2">
             {interview.status === "scheduled" && (
-              <button className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white hover:bg-secondary/90 transition-colors">
+              <button className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md hover:shadow-secondary/20">
                 Join Call
               </button>
             )}
             {interview.status === "invited" && (
-              <button className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors">
+              <button className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20">
                 Book Time
               </button>
             )}
             {(interview.status === "scheduled" ||
               interview.status === "invited") && (
-              <button className="w-full rounded-xl border border-accent py-2.5 text-sm font-semibold text-primary hover:bg-accent/30 transition-colors">
+              <button className="w-full rounded-xl border border-accent/50 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-accent/30">
                 Add to Calendar
               </button>
             )}
@@ -443,8 +456,8 @@ function MonthlyCalendar({
             <button
               key={key}
               onClick={() => onSelectDate(cellDate)}
-              className={`relative flex h-14 flex-col items-center justify-center rounded-lg transition-colors
-                ${isSelected ? "bg-secondary text-white" : isToday ? "ring-2 ring-secondary/50" : "hover:bg-accent/30"}
+              className={`relative flex h-14 flex-col items-center justify-center rounded-xl transition-all
+                ${isSelected ? "bg-secondary text-white shadow-md shadow-secondary/30" : isToday ? "ring-2 ring-secondary/50" : "hover:bg-accent/30"}
               `}
             >
               <span
@@ -491,7 +504,7 @@ function WeeklyCalendar({
     <div className="overflow-x-auto">
       <div className="min-w-[700px]">
         {/* Day headers */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-accent">
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-accent/50">
           <div />
           {days.map((d) => {
             const isToday = isSameDay(d, today);
@@ -542,7 +555,7 @@ function WeeklyCalendar({
                       <button
                         key={iv.id}
                         onClick={() => onSelectInterview(iv)}
-                        className={`absolute inset-x-0.5 top-0.5 rounded-md border-l-2 px-1.5 py-1 text-left transition-opacity hover:opacity-80 ${statusBlockColor[iv.status]}`}
+                        className={`absolute inset-x-0.5 top-0.5 rounded-lg border-l-2 px-1.5 py-1 text-left transition-opacity hover:opacity-80 ${statusBlockColor[iv.status]}`}
                         style={{ height: "calc(100% - 4px)" }}
                       >
                         <p className="truncate text-[10px] font-semibold leading-tight">
@@ -703,7 +716,7 @@ export default function WorkerInterviewsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
       </div>
     );
   }
@@ -711,71 +724,87 @@ export default function WorkerInterviewsPage() {
   /* ---- render ---- */
   return (
     <div className="mx-auto max-w-5xl">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">My Interviews</h1>
-          <p className="mt-1 text-sm text-foreground/60">
-            Track your upcoming interviews and manage your schedule.
-          </p>
+      {/* Gradient header */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl bg-gradient-to-br from-primary via-primary-light to-primary px-6 pb-8 pt-8 sm:-mx-8 sm:px-8">
+        <div className="pointer-events-none absolute -left-10 -top-10 h-44 w-44 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-0 h-36 w-36 rounded-full bg-highlight/15 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/3 bottom-0 h-28 w-28 rounded-full bg-warm/10 blur-3xl" />
+        <div className="relative flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">My Interviews</h1>
+            <p className="mt-1 text-sm text-white/60">
+              Track your upcoming interviews and manage your schedule.
+            </p>
+          </div>
+          <button
+            onClick={() => setView(view === "list" ? "calendar" : "list")}
+            className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-lg"
+          >
+            {view === "list" ? (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                Calendar View
+              </>
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+                List View
+              </>
+            )}
+          </button>
         </div>
-        <button
-          onClick={() => setView(view === "list" ? "calendar" : "list")}
-          className="flex items-center gap-2 rounded-xl border border-accent bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-accent/30"
-        >
-          {view === "list" ? (
-            <>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              Calendar View
-            </>
-          ) : (
-            <>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-              List View
-            </>
-          )}
-        </button>
       </div>
 
       {/* ============================================================ */}
       {/*  LIST VIEW                                                    */}
       {/* ============================================================ */}
       {view === "list" && (
-        <div className="mt-8 space-y-8">
+        <div className="space-y-8">
           {/* Upcoming */}
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-              Upcoming ({upcoming.length})
-            </h2>
-            <div className="mt-3 space-y-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/15">
+                <span className="block h-2.5 w-2.5 rounded-full bg-green-500" />
+              </div>
+              <h2 className="text-lg font-semibold text-primary">
+                Upcoming
+                <span className="ml-2 text-sm font-normal text-foreground/40">({upcoming.length})</span>
+              </h2>
+            </div>
+            <div className="space-y-3">
               {upcoming.length === 0 ? (
-                <div className="rounded-xl border border-accent bg-white p-8 text-center">
+                <div className="rounded-2xl border border-accent/50 bg-white/70 p-8 text-center backdrop-blur-sm">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                    <svg className="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                   <p className="text-sm text-foreground/50">
                     No upcoming interviews scheduled.
                   </p>
@@ -794,12 +823,18 @@ export default function WorkerInterviewsPage() {
 
           {/* Awaiting Confirmation */}
           <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-              Awaiting Confirmation ({awaiting.length})
-            </h2>
-            <div className="mt-3 space-y-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-400/15">
+                <span className="block h-2.5 w-2.5 rounded-full bg-yellow-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-primary">
+                Awaiting Confirmation
+                <span className="ml-2 text-sm font-normal text-foreground/40">({awaiting.length})</span>
+              </h2>
+            </div>
+            <div className="space-y-3">
               {awaiting.length === 0 ? (
-                <div className="rounded-xl border border-accent bg-white p-8 text-center">
+                <div className="rounded-2xl border border-accent/50 bg-white/70 p-8 text-center backdrop-blur-sm">
                   <p className="text-sm text-foreground/50">
                     No pending invitations.
                   </p>
@@ -819,10 +854,16 @@ export default function WorkerInterviewsPage() {
           {/* Past */}
           {past.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-                Past ({past.length})
-              </h2>
-              <div className="mt-3 space-y-3">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-400/15">
+                  <span className="block h-2.5 w-2.5 rounded-full bg-gray-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-primary">
+                  Past
+                  <span className="ml-2 text-sm font-normal text-foreground/40">({past.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-3">
                 {past.map((iv) => (
                   <InterviewCard
                     key={iv.id}
@@ -841,19 +882,21 @@ export default function WorkerInterviewsPage() {
       {/*  CALENDAR VIEW                                                */}
       {/* ============================================================ */}
       {view === "calendar" && (
-        <div className="mt-8">
+        <div>
           {/* Calendar card */}
-          <div className="rounded-xl border border-accent bg-white overflow-hidden">
-            {/* Dark header */}
-            <div className="bg-primary px-5 py-4">
-              <div className="flex items-center justify-between">
+          <div className="rounded-2xl border border-accent/50 bg-white/70 overflow-hidden backdrop-blur-sm shadow-sm">
+            {/* Gradient header matching design language */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-light to-primary px-5 py-4">
+              <div className="pointer-events-none absolute -left-8 -top-8 h-32 w-32 rounded-full bg-secondary/20 blur-2xl" />
+              <div className="pointer-events-none absolute right-0 bottom-0 h-24 w-24 rounded-full bg-highlight/15 blur-2xl" />
+              <div className="relative flex items-center justify-between">
                 {/* Month/Week toggle */}
-                <div className="flex items-center gap-1 rounded-lg bg-white/10 p-0.5">
+                <div className="flex items-center gap-1 rounded-xl bg-white/10 p-0.5 backdrop-blur-sm">
                   <button
                     onClick={() => setCalendarMode("month")}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                    className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
                       calendarMode === "month"
-                        ? "bg-white text-primary"
+                        ? "bg-white text-primary shadow-sm"
                         : "text-white/70 hover:text-white"
                     }`}
                   >
@@ -861,9 +904,9 @@ export default function WorkerInterviewsPage() {
                   </button>
                   <button
                     onClick={() => setCalendarMode("week")}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                    className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
                       calendarMode === "week"
-                        ? "bg-white text-primary"
+                        ? "bg-white text-primary shadow-sm"
                         : "text-white/70 hover:text-white"
                     }`}
                   >
@@ -875,7 +918,7 @@ export default function WorkerInterviewsPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={calendarMode === "month" ? prevMonth : prevWeek}
-                    className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white"
+                    className="rounded-xl p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -897,7 +940,7 @@ export default function WorkerInterviewsPage() {
                   </span>
                   <button
                     onClick={calendarMode === "month" ? nextMonth : nextWeek}
-                    className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white"
+                    className="rounded-xl p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -919,7 +962,7 @@ export default function WorkerInterviewsPage() {
                 {/* Today button */}
                 <button
                   onClick={goToday}
-                  className="rounded-lg border border-white/20 px-3 py-1 text-xs font-semibold text-white hover:bg-white/10"
+                  className="rounded-xl border border-white/20 px-3 py-1 text-xs font-semibold text-white transition-all hover:bg-white/10 hover:shadow-sm"
                 >
                   Today
                 </button>
@@ -941,7 +984,7 @@ export default function WorkerInterviewsPage() {
                     />
                   </div>
                   {/* Side panel for selected day */}
-                  <div className="w-64 shrink-0 border-l border-accent pl-5">
+                  <div className="w-64 shrink-0 border-l border-accent/50 pl-5">
                     {selectedDate ? (
                       <>
                         <h3 className="text-sm font-semibold text-primary">
@@ -961,7 +1004,7 @@ export default function WorkerInterviewsPage() {
                               <button
                                 key={iv.id}
                                 onClick={() => setSelectedInterview(iv)}
-                                className={`w-full rounded-lg border-l-2 px-3 py-2 text-left transition-colors hover:bg-accent/30 ${statusBlockColor[iv.status]}`}
+                                className={`w-full rounded-xl border-l-2 px-3 py-2 text-left transition-colors hover:bg-accent/30 ${statusBlockColor[iv.status]}`}
                               >
                                 <p className="text-xs font-semibold">
                                   {iv.business_name}

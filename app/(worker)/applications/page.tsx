@@ -323,7 +323,7 @@ export default function ApplicationsPage() {
   if (pageLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
       </div>
     );
   }
@@ -385,13 +385,20 @@ export default function ApplicationsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="text-2xl font-bold text-primary">My Applications</h1>
-      <p className="mt-1 text-sm text-foreground/60">
-        Track the status of all your job applications.
-      </p>
+      {/* Gradient header */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl bg-gradient-to-br from-primary via-primary-light to-primary px-6 pb-8 pt-8 sm:-mx-8 sm:px-8">
+        <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-6 bottom-0 h-36 w-36 rounded-full bg-highlight/15 blur-3xl" />
+        <div className="relative">
+          <h1 className="text-2xl font-bold text-white">My Applications</h1>
+          <p className="mt-1 text-sm text-white/60">
+            Track the status of all your job applications.
+          </p>
+        </div>
+      </div>
 
       {/* Search + Sort */}
-      <div className="mt-6 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <svg
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40"
@@ -411,13 +418,13 @@ export default function ApplicationsPage() {
             placeholder="Search by job title, business, or resort..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-accent bg-white py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-xl border border-accent/50 bg-white/70 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-foreground/40 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-secondary/30"
           />
         </div>
         <div className="relative">
           <button
             onClick={() => setShowSortDropdown((v) => !v)}
-            className="flex items-center gap-2 rounded-xl border border-accent bg-white px-4 py-2.5 text-sm text-foreground/60 transition-colors hover:border-secondary/50"
+            className="flex items-center gap-2 rounded-xl border border-accent/50 bg-white/70 px-4 py-2.5 text-sm text-foreground/60 backdrop-blur-sm transition-colors hover:border-secondary/50"
           >
             {sortOption}
             <svg
@@ -435,7 +442,7 @@ export default function ApplicationsPage() {
             </svg>
           </button>
           {showSortDropdown && (
-            <div className="absolute right-0 z-10 mt-1 w-44 rounded-xl border border-accent bg-white py-1 shadow-lg">
+            <div className="absolute right-0 z-10 mt-1 w-44 rounded-xl border border-accent/50 bg-white/90 py-1 shadow-lg backdrop-blur-sm">
               {SORT_OPTIONS.map((opt) => (
                 <button
                   key={opt}
@@ -455,16 +462,16 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
-      {/* Status filter tabs */}
+      {/* Status filter tabs — rounded-full pills */}
       <div className="mt-4 flex flex-wrap gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`rounded-xl px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
               activeTab === tab.key
-                ? "bg-primary text-white"
-                : "border border-accent bg-white text-foreground/60 hover:border-secondary/50"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "border border-accent/50 bg-white/70 text-foreground/60 backdrop-blur-sm hover:border-secondary/50 hover:bg-white"
             }`}
           >
             {tab.label}
@@ -484,8 +491,14 @@ export default function ApplicationsPage() {
       {/* Application cards */}
       <div className="mt-5 space-y-3">
         {sorted.length === 0 && (
-          <div className="rounded-xl border border-accent bg-white p-8 text-center text-sm text-foreground/50">
-            No applications found.
+          <div className="rounded-2xl border border-accent/50 bg-white/70 p-12 text-center backdrop-blur-sm">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary/15">
+              <svg className="h-7 w-7 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-primary">No applications found</h3>
+            <p className="mt-1 text-sm text-foreground/50">Try adjusting your search or filters.</p>
           </div>
         )}
         {sorted.map((app) => {
@@ -496,7 +509,7 @@ export default function ApplicationsPage() {
           return (
             <div
               key={app.id}
-              className="rounded-xl border border-accent bg-white transition-all hover:border-secondary/50 hover:shadow-sm"
+              className="rounded-2xl border border-accent/50 bg-white/70 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5"
             >
               {/* Card header — always visible */}
               <button
@@ -507,7 +520,7 @@ export default function ApplicationsPage() {
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-primary">{app.job_title}</h3>
                     <span
-                      className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}
+                      className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${style.bg} ${style.text}`}
                     >
                       {STATUS_LABELS[app.status]}
                     </span>
@@ -538,14 +551,14 @@ export default function ApplicationsPage() {
 
               {/* Expanded detail panel */}
               {isExpanded && (
-                <div className="border-t border-accent px-5 pb-5 pt-4">
+                <div className="border-t border-accent/50 px-5 pb-5 pt-4">
                   {/* Status timeline */}
                   <div className="mb-6">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground/40">
                       Status Timeline
                     </p>
                     {app.status === "rejected" ? (
-                      <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                      <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
@@ -565,9 +578,9 @@ export default function ApplicationsPage() {
                             <div key={step} className="flex items-center">
                               <div className="flex flex-col items-center">
                                 <div
-                                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all ${
                                     filled
-                                      ? "bg-primary text-white"
+                                      ? "bg-gradient-to-br from-secondary to-highlight text-white shadow-md shadow-secondary/30"
                                       : "border-2 border-foreground/15 text-foreground/30"
                                   }`}
                                 >
@@ -581,7 +594,7 @@ export default function ApplicationsPage() {
                                 </div>
                                 <span
                                   className={`mt-1.5 text-[10px] font-medium ${
-                                    filled ? "text-primary" : "text-foreground/30"
+                                    filled ? "text-secondary" : "text-foreground/30"
                                   }`}
                                 >
                                   {step}
@@ -590,7 +603,7 @@ export default function ApplicationsPage() {
                               {!isLast && (
                                 <div
                                   className={`mx-1 h-0.5 w-8 sm:w-12 ${
-                                    idx < timelineIdx ? "bg-primary" : "bg-foreground/10"
+                                    idx < timelineIdx ? "bg-gradient-to-r from-secondary to-highlight" : "bg-foreground/10"
                                   }`}
                                 />
                               )}
@@ -642,13 +655,13 @@ export default function ApplicationsPage() {
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/40">
                       Application Details
                     </p>
-                    <div className="rounded-lg bg-foreground/[0.02] p-3.5">
+                    <div className="rounded-xl bg-accent/20 p-3.5">
                       <p className="text-sm leading-relaxed text-foreground/70">
                         {app.cover_letter}
                       </p>
                       <div className="mt-3 flex items-center gap-2">
                         {app.has_resume ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
                             <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
                                 strokeLinecap="round"
@@ -660,7 +673,7 @@ export default function ApplicationsPage() {
                             Resume attached
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-foreground/5 px-2 py-1 text-xs font-medium text-foreground/40">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1 text-xs font-medium text-foreground/40">
                             No resume attached
                           </span>
                         )}
@@ -674,7 +687,7 @@ export default function ApplicationsPage() {
                       Business Info
                     </p>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 text-sm font-bold text-secondary">
                         {app.business_name.charAt(0)}
                       </div>
                       <div>
@@ -690,7 +703,7 @@ export default function ApplicationsPage() {
 
                   {/* Interview section */}
                   {app.interview_status === "scheduled" && app.interview_date && (
-                    <div className="mb-5 rounded-lg border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-blue-600">
                         Interview Scheduled
                       </p>
@@ -709,7 +722,7 @@ export default function ApplicationsPage() {
                         </div>
                         <Link
                           href="/interviews"
-                          className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                          className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
                         >
                           Join Call
                         </Link>
@@ -718,7 +731,7 @@ export default function ApplicationsPage() {
                   )}
 
                   {app.interview_status === "invited" && (
-                    <div className="mb-5 rounded-lg border border-purple-100 bg-purple-50/50 p-4">
+                    <div className="mb-5 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-600">
                         Interview Invitation
                       </p>
@@ -727,7 +740,7 @@ export default function ApplicationsPage() {
                       </p>
                       <Link
                         href="/interviews/book?token=demo"
-                        className="inline-flex rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-purple-700"
+                        className="inline-flex rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-purple-700"
                       >
                         Book Interview
                       </Link>
@@ -735,7 +748,7 @@ export default function ApplicationsPage() {
                   )}
 
                   {app.interview_status === "completed" && (
-                    <div className="mb-5 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                    <div className="mb-5 flex items-center gap-2 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
@@ -756,11 +769,11 @@ export default function ApplicationsPage() {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-3">
-                    <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90">
+                    <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20">
                       Message Business
                     </button>
                     {app.status !== "rejected" && app.status !== "accepted" && (
-                      <button className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50">
+                      <button className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50">
                         Withdraw Application
                       </button>
                     )}

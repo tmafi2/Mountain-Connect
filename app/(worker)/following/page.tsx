@@ -87,34 +87,39 @@ export default function FollowingPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Following</h1>
-          <p className="mt-1 text-sm text-foreground/60">
-            Employers you follow. You&apos;ll get notified when they post new jobs.
-          </p>
+      {/* Gradient header */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl bg-gradient-to-br from-primary via-primary-light to-primary px-6 pb-8 pt-8 sm:-mx-8 sm:px-8">
+        <div className="pointer-events-none absolute -left-12 -top-8 h-44 w-44 rounded-full bg-highlight/15 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 bottom-0 h-36 w-36 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="relative flex items-end justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Following</h1>
+            <p className="mt-1 text-sm text-white/60">
+              Employers you follow. You&apos;ll get notified when they post new jobs.
+            </p>
+          </div>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-white backdrop-blur-sm">
+            {followed.length} employer{followed.length !== 1 ? "s" : ""}
+          </span>
         </div>
-        <span className="rounded-full bg-secondary/20 px-3 py-1 text-sm font-medium text-primary">
-          {followed.length} employer{followed.length !== 1 ? "s" : ""}
-        </span>
       </div>
 
-      {/* Category filter */}
+      {/* Category filter — rounded-full pills */}
       {categories.length > 1 && (
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-wrap gap-2">
           <button
             onClick={() => setFilter("all")}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
               filter === "all"
-                ? "border-primary bg-primary text-white"
-                : "border-accent bg-white text-foreground/70 hover:bg-accent/20"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "border border-accent/50 bg-white/70 text-foreground/70 backdrop-blur-sm hover:border-secondary/50 hover:bg-white"
             }`}
           >
             All ({followed.length})
@@ -125,10 +130,10 @@ export default function FollowingPage() {
               <button
                 key={cat}
                 onClick={() => setFilter(cat)}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                   filter === cat
-                    ? "border-primary bg-primary text-white"
-                    : "border-accent bg-white text-foreground/70 hover:bg-accent/20"
+                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                    : "border border-accent/50 bg-white/70 text-foreground/70 backdrop-blur-sm hover:border-secondary/50 hover:bg-white"
                 }`}
               >
                 {getCategoryLabel(cat as SeedBusiness["category"])} ({count})
@@ -140,36 +145,40 @@ export default function FollowingPage() {
 
       {/* Followed businesses list */}
       {filtered.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-accent bg-white p-10 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary/20">
-            <svg className="h-7 w-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+        <div className="rounded-2xl border border-accent/50 bg-white/70 p-12 text-center backdrop-blur-sm">
+          <div className="relative mx-auto mb-6 h-20 w-20">
+            <div className="absolute inset-0 rounded-full bg-secondary/10" />
+            <div className="absolute inset-2 rounded-full bg-secondary/15" />
+            <div className="absolute inset-4 flex items-center justify-center rounded-full bg-secondary/20">
+              <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-primary">No employers followed yet</h2>
+          <h2 className="text-lg font-semibold text-primary">No employers followed yet</h2>
           <p className="mt-2 text-sm text-foreground/60">
             Browse resorts and follow employers to get notified about new job postings.
           </p>
           <Link
             href="/explore"
-            className="mt-5 inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            className="mt-5 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20"
           >
             Explore Resorts
           </Link>
         </div>
       ) : (
-        <div className="mt-6 space-y-3">
+        <div className="space-y-3">
           {filtered.map((biz) => {
             const badge = VERIFICATION_BADGE[biz.verification_status] || VERIFICATION_BADGE.unverified;
 
             return (
               <div
                 key={biz.id}
-                className="rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary/50"
+                className="rounded-2xl border border-accent/50 bg-white/70 p-5 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5"
               >
                 <div className="flex items-start gap-4">
-                  {/* Logo */}
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                  {/* Logo bubble */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary/15 text-sm font-bold text-secondary">
                     {biz.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
 
@@ -182,7 +191,7 @@ export default function FollowingPage() {
                       >
                         {biz.business_name}
                       </Link>
-                      <span className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.bg} ${badge.text}`}>
+                      <span className={`shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${badge.bg} ${badge.text}`}>
                         {badge.label}
                       </span>
                     </div>
@@ -212,14 +221,14 @@ export default function FollowingPage() {
                   <div className="flex shrink-0 items-center gap-2">
                     <Link
                       href={`/employers/${biz.slug}`}
-                      className="rounded-lg border border-accent bg-white px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
+                      className="rounded-xl border border-accent/50 bg-white/80 px-3 py-2 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-secondary/40 hover:shadow-sm"
                     >
                       View
                     </Link>
                     <button
                       onClick={() => handleUnfollow(biz.id)}
                       disabled={unfollowLoading !== null}
-                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition-all hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-sm disabled:opacity-50"
                     >
                       {unfollowLoading === biz.id ? "..." : "Unfollow"}
                     </button>
@@ -232,9 +241,16 @@ export default function FollowingPage() {
       )}
 
       {/* Info card */}
-      <div className="mt-8 rounded-xl border border-secondary/30 bg-secondary/5 p-5">
-        <h3 className="text-sm font-semibold text-primary">How notifications work</h3>
-        <ul className="mt-2 space-y-1.5 text-sm text-foreground/60">
+      <div className="mt-8 rounded-2xl border border-secondary/20 bg-gradient-to-br from-secondary/5 to-highlight/5 p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/15">
+            <svg className="h-4 w-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-primary">How notifications work</h3>
+        </div>
+        <ul className="space-y-2 text-sm text-foreground/60">
           <li className="flex items-start gap-2">
             <svg className="mt-0.5 h-4 w-4 shrink-0 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />

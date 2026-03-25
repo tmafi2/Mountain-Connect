@@ -138,27 +138,35 @@ export default function WorkerProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">My Profile</h1>
-          <p className="mt-1 text-sm text-foreground/60">
-            Manage your worker profile, skills, and preferences.
-          </p>
+      {/* Gradient header banner */}
+      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-b-3xl bg-gradient-to-br from-primary via-primary-light to-primary px-6 pb-8 pt-8 sm:-mx-8 sm:px-8">
+        {/* Aurora blobs */}
+        <div className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-8 bottom-0 h-40 w-40 rounded-full bg-highlight/15 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/2 top-4 h-32 w-32 -translate-x-1/2 rounded-full bg-warm/10 blur-3xl" />
+
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">My Profile</h1>
+            <p className="mt-1 text-sm text-white/60">
+              Manage your worker profile, skills, and preferences.
+            </p>
+          </div>
+          <Link
+            href="/profile/edit"
+            className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-lg"
+          >
+            Edit Profile
+          </Link>
         </div>
-        <Link
-          href="/profile/edit"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-        >
-          Edit Profile
-        </Link>
       </div>
 
       {/* Completion card */}
-      <div className="mt-8 rounded-xl border border-accent bg-white p-8">
+      <div className="rounded-2xl border border-accent/50 bg-white/70 p-8 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5">
         <div className="flex items-center gap-5">
           {/* Profile picture */}
           <div className="relative" ref={flagPickerRef}>
-            <div className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary/20">
+            <div className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary/20 ring-4 ring-secondary/20">
               {avatarUrl && avatarUrl.startsWith("flag:") ? (
                 <span className="text-4xl">{avatarUrl.replace("flag:", "")}</span>
               ) : avatarUrl ? (
@@ -187,7 +195,7 @@ export default function WorkerProfilePage() {
 
             {/* Photo/Flag picker dropdown */}
             {showFlagPicker && (
-              <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-accent bg-white p-3 shadow-xl">
+              <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-xl border border-accent/50 bg-white/90 p-3 shadow-xl backdrop-blur-sm">
                 <button
                   onClick={() => { fileInputRef.current?.click(); setShowFlagPicker(false); }}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-primary transition-colors hover:bg-accent/20"
@@ -234,9 +242,9 @@ export default function WorkerProfilePage() {
                 : "Your profile is looking strong!"}
             </p>
             <div className="mt-3 flex items-center gap-3">
-              <div className="h-2 flex-1 rounded-full bg-accent/30">
+              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-accent/30">
                 <div
-                  className="h-2 rounded-full bg-gradient-to-r from-secondary to-primary transition-all duration-500"
+                  className="h-2.5 rounded-full bg-gradient-to-r from-secondary via-highlight to-secondary transition-all duration-700"
                   style={{ width: `${completion}%` }}
                 />
               </div>
@@ -251,11 +259,17 @@ export default function WorkerProfilePage() {
         <div className="mt-6 space-y-4">
           {/* Location & Eligibility */}
           {(profile.location_current || profile.country_of_residence || profile.nationality || profile.visa_status) && (
-            <div className="rounded-xl border border-accent bg-white p-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/50">
-                Location & Eligibility
-              </h3>
-              <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+            <div className="rounded-2xl border border-accent/50 bg-white/70 p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/15">
+                  <svg className="h-5 w-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-primary">Location & Eligibility</h3>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                 {profile.location_current && (
                   <div>
                     <span className="text-foreground/50">Location</span>
@@ -296,15 +310,20 @@ export default function WorkerProfilePage() {
 
           {/* Skills */}
           {profile.skills && profile.skills.length > 0 && (
-            <div className="rounded-xl border border-accent bg-white p-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/50">
-                Skills
-              </h3>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div className="rounded-2xl border border-accent/50 bg-white/70 p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-highlight/15">
+                  <svg className="h-5 w-5 text-highlight" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-primary">Skills</h3>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
                 {profile.skills.map((s) => (
                   <span
                     key={s}
-                    className="rounded-full bg-secondary/20 px-3 py-1.5 text-sm font-medium text-primary"
+                    className="rounded-full bg-secondary/15 px-3 py-1.5 text-sm font-medium text-primary transition-all hover:-translate-y-0.5"
                   >
                     {s}
                   </span>
@@ -315,11 +334,16 @@ export default function WorkerProfilePage() {
 
           {/* Work History */}
           {profile.work_history && profile.work_history.length > 0 && (
-            <div className="rounded-xl border border-accent bg-white p-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/50">
-                Experience
-              </h3>
-              <div className="mt-3 space-y-3">
+            <div className="rounded-2xl border border-accent/50 bg-white/70 p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-warm/15">
+                  <svg className="h-5 w-5 text-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-primary">Experience</h3>
+              </div>
+              <div className="mt-4 space-y-4">
                 {profile.work_history.map((w, i) => (
                   <div key={i} className="border-l-2 border-secondary pl-4">
                     <p className="font-medium text-primary">{w.title}</p>
@@ -337,11 +361,16 @@ export default function WorkerProfilePage() {
 
           {/* Bio */}
           {profile.bio && (
-            <div className="rounded-xl border border-accent bg-white p-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/50">
-                About Me
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-foreground">
+            <div className="rounded-2xl border border-accent/50 bg-white/70 p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-secondary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/15">
+                  <svg className="h-5 w-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-primary">About Me</h3>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-foreground">
                 {profile.bio}
               </p>
             </div>
@@ -351,13 +380,21 @@ export default function WorkerProfilePage() {
 
       {/* CTA if incomplete */}
       {completion < 80 && (
-        <div className="mt-6 rounded-xl border-2 border-dashed border-secondary/30 bg-secondary/5 p-6 text-center">
-          <p className="text-sm text-foreground/60">
+        <div className="mt-6 rounded-2xl border-2 border-dashed border-secondary/30 bg-gradient-to-br from-secondary/5 to-highlight/5 p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/15">
+            <svg className="h-6 w-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-primary">
             Complete your profile to stand out to employers.
+          </p>
+          <p className="mt-1 text-xs text-foreground/50">
+            Profiles with 80%+ completion get 3x more employer views.
           </p>
           <Link
             href="/profile/edit"
-            className="mt-3 inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+            className="mt-4 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20"
           >
             Complete Your Profile
           </Link>
