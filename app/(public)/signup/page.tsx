@@ -6,7 +6,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+type AccountType = "worker" | "business";
+
 export default function SignupPage() {
+  const [accountType, setAccountType] = useState<AccountType>("worker");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -27,7 +30,10 @@ export default function SignupPage() {
         email,
         password,
         options: {
-          data: { full_name: `${firstName.trim()} ${lastName.trim()}` },
+          data: {
+            full_name: `${firstName.trim()} ${lastName.trim()}`,
+            account_type: accountType,
+          },
         },
       });
 
@@ -36,7 +42,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/onboarding");
+      router.push(`/onboarding?type=${accountType}`);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -49,7 +55,7 @@ export default function SignupPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?type=${accountType}`,
       },
     });
   };
@@ -82,8 +88,8 @@ export default function SignupPage() {
               <span className="text-secondary">Find your mountain.</span>
             </h2>
             <p className="mt-4 text-base text-white/70">
-              Join thousands of seasonal workers and ski resort businesses
-              connecting through Mountain Connect.
+              Whether you&apos;re a seasonal worker chasing powder or a business
+              building your dream team — Mountain Connect brings it all together.
             </p>
 
             {/* Testimonial-style callout */}
@@ -123,6 +129,47 @@ export default function SignupPage() {
           <p className="mt-2 text-sm text-foreground/60">
             Join Mountain Connect and start your next mountain adventure.
           </p>
+
+          {/* Account type toggle */}
+          <div className="mt-6 flex items-center rounded-xl border border-accent bg-accent/20 p-1">
+            <button
+              type="button"
+              onClick={() => setAccountType("worker")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                accountType === "worker"
+                  ? "bg-white text-primary shadow-sm"
+                  : "text-foreground/50 hover:text-foreground/70"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+              Seasonal Worker
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountType("business")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                accountType === "business"
+                  ? "bg-white text-primary shadow-sm"
+                  : "text-foreground/50 hover:text-foreground/70"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+              </svg>
+              Business
+            </button>
+          </div>
+
+          {accountType === "business" && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-secondary/5 px-3 py-2.5 text-xs text-secondary">
+              <svg className="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+              </svg>
+              <span>Business accounts let you post jobs, manage applicants, and conduct interviews. Your data is kept separate from worker accounts.</span>
+            </div>
+          )}
 
           {/* Google OAuth — prominent */}
           <button
@@ -268,7 +315,7 @@ export default function SignupPage() {
                   Creating account...
                 </span>
               ) : (
-                "Create Account"
+                accountType === "business" ? "Create Business Account" : "Create Account"
               )}
             </button>
           </form>

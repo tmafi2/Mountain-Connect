@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState<"role" | "worker" | "business">("role");
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get("type");
+  const initialStep: "role" | "worker" | "business" =
+    typeParam === "business" ? "business" : typeParam === "worker" ? "worker" : "role";
+  const [step, setStep] = useState<"role" | "worker" | "business">(initialStep);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
