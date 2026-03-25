@@ -402,6 +402,10 @@ export default function ProfileEditPage() {
   const [selectedResortName, setSelectedResortName] = useState("");
   const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
 
+  // Work history editing state
+  const [editingWorkIndex, setEditingWorkIndex] = useState<number | null>(null);
+  const [expandedWorkIndex, setExpandedWorkIndex] = useState<number | null>(null);
+
   // Debounced business search
   useEffect(() => {
     if (businessQuery.length < 1) { setBusinessResults([]); return; }
@@ -933,232 +937,549 @@ export default function ProfileEditPage() {
               {form.work_history.length > 0 && (
                 <div className="space-y-3">
                   {form.work_history.map((entry, i) => (
-                    <div key={i} className="relative rounded-lg border border-accent bg-background p-4">
+                    <div key={i} className={`relative rounded-lg border bg-background transition-all ${expandedWorkIndex === i ? "border-secondary shadow-md" : "border-accent hover:border-secondary/50"}`}>
+                      {/* Collapsed header -- always visible */}
                       <button
                         type="button"
-                        onClick={() => set("work_history", form.work_history.filter((_, idx) => idx !== i))}
-                        className="absolute right-3 top-3 text-foreground/40 hover:text-red-500"
+                        onClick={() => {
+                          if (editingWorkIndex === i) return;
+                          setExpandedWorkIndex(expandedWorkIndex === i ? null : i);
+                        }}
+                        className="flex w-full items-center gap-3 p-4 text-left"
                       >
-                        &times;
-                      </button>
-                      <p className="font-medium text-primary">{entry.title}</p>
-                      <p className="text-sm text-foreground">
-                        {entry.company}
-                        {entry.is_verified && (
-                          <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
-                            <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                            Verified
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+                          <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-primary truncate">{entry.title}</p>
+                          <p className="text-sm text-foreground/70 truncate">
+                            {entry.company}
+                            {entry.is_verified && (
+                              <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                                <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                Verified
+                              </span>
+                            )}
+                            {entry.location && <> &middot; {entry.location}</>}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="hidden sm:inline rounded bg-secondary/20 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+                            {entry.category?.replace("_", " ")}
                           </span>
-                        )}
-                        {entry.location && <> &middot; {entry.location}</>}
-                      </p>
-                      <p className="mt-1 text-xs text-foreground/50">
-                        {entry.start_date} &ndash; {entry.is_current ? "Present" : entry.end_date}
-                        <span className="ml-2 rounded bg-secondary/20 px-2 py-0.5 text-xs font-medium text-primary capitalize">
-                          {entry.category?.replace("_", " ")}
-                        </span>
-                      </p>
-                      {entry.description && <p className="mt-2 text-sm text-foreground/70">{entry.description}</p>}
+                          <svg className={`h-5 w-5 text-foreground/40 transition-transform ${expandedWorkIndex === i ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+
+                      {/* Expanded read-only details */}
+                      {expandedWorkIndex === i && editingWorkIndex !== i && (
+                        <div className="border-t border-accent px-4 pb-4 pt-3">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                            <div>
+                              <span className="text-foreground/50">Job Title</span>
+                              <p className="font-medium text-primary">{entry.title}</p>
+                            </div>
+                            <div>
+                              <span className="text-foreground/50">Company</span>
+                              <p className="font-medium text-primary">{entry.company}</p>
+                            </div>
+                            <div>
+                              <span className="text-foreground/50">Location</span>
+                              <p className="text-primary">{entry.location || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-foreground/50">Country</span>
+                              <p className="text-primary">{entry.country || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-foreground/50">Start Date</span>
+                              <p className="text-primary">{entry.start_date || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-foreground/50">End Date</span>
+                              <p className="text-primary">{entry.is_current ? "Present" : entry.end_date || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="text-foreground/50">Category</span>
+                              <p className="text-primary capitalize">{entry.category?.replace("_", " ") || "—"}</p>
+                            </div>
+                            {entry.resort_id && (
+                              <div>
+                                <span className="text-foreground/50">Ski Resort</span>
+                                <p className="text-primary flex items-center gap-1">
+                                  <svg className="h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                  Linked
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          {entry.description && (
+                            <div className="mt-3 text-sm">
+                              <span className="text-foreground/50">Description</span>
+                              <p className="text-primary mt-0.5">{entry.description}</p>
+                            </div>
+                          )}
+                          <div className="mt-4 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingWorkIndex(i);
+                                setNewWork({
+                                  title: entry.title,
+                                  company: entry.company,
+                                  location: entry.location,
+                                  country: entry.country || "",
+                                  start_date: entry.start_date,
+                                  end_date: entry.end_date || "",
+                                  is_current: entry.is_current,
+                                  description: entry.description,
+                                  category: entry.category || "hospitality",
+                                });
+                                setBusinessQuery(entry.company);
+                                setIsVerifiedBusiness(entry.is_verified || false);
+                                setSelectedBusinessId(entry.verified_by_business_id || null);
+                                setSelectedResortId(entry.resort_id || null);
+                                setSelectedResortName(entry.resort_id ? "Linked Resort" : "");
+                                setResortQuery("");
+                              }}
+                              className="rounded-lg bg-secondary/10 px-4 py-2 text-sm font-medium text-secondary hover:bg-secondary/20 transition-colors"
+                            >
+                              Edit Role
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                set("work_history", form.work_history.filter((_, idx) => idx !== i));
+                                setExpandedWorkIndex(null);
+                              }}
+                              className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Inline edit form */}
+                      {editingWorkIndex === i && (
+                        <div className="border-t border-secondary/30 bg-secondary/5 px-4 pb-4 pt-3 rounded-b-lg">
+                          <p className="mb-3 text-sm font-semibold text-secondary">Editing Role</p>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                              <Label htmlFor={`edit_title_${i}`}>Job Title *</Label>
+                              <Input id={`edit_title_${i}`} value={newWork.title || ""} onChange={(v) => setNewWork((p) => ({ ...p, title: v }))} placeholder="Lift Operator" />
+                            </div>
+                            <div className="relative">
+                              <Label htmlFor={`edit_company_${i}`}>Company *</Label>
+                              <div className="relative">
+                                <input
+                                  id={`edit_company_${i}`}
+                                  type="text"
+                                  value={businessQuery || newWork.company || ""}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setBusinessQuery(v);
+                                    setNewWork((p) => ({ ...p, company: v }));
+                                    setIsVerifiedBusiness(false);
+                                    setSelectedBusinessId(null);
+                                  }}
+                                  placeholder="Search verified businesses or type name..."
+                                  className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                                  onFocus={() => businessResults.length > 0 && setBusinessSearchOpen(true)}
+                                  onBlur={() => setTimeout(() => setBusinessSearchOpen(false), 200)}
+                                />
+                                {isVerifiedBusiness && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                    <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                    Verified
+                                  </span>
+                                )}
+                              </div>
+                              {businessSearchOpen && businessResults.length > 0 && (
+                                <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                                  {businessResults.map((b) => (
+                                    <button
+                                      key={b.id}
+                                      type="button"
+                                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => {
+                                        setNewWork((p) => ({ ...p, company: b.name }));
+                                        setBusinessQuery(b.name);
+                                        setIsVerifiedBusiness(true);
+                                        setSelectedBusinessId(b.id);
+                                        setBusinessSearchOpen(false);
+                                      }}
+                                    >
+                                      <svg className="h-4 w-4 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                      <div>
+                                        <span className="font-medium text-primary">{b.name}</span>
+                                        {b.location && <span className="ml-2 text-xs text-foreground/50">{b.location}</span>}
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit_location_${i}`}>Location</Label>
+                              <Input id={`edit_location_${i}`} value={newWork.location || ""} onChange={(v) => setNewWork((p) => ({ ...p, location: v }))} placeholder="Whistler, BC" />
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit_country_${i}`}>Country</Label>
+                              <Input id={`edit_country_${i}`} value={newWork.country || ""} onChange={(v) => setNewWork((p) => ({ ...p, country: v }))} placeholder="Canada" />
+                            </div>
+                          </div>
+                          <div className="mt-4 relative">
+                            <Label htmlFor={`edit_resort_${i}`}>Ski Resort</Label>
+                            <div className="relative">
+                              <input
+                                id={`edit_resort_${i}`}
+                                type="text"
+                                value={resortQuery || selectedResortName}
+                                onChange={(e) => {
+                                  setResortQuery(e.target.value);
+                                  setSelectedResortName("");
+                                  setSelectedResortId(null);
+                                }}
+                                placeholder="Search for a ski resort..."
+                                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                                onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+                                onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
+                              />
+                              {selectedResortId && (
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                  Linked
+                                </span>
+                              )}
+                            </div>
+                            {resortSearchOpen && resortResults.length > 0 && (
+                              <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                                {resortResults.map((r) => (
+                                  <button
+                                    key={r.id}
+                                    type="button"
+                                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      setSelectedResortName(r.name);
+                                      setSelectedResortId(r.id);
+                                      setResortQuery("");
+                                      setResortSearchOpen(false);
+                                    }}
+                                  >
+                                    <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <div>
+                                      <span className="font-medium text-primary">{r.name}</span>
+                                      <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                              <Label htmlFor={`edit_start_${i}`}>Start Date</Label>
+                              <Input id={`edit_start_${i}`} type="date" value={newWork.start_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, start_date: v }))} />
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit_end_${i}`}>End Date</Label>
+                              <Input id={`edit_end_${i}`} type="date" value={newWork.end_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, end_date: v }))} />
+                              <div className="mt-2">
+                                <Toggle checked={newWork.is_current || false} onChange={(v) => setNewWork((p) => ({ ...p, is_current: v }))} label="Currently working here" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <Label htmlFor={`edit_cat_${i}`}>Category</Label>
+                            <select
+                              id={`edit_cat_${i}`}
+                              value={newWork.category || "hospitality"}
+                              onChange={(e) => setNewWork((p) => ({ ...p, category: e.target.value as WorkHistoryEntry["category"] }))}
+                              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                            >
+                              {WORK_CATEGORIES.map((c) => (
+                                <option key={c.value} value={c.value}>{c.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="mt-4">
+                            <Label htmlFor={`edit_desc_${i}`}>Description</Label>
+                            <textarea
+                              id={`edit_desc_${i}`}
+                              rows={2}
+                              value={newWork.description || ""}
+                              onChange={(e) => setNewWork((p) => ({ ...p, description: e.target.value }))}
+                              placeholder="Brief description of your role and responsibilities..."
+                              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                            />
+                          </div>
+                          <div className="mt-4 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (newWork.title && newWork.company && editingWorkIndex !== null) {
+                                  const updated = [...form.work_history];
+                                  updated[editingWorkIndex] = {
+                                    ...updated[editingWorkIndex],
+                                    title: newWork.title || "",
+                                    company: newWork.company || "",
+                                    resort_id: selectedResortId || null,
+                                    location: newWork.location || "",
+                                    country: newWork.country || null,
+                                    start_date: newWork.start_date || "",
+                                    end_date: newWork.end_date || null,
+                                    is_current: newWork.is_current || false,
+                                    description: newWork.description || "",
+                                    category: (newWork.category as WorkHistoryEntry["category"]) || "other",
+                                    is_verified: isVerifiedBusiness,
+                                    verified_by_business_id: selectedBusinessId || null,
+                                  };
+                                  set("work_history", updated);
+                                  setEditingWorkIndex(null);
+                                  setExpandedWorkIndex(null);
+                                  setNewWork({ title: "", company: "", location: "", country: "", start_date: "", end_date: "", is_current: false, description: "", category: "hospitality" });
+                                  setBusinessQuery("");
+                                  setIsVerifiedBusiness(false);
+                                  setSelectedBusinessId(null);
+                                  setResortQuery("");
+                                  setSelectedResortName("");
+                                  setSelectedResortId(null);
+                                }
+                              }}
+                              className="rounded-lg bg-secondary px-5 py-2 text-sm font-medium text-white hover:bg-secondary/90 transition-colors"
+                            >
+                              Save Changes
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingWorkIndex(null);
+                                setNewWork({ title: "", company: "", location: "", country: "", start_date: "", end_date: "", is_current: false, description: "", category: "hospitality" });
+                                setBusinessQuery("");
+                                setIsVerifiedBusiness(false);
+                                setSelectedBusinessId(null);
+                                setResortQuery("");
+                                setSelectedResortName("");
+                                setSelectedResortId(null);
+                              }}
+                              className="rounded-lg bg-foreground/10 px-5 py-2 text-sm font-medium text-foreground/70 hover:bg-foreground/20 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Add new entry form */}
-              <div className="rounded-lg border-2 border-dashed border-accent p-4">
-                <p className="mb-3 text-sm font-medium text-foreground/60">Add a role</p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="wh_title">Job Title *</Label>
-                    <Input id="wh_title" value={newWork.title || ""} onChange={(v) => setNewWork((p) => ({ ...p, title: v }))} placeholder="Lift Operator" />
+              {/* Add new entry form -- only show when NOT editing */}
+              {editingWorkIndex === null && (
+                <div className="rounded-lg border-2 border-dashed border-accent p-4">
+                  <p className="mb-3 text-sm font-medium text-foreground/60">Add a role</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="wh_title">Job Title *</Label>
+                      <Input id="wh_title" value={newWork.title || ""} onChange={(v) => setNewWork((p) => ({ ...p, title: v }))} placeholder="Lift Operator" />
+                    </div>
+                    <div className="relative">
+                      <Label htmlFor="wh_company">Company *</Label>
+                      <div className="relative">
+                        <input
+                          id="wh_company"
+                          type="text"
+                          value={businessQuery || newWork.company || ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setBusinessQuery(v);
+                            setNewWork((p) => ({ ...p, company: v }));
+                            setIsVerifiedBusiness(false);
+                            setSelectedBusinessId(null);
+                          }}
+                          placeholder="Search verified businesses or type name..."
+                          className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                          onFocus={() => businessResults.length > 0 && setBusinessSearchOpen(true)}
+                          onBlur={() => setTimeout(() => setBusinessSearchOpen(false), 200)}
+                        />
+                        {isVerifiedBusiness && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                      {businessSearchOpen && businessResults.length > 0 && (
+                        <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                          {businessResults.map((b) => (
+                            <button
+                              key={b.id}
+                              type="button"
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setNewWork((p) => ({ ...p, company: b.name }));
+                                setBusinessQuery(b.name);
+                                setIsVerifiedBusiness(true);
+                                setSelectedBusinessId(b.id);
+                                setBusinessSearchOpen(false);
+                              }}
+                            >
+                              <svg className="h-4 w-4 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              <div>
+                                <span className="font-medium text-primary">{b.name}</span>
+                                {b.location && <span className="ml-2 text-xs text-foreground/50">{b.location}</span>}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="wh_location">Location</Label>
+                      <Input id="wh_location" value={newWork.location || ""} onChange={(v) => setNewWork((p) => ({ ...p, location: v }))} placeholder="Whistler, BC" />
+                    </div>
+                    <div>
+                      <Label htmlFor="wh_country">Country</Label>
+                      <Input id="wh_country" value={newWork.country || ""} onChange={(v) => setNewWork((p) => ({ ...p, country: v }))} placeholder="Canada" />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Label htmlFor="wh_company">Company *</Label>
+                  <div className="mt-4 relative">
+                    <Label htmlFor="wh_resort">Ski Resort</Label>
                     <div className="relative">
                       <input
-                        id="wh_company"
+                        id="wh_resort"
                         type="text"
-                        value={businessQuery || newWork.company || ""}
+                        value={resortQuery || selectedResortName}
                         onChange={(e) => {
-                          const v = e.target.value;
-                          setBusinessQuery(v);
-                          setNewWork((p) => ({ ...p, company: v }));
-                          setIsVerifiedBusiness(false);
-                          setSelectedBusinessId(null);
+                          setResortQuery(e.target.value);
+                          setSelectedResortName("");
+                          setSelectedResortId(null);
                         }}
-                        placeholder="Search verified businesses or type name..."
+                        placeholder="Search for a ski resort..."
                         className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                        onFocus={() => businessResults.length > 0 && setBusinessSearchOpen(true)}
-                        onBlur={() => setTimeout(() => setBusinessSearchOpen(false), 200)}
+                        onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+                        onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
                       />
-                      {isVerifiedBusiness && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                          Verified
+                      {selectedResortId && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                          Linked
                         </span>
                       )}
                     </div>
-                    {businessSearchOpen && businessResults.length > 0 && (
+                    {resortSearchOpen && resortResults.length > 0 && (
                       <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
-                        {businessResults.map((b) => (
+                        {resortResults.map((r) => (
                           <button
-                            key={b.id}
+                            key={r.id}
                             type="button"
                             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
-                              setNewWork((p) => ({ ...p, company: b.name }));
-                              setBusinessQuery(b.name);
-                              setIsVerifiedBusiness(true);
-                              setSelectedBusinessId(b.id);
-                              setBusinessSearchOpen(false);
+                              setSelectedResortName(r.name);
+                              setSelectedResortId(r.id);
+                              setResortQuery("");
+                              setResortSearchOpen(false);
                             }}
                           >
-                            <svg className="h-4 w-4 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             </svg>
                             <div>
-                              <span className="font-medium text-primary">{b.name}</span>
-                              {b.location && <span className="ml-2 text-xs text-foreground/50">{b.location}</span>}
+                              <span className="font-medium text-primary">{r.name}</span>
+                              <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
                             </div>
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                  <div>
-                    <Label htmlFor="wh_location">Location</Label>
-                    <Input id="wh_location" value={newWork.location || ""} onChange={(v) => setNewWork((p) => ({ ...p, location: v }))} placeholder="Whistler, BC" />
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="wh_start">Start Date</Label>
+                      <Input id="wh_start" type="date" value={newWork.start_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, start_date: v }))} />
+                    </div>
+                    <div>
+                      <Label htmlFor="wh_end">End Date</Label>
+                      <Input id="wh_end" type="date" value={newWork.end_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, end_date: v }))} />
+                      <div className="mt-2">
+                        <Toggle checked={newWork.is_current || false} onChange={(v) => setNewWork((p) => ({ ...p, is_current: v }))} label="Currently working here" />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="wh_country">Country</Label>
-                    <Input id="wh_country" value={newWork.country || ""} onChange={(v) => setNewWork((p) => ({ ...p, country: v }))} placeholder="Canada" />
+                  <div className="mt-4">
+                    <Label htmlFor="wh_cat">Category</Label>
+                    <select
+                      id="wh_cat"
+                      value={newWork.category || "hospitality"}
+                      onChange={(e) => setNewWork((p) => ({ ...p, category: e.target.value as WorkHistoryEntry["category"] }))}
+                      className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                    >
+                      {WORK_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-                <div className="mt-4 relative">
-                  <Label htmlFor="wh_resort">Ski Resort</Label>
-                  <div className="relative">
-                    <input
-                      id="wh_resort"
-                      type="text"
-                      value={resortQuery || selectedResortName}
-                      onChange={(e) => {
-                        setResortQuery(e.target.value);
+                  <div className="mt-4">
+                    <Label htmlFor="wh_desc">Description</Label>
+                    <textarea
+                      id="wh_desc"
+                      rows={2}
+                      value={newWork.description || ""}
+                      onChange={(e) => setNewWork((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="Brief description of your role and responsibilities..."
+                      className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newWork.title && newWork.company) {
+                        set("work_history", [
+                          ...form.work_history,
+                          {
+                            id: crypto.randomUUID(),
+                            title: newWork.title || "",
+                            company: newWork.company || "",
+                            resort_id: selectedResortId || null,
+                            location: newWork.location || "",
+                            country: newWork.country || null,
+                            start_date: newWork.start_date || "",
+                            end_date: newWork.end_date || null,
+                            is_current: newWork.is_current || false,
+                            description: newWork.description || "",
+                            category: (newWork.category as WorkHistoryEntry["category"]) || "other",
+                            is_verified: isVerifiedBusiness,
+                            verified_by_business_id: selectedBusinessId || null,
+                          },
+                        ]);
+                        setNewWork({ title: "", company: "", location: "", country: "", start_date: "", end_date: "", is_current: false, description: "", category: "hospitality" });
+                        setBusinessQuery("");
+                        setIsVerifiedBusiness(false);
+                        setSelectedBusinessId(null);
+                        setResortQuery("");
                         setSelectedResortName("");
                         setSelectedResortId(null);
-                      }}
-                      placeholder="Search for a ski resort..."
-                      className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                      onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
-                      onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
-                    />
-                    {selectedResortId && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        Linked
-                      </span>
-                    )}
-                  </div>
-                  {resortSearchOpen && resortResults.length > 0 && (
-                    <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
-                      {resortResults.map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setSelectedResortName(r.name);
-                            setSelectedResortId(r.id);
-                            setResortQuery("");
-                            setResortSearchOpen(false);
-                          }}
-                        >
-                          <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          </svg>
-                          <div>
-                            <span className="font-medium text-primary">{r.name}</span>
-                            <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="wh_start">Start Date</Label>
-                    <Input id="wh_start" type="date" value={newWork.start_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, start_date: v }))} />
-                  </div>
-                  <div>
-                    <Label htmlFor="wh_end">End Date</Label>
-                    <Input id="wh_end" type="date" value={newWork.end_date || ""} onChange={(v) => setNewWork((p) => ({ ...p, end_date: v }))} />
-                    <div className="mt-2">
-                      <Toggle checked={newWork.is_current || false} onChange={(v) => setNewWork((p) => ({ ...p, is_current: v }))} label="Currently working here" />
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Label htmlFor="wh_cat">Category</Label>
-                  <select
-                    id="wh_cat"
-                    value={newWork.category || "hospitality"}
-                    onChange={(e) => setNewWork((p) => ({ ...p, category: e.target.value as WorkHistoryEntry["category"] }))}
-                    className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                      }
+                    }}
+                    className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
                   >
-                    {WORK_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
+                    + Add Role
+                  </button>
                 </div>
-                <div className="mt-4">
-                  <Label htmlFor="wh_desc">Description</Label>
-                  <textarea
-                    id="wh_desc"
-                    rows={2}
-                    value={newWork.description || ""}
-                    onChange={(e) => setNewWork((p) => ({ ...p, description: e.target.value }))}
-                    placeholder="Brief description of your role and responsibilities..."
-                    className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newWork.title && newWork.company) {
-                      set("work_history", [
-                        ...form.work_history,
-                        {
-                          id: crypto.randomUUID(),
-                          title: newWork.title || "",
-                          company: newWork.company || "",
-                          resort_id: selectedResortId || null,
-                          location: newWork.location || "",
-                          country: newWork.country || null,
-                          start_date: newWork.start_date || "",
-                          end_date: newWork.end_date || null,
-                          is_current: newWork.is_current || false,
-                          description: newWork.description || "",
-                          category: (newWork.category as WorkHistoryEntry["category"]) || "other",
-                          is_verified: isVerifiedBusiness,
-                          verified_by_business_id: selectedBusinessId || null,
-                        },
-                      ]);
-                      setNewWork({ title: "", company: "", location: "", country: "", start_date: "", end_date: "", is_current: false, description: "", category: "hospitality" });
-                      setBusinessQuery("");
-                      setIsVerifiedBusiness(false);
-                      setSelectedBusinessId(null);
-                      setResortQuery("");
-                      setSelectedResortName("");
-                      setSelectedResortId(null);
-                    }
-                  }}
-                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
-                >
-                  + Add Role
-                </button>
-              </div>
+              )}
 
               <div>
                 <Label htmlFor="years_exp">Years of Seasonal Experience</Label>
