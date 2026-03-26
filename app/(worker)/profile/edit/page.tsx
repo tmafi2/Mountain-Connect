@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -64,10 +64,7 @@ interface FormState {
 
   // Preferences
   preferred_job_types: string[];
-  pay_range_min: string;
-  pay_range_max: string;
   pay_currency: string;
-  show_pay_range: boolean;
   available_nights: boolean;
   available_weekends: boolean;
   position_type: PositionType | "";
@@ -112,10 +109,7 @@ const INITIAL: FormState = {
   years_seasonal_experience: "",
 
   preferred_job_types: [],
-  pay_range_min: "",
-  pay_range_max: "",
   pay_currency: "USD",
-  show_pay_range: true,
   available_nights: false,
   available_weekends: false,
   position_type: "",
@@ -416,7 +410,8 @@ export default function ProfileEditPage() {
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
   const [coverLetterFileName, setCoverLetterFileName] = useState<string | null>(null);
 
-  const supabaseClient = createClient();
+  const supabaseClientRef = useRef(createClient());
+  const supabaseClient = supabaseClientRef.current;
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const ALLOWED_TYPES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 
@@ -548,10 +543,7 @@ export default function ProfileEditPage() {
           skills: profile.skills || [],
           years_seasonal_experience: profile.years_seasonal_experience?.toString() || "",
           preferred_job_types: profile.preferred_job_types || [],
-          pay_range_min: profile.pay_range_min?.toString() || "",
-          pay_range_max: profile.pay_range_max?.toString() || "",
           pay_currency: profile.pay_currency || "USD",
-          show_pay_range: profile.show_pay_range ?? true,
           available_nights: profile.available_nights || false,
           available_weekends: profile.available_weekends || false,
           position_type: profile.position_type || "",
@@ -618,10 +610,7 @@ export default function ProfileEditPage() {
         skills: form.skills,
         years_seasonal_experience: form.years_seasonal_experience ? parseInt(form.years_seasonal_experience) : null,
         preferred_job_types: form.preferred_job_types,
-        pay_range_min: form.pay_range_min ? parseFloat(form.pay_range_min) : null,
-        pay_range_max: form.pay_range_max ? parseFloat(form.pay_range_max) : null,
         pay_currency: form.pay_currency || null,
-        show_pay_range: form.show_pay_range,
         available_nights: form.available_nights,
         available_weekends: form.available_weekends,
         position_type: form.position_type || null,
