@@ -42,24 +42,35 @@ export default function PortalHeader({
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-accent bg-white/80 px-6 backdrop-blur-md">
-      {/* Left — Logo */}
-      <Link
-        href={dashboardHref}
-        className="flex items-center gap-2 text-lg font-bold text-primary"
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 32 32"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden
+      {/* Left — Logo + Home */}
+      <div className="flex items-center gap-3">
+        <Link
+          href={dashboardHref}
+          className="flex items-center gap-2 text-lg font-bold text-primary"
         >
-          <path d="M16 2L28 28H4L16 2Z" fill="#a9cbe3" />
-          <path d="M16 10L24 28H8L16 10Z" fill="#0e2439" />
-        </svg>
-        Mountain Connect
-      </Link>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+          >
+            <path d="M16 2L28 28H4L16 2Z" fill="#a9cbe3" />
+            <path d="M16 10L24 28H8L16 10Z" fill="#0e2439" />
+          </svg>
+          Mountain Connect
+        </Link>
+        <Link
+          href="/"
+          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-foreground/60 transition-colors hover:bg-accent/30 hover:text-primary"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+          </svg>
+          Home
+        </Link>
+      </div>
 
       {/* Right — notifications + account dropdown */}
       <div className="flex items-center gap-2">
