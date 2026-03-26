@@ -9,9 +9,21 @@ function ResetPasswordContent() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    async function checkSession() {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      setHasSession(!!session);
+      setCheckingSession(false);
+    }
+    checkSession();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,6 +52,34 @@ function ResetPasswordContent() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="text-center text-white/60">Verifying session...</div>
+    );
+  }
+
+  if (!hasSession) {
+    return (
+      <div className="text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
+          <svg className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-white">Link expired or invalid</h1>
+        <p className="mt-3 text-sm text-white/60">
+          This password reset link has expired or is invalid. Please request a new password reset.
+        </p>
+        <Link
+          href="/forgot-password"
+          className="mt-6 inline-block rounded-lg bg-secondary px-6 py-2.5 text-sm font-medium text-white hover:bg-secondary/90 transition-colors"
+        >
+          Request new reset link
+        </Link>
+      </div>
+    );
   }
 
   if (success) {
