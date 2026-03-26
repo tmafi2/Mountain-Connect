@@ -4,6 +4,33 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+/* ─── nationality → country code mapping ─────────────────── */
+const NATIONALITY_TO_CODE: Record<string, string> = {
+  australian: "au", british: "gb", canadian: "ca", american: "us",
+  "new zealander": "nz", french: "fr", german: "de", swiss: "ch",
+  austrian: "at", japanese: "jp", "south african": "za", irish: "ie",
+  dutch: "nl", swedish: "se", norwegian: "no", italian: "it",
+  spanish: "es", brazilian: "br", chilean: "cl", argentine: "ar",
+  mexican: "mx", korean: "kr", chinese: "cn", indian: "in",
+  thai: "th", filipino: "ph", indonesian: "id", malaysian: "my",
+  singaporean: "sg", danish: "dk", finnish: "fi", polish: "pl",
+  czech: "cz", slovak: "sk", romanian: "ro", bulgarian: "bg",
+  croatian: "hr", slovenian: "si", hungarian: "hu", portuguese: "pt",
+  belgian: "be", greek: "gr", turkish: "tr", israeli: "il",
+  colombian: "co", peruvian: "pe", ecuadorian: "ec", uruguayan: "uy",
+  venezuelan: "ve",
+};
+
+function nationalityToCode(nationality: string): string | null {
+  if (!nationality) return null;
+  return NATIONALITY_TO_CODE[nationality.trim().toLowerCase()] || null;
+}
+
+function getFlagUrl(nationality: string): string | null {
+  const code = nationalityToCode(nationality);
+  return code ? `https://flagcdn.com/w160/${code}.png` : null;
+}
+
 export default function WorkerDashboard() {
   const [userName, setUserName] = useState("");
   const [profileCompletion, setProfileCompletion] = useState(0);
@@ -11,6 +38,8 @@ export default function WorkerDashboard() {
   const [appCount, setAppCount] = useState(0);
   const [interviewCount, setInterviewCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [nationality, setNationality] = useState("");
 
   useEffect(() => {
     if (
@@ -28,12 +57,14 @@ export default function WorkerDashboard() {
       if (user) {
         const { data: profile } = await supabase
           .from("worker_profiles")
-          .select("id, profile_completion_pct")
+          .select("id, profile_completion_pct, avatar_url, nationality")
           .eq("user_id", user.id)
           .single();
         if (profile?.profile_completion_pct != null) {
           setProfileCompletion(profile.profile_completion_pct);
         }
+        if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+        if (profile?.nationality) setNationality(profile.nationality);
 
         if (profile?.id) {
           const [apps, interviews, saved] = await Promise.all([
@@ -80,16 +111,32 @@ export default function WorkerDashboard() {
           <path d="M0,120 L150,80 L300,100 L450,40 L600,90 L750,20 L900,70 L1050,50 L1200,80 L1200,120 Z" fill="currentColor" />
         </svg>
 
-        <div className="relative z-10">
-          <p className="text-sm font-medium text-secondary-light/80">
-            {greeting()}
-          </p>
-          <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">
-            {userName !== "there" ? `Hey ${userName}` : "Welcome back"} <span className="inline-block animate-[wave_2s_ease-in-out_infinite] origin-bottom-right">&#9995;</span>
-          </h1>
-          <p className="mt-2 max-w-lg text-sm text-white/60">
-            Your adventure starts here. Track your applications, nail your interviews, and land your dream seasonal role.
-          </p>
+        <div className="relative z-10 flex items-center gap-5">
+          {/* Avatar / Flag / Initial */}
+          <div className="hidden sm:block flex-shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Profile" className="h-16 w-16 rounded-full object-cover border-2 border-white/30" />
+            ) : getFlagUrl(nationality) ? (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 overflow-hidden">
+                <img src={getFlagUrl(nationality)!} alt={`${nationality} flag`} className="h-10 w-10 object-contain" />
+              </div>
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-2xl font-bold text-white">
+                {userName && userName !== "there" ? userName[0].toUpperCase() : "U"}
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-secondary-light/80">
+              {greeting()}
+            </p>
+            <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">
+              {userName !== "there" ? `Hey ${userName}` : "Welcome back"} <span className="inline-block animate-[wave_2s_ease-in-out_infinite] origin-bottom-right">&#9995;</span>
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-white/60">
+              Your adventure starts here. Track your applications, nail your interviews, and land your dream seasonal role.
+            </p>
+          </div>
         </div>
       </div>
 

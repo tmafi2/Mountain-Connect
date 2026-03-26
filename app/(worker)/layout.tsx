@@ -85,6 +85,7 @@ export default function WorkerLayout({
   children: React.ReactNode;
 }) {
   const [userName, setUserName] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
@@ -94,8 +95,16 @@ export default function WorkerLayout({
     )
       return;
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       setUserName(data.user?.user_metadata?.full_name || "");
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("worker_profiles")
+          .select("avatar_url")
+          .eq("user_id", data.user.id)
+          .single();
+        if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+      }
     });
 
     // Listen for password recovery event — fires automatically when
@@ -119,7 +128,7 @@ export default function WorkerLayout({
     <ChatUnreadProvider>
       <div className="flex h-screen flex-col">
         {showPasswordReset && <PasswordResetModal onClose={() => setShowPasswordReset(false)} />}
-        <PortalHeader portalType="worker" userName={userName} />
+        <PortalHeader portalType="worker" userName={userName} avatarUrl={avatarUrl} />
         <div className="flex flex-1 overflow-hidden">
           <WorkerSidebar />
           <main className="flex-1 overflow-y-auto bg-background p-6">

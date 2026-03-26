@@ -9,11 +9,13 @@ import NotificationBell from "@/components/ui/NotificationBell";
 interface PortalHeaderProps {
   portalType: "worker" | "business" | "admin";
   userName?: string;
+  avatarUrl?: string | null;
 }
 
 export default function PortalHeader({
   portalType,
   userName,
+  avatarUrl,
 }: PortalHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -80,9 +82,13 @@ export default function PortalHeader({
           onClick={() => setMenuOpen(!menuOpen)}
           className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/30"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/30 text-xs font-bold text-primary">
-            {userName ? userName.charAt(0).toUpperCase() : "U"}
-          </span>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Profile" className="h-7 w-7 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/30 text-xs font-bold text-primary">
+              {userName ? userName.charAt(0).toUpperCase() : "U"}
+            </span>
+          )}
           <span className="hidden sm:inline">{userName || "Account"}</span>
           <svg
             className={`h-4 w-4 transition-transform ${menuOpen ? "rotate-180" : ""}`}
