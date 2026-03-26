@@ -712,7 +712,7 @@ export default function ProfileEditPage() {
     switch (step) {
       /* ── CORE INFO ─────────────────────────────────────── */
       case "Core Info":
-        return (
+        return <>
           <SectionCard
             title="Core Account Info"
             description="Let's start with the basics. This information helps employers identify you."
@@ -763,7 +763,64 @@ export default function ProfileEditPage() {
               </div>
             </div>
           </SectionCard>
-        );
+
+          <SectionCard
+            title="Account Settings"
+            description="Manage your account security"
+          >
+            <div className="space-y-4">
+              {!isOAuthUser && (
+                <div>
+                  <Label htmlFor="current_password">Current Password</Label>
+                  <Input
+                    id="current_password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(v) => setCurrentPassword(v)}
+                    placeholder="Enter current password"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="new_password">New Password</Label>
+                <Input
+                  id="new_password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(v) => setNewPassword(v)}
+                  placeholder="Min 6 characters"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="confirm_password">Confirm New Password</Label>
+                <Input
+                  id="confirm_password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(v) => setConfirmPassword(v)}
+                  placeholder="Re-enter new password"
+                />
+              </div>
+
+              {passwordMessage && (
+                <p className={`text-sm ${passwordMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+                  {passwordMessage.text}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={passwordSaving || !newPassword || !confirmPassword}
+                className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+              >
+                {passwordSaving ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </SectionCard>
+        </>;
 
       /* ── ELIGIBILITY ───────────────────────────────────── */
       case "Eligibility":
@@ -1837,63 +1894,6 @@ export default function ProfileEditPage() {
               <div className="space-y-3">
                 <Toggle checked={form.traveling_with_partner} onChange={(v) => set("traveling_with_partner", v)} label="Traveling with a partner" />
                 <Toggle checked={form.traveling_with_pets} onChange={(v) => set("traveling_with_pets", v)} label="Traveling with pets" />
-              </div>
-            </SectionCard>
-
-            <SectionCard
-              title="Account Settings"
-              description="Manage your account security"
-            >
-              <div className="space-y-4">
-                {!isOAuthUser && (
-                  <div>
-                    <Label htmlFor="current_password">Current Password</Label>
-                    <Input
-                      id="current_password"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(v) => setCurrentPassword(v)}
-                      placeholder="Enter current password"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <Label htmlFor="new_password">New Password</Label>
-                  <Input
-                    id="new_password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(v) => setNewPassword(v)}
-                    placeholder="Min 6 characters"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
-                  <Input
-                    id="confirm_password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(v) => setConfirmPassword(v)}
-                    placeholder="Re-enter new password"
-                  />
-                </div>
-
-                {passwordMessage && (
-                  <p className={`text-sm ${passwordMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
-                    {passwordMessage.text}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleChangePassword}
-                  disabled={passwordSaving || !newPassword || !confirmPassword}
-                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
-                >
-                  {passwordSaving ? "Updating..." : "Update Password"}
-                </button>
               </div>
             </SectionCard>
           </div>
