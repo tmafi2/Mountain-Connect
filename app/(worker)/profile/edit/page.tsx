@@ -196,6 +196,34 @@ const PROFICIENCY_OPTIONS = [
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "AUD", "NZD", "CAD", "JPY", "CHF"];
 
+/* ─── nationality → country code mapping ─────────────────── */
+const NATIONALITY_TO_CODE: Record<string, string> = {
+  australian: "au", british: "gb", canadian: "ca", american: "us",
+  "new zealander": "nz", french: "fr", german: "de", swiss: "ch",
+  austrian: "at", japanese: "jp", "south african": "za", irish: "ie",
+  dutch: "nl", swedish: "se", norwegian: "no", italian: "it",
+  spanish: "es", brazilian: "br", chilean: "cl", argentine: "ar",
+  mexican: "mx", korean: "kr", chinese: "cn", indian: "in",
+  thai: "th", filipino: "ph", indonesian: "id", malaysian: "my",
+  singaporean: "sg", danish: "dk", finnish: "fi", polish: "pl",
+  czech: "cz", slovak: "sk", romanian: "ro", bulgarian: "bg",
+  croatian: "hr", slovenian: "si", hungarian: "hu", portuguese: "pt",
+  belgian: "be", greek: "gr", turkish: "tr", israeli: "il",
+  colombian: "co", peruvian: "pe", ecuadorian: "ec", uruguayan: "uy",
+  venezuelan: "ve",
+};
+
+function nationalityToCode(nationality: string): string | null {
+  if (!nationality) return null;
+  const key = nationality.trim().toLowerCase();
+  return NATIONALITY_TO_CODE[key] || null;
+}
+
+function getFlagUrl(nationality: string): string | null {
+  const code = nationalityToCode(nationality);
+  return code ? `https://flagcdn.com/w160/${code}.png` : null;
+}
+
 /* ─── helpers ─────────────────────────────────────────────── */
 function toggleInArray(arr: string[], item: string) {
   return arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item];
@@ -410,6 +438,10 @@ export default function ProfileEditPage() {
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
   const [coverLetterFileName, setCoverLetterFileName] = useState<string | null>(null);
 
+  // Avatar upload state
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -478,6 +510,60 @@ export default function ProfileEditPage() {
     const { data, error } = await supabaseClient.storage.from("documents").createSignedUrl(path, 60);
     if (error || !data?.signedUrl) { alert("Could not generate download link"); return; }
     window.open(data.signedUrl, "_blank");
+  }
+
+  const AVATAR_MAX_SIZE = 2 * 1024 * 1024; // 2MB
+  const AVATAR_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+  async function uploadAvatar(file: File) {
+    if (!userId) return;
+    if (file.size > AVATAR_MAX_SIZE) { alert("Photo must be under 2MB"); return; }
+    if (!AVATAR_ALLOWED_TYPES.includes(file.type)) { alert("Please upload a JPEG, PNG, or WebP image"); return; }
+
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${userId}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabaseClient.storage
+        .from("avatars")
+        .getPublicUrl(path);
+
+      // Add cache-buster to force refresh
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+
+      // Save to profile
+      await supabaseClient.from("worker_profiles").update({ avatar_url: urlWithCacheBust }).eq("user_id", userId);
+      setAvatarUrl(urlWithCacheBust);
+    } catch (err: any) {
+      console.error("Avatar upload error:", err);
+      alert(`Upload failed: ${err?.message || err?.error || JSON.stringify(err)}`);
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
+  async function removeAvatar() {
+    if (!userId) return;
+    try {
+      // Remove all possible avatar files
+      const extensions = ["jpg", "jpeg", "png", "webp"];
+      const paths = extensions.map((ext) => `${userId}/avatar.${ext}`);
+      await supabaseClient.storage.from("avatars").remove(paths);
+
+      await supabaseClient.from("worker_profiles").update({ avatar_url: null }).eq("user_id", userId);
+      setAvatarUrl(null);
+    } catch (err: any) {
+      console.error("Remove avatar error:", err);
+      alert("Failed to remove photo. Please try again.");
+    }
   }
 
   async function handleChangePassword() {
@@ -595,6 +681,11 @@ export default function ProfileEditPage() {
           traveling_with_pets: profile.traveling_with_pets || false,
         });
 
+        // Load avatar URL
+        if (profile.avatar_url) {
+          setAvatarUrl(profile.avatar_url);
+        }
+
         // Load document URLs
         if (profile.resume_url) {
           setResumeUrl(profile.resume_url);
@@ -660,6 +751,7 @@ export default function ProfileEditPage() {
         housing_needs_description: form.housing_needs_description || null,
         traveling_with_partner: form.traveling_with_partner,
         traveling_with_pets: form.traveling_with_pets,
+        avatar_url: avatarUrl || null,
         profile_completion_pct: completion,
       }, { onConflict: "user_id" });
 
@@ -747,19 +839,64 @@ export default function ProfileEditPage() {
                 <Input id="country_res" value={form.country_of_residence} onChange={(v) => set("country_of_residence", v)} placeholder="Canada" />
               </div>
             </div>
-            {/* Photo upload placeholder */}
+            {/* Profile photo upload */}
             <div>
               <Label>Profile Photo</Label>
-              <div className="mt-1 flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/40 text-2xl text-foreground/40">
-                  {form.first_name ? form.first_name[0].toUpperCase() : "?"}
+              <p className="mt-0.5 text-xs text-foreground/50">JPEG, PNG, or WebP. Max 2MB.</p>
+              <div className="mt-2 flex items-center gap-4">
+                {/* Avatar preview */}
+                <div className="relative h-20 w-20 flex-shrink-0">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Profile photo"
+                      className="h-20 w-20 rounded-full object-cover border-2 border-accent"
+                    />
+                  ) : getFlagUrl(form.nationality) ? (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent bg-accent/20 overflow-hidden">
+                      <img
+                        src={getFlagUrl(form.nationality)!}
+                        alt={`${form.nationality} flag`}
+                        className="h-12 w-12 object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/40 text-2xl text-foreground/40">
+                      {form.first_name ? form.first_name[0].toUpperCase() : "?"}
+                    </div>
+                  )}
+                  {avatarUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    </div>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-secondary hover:text-primary"
-                >
-                  Upload Photo
-                </button>
+                {/* Action buttons */}
+                <div className="flex flex-col gap-2">
+                  <label className="cursor-pointer rounded-lg border border-accent bg-white px-4 py-2 text-center text-sm font-medium text-foreground transition-colors hover:border-secondary hover:text-primary">
+                    {avatarUrl ? "Replace Photo" : "Upload Photo"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadAvatar(file);
+                        e.target.value = "";
+                      }}
+                      disabled={avatarUploading}
+                    />
+                  </label>
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={removeAvatar}
+                      className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </SectionCard>
