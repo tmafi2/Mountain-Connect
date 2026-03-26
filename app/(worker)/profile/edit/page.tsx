@@ -410,6 +410,14 @@ export default function ProfileEditPage() {
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
   const [coverLetterFileName, setCoverLetterFileName] = useState<string | null>(null);
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
+
   const supabaseClientRef = useRef(createClient());
   const supabaseClient = supabaseClientRef.current;
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -472,6 +480,35 @@ export default function ProfileEditPage() {
     window.open(data.signedUrl, "_blank");
   }
 
+  async function handleChangePassword() {
+    setPasswordMessage(null);
+
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: "error", text: "New password must be at least 6 characters." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      setPasswordMessage({ type: "success", text: "Password updated successfully!" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setPasswordMessage({ type: "error", text: err?.message || "Failed to update password." });
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
   // Debounced business search
   useEffect(() => {
     if (businessQuery.length < 1) { setBusinessResults([]); return; }
@@ -507,6 +544,10 @@ export default function ProfileEditPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
       setUserId(user.id);
+
+      // Detect OAuth users (they don't have email provider)
+      const isOAuth = user.app_metadata?.provider !== "email" && user.app_metadata?.provider !== undefined;
+      setIsOAuthUser(isOAuth);
 
       const { data: profile } = await supabase
         .from("worker_profiles")
@@ -1763,40 +1804,99 @@ export default function ProfileEditPage() {
       /* ── COMMUNITY ─────────────────────────────────────── */
       case "Community":
         return (
-          <SectionCard
-            title="Community & Bio"
-            description="Tell employers a bit about yourself beyond work."
-          >
-            <div>
-              <Label htmlFor="bio">About Me</Label>
-              <textarea
-                id="bio"
-                rows={4}
-                value={form.bio}
-                onChange={(e) => set("bio", e.target.value)}
-                placeholder="Share a bit about yourself — what drives you, why you love seasonal work, your hobbies and interests..."
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-              />
-              <p className="mt-1 text-xs text-foreground/40">{form.bio.length}/500 characters</p>
-            </div>
+          <div className="space-y-6">
+            <SectionCard
+              title="Community & Bio"
+              description="Tell employers a bit about yourself beyond work."
+            >
+              <div>
+                <Label htmlFor="bio">About Me</Label>
+                <textarea
+                  id="bio"
+                  rows={4}
+                  value={form.bio}
+                  onChange={(e) => set("bio", e.target.value)}
+                  placeholder="Share a bit about yourself — what drives you, why you love seasonal work, your hobbies and interests..."
+                  className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                />
+                <p className="mt-1 text-xs text-foreground/40">{form.bio.length}/500 characters</p>
+              </div>
 
-            <div>
-              <Label htmlFor="housing_desc">Housing Needs</Label>
-              <textarea
-                id="housing_desc"
-                rows={2}
-                value={form.housing_needs_description}
-                onChange={(e) => set("housing_needs_description", e.target.value)}
-                placeholder="e.g. Looking for shared staff accommodation, have my own gear..."
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-              />
-            </div>
+              <div>
+                <Label htmlFor="housing_desc">Housing Needs</Label>
+                <textarea
+                  id="housing_desc"
+                  rows={2}
+                  value={form.housing_needs_description}
+                  onChange={(e) => set("housing_needs_description", e.target.value)}
+                  placeholder="e.g. Looking for shared staff accommodation, have my own gear..."
+                  className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                />
+              </div>
 
-            <div className="space-y-3">
-              <Toggle checked={form.traveling_with_partner} onChange={(v) => set("traveling_with_partner", v)} label="Traveling with a partner" />
-              <Toggle checked={form.traveling_with_pets} onChange={(v) => set("traveling_with_pets", v)} label="Traveling with pets" />
-            </div>
-          </SectionCard>
+              <div className="space-y-3">
+                <Toggle checked={form.traveling_with_partner} onChange={(v) => set("traveling_with_partner", v)} label="Traveling with a partner" />
+                <Toggle checked={form.traveling_with_pets} onChange={(v) => set("traveling_with_pets", v)} label="Traveling with pets" />
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="Account Settings"
+              description="Manage your account security"
+            >
+              <div className="space-y-4">
+                {!isOAuthUser && (
+                  <div>
+                    <Label htmlFor="current_password">Current Password</Label>
+                    <Input
+                      id="current_password"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(v) => setCurrentPassword(v)}
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="new_password">New Password</Label>
+                  <Input
+                    id="new_password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(v) => setNewPassword(v)}
+                    placeholder="Min 6 characters"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="confirm_password">Confirm New Password</Label>
+                  <Input
+                    id="confirm_password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(v) => setConfirmPassword(v)}
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+
+                {passwordMessage && (
+                  <p className={`text-sm ${passwordMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+                    {passwordMessage.text}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={passwordSaving || !newPassword || !confirmPassword}
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {passwordSaving ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </SectionCard>
+          </div>
         );
 
       /* ── REVIEW ────────────────────────────────────────── */
