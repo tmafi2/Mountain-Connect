@@ -73,8 +73,12 @@ export default function WorkerProfilePage() {
 
       if (data) {
         setProfile(data as WorkerProfile);
-        if ((data as WorkerProfile).profile_photo_url) {
-          setAvatarUrl((data as WorkerProfile).profile_photo_url ?? null);
+        // Prefer avatar_url (from profile edit), fall back to profile_photo_url (legacy)
+        const p = data as any;
+        if (p.avatar_url) {
+          setAvatarUrl(p.avatar_url);
+        } else if (p.profile_photo_url) {
+          setAvatarUrl(p.profile_photo_url);
         }
       }
       setLoading(false);
@@ -100,7 +104,7 @@ export default function WorkerProfilePage() {
     setUploading(true);
     const supabase = createClient();
     const fileExt = file.name.split(".").pop();
-    const filePath = `avatars/${profile.user_id}.${fileExt}`;
+    const filePath = `${profile.user_id}/avatar.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
@@ -108,8 +112,8 @@ export default function WorkerProfilePage() {
 
     if (!uploadError) {
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-      const url = urlData.publicUrl;
-      await supabase.from("worker_profiles").update({ profile_photo_url: url }).eq("user_id", profile.user_id);
+      const url = urlData.publicUrl + "?t=" + Date.now();
+      await supabase.from("worker_profiles").update({ avatar_url: url, profile_photo_url: url }).eq("user_id", profile.user_id);
       setAvatarUrl(url);
     }
     setUploading(false);
@@ -118,7 +122,7 @@ export default function WorkerProfilePage() {
   const handleFlagSelect = async (flag: string) => {
     if (!profile) return;
     const supabase = createClient();
-    await supabase.from("worker_profiles").update({ profile_photo_url: `flag:${flag}` }).eq("user_id", profile.user_id);
+    await supabase.from("worker_profiles").update({ avatar_url: `flag:${flag}`, profile_photo_url: `flag:${flag}` }).eq("user_id", profile.user_id);
     setAvatarUrl(`flag:${flag}`);
     setShowFlagPicker(false);
   };
