@@ -24,7 +24,8 @@ export default function ForgotPasswordPage() {
       if (error) throw error;
       setSent(true);
     } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+      console.error("Reset password error:", err);
+      setError(err?.message || err?.error_description || JSON.stringify(err) || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
