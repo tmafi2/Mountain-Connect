@@ -1,116 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-function PasswordResetModal({ onClose }: { onClose: () => void }) {
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      setSuccess(true);
-      setTimeout(() => onClose(), 2000);
-    } catch (err: any) {
-      setError(err?.message || "Failed to update password.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-secondary/20">
-            <svg className="h-7 w-7 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-primary">Set your new password</h2>
-          <p className="mt-1 text-sm text-foreground/60">Please choose a new password to continue.</p>
-        </div>
-
-        {success ? (
-          <div className="text-center">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-              <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <p className="text-lg font-semibold text-green-700">Password updated!</p>
-            <p className="mt-1 text-sm text-foreground/60">Closing this window...</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-foreground/70">New Password</label>
-              <input
-                type="password"
-                required
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min 6 characters"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground/70">Confirm Password</label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full rounded-lg bg-secondary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-secondary/90 disabled:opacity-50"
-            >
-              {saving ? "Updating..." : "Update Password"}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DashboardContent() {
-  const searchParams = useSearchParams();
-  const [showResetModal, setShowResetModal] = useState(false);
+export default function WorkerDashboard() {
   const [userName, setUserName] = useState("");
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -157,15 +51,6 @@ function DashboardContent() {
     });
   }, []);
 
-  // Show password reset modal if coming from recovery flow
-  useEffect(() => {
-    if (searchParams.get("reset_password") === "true") {
-      setShowResetModal(true);
-      // Clean up the URL without reloading
-      window.history.replaceState({}, "", "/dashboard");
-    }
-  }, [searchParams]);
-
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -183,9 +68,6 @@ function DashboardContent() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      {/* Password reset modal */}
-      {showResetModal && <PasswordResetModal onClose={() => setShowResetModal(false)} />}
-
       {/* ── Hero header with gradient mesh ─────────────────────── */}
       <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-2xl px-8 py-10 sm:px-10 sm:py-12">
         {/* Gradient mesh background */}
@@ -422,11 +304,3 @@ function ActionCard({
   );
 }
 
-/* ── Page Export (Suspense wrapper for useSearchParams) ────── */
-export default function WorkerDashboard() {
-  return (
-    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" /></div>}>
-      <DashboardContent />
-    </Suspense>
-  );
-}
