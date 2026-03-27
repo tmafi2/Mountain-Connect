@@ -623,18 +623,25 @@ function BusinessSetup({
       return;
     }
 
-    // Upload logo if selected
+    // Upload logo if selected (optional — can be added later)
     let logoUrl: string | null = null;
     if (logoFile) {
       setUploading(true);
-      const fileExt = logoFile.name.split(".").pop();
-      const filePath = `${user.id}/logo.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, logoFile, { upsert: true });
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-        logoUrl = urlData.publicUrl + "?t=" + Date.now();
+      try {
+        const fileExt = logoFile.name.split(".").pop();
+        const filePath = `${user.id}/logo.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, logoFile, { upsert: true });
+        if (uploadError) {
+          console.error("Logo upload error:", uploadError);
+          // Don't block setup — logo can be added later
+        } else {
+          const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+          logoUrl = urlData.publicUrl + "?t=" + Date.now();
+        }
+      } catch (err) {
+        console.error("Logo upload failed:", err);
       }
       setUploading(false);
     }
@@ -741,7 +748,7 @@ function BusinessSetup({
           </div>
           <div>
             <p className="text-sm font-medium text-primary">Business Logo</p>
-            <p className="text-xs text-foreground/50">Upload your logo (max 2MB)</p>
+            <p className="text-xs text-foreground/50">Upload your logo (max 2MB) — can add later</p>
             <button type="button" onClick={() => logoInputRef.current?.click()} className="mt-1 text-xs font-medium text-secondary hover:underline">
               {logoPreview ? "Change logo" : "Upload"}
             </button>
