@@ -290,15 +290,11 @@ export default function ListingDetailPage() {
 
   // New state for tabs and panels
   const [activeTab, setActiveTab] = useState<ActiveTab>(null);
-  const [applicants, setApplicants] = useState<Applicant[]>(() => demoApplicants[id] || []);
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [applicantSearch, setApplicantSearch] = useState("");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
   const [expandedApplicant, setExpandedApplicant] = useState<string | null>(null);
-  const [filledSlots, setFilledSlots] = useState<string[]>(() => {
-    // Pre-fill with accepted applicants
-    const accepted = (demoApplicants[id] || []).filter((a) => a.status === "accepted");
-    return accepted.map((a) => a.id);
-  });
+  const [filledSlots, setFilledSlots] = useState<string[]>([]);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -406,8 +402,8 @@ export default function ListingDetailPage() {
           const accepted = mappedApplicants.filter((a) => a.status === "accepted");
           setFilledSlots(accepted.map((a) => a.id));
         }
-      } catch {
-        // Fallback to demo data
+      } catch (err) {
+        console.error("Failed to load listing data:", err);
       }
       setPageLoading(false);
     })();

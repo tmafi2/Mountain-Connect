@@ -13,7 +13,7 @@ export default function ApplicantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
-  const [applicants, setApplicants] = useState<SeedApplicant[]>(seedApplicants);
+  const [applicants, setApplicants] = useState<SeedApplicant[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
@@ -76,8 +76,8 @@ export default function ApplicantsPage() {
             });
           setApplicants(mapped);
         }
-      } catch {
-        // Fallback to seed data
+      } catch (err) {
+        console.error("Failed to load applicants:", err);
       }
       setPageLoading(false);
     })();
@@ -86,13 +86,13 @@ export default function ApplicantsPage() {
   // Get unique listings for the dropdown
   const listings = useMemo(() => {
     const map = new Map<string, string>();
-    for (const a of seedApplicants) {
+    for (const a of applicants) {
       if (!map.has(a.job_id)) {
         map.set(a.job_id, a.job_title);
       }
     }
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
-  }, []);
+  }, [applicants]);
 
   const handleStatusChange = async (applicationId: string, newStatus: string) => {
     setApplicants((prev) =>
