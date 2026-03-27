@@ -14,6 +14,7 @@ export default function ApplicantsPage() {
   const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<SeedApplicant[]>([]);
+  const [allListings, setAllListings] = useState<{ id: string; title: string }[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +32,18 @@ export default function ApplicantsPage() {
 
         if (!business) { setPageLoading(false); return; }
 
+        // Fetch all job listings for this business (for the dropdown)
+        const { data: jobs } = await supabase
+          .from("job_posts")
+          .select("id, title")
+          .eq("business_id", business.id)
+          .order("created_at", { ascending: false });
+
+        if (jobs) {
+          setAllListings(jobs.map((j) => ({ id: j.id, title: j.title })));
+        }
+
+        // Fetch applications
         const { data } = await supabase
           .from("applications")
           .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, cv_url)")
@@ -82,17 +95,6 @@ export default function ApplicantsPage() {
       setPageLoading(false);
     })();
   }, []);
-
-  // Get unique listings for the dropdown
-  const listings = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const a of applicants) {
-      if (!map.has(a.job_id)) {
-        map.set(a.job_id, a.job_title);
-      }
-    }
-    return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
-  }, [applicants]);
 
   const handleStatusChange = async (applicationId: string, newStatus: string) => {
     setApplicants((prev) =>
@@ -249,7 +251,7 @@ export default function ApplicantsPage() {
           className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         >
           <option value="all">All Listings</option>
-          {listings.map((l) => (
+          {allListings.map((l) => (
             <option key={l.id} value={l.id}>
               {l.title}
             </option>
