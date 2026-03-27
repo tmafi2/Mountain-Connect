@@ -552,6 +552,8 @@ function BusinessSetup({
   setLoading: (v: boolean) => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  const [bizStep, setBizStep] = useState(1);
+  const [slideDirection, setSlideDirection] = useState<"forward" | "back">("forward");
   const [businessName, setBusinessName] = useState("");
   const [industries, setIndustries] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
@@ -567,6 +569,17 @@ function BusinessSetup({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const totalSteps = 5;
+
+  const goForward = (step: number) => {
+    setSlideDirection("forward");
+    setBizStep(step);
+  };
+  const goBack = (step: number) => {
+    setSlideDirection("back");
+    setBizStep(step);
+  };
 
   // Pre-fill business name from signup metadata
   useEffect(() => {
@@ -609,8 +622,7 @@ function BusinessSetup({
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (destination: "dashboard" | "profile") => {
     setLoading(true);
 
     const supabase = createClient();
@@ -635,7 +647,6 @@ function BusinessSetup({
           .upload(filePath, logoFile, { upsert: true });
         if (uploadError) {
           console.error("Logo upload error:", uploadError);
-          // Don't block setup — logo can be added later
         } else {
           const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
           logoUrl = urlData.publicUrl + "?t=" + Date.now();
@@ -646,7 +657,7 @@ function BusinessSetup({
       setUploading(false);
     }
 
-    // Update user role — use upsert with onConflict to handle existing rows
+    // Update user role
     const { error: userError } = await supabase.from("users").upsert(
       {
         id: user.id,
@@ -672,7 +683,6 @@ function BusinessSetup({
       .single();
 
     if (existingProfile) {
-      // Update existing profile instead of inserting
       const { error: updateError } = await supabase
         .from("business_profiles")
         .update({
@@ -695,7 +705,6 @@ function BusinessSetup({
         return;
       }
     } else {
-      // Create business profile
       const { error: profileError } = await supabase.from("business_profiles").insert({
         user_id: user.id,
         business_name: businessName,
@@ -720,124 +729,213 @@ function BusinessSetup({
     }
 
     setLoading(false);
-    router.push("/business/company-profile");
+    router.push(destination === "profile" ? "/business/company-profile" : "/business/dashboard");
   };
 
-  return (
-    <div>
-      <h1 className="text-3xl font-bold text-primary">Set up your business</h1>
-      <p className="mt-2 text-foreground">
-        Register your business to start posting jobs and finding staff.
-      </p>
+  const slideClass = slideDirection === "forward"
+    ? "animate-[slideInRight_0.4s_cubic-bezier(0.16,1,0.3,1)]"
+    : "animate-[slideInLeft_0.4s_cubic-bezier(0.16,1,0.3,1)]";
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        {/* Logo upload */}
-        <div className="flex items-center gap-4">
-          <div
-            onClick={() => logoInputRef.current?.click()}
-            className="group relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-accent bg-accent/10 transition-colors hover:border-secondary hover:bg-secondary/5"
-          >
-            {logoPreview ? (
-              <img src={logoPreview} alt="Logo" className="h-full w-full object-cover" />
-            ) : (
-              <svg className="h-8 w-8 text-foreground/30 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-              </svg>
+  return (
+    <div className="overflow-hidden">
+      {/* Progress dots */}
+      <div className="mb-10 flex items-center justify-center gap-3">
+        {Array.from({ length: totalSteps }, (_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-500 ${
+                i + 1 < bizStep
+                  ? "bg-secondary text-white scale-90"
+                  : i + 1 === bizStep
+                  ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30"
+                  : "bg-accent/30 text-foreground/30"
+              }`}
+            >
+              {i + 1 < bizStep ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                i + 1
+              )}
+            </div>
+            {i < totalSteps - 1 && (
+              <div className={`h-0.5 w-8 rounded-full transition-all duration-500 ${
+                i + 1 < bizStep ? "bg-secondary" : "bg-accent/20"
+              }`} />
             )}
           </div>
-          <div>
-            <p className="text-sm font-medium text-primary">Business Logo</p>
-            <p className="text-xs text-foreground/50">Upload your logo (max 2MB) — can add later</p>
-            <button type="button" onClick={() => logoInputRef.current?.click()} className="mt-1 text-xs font-medium text-secondary hover:underline">
-              {logoPreview ? "Change logo" : "Upload"}
+        ))}
+      </div>
+
+      {/* Step 1: Business Name & Logo */}
+      {bizStep === 1 && (
+        <div key="biz-step1" className={slideClass}>
+          <div className="text-center">
+            <div className="relative mx-auto mb-6 h-20 w-20">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-secondary/20" />
+              <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-br from-secondary to-primary text-3xl shadow-lg">
+                🏢
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-primary">
+              Let&apos;s set up your business
+            </h1>
+            <p className="mt-2 text-lg text-foreground/60">
+              What&apos;s your business called?
+            </p>
+          </div>
+
+          <div className="mt-10 space-y-6">
+            {/* Logo upload */}
+            <div className="flex flex-col items-center">
+              <div
+                onClick={() => logoInputRef.current?.click()}
+                className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-accent bg-accent/10 transition-all duration-300 hover:border-secondary hover:bg-secondary/5 hover:scale-105 hover:shadow-lg"
+              >
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="text-center">
+                    <svg className="mx-auto h-8 w-8 text-foreground/30 group-hover:text-secondary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <button type="button" onClick={() => logoInputRef.current?.click()} className="mt-2 text-xs font-medium text-secondary hover:underline">
+                {logoPreview ? "Change logo" : "Upload logo"}
+              </button>
+              <p className="text-xs text-foreground/40">Optional — can add later</p>
+              <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoSelect} className="hidden" />
+            </div>
+
+            {/* Business name */}
+            <div>
+              <label htmlFor="businessName" className="block text-sm font-medium text-foreground/70 text-center">
+                Business Name
+              </label>
+              <input
+                id="businessName"
+                type="text"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                className="mt-2 w-full rounded-xl border-2 border-accent bg-white px-4 py-3 text-center text-lg font-medium text-primary placeholder-foreground/30 transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                placeholder="Your business name"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="mt-10">
+            <button
+              onClick={() => goForward(2)}
+              disabled={!businessName.trim()}
+              className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none disabled:translate-y-0"
+            >
+              Continue
             </button>
           </div>
-          <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoSelect} className="hidden" />
         </div>
+      )}
 
-        {/* Business name */}
-        <div>
-          <label htmlFor="businessName" className="block text-sm font-medium text-foreground">
-            Business Name *
-          </label>
-          <input
-            id="businessName"
-            type="text"
-            required
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-            placeholder="Your business name"
-          />
-        </div>
+      {/* Step 2: Industry Selection */}
+      {bizStep === 2 && (
+        <div key="biz-step2" className={slideClass}>
+          <div className="text-center">
+            <div className="relative mx-auto mb-6 h-20 w-20">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-secondary/20" />
+              <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-br from-secondary to-primary text-3xl shadow-lg">
+                🏷️
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-primary">
+              What do you do?
+            </h1>
+            <p className="mt-2 text-lg text-foreground/60">
+              Select all industries that apply to your business.
+            </p>
+          </div>
 
-        {/* Industries multi-select */}
-        <div>
-          <label className="block text-sm font-medium text-foreground">
-            Industry *
-          </label>
-          <p className="mt-0.5 text-xs text-foreground/50">Select all that apply</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-10 flex flex-wrap justify-center gap-2.5">
             {INDUSTRY_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => toggleIndustry(opt.value)}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300 ${
                   industries.includes(opt.value)
-                    ? "bg-secondary text-white shadow-sm"
-                    : "bg-accent/20 text-foreground/60 hover:bg-accent/40"
+                    ? "bg-secondary text-white shadow-md shadow-secondary/20 scale-105 -translate-y-0.5"
+                    : "bg-white border-2 border-accent text-foreground/60 hover:border-secondary/50 hover:bg-secondary/5 hover:-translate-y-0.5"
                 }`}
               >
+                {industries.includes(opt.value) && (
+                  <svg className="mr-1.5 -ml-0.5 inline h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
                 {opt.label}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Business Address */}
-        <div>
-          <label htmlFor="bizAddress" className="block text-sm font-medium text-foreground">
-            Business Address
-          </label>
-          <input
-            id="bizAddress"
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-            placeholder="e.g. 123 Mountain Road"
-          />
-        </div>
+          {industries.length > 0 && (
+            <p className="mt-4 text-center text-sm text-secondary font-medium animate-[slideInRight_0.3s_ease-out]">
+              {industries.length} {industries.length === 1 ? "industry" : "industries"} selected
+            </p>
+          )}
 
-        {/* Location — Town/Village + Country */}
-        <div>
-          <label className="block text-sm font-medium text-foreground">Location *</label>
-          <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="bizLocation" className="block text-xs text-foreground/50">
-                Town / Village
-              </label>
-              <input
-                id="bizLocation"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-                placeholder="e.g. Whistler"
-              />
+          <div className="mt-10 flex items-center gap-4">
+            <button
+              onClick={() => goBack(1)}
+              className="flex items-center gap-2 text-sm font-semibold text-foreground/40 transition-colors hover:text-foreground/70"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <button
+              onClick={() => goForward(3)}
+              disabled={industries.length === 0}
+              className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none disabled:translate-y-0"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Location */}
+      {bizStep === 3 && (
+        <div key="biz-step3" className={slideClass}>
+          <div className="text-center">
+            <div className="relative mx-auto mb-6 h-20 w-20">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-secondary/20" />
+              <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-br from-secondary to-primary text-3xl shadow-lg">
+                📍
+              </div>
             </div>
+            <h1 className="text-3xl font-bold text-primary">
+              Where are you based?
+            </h1>
+            <p className="mt-2 text-lg text-foreground/60">
+              Tell us where your business is located.
+            </p>
+          </div>
+
+          <div className="mt-10 space-y-5">
+            {/* Country */}
             <div>
-              <label htmlFor="bizCountry" className="block text-xs text-foreground/50">
-                Country
+              <label htmlFor="bizCountry" className="block text-sm font-medium text-foreground/70">
+                Country *
               </label>
               <select
                 id="bizCountry"
-                required
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                className="mt-1.5 w-full rounded-xl border-2 border-accent bg-white px-4 py-3 text-sm text-primary transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
               >
                 <option value="">Select a country</option>
                 {BIZ_COUNTRIES.map((c) => (
@@ -845,87 +943,300 @@ function BusinessSetup({
                 ))}
               </select>
             </div>
+
+            {/* Town / Village */}
+            <div>
+              <label htmlFor="bizLocation" className="block text-sm font-medium text-foreground/70">
+                Town / Village
+              </label>
+              <input
+                id="bizLocation"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border-2 border-accent bg-white px-4 py-3 text-sm text-primary placeholder-foreground/30 transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                placeholder="e.g. Whistler, Chamonix, Queenstown"
+              />
+            </div>
+
+            {/* Business Address */}
+            <div>
+              <label htmlFor="bizAddress" className="block text-sm font-medium text-foreground/70">
+                Street Address <span className="text-foreground/40">(optional)</span>
+              </label>
+              <input
+                id="bizAddress"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border-2 border-accent bg-white px-4 py-3 text-sm text-primary placeholder-foreground/30 transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                placeholder="e.g. 123 Mountain Road"
+              />
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center gap-4">
+            <button
+              onClick={() => goBack(2)}
+              className="flex items-center gap-2 text-sm font-semibold text-foreground/40 transition-colors hover:text-foreground/70"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <button
+              onClick={() => goForward(4)}
+              disabled={!country}
+              className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none disabled:translate-y-0"
+            >
+              Continue
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Resort search */}
-        <div className="relative">
-          <label htmlFor="bizResort" className="block text-sm font-medium text-foreground">
-            Associated Resort
-          </label>
-          <div className="relative">
-            <input
-              id="bizResort"
-              type="text"
-              value={resortQuery || selectedResortName}
-              onChange={(e) => {
-                setResortQuery(e.target.value);
-                setSelectedResortName("");
-                setSelectedResortId(null);
-              }}
-              placeholder="Search for a ski resort..."
-              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-              onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
-              onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
-            />
-            {selectedResortId && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                Linked
-              </span>
-            )}
+      {/* Step 4: Resort & Website */}
+      {bizStep === 4 && (
+        <div key="biz-step4" className={slideClass}>
+          <div className="text-center">
+            <div className="relative mx-auto mb-6 h-20 w-20">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-secondary/20" />
+              <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-br from-secondary to-primary text-3xl shadow-lg">
+                🏔️
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-primary">
+              A few more details
+            </h1>
+            <p className="mt-2 text-lg text-foreground/60">
+              These are optional — you can always add them later.
+            </p>
           </div>
-          {resortSearchOpen && resortResults.length > 0 && (
-            <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
-              {resortResults.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setSelectedResortName(r.name);
-                    setSelectedResortId(r.id);
-                    setResortQuery("");
-                    setResortSearchOpen(false);
+
+          <div className="mt-10 space-y-5">
+            {/* Resort search */}
+            <div className="relative">
+              <label htmlFor="bizResort" className="block text-sm font-medium text-foreground/70">
+                Associated Resort
+              </label>
+              <p className="mt-0.5 text-xs text-foreground/40">Link your business to a ski resort</p>
+              <div className="relative">
+                <input
+                  id="bizResort"
+                  type="text"
+                  value={resortQuery || selectedResortName}
+                  onChange={(e) => {
+                    setResortQuery(e.target.value);
+                    setSelectedResortName("");
+                    setSelectedResortId(null);
                   }}
-                >
-                  <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  </svg>
-                  <div>
-                    <span className="font-medium text-primary">{r.name}</span>
-                    <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
-                  </div>
-                </button>
-              ))}
+                  placeholder="Search for a ski resort..."
+                  className="mt-1.5 w-full rounded-xl border-2 border-accent bg-white px-4 py-3 text-sm text-primary placeholder-foreground/30 transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                  onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+                  onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
+                />
+                {selectedResortId && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-1 flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    Linked
+                  </span>
+                )}
+              </div>
+              {resortSearchOpen && resortResults.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full rounded-xl border-2 border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                  {resortResults.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10 transition-colors"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setSelectedResortName(r.name);
+                        setSelectedResortId(r.id);
+                        setResortQuery("");
+                        setResortSearchOpen(false);
+                      }}
+                    >
+                      <svg className="h-4 w-4 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      </svg>
+                      <div>
+                        <span className="font-medium text-primary">{r.name}</span>
+                        <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Website */}
+            <div>
+              <label htmlFor="website" className="block text-sm font-medium text-foreground/70">
+                Website
+              </label>
+              <input
+                id="website"
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border-2 border-accent bg-white px-4 py-3 text-sm text-primary placeholder-foreground/30 transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                placeholder="https://yourbusiness.com"
+              />
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center gap-4">
+            <button
+              onClick={() => goBack(3)}
+              className="flex items-center gap-2 text-sm font-semibold text-foreground/40 transition-colors hover:text-foreground/70"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <button
+              onClick={() => goForward(5)}
+              className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:-translate-y-0.5"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: All set! */}
+      {bizStep === 5 && (
+        <div key="biz-step5" className={slideClass}>
+          <div className="text-center">
+            <div className="relative mx-auto mb-6 h-20 w-20">
+              <div className="absolute inset-0 rounded-full bg-green-100 animate-ping opacity-20" />
+              <div className="absolute inset-0 animate-pulse rounded-full bg-green-100/50" />
+              <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-secondary text-3xl shadow-lg">
+                🚀
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-primary">
+              You&apos;re all set!
+            </h1>
+            <p className="mt-2 text-lg text-foreground/60">
+              Here&apos;s a summary of your business.
+            </p>
+          </div>
+
+          {/* Summary card */}
+          <div className="mt-8 rounded-2xl border-2 border-accent bg-gradient-to-br from-white to-accent/10 p-6">
+            <div className="flex items-center gap-4">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="h-14 w-14 rounded-xl object-cover shadow-sm" />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary/20 text-2xl">
+                  🏢
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold text-primary">{businessName}</h3>
+                <p className="text-sm text-foreground/50">
+                  {location && country ? `${location}, ${country}` : country || "Location not set"}
+                </p>
+              </div>
+            </div>
+
+            {industries.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {industries.map((ind) => {
+                  const label = INDUSTRY_OPTIONS.find((o) => o.value === ind)?.label || ind;
+                  return (
+                    <span key={ind} className="rounded-full bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-4 space-y-1.5">
+              {address && (
+                <p className="flex items-center gap-2 text-xs text-foreground/50">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                  {address}
+                </p>
+              )}
+              {selectedResortName && (
+                <p className="flex items-center gap-2 text-xs text-foreground/50">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
+                  {selectedResortName}
+                </p>
+              )}
+              {website && (
+                <p className="flex items-center gap-2 text-xs text-foreground/50">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                  {website}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <button
+              onClick={() => handleSave("dashboard")}
+              disabled={loading || uploading}
+              className="group relative overflow-hidden rounded-2xl border-2 border-accent bg-white p-5 text-center transition-all duration-300 hover:border-secondary hover:-translate-y-1 hover:shadow-xl disabled:opacity-50 disabled:translate-y-0"
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-secondary/0 to-secondary/5 opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="relative">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 text-3xl transition-transform duration-300 group-hover:scale-110">
+                  📊
+                </div>
+                <h2 className="mt-3 text-base font-bold text-primary">Go to Dashboard</h2>
+                <p className="mt-1 text-xs text-foreground/50">
+                  Start managing your business
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleSave("profile")}
+              disabled={loading || uploading}
+              className="group relative overflow-hidden rounded-2xl border-2 border-secondary/40 bg-gradient-to-b from-secondary/5 to-secondary/10 p-5 text-center transition-all duration-300 hover:border-secondary hover:-translate-y-1 hover:shadow-xl disabled:opacity-50 disabled:translate-y-0"
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-secondary/0 to-secondary/10 opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="relative">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-secondary/30 to-secondary/10 text-3xl transition-transform duration-300 group-hover:scale-110">
+                  ✏️
+                </div>
+                <h2 className="mt-3 text-base font-bold text-primary">Complete Profile</h2>
+                <p className="mt-1 text-xs text-foreground/50">
+                  Add more details & submit for verification
+                </p>
+                <span className="mt-2 inline-block rounded-full bg-secondary px-3 py-0.5 text-xs font-bold text-white shadow-sm">
+                  Recommended
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {(loading || uploading) && (
+            <div className="mt-6 flex items-center justify-center gap-3 text-sm text-foreground/50">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-secondary" />
+              <span className="animate-pulse">{uploading ? "Uploading logo..." : "Setting up your business..."}</span>
             </div>
           )}
-        </div>
 
-        {/* Website */}
-        <div>
-          <label htmlFor="website" className="block text-sm font-medium text-foreground">
-            Website
-          </label>
-          <input
-            id="website"
-            type="url"
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-            placeholder="https://yourbusiness.com"
-          />
+          <button
+            onClick={() => goBack(4)}
+            disabled={loading || uploading}
+            className="mt-6 flex items-center gap-2 text-sm font-semibold text-foreground/40 transition-colors hover:text-foreground/70 disabled:opacity-30"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading || uploading || industries.length === 0}
-          className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          {uploading ? "Uploading logo…" : loading ? "Saving…" : "Complete Setup"}
-        </button>
-      </form>
+      )}
     </div>
   );
 }
