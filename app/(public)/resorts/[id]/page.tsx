@@ -71,7 +71,27 @@ function InfoRow({
 
 export default async function ResortDetailPage({ params }: ResortPageProps) {
   const { id } = await params;
-  const resort = resorts.find((r) => r.id === id);
+
+  // Support both legacy IDs (e.g. "thredbo") and UUIDs
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let resort = resorts.find((r) => r.id === id);
+  let resortUuid: string | null = null;
+
+  // If UUID was passed, look up legacy_id from Supabase to find the static resort data
+  if (!resort && isUuid) {
+    try {
+      const supabase = await createClient();
+      const { data: dbResort } = await supabase
+        .from("resorts")
+        .select("id, legacy_id")
+        .eq("id", id)
+        .single();
+      if (dbResort?.legacy_id) {
+        resort = resorts.find((r) => r.id === dbResort.legacy_id);
+        resortUuid = dbResort.id;
+      }
+    } catch {}
+  }
 
   if (!resort) {
     notFound();
@@ -107,14 +127,15 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
   try {
     const supabase = await createClient();
 
-    // Get the resort's UUID from Supabase using legacy_id
-    const { data: dbResort } = await supabase
-      .from("resorts")
-      .select("id")
-      .eq("legacy_id", id)
-      .single();
-
-    const resortUuid = dbResort?.id;
+    // Get the resort's UUID from Supabase using legacy_id (if not already resolved)
+    if (!resortUuid) {
+      const { data: dbResort } = await supabase
+        .from("resorts")
+        .select("id")
+        .eq("legacy_id", id)
+        .single();
+      resortUuid = dbResort?.id || null;
+    }
 
     if (resortUuid) {
       // Get businesses linked via business_resorts junction table
