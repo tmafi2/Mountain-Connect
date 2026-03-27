@@ -1,43 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { resorts } from "@/lib/data/resorts";
 import PhotoUpload, { type UploadedPhoto } from "@/components/ui/PhotoUpload";
-import type { BusinessCategory, BusinessVerificationStatus } from "@/types/database";
+import type { BusinessVerificationStatus } from "@/types/database";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
 interface ProfileFormData {
   business_name: string;
   description: string;
-  category: BusinessCategory | "";
+  industries: string[];
   year_established: string;
   website: string;
   phone: string;
   email: string;
+  address: string;
   location: string;
+  country: string;
+  logo_url: string;
   instagram: string;
   facebook: string;
   linkedin: string;
   perks: string[];
-  resort_ids: string[];
+  resort_id: string | null;
 }
 
-/* ─── Demo data ──────────────────────────────────────────── */
+/* ─── Constants ──────────────────────────────────────────── */
 
-const CATEGORIES: { value: BusinessCategory; label: string }[] = [
-  { value: "ski_school", label: "Ski School" },
+const INDUSTRY_OPTIONS = [
+  { value: "ski_school", label: "Ski / Snowboard School" },
   { value: "hospitality", label: "Hospitality" },
   { value: "food_beverage", label: "Food & Beverage" },
   { value: "retail", label: "Retail" },
   { value: "resort_operations", label: "Resort Operations" },
   { value: "accommodation", label: "Accommodation" },
-  { value: "rental_shop", label: "Rental & Equipment" },
+  { value: "rental_shop", label: "Rental Shop" },
   { value: "transport", label: "Transport" },
   { value: "entertainment", label: "Entertainment" },
+  { value: "cleaning_housekeeping", label: "Cleaning / Housekeeping" },
+  { value: "construction_maintenance", label: "Construction / Maintenance" },
+  { value: "childcare", label: "Childcare" },
+  { value: "health_fitness", label: "Health & Fitness" },
+  { value: "tourism", label: "Tourism / Adventure" },
   { value: "other", label: "Other" },
+];
+
+const BIZ_COUNTRIES = [
+  "Australia", "Austria", "Canada", "Chile", "Finland", "France", "Germany",
+  "Italy", "Japan", "New Zealand", "Norway", "South Korea", "Spain",
+  "Sweden", "Switzerland", "United Kingdom", "United States", "Other",
 ];
 
 const COMMON_PERKS = [
@@ -89,6 +102,7 @@ export default function CompanyProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<BusinessVerificationStatus>("unverified");
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -100,20 +114,35 @@ export default function CompanyProfilePage() {
   const [sendingVerification, setSendingVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
 
+  // Logo upload
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Resort search
+  const [resortQuery, setResortQuery] = useState("");
+  const [resortResults, setResortResults] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [resortSearchOpen, setResortSearchOpen] = useState(false);
+  const [selectedResortName, setSelectedResortName] = useState("");
+
   const [form, setForm] = useState<ProfileFormData>({
     business_name: "",
     description: "",
-    category: "",
+    industries: [],
     year_established: "",
     website: "",
     phone: "",
     email: "",
+    address: "",
     location: "",
+    country: "",
+    logo_url: "",
     instagram: "",
     facebook: "",
     linkedin: "",
     perks: [],
-    resort_ids: [],
+    resort_id: null,
   });
 
   useEffect(() => {
@@ -125,7 +154,7 @@ export default function CompanyProfilePage() {
         return;
       }
 
-      // Check email verification status
+      setUserId(user.id);
       setUserEmail(user.email ?? "");
       setEmailVerified(!!user.email_confirmed_at);
 
@@ -139,32 +168,41 @@ export default function CompanyProfilePage() {
         setProfileId(profile.id);
         setVerificationStatus(profile.verification_status ?? "unverified");
         const social = (profile.social_links as Record<string, string>) ?? {};
+
         setForm({
           business_name: profile.business_name ?? "",
           description: profile.description ?? "",
-          category: (profile.category as BusinessCategory) ?? "",
+          industries: (profile.industries as string[]) ?? [],
           year_established: profile.year_established ? String(profile.year_established) : "",
           website: profile.website ?? "",
           phone: profile.phone ?? "",
           email: profile.email ?? "",
+          address: (profile.address as string) ?? "",
           location: profile.location ?? "",
+          country: (profile.country as string) ?? "",
+          logo_url: profile.logo_url ?? "",
           instagram: social.instagram ?? "",
           facebook: social.facebook ?? "",
           linkedin: social.linkedin ?? "",
           perks: profile.standard_perks ?? [],
-          resort_ids: [],
+          resort_id: (profile.resort_id as string) ?? null,
         });
 
-        // Load associated resorts
-        const { data: bizResorts } = await supabase
-          .from("business_resorts")
-          .select("resort_id")
-          .eq("business_id", profile.id);
-        if (bizResorts) {
-          setForm((prev) => ({
-            ...prev,
-            resort_ids: bizResorts.map((r: { resort_id: string }) => r.resort_id),
-          }));
+        // Set logo preview from existing URL
+        if (profile.logo_url) {
+          setLogoPreview(profile.logo_url);
+        }
+
+        // Set resort name if resort_id exists
+        if (profile.resort_id) {
+          const { data: resort } = await supabase
+            .from("resorts")
+            .select("name")
+            .eq("id", profile.resort_id)
+            .single();
+          if (resort) {
+            setSelectedResortName(resort.name);
+          }
         }
       }
 
@@ -173,33 +211,49 @@ export default function CompanyProfilePage() {
     load();
   }, [router]);
 
+  // Resort search with debounce
+  useEffect(() => {
+    if (resortQuery.length < 1) { setResortResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search-resorts?q=${encodeURIComponent(resortQuery)}`);
+        const data = await res.json();
+        setResortResults(data.resorts || data || []);
+        setResortSearchOpen(true);
+      } catch { setResortResults([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [resortQuery]);
+
   // Calculate profile completion
   const fields = [
     form.business_name,
     form.description,
-    form.category,
-    form.year_established,
+    form.industries.length > 0 ? "has_industries" : "",
     form.website,
     form.phone,
     form.email,
     form.location,
-    form.resort_ids.length > 0 ? "has_resorts" : "",
+    form.country,
+    form.address,
     form.perks.length > 0 ? "has_perks" : "",
+    form.resort_id ? "has_resort" : "",
+    form.logo_url || logoFile ? "has_logo" : "",
   ];
   const filledCount = fields.filter((f) => f && f.length > 0).length;
   const completionPct = Math.round((filledCount / fields.length) * 100);
 
-  const updateField = (field: keyof ProfileFormData, value: string | string[]) => {
+  const updateField = (field: keyof ProfileFormData, value: string | string[] | null) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setSaved(false);
   };
 
-  const toggleResort = (resortId: string) => {
+  const toggleIndustry = (value: string) => {
     setForm((prev) => ({
       ...prev,
-      resort_ids: prev.resort_ids.includes(resortId)
-        ? prev.resort_ids.filter((id) => id !== resortId)
-        : [...prev.resort_ids, resortId],
+      industries: prev.industries.includes(value)
+        ? prev.industries.filter((v) => v !== value)
+        : [...prev.industries, value],
     }));
     setSaved(false);
   };
@@ -222,6 +276,15 @@ export default function CompanyProfilePage() {
     }
   };
 
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert("Logo must be under 2MB"); return; }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setSaved(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const supabase = createClient();
@@ -231,37 +294,55 @@ export default function CompanyProfilePage() {
       return;
     }
 
+    // Upload logo if new file selected
+    let logoUrl = form.logo_url;
+    if (logoFile) {
+      setUploading(true);
+      const fileExt = logoFile.name.split(".").pop();
+      const filePath = `${user.id}/logo.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, logoFile, { upsert: true });
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        logoUrl = urlData.publicUrl + "?t=" + Date.now();
+      }
+      setUploading(false);
+      setLogoFile(null);
+    }
+
     const socialLinks: Record<string, string> = {};
     if (form.instagram) socialLinks.instagram = form.instagram;
     if (form.facebook) socialLinks.facebook = form.facebook;
     if (form.linkedin) socialLinks.linkedin = form.linkedin;
 
-    await supabase.from("business_profiles").update({
+    const { error } = await supabase.from("business_profiles").update({
       business_name: form.business_name,
       description: form.description || null,
-      category: form.category || null,
+      industries: form.industries.length > 0 ? form.industries : [],
       year_established: form.year_established ? parseInt(form.year_established) : null,
       website: form.website || null,
       phone: form.phone || null,
       email: form.email || null,
+      address: form.address || null,
       location: form.location || null,
+      country: form.country || null,
+      logo_url: logoUrl || null,
+      resort_id: form.resort_id || null,
       social_links: Object.keys(socialLinks).length > 0 ? socialLinks : null,
       standard_perks: form.perks.length > 0 ? form.perks : [],
     }).eq("id", profileId);
 
-    // Sync resort associations: delete old, insert new
-    await supabase.from("business_resorts").delete().eq("business_id", profileId);
-    if (form.resort_ids.length > 0) {
-      await supabase.from("business_resorts").insert(
-        form.resort_ids.map((rid) => ({
-          business_id: profileId,
-          resort_id: rid,
-        }))
-      );
+    if (error) {
+      alert("Error saving profile: " + error.message);
+    } else {
+      // Update logo_url in form state
+      if (logoUrl !== form.logo_url) {
+        setForm((prev) => ({ ...prev, logo_url: logoUrl }));
+      }
+      setSaved(true);
     }
-
     setSaving(false);
-    setSaved(true);
   };
 
   const handleSubmitForVerification = async () => {
@@ -298,13 +379,6 @@ export default function CompanyProfilePage() {
 
   const statusInfo = VERIFICATION_STATUS_INFO[verificationStatus];
 
-  // Resort search
-  const [resortSearch, setResortSearch] = useState("");
-  const filteredResorts = resorts.filter((r) =>
-    r.name.toLowerCase().includes(resortSearch.toLowerCase()) ||
-    r.country.toLowerCase().includes(resortSearch.toLowerCase())
-  );
-
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -327,17 +401,34 @@ export default function CompanyProfilePage() {
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
 
         <div className="relative flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <svg className="h-4 w-4 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Business Identity</span>
+          <div className="flex items-center gap-4">
+            {/* Logo in header */}
+            <div
+              onClick={() => logoInputRef.current?.click()}
+              className="group relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-white/30 bg-white/10 transition-colors hover:border-secondary hover:bg-white/20"
+            >
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <svg className="h-7 w-7 text-white/40 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                </svg>
+              )}
             </div>
-            <h1 className="text-2xl font-bold text-white">Company Profile</h1>
-            <p className="mt-1 text-sm text-white/50">
-              Manage your business details and public presence.
-            </p>
+            <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoSelect} className="hidden" />
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <svg className="h-4 w-4 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Business Identity</span>
+              </div>
+              <h1 className="text-2xl font-bold text-white">Company Profile</h1>
+              <p className="mt-1 text-sm text-white/50">
+                Manage your business details and public presence.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {saved && (
@@ -345,10 +436,10 @@ export default function CompanyProfilePage() {
             )}
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || uploading}
               className="rounded-xl bg-white/10 border border-white/20 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 hover:-translate-y-0.5 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save Profile"}
+              {saving || uploading ? "Saving..." : "Save Profile"}
             </button>
           </div>
         </div>
@@ -446,7 +537,7 @@ export default function CompanyProfilePage() {
 
       {/* ── Form Sections ─────────────────────────────────── */}
 
-      {/* Basic Info */}
+      {/* Section 1: Basic Info (matches onboarding) */}
       <div className="rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2.5 mb-5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
@@ -456,6 +547,31 @@ export default function CompanyProfilePage() {
         </div>
 
         <div className="space-y-4">
+          {/* Logo upload */}
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => logoInputRef.current?.click()}
+              className="group relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-accent bg-accent/10 transition-colors hover:border-secondary hover:bg-secondary/5"
+            >
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <svg className="h-8 w-8 text-foreground/30 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-primary">Business Logo</p>
+              <p className="text-xs text-foreground/50">Upload your logo (max 2MB)</p>
+              <button type="button" onClick={() => logoInputRef.current?.click()} className="mt-1 text-xs font-medium text-secondary hover:underline">
+                {logoPreview ? "Change logo" : "Upload"}
+              </button>
+            </div>
+          </div>
+
+          {/* Business Name */}
           <div>
             <label className="block text-sm font-medium text-foreground">Business Name *</label>
             <input
@@ -465,8 +581,31 @@ export default function CompanyProfilePage() {
             />
           </div>
 
+          {/* Industries multi-select */}
           <div>
-            <label className="block text-sm font-medium text-foreground">Description *</label>
+            <label className="block text-sm font-medium text-foreground">Industry *</label>
+            <p className="mt-0.5 text-xs text-foreground/50">Select all that apply</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {INDUSTRY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggleIndustry(opt.value)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    form.industries.includes(opt.value)
+                      ? "bg-secondary text-white shadow-sm"
+                      : "bg-accent/20 text-foreground/60 hover:bg-accent/40"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-foreground">Description</label>
             <textarea
               value={form.description}
               onChange={(e) => updateField("description", e.target.value)}
@@ -476,52 +615,130 @@ export default function CompanyProfilePage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground">Category *</label>
-              <select
-                value={form.category}
-                onChange={(e) => updateField("category", e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Select a category</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground">Year Established</label>
-              <input
-                value={form.year_established}
-                onChange={(e) => updateField("year_established", e.target.value)}
-                type="number"
-                min="1800"
-                max="2026"
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground">Location *</label>
+          {/* Year Established */}
+          <div className="max-w-xs">
+            <label className="block text-sm font-medium text-foreground">Year Established</label>
             <input
-              value={form.location}
-              onChange={(e) => updateField("location", e.target.value)}
-              placeholder="e.g. Whistler, BC, Canada"
+              value={form.year_established}
+              onChange={(e) => updateField("year_established", e.target.value)}
+              type="number"
+              min="1800"
+              max="2026"
               className={inputClass}
             />
           </div>
         </div>
       </div>
 
-      {/* Contact & Links */}
+      {/* Section 2: Location & Address (matches onboarding) */}
       <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2.5 mb-5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
             <span className="text-xs font-bold text-primary">2</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Location &amp; Address</h2>
+        </div>
+
+        <div className="space-y-4">
+          {/* Business Address */}
+          <div>
+            <label className="block text-sm font-medium text-foreground">Business Address</label>
+            <input
+              value={form.address}
+              onChange={(e) => updateField("address", e.target.value)}
+              placeholder="e.g. 123 Mountain Road"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Location — Town/Village + Country */}
+          <div>
+            <label className="block text-sm font-medium text-foreground">Location *</label>
+            <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs text-foreground/50">Town / Village</label>
+                <input
+                  value={form.location}
+                  onChange={(e) => updateField("location", e.target.value)}
+                  placeholder="e.g. Whistler"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-foreground/50">Country</label>
+                <select
+                  value={form.country}
+                  onChange={(e) => updateField("country", e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Select a country</option>
+                  {BIZ_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Associated Resort */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-foreground">Associated Resort</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={resortQuery || selectedResortName}
+                onChange={(e) => {
+                  setResortQuery(e.target.value);
+                  setSelectedResortName("");
+                  updateField("resort_id", null);
+                }}
+                placeholder="Search for a ski resort..."
+                className={inputClass}
+                onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+                onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
+              />
+              {form.resort_id && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Linked
+                </span>
+              )}
+            </div>
+            {resortSearchOpen && resortResults.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+                {resortResults.map((r: { id: string; name: string; country: string }) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setSelectedResortName(r.name);
+                      updateField("resort_id", r.id);
+                      setResortQuery("");
+                      setResortSearchOpen(false);
+                    }}
+                  >
+                    <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    </svg>
+                    <div>
+                      <span className="font-medium text-primary">{r.name}</span>
+                      <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Contact & Links */}
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">3</span>
           </div>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Contact &amp; Links</h2>
         </div>
@@ -591,79 +808,7 @@ export default function CompanyProfilePage() {
         </div>
       </div>
 
-      {/* Resort Selection */}
-      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2.5 mb-1">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-            <span className="text-xs font-bold text-primary">3</span>
-          </div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
-            Resorts You Operate At *
-          </h2>
-        </div>
-        <p className="mb-4 ml-9 text-xs text-foreground/50">
-          Select the ski resorts where your business operates. You&apos;ll appear in the Verified Employers section on these resort pages.
-        </p>
-
-        {/* Selected resorts */}
-        {form.resort_ids.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
-            {form.resort_ids.map((rid) => {
-              const resort = resorts.find((r) => r.id === rid);
-              if (!resort) return null;
-              return (
-                <span
-                  key={rid}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-secondary/15 px-3 py-1 text-sm font-medium text-primary"
-                >
-                  {resort.name}
-                  <button
-                    onClick={() => toggleResort(rid)}
-                    className="text-foreground/40 hover:text-red-500 transition-colors"
-                  >
-                    &times;
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Search & select */}
-        <input
-          value={resortSearch}
-          onChange={(e) => setResortSearch(e.target.value)}
-          placeholder="Search resorts..."
-          className="w-full rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-        />
-
-        <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-accent/40">
-          {filteredResorts.slice(0, 20).map((resort) => {
-            const isSelected = form.resort_ids.includes(resort.id);
-            return (
-              <button
-                key={resort.id}
-                onClick={() => toggleResort(resort.id)}
-                className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition-colors hover:bg-accent/10 ${
-                  isSelected ? "bg-secondary/10 font-medium text-primary" : "text-foreground/70"
-                }`}
-              >
-                <span>
-                  {resort.name}{" "}
-                  <span className="text-foreground/40">{resort.country}</span>
-                </span>
-                {isSelected && (
-                  <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Perks */}
+      {/* Section 4: Perks */}
       <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2.5 mb-1">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
@@ -683,6 +828,7 @@ export default function CompanyProfilePage() {
             return (
               <button
                 key={perk}
+                type="button"
                 onClick={() => togglePerk(perk)}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
                   isSelected
@@ -711,6 +857,7 @@ export default function CompanyProfilePage() {
                 >
                   &#10003; {perk}
                   <button
+                    type="button"
                     onClick={() => togglePerk(perk)}
                     className="text-green-400 hover:text-red-500 transition-colors"
                   >
@@ -726,11 +873,12 @@ export default function CompanyProfilePage() {
           <input
             value={newPerk}
             onChange={(e) => setNewPerk(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addCustomPerk()}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomPerk())}
             placeholder="Add a custom perk..."
             className="flex-1 rounded-xl border border-accent/40 bg-white px-3 py-2 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
           />
           <button
+            type="button"
             onClick={addCustomPerk}
             className="rounded-xl border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5"
           >
@@ -739,7 +887,7 @@ export default function CompanyProfilePage() {
         </div>
       </div>
 
-      {/* Photos */}
+      {/* Section 5: Photos */}
       <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-2.5 mb-1">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
@@ -757,13 +905,13 @@ export default function CompanyProfilePage() {
             photos={photos}
             onChange={setPhotos}
             maxPhotos={8}
-            businessId="demo-business-id"
+            businessId={profileId ?? "demo-business-id"}
           />
         </div>
       </div>
 
       {/* Bottom save */}
-      <div className="mt-6 flex items-center justify-between rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
+      <div className="mt-6 mb-8 flex items-center justify-between rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
         <div className="text-sm text-foreground/60">
           {completionPct < 70 ? (
             <span>Complete at least 70% to submit for verification ({completionPct}% done)</span>
@@ -773,10 +921,10 @@ export default function CompanyProfilePage() {
         </div>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || uploading}
           className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save Profile"}
+          {saving || uploading ? "Saving..." : "Save Profile"}
         </button>
       </div>
     </div>
