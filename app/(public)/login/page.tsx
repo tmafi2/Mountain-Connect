@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: adminEmail,
         password: adminPassword,
       });
@@ -54,6 +54,7 @@ export default function LoginPage() {
       const { data: userData } = await supabase
         .from("users")
         .select("role")
+        .eq("id", signInData.user.id)
         .single();
 
       if (userData?.role !== "admin") {
