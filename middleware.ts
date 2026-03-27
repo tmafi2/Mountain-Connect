@@ -4,7 +4,19 @@ import { updateSession } from "@/lib/supabase/middleware";
 // Routes that require the "worker" role
 const WORKER_ROUTES = ["/dashboard", "/profile", "/applications", "/saved-jobs", "/messages", "/interviews", "/employers", "/following"];
 // Routes that require the "business_owner" role
-const BUSINESS_ROUTES_PREFIX = "/business";
+// Business portal routes (not including /business/[id] which is the public profile page)
+const BUSINESS_PORTAL_ROUTES = [
+  "/business/dashboard",
+  "/business/manage-listings",
+  "/business/post-job",
+  "/business/applicants",
+  "/business/company-profile",
+  "/business/interviews",
+  "/business/messages",
+  "/business/availability",
+  "/business/analytics",
+  "/business/settings",
+];
 // Routes that require the "admin" role
 const ADMIN_ROUTES_PREFIX = "/admin";
 
@@ -31,7 +43,9 @@ export async function middleware(request: NextRequest) {
   const isWorkerRoute = WORKER_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
-  const isBusinessRoute = pathname.startsWith(BUSINESS_ROUTES_PREFIX);
+  const isBusinessRoute = BUSINESS_PORTAL_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
   const isAdminRoute = pathname.startsWith(ADMIN_ROUTES_PREFIX);
 
   if (!isWorkerRoute && !isBusinessRoute && !isAdminRoute) {
