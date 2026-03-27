@@ -639,13 +639,16 @@ function BusinessSetup({
       setUploading(false);
     }
 
-    // Update user role
-    const { error: userError } = await supabase.from("users").upsert({
-      id: user.id,
-      email: user.email!,
-      full_name: user.user_metadata.full_name ?? "",
-      role: "business_owner",
-    });
+    // Update user role — use upsert with onConflict to handle existing rows
+    const { error: userError } = await supabase.from("users").upsert(
+      {
+        id: user.id,
+        email: user.email!,
+        full_name: user.user_metadata.full_name ?? businessName,
+        role: "business_owner",
+      },
+      { onConflict: "id" }
+    );
 
     if (userError) {
       console.error("User upsert error:", userError);
@@ -654,31 +657,63 @@ function BusinessSetup({
       return;
     }
 
-    // Create business profile
-    const { error: profileError } = await supabase.from("business_profiles").insert({
-      user_id: user.id,
-      business_name: businessName,
-      industries: industries,
-      website: website || null,
-      address: address || null,
-      location: location || null,
-      country: country || null,
-      resort_id: selectedResortId || null,
-      logo_url: logoUrl,
-      email: user.email ?? null,
-      is_verified: false,
-      verification_status: "unverified",
-    });
+    // Check if business profile already exists (e.g. retry)
+    const { data: existingProfile } = await supabase
+      .from("business_profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
 
-    if (profileError) {
-      console.error("Business profile insert error:", profileError);
-      alert(`Error saving profile: ${profileError.message}`);
-      setLoading(false);
-      return;
+    if (existingProfile) {
+      // Update existing profile instead of inserting
+      const { error: updateError } = await supabase
+        .from("business_profiles")
+        .update({
+          business_name: businessName,
+          industries: industries,
+          website: website || null,
+          address: address || null,
+          location: location || null,
+          country: country || null,
+          resort_id: selectedResortId || null,
+          logo_url: logoUrl || undefined,
+          email: user.email ?? null,
+        })
+        .eq("user_id", user.id);
+
+      if (updateError) {
+        console.error("Business profile update error:", updateError);
+        alert(`Error updating profile: ${updateError.message}`);
+        setLoading(false);
+        return;
+      }
+    } else {
+      // Create business profile
+      const { error: profileError } = await supabase.from("business_profiles").insert({
+        user_id: user.id,
+        business_name: businessName,
+        industries: industries,
+        website: website || null,
+        address: address || null,
+        location: location || null,
+        country: country || null,
+        resort_id: selectedResortId || null,
+        logo_url: logoUrl,
+        email: user.email ?? null,
+        is_verified: false,
+        verification_status: "unverified",
+      });
+
+      if (profileError) {
+        console.error("Business profile insert error:", profileError);
+        alert(`Error saving profile: ${profileError.message}`);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(false);
-    router.push("/business/dashboard");
+    router.push("/business/company-profile");
   };
 
   return (
