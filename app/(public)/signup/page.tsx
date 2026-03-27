@@ -31,7 +31,8 @@ export default function SignupPage() {
         password,
         options: {
           data: {
-            full_name: `${firstName.trim()} ${lastName.trim()}`,
+            full_name: accountType === "business" ? firstName.trim() : `${firstName.trim()} ${lastName.trim()}`,
+            business_name: accountType === "business" ? firstName.trim() : undefined,
             account_type: accountType,
           },
         },
@@ -162,14 +163,6 @@ export default function SignupPage() {
             </button>
           </div>
 
-          {accountType === "business" && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg bg-secondary/5 px-3 py-2.5 text-xs text-secondary">
-              <svg className="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-              </svg>
-              <span>Business accounts let you post jobs, manage applicants, and conduct interviews. Your data is kept separate from worker accounts.</span>
-            </div>
-          )}
 
           {/* Google OAuth — prominent */}
           <button
@@ -193,46 +186,68 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label htmlFor="firstName" className="block text-sm font-medium text-foreground/70">
-                  First name
+            {accountType === "business" ? (
+              <div>
+                <label htmlFor="businessName" className="block text-sm font-medium text-foreground/70">
+                  Business name
                 </label>
                 <div className="relative mt-1.5">
                   <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                   </svg>
                   <input
-                    id="firstName"
+                    id="businessName"
                     type="text"
                     required
                     value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    onChange={(e) => { setFirstName(e.target.value); setLastName(""); }}
                     className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-4 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
-                    placeholder="First"
+                    placeholder="Your business name"
                   />
                 </div>
               </div>
-              <div className="flex-1">
-                <label htmlFor="lastName" className="block text-sm font-medium text-foreground/70">
-                  Last name
-                </label>
-                <div className="relative mt-1.5">
-                  <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                  <input
-                    id="lastName"
-                    type="text"
-                    required
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-4 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
-                    placeholder="Last"
-                  />
+            ) : (
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-foreground/70">
+                    First name
+                  </label>
+                  <div className="relative mt-1.5">
+                    <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                    <input
+                      id="firstName"
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-4 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                      placeholder="First"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-foreground/70">
+                    Last name
+                  </label>
+                  <div className="relative mt-1.5">
+                    <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                    <input
+                      id="lastName"
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-4 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                      placeholder="Last"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-foreground/70">
