@@ -43,6 +43,9 @@ export default function SignupPage() {
         return;
       }
 
+      // Sign out immediately — user must verify email before logging in
+      await supabase.auth.signOut();
+
       router.push("/signup-confirmation");
     } catch {
       setError("Something went wrong. Please try again.");
