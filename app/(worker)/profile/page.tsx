@@ -13,7 +13,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   "Netherlands": "🇳🇱", "New Zealand": "🇳🇿", "Norway": "🇳🇴", "Poland": "🇵🇱",
   "Portugal": "🇵🇹", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
   "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "United Kingdom": "🇬🇧", "USA": "🇺🇸",
-  "United States": "🇺🇸",
+  "United States": "🇺🇸", "Country not listed": "🏔️",
 };
 
 function calcCompletion(p: WorkerProfile): number {
