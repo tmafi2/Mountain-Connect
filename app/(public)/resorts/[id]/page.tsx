@@ -195,7 +195,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
           id, title, category, position_type, pay_amount, pay_currency,
           accommodation_included, ski_pass_included, start_date,
           status, business_id,
-          business_profiles!inner(business_name, verification_status)
+          business_profiles(business_name, verification_status)
         `)
         .eq("resort_id", resortUuid)
         .eq("status", "active")

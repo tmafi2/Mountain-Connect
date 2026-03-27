@@ -98,7 +98,7 @@ function FindAJobContent() {
         const { data } = await supabase
           .from("job_posts")
           .select("*, business_profiles(business_name, verification_status), resorts(name, country)")
-          .eq("is_active", true);
+          .eq("status", "active");
 
         if (data && data.length > 0) {
           const mapped: SeedJob[] = data.map((j: Record<string, unknown>) => {

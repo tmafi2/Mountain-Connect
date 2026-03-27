@@ -271,6 +271,7 @@ export default function ListingDetailPage() {
   const id = params.id as string;
   const [listing, setListing] = useState(() => demoListings[id] || null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingPositions, setEditingPositions] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -493,6 +494,19 @@ export default function ListingDetailPage() {
     setActionLoading(null);
   };
 
+  const handleDelete = async () => {
+    setActionLoading("delete");
+    try {
+      const supabase = createClient();
+      await supabase.from("job_posts").delete().eq("id", listing.id);
+      router.push("/business/manage-listings");
+    } catch (err) {
+      console.error("Failed to delete listing:", err);
+      setActionLoading(null);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const handleSaveEdit = async () => {
     setActionLoading("save");
     try {
@@ -658,6 +672,35 @@ export default function ListingDetailPage() {
           >
             {actionLoading === "reopen" ? "Reopening…" : "Reopen Listing"}
           </button>
+        )}
+
+        {/* Delete button — always available */}
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={actionLoading !== null}
+            className="ml-auto rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
+          >
+            Delete Listing
+          </button>
+        ) : (
+          <div className="ml-auto flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2">
+            <span className="text-sm text-red-700">Delete permanently?</span>
+            <button
+              onClick={handleDelete}
+              disabled={actionLoading === "delete"}
+              className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            >
+              {actionLoading === "delete" ? "Deleting…" : "Yes, Delete"}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={actionLoading === "delete"}
+              className="rounded-md border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </div>
 
