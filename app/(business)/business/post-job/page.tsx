@@ -12,7 +12,8 @@ interface JobFormData {
   employmentType: string;
   resortName: string;
   location: string;
-  salary: string;
+  payCurrency: string;
+  payAmount: string;
   seasonStart: string;
   seasonEnd: string;
   description: string;
@@ -27,6 +28,7 @@ interface JobFormData {
   accommodationCost: string;
   urgentlyHiring: boolean;
   positions: number;
+  customPerks: string[];
 }
 
 /* ─── Constants ──────────────────────────────────────────── */
@@ -53,6 +55,21 @@ const ACCOMMODATION_TYPES = [
   "Private room",
   "Subsidy/stipend",
   "Not provided",
+];
+
+const CURRENCIES = [
+  { code: "AUD", label: "AUD $", flag: "🇦🇺" },
+  { code: "NZD", label: "NZD $", flag: "🇳🇿" },
+  { code: "CAD", label: "CAD $", flag: "🇨🇦" },
+  { code: "USD", label: "USD $", flag: "🇺🇸" },
+  { code: "EUR", label: "EUR €", flag: "🇪🇺" },
+  { code: "GBP", label: "GBP £", flag: "🇬🇧" },
+  { code: "CHF", label: "CHF", flag: "🇨🇭" },
+  { code: "JPY", label: "JPY ¥", flag: "🇯🇵" },
+  { code: "NOK", label: "NOK kr", flag: "🇳🇴" },
+  { code: "SEK", label: "SEK kr", flag: "🇸🇪" },
+  { code: "CLP", label: "CLP $", flag: "🇨🇱" },
+  { code: "ARS", label: "ARS $", flag: "🇦🇷" },
 ];
 
 /* ─── Toggle Component ───────────────────────────────────── */
@@ -97,10 +114,16 @@ export default function PostJobPage() {
   const [loading, setLoading] = useState(true);
 
   // Resort search state
-  const [resortResults, setResortResults] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [allResorts, setAllResorts] = useState<{ id: string; legacy_id: string; name: string; country: string }[]>([]);
+  const [resortSearch, setResortSearch] = useState("");
   const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
+  const [selectedResortName, setSelectedResortName] = useState("");
   const [showResortDropdown, setShowResortDropdown] = useState(false);
   const resortRef = useRef<HTMLDivElement>(null);
+
+  // Custom perks state
+  const [showCustomPerks, setShowCustomPerks] = useState(false);
+  const [newPerk, setNewPerk] = useState("");
 
   const [form, setForm] = useState<JobFormData>({
     title: "",
@@ -108,7 +131,8 @@ export default function PostJobPage() {
     employmentType: "",
     resortName: "",
     location: "",
-    salary: "",
+    payCurrency: "AUD",
+    payAmount: "",
     seasonStart: "",
     seasonEnd: "",
     description: "",
@@ -123,9 +147,10 @@ export default function PostJobPage() {
     accommodationCost: "",
     urgentlyHiring: false,
     positions: 1,
+    customPerks: [],
   });
 
-  // Fetch business profile on mount
+  // Fetch business profile + all resorts on mount
   useEffect(() => {
     (async () => {
       const supabase = createClient();
@@ -139,26 +164,21 @@ export default function PostJobPage() {
       if (bp) setBusinessId(bp.id);
       setLoading(false);
     })();
+    // Load all resorts
+    fetch("/api/search-resorts?all=1")
+      .then((r) => r.json())
+      .then((data) => setAllResorts(data || []))
+      .catch(() => {});
   }, []);
 
-  // Resort search
-  useEffect(() => {
-    if (!form.resortName.trim() || form.resortName.length < 2) {
-      setResortResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("resorts")
-        .select("id, name, country")
-        .ilike("name", `%${form.resortName}%`)
-        .limit(8);
-      setResortResults(data || []);
-      setShowResortDropdown(true);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [form.resortName]);
+  // Filter resorts client-side
+  const filteredResorts = resortSearch.trim()
+    ? allResorts.filter(
+        (r) =>
+          r.name.toLowerCase().includes(resortSearch.toLowerCase()) ||
+          r.country.toLowerCase().includes(resortSearch.toLowerCase())
+      )
+    : allResorts;
 
   // Close resort dropdown on outside click
   useEffect(() => {
@@ -181,6 +201,9 @@ export default function PostJobPage() {
 
   const buildJobRow = (status: "active" | "draft") => {
     const posType = form.employmentType === "Full-time" ? "full_time" : form.employmentType === "Part-time" ? "part_time" : "casual";
+    const salaryDisplay = form.payAmount.trim()
+      ? `${form.payCurrency} ${form.payAmount.trim()}`
+      : null;
     return {
       business_id: businessId!,
       resort_id: selectedResortId!,
@@ -188,14 +211,14 @@ export default function PostJobPage() {
       description: form.description.trim(),
       requirements: form.requirements.trim() || null,
       accommodation_included: form.housingIncluded,
-      salary_range: form.salary.trim() || null,
+      salary_range: salaryDisplay,
       start_date: form.seasonStart || null,
       end_date: form.seasonEnd || null,
       is_active: status === "active",
       category: form.category || null,
       position_type: posType,
-      pay_amount: form.salary.trim() || null,
-      pay_currency: "USD",
+      pay_amount: form.payAmount.trim() || null,
+      pay_currency: form.payCurrency || "AUD",
       housing_details: form.housingDetails.trim() || null,
       meal_perks: form.mealsIncluded,
       ski_pass_included: form.skiPassIncluded,
@@ -205,6 +228,7 @@ export default function PostJobPage() {
       positions_available: form.positions,
       accommodation_type: form.accommodationType || null,
       accommodation_cost: form.accommodationCost.trim() || null,
+      custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
       status,
     };
   };
@@ -334,36 +358,58 @@ export default function PostJobPage() {
               <label className="block text-sm font-medium text-foreground">
                 Resort / Location Name <span className="text-red-400">*</span>
               </label>
-              <input
-                value={form.resortName}
-                onChange={(e) => updateField("resortName", e.target.value)}
-                onFocus={() => resortResults.length > 0 && setShowResortDropdown(true)}
-                placeholder="Search for a resort..."
-                className={`${inputClass} ${selectedResortId ? "border-green-400 bg-green-50/30" : ""}`}
-              />
-              {selectedResortId && (
-                <span className="absolute right-3 top-9 text-green-500">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                </span>
-              )}
-              {showResortDropdown && resortResults.length > 0 && (
-                <div className="absolute z-20 mt-1 w-full rounded-xl border border-accent/40 bg-white shadow-lg max-h-48 overflow-y-auto">
-                  {resortResults.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedResortId(r.id);
-                        setForm((prev) => ({ ...prev, resortName: r.name, location: `${r.name}, ${r.country}` }));
-                        setShowResortDropdown(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-accent/20 transition-colors"
-                    >
-                      <span className="font-medium text-primary">{r.name}</span>
-                      <span className="ml-2 text-foreground/40">{r.country}</span>
-                    </button>
-                  ))}
+              {selectedResortId ? (
+                <div className="mt-1 flex items-center gap-2 rounded-xl border border-green-400 bg-green-50/30 px-4 py-2.5 shadow-sm">
+                  <svg className="h-4 w-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <span className="text-sm font-medium text-primary truncate">{selectedResortName}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedResortId(null);
+                      setSelectedResortName("");
+                      setResortSearch("");
+                      setForm((prev) => ({ ...prev, resortName: "", location: "" }));
+                    }}
+                    className="ml-auto text-foreground/40 hover:text-red-500 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <input
+                    value={resortSearch}
+                    onChange={(e) => setResortSearch(e.target.value)}
+                    onFocus={() => setShowResortDropdown(true)}
+                    placeholder="Search for a resort..."
+                    className={inputClass}
+                  />
+                  {showResortDropdown && (
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-accent/40 bg-white shadow-lg max-h-56 overflow-y-auto">
+                      {filteredResorts.length === 0 ? (
+                        <p className="px-4 py-3 text-sm text-foreground/40">No resorts found</p>
+                      ) : (
+                        filteredResorts.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedResortId(r.id);
+                              setSelectedResortName(r.name);
+                              setResortSearch("");
+                              setForm((prev) => ({ ...prev, resortName: r.name, location: `${r.name}, ${r.country}` }));
+                              setShowResortDropdown(false);
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-sm hover:bg-accent/20 transition-colors flex items-center justify-between"
+                          >
+                            <span className="font-medium text-primary">{r.name}</span>
+                            <span className="text-xs text-foreground/40">{r.country}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div>
@@ -397,12 +443,25 @@ export default function PostJobPage() {
             <label className="block text-sm font-medium text-foreground">
               Pay / Salary
             </label>
-            <input
-              value={form.salary}
-              onChange={(e) => updateField("salary", e.target.value)}
-              placeholder="e.g. CAD $22-30/hr"
-              className={inputClass}
-            />
+            <div className="mt-1 flex gap-2">
+              <select
+                value={form.payCurrency}
+                onChange={(e) => updateField("payCurrency", e.target.value)}
+                className="w-36 rounded-xl border border-accent/40 bg-white px-3 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={form.payAmount}
+                onChange={(e) => updateField("payAmount", e.target.value)}
+                placeholder="e.g. 22-30/hr"
+                className="flex-1 rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -518,6 +577,70 @@ export default function PostJobPage() {
             value={form.visaSponsorshipAvailable}
             onChange={(v) => updateField("visaSponsorshipAvailable", v)}
           />
+
+          {/* Custom Perks Toggle */}
+          <Toggle
+            label="Add Custom Perks"
+            value={showCustomPerks}
+            onChange={(v) => setShowCustomPerks(v)}
+          />
+
+          {showCustomPerks && (
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+              <p className="text-xs text-foreground/50 mb-3">Add any additional perks this role offers</p>
+              <div className="flex gap-2">
+                <input
+                  value={newPerk}
+                  onChange={(e) => setNewPerk(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newPerk.trim()) {
+                      e.preventDefault();
+                      updateField("customPerks", [...form.customPerks, newPerk.trim()]);
+                      setNewPerk("");
+                    }
+                  }}
+                  placeholder="e.g. Staff discount, Free parking, Gym access..."
+                  className="flex-1 rounded-lg border border-accent/40 bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newPerk.trim()) {
+                      updateField("customPerks", [...form.customPerks, newPerk.trim()]);
+                      setNewPerk("");
+                    }
+                  }}
+                  className="rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-white hover:bg-secondary/90 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              {form.customPerks.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {form.customPerks.map((perk, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                    >
+                      {perk}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateField(
+                            "customPerks",
+                            form.customPerks.filter((_, idx) => idx !== i)
+                          )
+                        }
+                        className="text-emerald-400 hover:text-red-500 transition-colors"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {form.housingIncluded && (
             <div>
