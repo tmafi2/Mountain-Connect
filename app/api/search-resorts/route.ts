@@ -3,15 +3,25 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() || "";
-  if (q.length < 1) return NextResponse.json([]);
+  const all = req.nextUrl.searchParams.get("all"); // ?all=1 returns every resort
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("resorts")
     .select("id, name, country")
-    .ilike("name", `%${q}%`)
-    .limit(10);
+    .order("name");
+
+  if (all) {
+    // Return all resorts (for dropdown lists)
+    query = query.limit(200);
+  } else if (q.length >= 1) {
+    query = query.ilike("name", `%${q}%`).limit(10);
+  } else {
+    return NextResponse.json([]);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("search-resorts error:", error);
