@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type LoginType = "worker" | "business";
@@ -22,6 +22,17 @@ export default function LoginPage() {
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Show errors from URL (e.g., Google OAuth role mismatch)
+  useEffect(() => {
+    const urlError = searchParams.get("error");
+    if (urlError && urlError !== "auth_failed") {
+      setError(decodeURIComponent(urlError));
+    } else if (urlError === "auth_failed") {
+      setError("Authentication failed. Please try again.");
+    }
+  }, [searchParams]);
 
   const handleBusinessClick = () => {
     setLoginType("business");
@@ -78,7 +89,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -88,13 +99,40 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect based on toggle selection, with DB role as fallback
+      // Check user's actual role from the database
       const { data: userData } = await supabase
         .from("users")
         .select("role")
+        .eq("id", signInData.user.id)
         .single();
-      const isBusiness = loginType === "business" || userData?.role === "business_owner";
-      if (isBusiness) {
+
+      const role = userData?.role;
+
+      // Admin can access any portal
+      if (role === "admin") {
+        if (loginType === "business") {
+          router.push("/business/dashboard");
+        } else {
+          router.push("/dashboard");
+        }
+        return;
+      }
+
+      // Enforce role matches the selected login type
+      if (loginType === "business" && role !== "business_owner") {
+        await supabase.auth.signOut();
+        setError("This account is registered as a worker. Please use the Seasonal Worker login.");
+        return;
+      }
+
+      if (loginType === "worker" && role === "business_owner") {
+        await supabase.auth.signOut();
+        setError("This account is registered as a business. Please use the Business login.");
+        return;
+      }
+
+      // Route to the correct dashboard
+      if (role === "business_owner") {
         router.push("/business/dashboard");
       } else {
         router.push("/dashboard");
