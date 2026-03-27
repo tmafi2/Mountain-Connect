@@ -13,6 +13,7 @@ const STATUS_STYLES: Record<BusinessVerificationStatus, { bg: string; text: stri
 
 interface BusinessRecord {
   id: string;
+  user_id: string;
   business_name: string;
   category: string | null;
   industries: string[] | null;
@@ -67,6 +68,7 @@ export default function AdminVerificationPage() {
   const handleApprove = async (id: string) => {
     setProcessing(true);
     const supabase = createClient();
+    const business = businesses.find((b) => b.id === id);
 
     const { error } = await supabase
       .from("business_profiles")
@@ -76,6 +78,23 @@ export default function AdminVerificationPage() {
     if (error) {
       alert("Error approving business: " + error.message);
     } else {
+      // Send verification notification + set celebration flag
+      if (business) {
+        try {
+          await fetch("/api/notifications/verify-business", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: business.user_id,
+              businessName: business.business_name,
+              businessId: business.id,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send verification notification:", err);
+        }
+      }
+
       // Update local state
       setBusinesses((prev) =>
         prev.map((b) => b.id === id ? { ...b, verification_status: "verified" as const } : b)

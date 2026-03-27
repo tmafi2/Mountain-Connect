@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import confetti from "canvas-confetti";
 
 export default function BusinessDashboard() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function BusinessDashboard() {
   const [listingCount, setListingCount] = useState("0");
   const [applicantCount, setApplicantCount] = useState("0");
   const [interviewCount, setInterviewCount] = useState("0");
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     if (
@@ -38,8 +41,14 @@ export default function BusinessDashboard() {
           .single();
 
         if (profile) {
+          setProfileId(profile.id);
           setCompanyName(profile.business_name || "");
           setVerificationStatus(profile.verification_status || "unverified");
+
+          // Check if we need to show the verification celebration
+          if (profile.show_verified_celebration && profile.verification_status === "verified") {
+            setShowCelebration(true);
+          }
           // Same completion calculation as company-profile page
           const fields = [
             profile.business_name,
@@ -84,6 +93,63 @@ export default function BusinessDashboard() {
       setLoading(false);
     });
   }, []);
+
+  // Fire confetti when celebration modal appears
+  const fireConfetti = useCallback(() => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    // Big initial burst
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"],
+    });
+
+    frame();
+  }, []);
+
+  useEffect(() => {
+    if (showCelebration) {
+      // Small delay so modal renders first
+      const timer = setTimeout(fireConfetti, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showCelebration, fireConfetti]);
+
+  const dismissCelebration = async () => {
+    setShowCelebration(false);
+    // Clear the flag so it doesn't show again
+    if (profileId) {
+      const supabase = createClient();
+      await supabase
+        .from("business_profiles")
+        .update({ show_verified_celebration: false })
+        .eq("id", profileId);
+    }
+  };
 
   if (loading) {
     return (
@@ -271,6 +337,82 @@ export default function BusinessDashboard() {
           </p>
         </div>
       </div>
+
+      {/* ═══ VERIFICATION CELEBRATION MODAL ═══════════════════ */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md animate-in zoom-in-95 duration-300">
+            {/* Card */}
+            <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+              {/* Green gradient header */}
+              <div className="relative bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 px-8 pt-10 pb-14 text-center">
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute -left-6 -top-6 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
+                  <div className="absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
+                </div>
+                <div className="relative">
+                  {/* Big verified badge */}
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm ring-4 ring-white/30">
+                    <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="mt-5 text-3xl font-extrabold text-white">
+                    Congratulations!
+                  </h2>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="relative -mt-6 rounded-t-3xl bg-white px-8 pb-8 pt-8 text-center">
+                <p className="text-lg font-bold text-primary">
+                  {companyName}, you have been verified
+                </p>
+                <p className="mt-2 text-sm text-foreground/50">
+                  Your business is now officially verified on Mountain Connect. Here&apos;s what that means:
+                </p>
+
+                {/* Benefits list */}
+                <div className="mt-5 space-y-3 text-left">
+                  <div className="flex items-center gap-3 rounded-xl bg-green-50 p-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100">
+                      <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-green-800">Verified badge on your profile and listings</p>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl bg-blue-50 p-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                      <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-blue-800">Priority placement in employer directory</p>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl bg-purple-50 p-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100">
+                      <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-purple-800">Increased trust from seasonal workers</p>
+                  </div>
+                </div>
+
+                {/* CTA Button */}
+                <button
+                  onClick={dismissCelebration}
+                  className="mt-6 w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-green-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-green-500/30"
+                >
+                  Let&apos;s Go!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
