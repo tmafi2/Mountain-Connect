@@ -175,6 +175,8 @@ export default function WorkerProfilePage() {
                 <span className="text-4xl">{avatarUrl.replace("flag:", "")}</span>
               ) : avatarUrl ? (
                 <Image src={avatarUrl} alt="Profile" fill className="object-cover" />
+              ) : profile?.nationality && COUNTRY_FLAGS[profile.nationality] ? (
+                <span className="text-4xl">{COUNTRY_FLAGS[profile.nationality]}</span>
               ) : (
                 <span className="text-2xl font-bold text-primary">
                   {name ? name[0].toUpperCase() : "?"}
