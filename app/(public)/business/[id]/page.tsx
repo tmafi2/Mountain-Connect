@@ -241,7 +241,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
             {jobs.map((job) => (
               <Link
                 key={job.id}
-                href={`/jobs?open=${job.id}`}
+                href={`/jobs/${job.id}`}
                 className="group block rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary hover:shadow-md"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">

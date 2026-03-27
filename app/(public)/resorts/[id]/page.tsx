@@ -754,7 +754,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                 {realJobs.map((job) => (
                   <Link
                     key={job.id}
-                    href={`/jobs?resort=${encodeURIComponent(resort.name)}&open=${job.id}`}
+                    href={`/jobs/${job.id}`}
                     className="group block rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary hover:shadow-md"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
