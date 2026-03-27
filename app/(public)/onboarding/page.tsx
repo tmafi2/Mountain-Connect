@@ -555,6 +555,7 @@ function BusinessSetup({
   const [businessName, setBusinessName] = useState("");
   const [industries, setIndustries] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
+  const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [country, setCountry] = useState("");
   const [resortQuery, setResortQuery] = useState("");
@@ -652,6 +653,7 @@ function BusinessSetup({
       business_name: businessName,
       industries: industries,
       website: website || null,
+      address: address || null,
       location: location || null,
       country: country || null,
       resort_id: selectedResortId || null,
@@ -738,38 +740,56 @@ function BusinessSetup({
           </div>
         </div>
 
-        {/* Country dropdown */}
+        {/* Business Address */}
         <div>
-          <label htmlFor="bizCountry" className="block text-sm font-medium text-foreground">
-            Country *
-          </label>
-          <select
-            id="bizCountry"
-            required
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-          >
-            <option value="">Select a country</option>
-            {BIZ_COUNTRIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Location */}
-        <div>
-          <label htmlFor="bizLocation" className="block text-sm font-medium text-foreground">
-            City / Town
+          <label htmlFor="bizAddress" className="block text-sm font-medium text-foreground">
+            Business Address
           </label>
           <input
-            id="bizLocation"
+            id="bizAddress"
             type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
             className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-            placeholder="e.g. Whistler"
+            placeholder="e.g. 123 Mountain Road"
           />
+        </div>
+
+        {/* Location — Town/Village + Country */}
+        <div>
+          <label className="block text-sm font-medium text-foreground">Location *</label>
+          <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="bizLocation" className="block text-xs text-foreground/50">
+                Town / Village
+              </label>
+              <input
+                id="bizLocation"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+                placeholder="e.g. Whistler"
+              />
+            </div>
+            <div>
+              <label htmlFor="bizCountry" className="block text-xs text-foreground/50">
+                Country
+              </label>
+              <select
+                id="bizCountry"
+                required
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              >
+                <option value="">Select a country</option>
+                {BIZ_COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Resort search */}
