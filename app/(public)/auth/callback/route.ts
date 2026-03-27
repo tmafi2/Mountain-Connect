@@ -28,15 +28,21 @@ export async function GET(request: Request) {
 
         const role = userData?.role;
 
-        // Determine account type from URL param, or fall back to user metadata
-        const accountType = type || user.user_metadata?.account_type;
+        // Determine account type — check multiple sources for reliability
+        // 1. URL param (most reliable when Supabase preserves it)
+        // 2. user_metadata.account_type (set during signUp)
+        // 3. user_metadata.business_name exists → must be business
+        const accountType =
+          type ||
+          user.user_metadata?.account_type ||
+          (user.user_metadata?.business_name ? "business" : null);
 
         // If user has no role yet, they're new — create user row and redirect to login
         if (!role) {
           const newRole = accountType === "business" ? "business_owner" : "worker";
 
           // Create the users table row with the correct role
-          await supabase.from("users").upsert(
+          const { error: upsertError } = await supabase.from("users").upsert(
             {
               id: user.id,
               email: user.email!,
@@ -45,6 +51,10 @@ export async function GET(request: Request) {
             },
             { onConflict: "id" }
           );
+
+          if (upsertError) {
+            console.error("User upsert error:", upsertError);
+          }
 
           // Sign out so user must log in manually
           await supabase.auth.signOut();
@@ -83,8 +93,9 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/dashboard`);
       }
 
-      // No user found — fall back to onboarding
-      return NextResponse.redirect(`${origin}/onboarding?type=${type || "worker"}`);
+      // No user found — redirect to login
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/login`);
     }
   }
 
