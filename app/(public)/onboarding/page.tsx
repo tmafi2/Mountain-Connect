@@ -565,6 +565,9 @@ function BusinessSetup({
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
   const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
   const [selectedResortName, setSelectedResortName] = useState("");
+
+  // Check if a string is a valid UUID
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -685,6 +688,9 @@ function BusinessSetup({
       .eq("user_id", user.id)
       .single();
 
+    // Only include resort_id if it's a valid UUID (DB column may be uuid type)
+    const safeResortId = selectedResortId && isUuid(selectedResortId) ? selectedResortId : null;
+
     if (existingProfile) {
       const { error: updateError } = await supabase
         .from("business_profiles")
@@ -695,7 +701,7 @@ function BusinessSetup({
           address: address || null,
           location: location || null,
           country: country || null,
-          resort_id: selectedResortId || null,
+          resort_id: safeResortId,
           logo_url: logoUrl || undefined,
           email: user.email ?? null,
         })
@@ -716,7 +722,7 @@ function BusinessSetup({
         address: address || null,
         location: location || null,
         country: country || null,
-        resort_id: selectedResortId || null,
+        resort_id: safeResortId,
         logo_url: logoUrl,
         email: user.email ?? null,
         is_verified: false,
