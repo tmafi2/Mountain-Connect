@@ -247,6 +247,7 @@ const COUNTRIES: { name: string; flag: string; code: string }[] = [
   { name: "United States", flag: "🇺🇸", code: "us" },
   { name: "Uruguay", flag: "🇺🇾", code: "uy" },
   { name: "Venezuela", flag: "🇻🇪", code: "ve" },
+  { name: "Country not listed", flag: "🏔️", code: "xx" },
 ];
 
 function getCountryFlag(countryName: string): string | null {

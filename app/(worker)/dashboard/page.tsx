@@ -4,31 +4,26 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-/* ─── nationality → country code mapping ─────────────────── */
-const NATIONALITY_TO_CODE: Record<string, string> = {
-  australian: "au", british: "gb", canadian: "ca", american: "us",
-  "new zealander": "nz", french: "fr", german: "de", swiss: "ch",
-  austrian: "at", japanese: "jp", "south african": "za", irish: "ie",
-  dutch: "nl", swedish: "se", norwegian: "no", italian: "it",
-  spanish: "es", brazilian: "br", chilean: "cl", argentine: "ar",
-  mexican: "mx", korean: "kr", chinese: "cn", indian: "in",
-  thai: "th", filipino: "ph", indonesian: "id", malaysian: "my",
-  singaporean: "sg", danish: "dk", finnish: "fi", polish: "pl",
-  czech: "cz", slovak: "sk", romanian: "ro", bulgarian: "bg",
-  croatian: "hr", slovenian: "si", hungarian: "hu", portuguese: "pt",
-  belgian: "be", greek: "gr", turkish: "tr", israeli: "il",
-  colombian: "co", peruvian: "pe", ecuadorian: "ec", uruguayan: "uy",
-  venezuelan: "ve",
+/* ─── country → flag emoji mapping ─────────────────────────── */
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Argentina": "🇦🇷", "Australia": "🇦🇺", "Austria": "🇦🇹", "Belgium": "🇧🇪",
+  "Brazil": "🇧🇷", "Bulgaria": "🇧🇬", "Canada": "🇨🇦", "Chile": "🇨🇱",
+  "China": "🇨🇳", "Colombia": "🇨🇴", "Croatia": "🇭🇷", "Czech Republic": "🇨🇿",
+  "Denmark": "🇩🇰", "Ecuador": "🇪🇨", "Finland": "🇫🇮", "France": "🇫🇷",
+  "Germany": "🇩🇪", "Greece": "🇬🇷", "Hungary": "🇭🇺", "India": "🇮🇳",
+  "Indonesia": "🇮🇩", "Ireland": "🇮🇪", "Israel": "🇮🇱", "Italy": "🇮🇹",
+  "Japan": "🇯🇵", "Malaysia": "🇲🇾", "Mexico": "🇲🇽", "Netherlands": "🇳🇱",
+  "New Zealand": "🇳🇿", "Norway": "🇳🇴", "Peru": "🇵🇪", "Philippines": "🇵🇭",
+  "Poland": "🇵🇱", "Portugal": "🇵🇹", "Romania": "🇷🇴", "Singapore": "🇸🇬",
+  "Slovakia": "🇸🇰", "Slovenia": "🇸🇮", "South Africa": "🇿🇦", "South Korea": "🇰🇷",
+  "Spain": "🇪🇸", "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "Thailand": "🇹🇭",
+  "Turkey": "🇹🇷", "United Kingdom": "🇬🇧", "United States": "🇺🇸",
+  "Uruguay": "🇺🇾", "Venezuela": "🇻🇪", "Country not listed": "🏔️",
 };
 
-function nationalityToCode(nationality: string): string | null {
-  if (!nationality) return null;
-  return NATIONALITY_TO_CODE[nationality.trim().toLowerCase()] || null;
-}
-
-function getFlagUrl(nationality: string): string | null {
-  const code = nationalityToCode(nationality);
-  return code ? `https://flagcdn.com/w160/${code}.png` : null;
+function getCountryFlag(name: string): string | null {
+  if (!name) return null;
+  return COUNTRY_FLAGS[name] || null;
 }
 
 export default function WorkerDashboard() {
@@ -114,11 +109,15 @@ export default function WorkerDashboard() {
         <div className="relative z-10 flex items-center gap-5">
           {/* Avatar / Flag / Initial */}
           <div className="hidden sm:block flex-shrink-0">
-            {avatarUrl ? (
+            {avatarUrl && avatarUrl.startsWith("flag:") ? (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10">
+                <span className="text-3xl">{avatarUrl.replace("flag:", "")}</span>
+              </div>
+            ) : avatarUrl ? (
               <img src={avatarUrl} alt="Profile" className="h-16 w-16 rounded-full object-cover border-2 border-white/30" />
-            ) : getFlagUrl(nationality) ? (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 overflow-hidden">
-                <img src={getFlagUrl(nationality)!} alt={`${nationality} flag`} className="h-10 w-10 object-contain" />
+            ) : getCountryFlag(nationality) ? (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10">
+                <span className="text-3xl">{getCountryFlag(nationality)}</span>
               </div>
             ) : (
               <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-2xl font-bold text-white">
