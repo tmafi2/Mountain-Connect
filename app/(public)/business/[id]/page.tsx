@@ -112,16 +112,28 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
 
       {/* ═══ HERO HEADER ═══════════════════════════════════ */}
       <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-white shadow-sm">
-        {/* Decorative gradient bar */}
-        <div className="h-28 bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] relative overflow-hidden sm:h-36">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-secondary/10 blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 h-24 w-48 rounded-full bg-secondary/8 blur-2xl" />
-          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
+        {/* Cover photo / banner */}
+        <div className="h-40 relative overflow-hidden sm:h-52">
+          {business.cover_photo_url ? (
+            <img
+              src={business.cover_photo_url}
+              alt={`${business.business_name} cover`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src="https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80"
+              alt="Mountain landscape"
+              className="h-full w-full object-cover"
+            />
+          )}
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-black/5" />
         </div>
 
         <div className="relative px-6 pb-6 sm:px-8 sm:pb-8">
-          {/* Logo — overlapping the gradient */}
-          <div className="-mt-12 flex flex-col gap-5 sm:-mt-14 sm:flex-row sm:items-end">
+          {/* Logo — overlapping the cover photo */}
+          <div className="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end">
             {business.logo_url ? (
               <img
                 src={business.logo_url}

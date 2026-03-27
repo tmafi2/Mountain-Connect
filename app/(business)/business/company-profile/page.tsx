@@ -20,6 +20,7 @@ interface ProfileFormData {
   location: string;
   country: string;
   logo_url: string;
+  cover_photo_url: string;
   instagram: string;
   facebook: string;
   linkedin: string;
@@ -120,6 +121,12 @@ export default function CompanyProfilePage() {
   const [uploading, setUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  // Cover photo upload
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string>("");
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   // Resort search
   const [resortQuery, setResortQuery] = useState("");
   const [allResorts, setAllResorts] = useState<{ id: string; name: string; country: string }[]>([]);
@@ -138,6 +145,7 @@ export default function CompanyProfilePage() {
     location: "",
     country: "",
     logo_url: "",
+    cover_photo_url: "",
     instagram: "",
     facebook: "",
     linkedin: "",
@@ -186,6 +194,7 @@ export default function CompanyProfilePage() {
           location: profile.location ?? "",
           country: typeof profile.country === "string" ? profile.country : "",
           logo_url: profile.logo_url ?? "",
+          cover_photo_url: profile.cover_photo_url ?? "",
           instagram: social.instagram ?? "",
           facebook: social.facebook ?? "",
           linkedin: social.linkedin ?? "",
@@ -196,6 +205,12 @@ export default function CompanyProfilePage() {
         // Set logo preview from existing URL
         if (profile.logo_url) {
           setLogoPreview(profile.logo_url);
+        }
+
+        // Set cover photo preview
+        if (profile.cover_photo_url) {
+          setCoverPreview(profile.cover_photo_url);
+          setCoverUrl(profile.cover_photo_url);
         }
 
         // Set resort name if resort_id exists
@@ -295,6 +310,15 @@ export default function CompanyProfilePage() {
     setSaved(false);
   };
 
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert("Cover photo must be under 5MB"); return; }
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+    setSaved(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const supabase = createClient();
@@ -364,6 +388,26 @@ export default function CompanyProfilePage() {
       setLogoFile(null);
     }
 
+    // Upload cover photo if new file selected
+    let currentCoverUrl = coverUrl || form.cover_photo_url;
+    if (coverFile) {
+      setUploading(true);
+      const coverExt = coverFile.name.split(".").pop();
+      const coverPath = `${currentUserId}/cover.${coverExt}`;
+      const { error: coverUploadError } = await supabase.storage
+        .from("business-photos")
+        .upload(coverPath, coverFile, { upsert: true });
+      if (coverUploadError) {
+        console.error("Cover photo upload error:", coverUploadError);
+      } else {
+        const { data: coverUrlData } = supabase.storage.from("business-photos").getPublicUrl(coverPath);
+        currentCoverUrl = coverUrlData.publicUrl + "?t=" + Date.now();
+        setCoverUrl(currentCoverUrl);
+      }
+      setUploading(false);
+      setCoverFile(null);
+    }
+
     const socialLinks: Record<string, string> = {};
     if (form.instagram) socialLinks.instagram = form.instagram;
     if (form.facebook) socialLinks.facebook = form.facebook;
@@ -378,6 +422,7 @@ export default function CompanyProfilePage() {
       email: form.email || null,
       location: form.location || null,
       logo_url: logoUrl || null,
+      cover_photo_url: currentCoverUrl || null,
       category: form.industries.length > 0 ? form.industries[0] : null,
       social_links: Object.keys(socialLinks).length > 0 ? socialLinks : null,
       standard_perks: form.perks.length > 0 ? form.perks : [],
@@ -491,14 +536,29 @@ export default function CompanyProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* Corporate gradient header */}
+      {/* Cover photo header */}
       <div
         className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-2xl px-8 py-10 sm:px-10 sm:py-12">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#132d4a]" />
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-3xl bg-secondary/8 blur-2xl rotate-12" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-32 w-64 rounded-full bg-secondary/6 blur-3xl" />
-        <div className="pointer-events-none absolute right-0 bottom-0 h-24 w-24 rounded-2xl bg-highlight/5 blur-xl" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+        {/* Cover photo background */}
+        {coverPreview ? (
+          <img src={coverPreview} alt="Cover" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <img src="https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80" alt="Mountain landscape" className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
+
+        {/* Cover photo upload button */}
+        <button
+          onClick={() => coverInputRef.current?.click()}
+          className="absolute top-4 right-4 z-10 flex items-center gap-1.5 rounded-lg bg-black/40 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-white/80 transition-all hover:bg-black/60 hover:text-white border border-white/20"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+          </svg>
+          {coverPreview ? "Change Cover" : "Add Cover Photo"}
+        </button>
+        <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverSelect} className="hidden" />
 
         <div className="relative flex items-start justify-between">
           <div className="flex items-center gap-4">
