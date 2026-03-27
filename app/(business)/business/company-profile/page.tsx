@@ -158,13 +158,18 @@ export default function CompanyProfilePage() {
       setUserEmail(user.email ?? "");
       setEmailVerified(!!user.email_confirmed_at);
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("business_profiles")
         .select("*")
         .eq("user_id", user.id)
         .single();
 
+      if (profileError) {
+        console.error("Error loading business profile:", profileError);
+      }
+
       if (profile) {
+        console.log("Loaded business profile:", profile.id, "columns:", Object.keys(profile));
         setProfileId(profile.id);
         setVerificationStatus(profile.verification_status ?? "unverified");
         const social = (profile.social_links as Record<string, string>) ?? {};
@@ -172,20 +177,20 @@ export default function CompanyProfilePage() {
         setForm({
           business_name: profile.business_name ?? "",
           description: profile.description ?? "",
-          industries: (profile.industries as string[]) ?? [],
+          industries: Array.isArray(profile.industries) ? profile.industries : [],
           year_established: profile.year_established ? String(profile.year_established) : "",
           website: profile.website ?? "",
           phone: profile.phone ?? "",
           email: profile.email ?? "",
-          address: (profile.address as string) ?? "",
+          address: typeof profile.address === "string" ? profile.address : "",
           location: profile.location ?? "",
-          country: (profile.country as string) ?? "",
+          country: typeof profile.country === "string" ? profile.country : "",
           logo_url: profile.logo_url ?? "",
           instagram: social.instagram ?? "",
           facebook: social.facebook ?? "",
           linkedin: social.linkedin ?? "",
-          perks: profile.standard_perks ?? [],
-          resort_id: (profile.resort_id as string) ?? null,
+          perks: Array.isArray(profile.standard_perks) ? profile.standard_perks : [],
+          resort_id: typeof profile.resort_id === "string" ? profile.resort_id : null,
         });
 
         // Set logo preview from existing URL
@@ -204,6 +209,8 @@ export default function CompanyProfilePage() {
             setSelectedResortName(resort.name);
           }
         }
+      } else {
+        console.warn("No business profile found for user:", user.id);
       }
 
       setLoading(false);
@@ -289,21 +296,64 @@ export default function CompanyProfilePage() {
     setSaving(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !profileId) {
+
+    if (!user) {
+      alert("You must be logged in to save. Please refresh and log in again.");
       setSaving(false);
       return;
     }
 
+    if (!profileId) {
+      // Profile doesn't exist yet — create it
+      console.warn("No profileId found, attempting to create business profile...");
+      const { data: newProfile, error: createError } = await supabase
+        .from("business_profiles")
+        .insert({
+          user_id: user.id,
+          business_name: form.business_name || "My Business",
+          email: form.email || user.email || null,
+          is_verified: false,
+          verification_status: "unverified",
+        })
+        .select("id")
+        .single();
+
+      if (createError) {
+        console.error("Error creating profile:", createError);
+        alert("Error creating profile: " + createError.message);
+        setSaving(false);
+        return;
+      }
+      if (newProfile) {
+        setProfileId(newProfile.id);
+        // Now continue to update with full data
+        await saveProfile(supabase, user.id, newProfile.id);
+      }
+      setSaving(false);
+      return;
+    }
+
+    await saveProfile(supabase, user.id, profileId);
+    setSaving(false);
+  };
+
+  const saveProfile = async (
+    supabase: ReturnType<typeof createClient>,
+    currentUserId: string,
+    currentProfileId: string
+  ) => {
     // Upload logo if new file selected
     let logoUrl = form.logo_url;
     if (logoFile) {
       setUploading(true);
       const fileExt = logoFile.name.split(".").pop();
-      const filePath = `${user.id}/logo.${fileExt}`;
+      const filePath = `${currentUserId}/logo.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, logoFile, { upsert: true });
-      if (!uploadError) {
+      if (uploadError) {
+        console.error("Logo upload error:", uploadError);
+      } else {
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
         logoUrl = urlData.publicUrl + "?t=" + Date.now();
       }
@@ -316,25 +366,64 @@ export default function CompanyProfilePage() {
     if (form.facebook) socialLinks.facebook = form.facebook;
     if (form.linkedin) socialLinks.linkedin = form.linkedin;
 
-    const { error } = await supabase.from("business_profiles").update({
-      business_name: form.business_name,
+    const updateData: Record<string, unknown> = {
+      business_name: form.business_name || null,
       description: form.description || null,
-      industries: form.industries.length > 0 ? form.industries : [],
       year_established: form.year_established ? parseInt(form.year_established) : null,
       website: form.website || null,
       phone: form.phone || null,
       email: form.email || null,
-      address: form.address || null,
       location: form.location || null,
-      country: form.country || null,
       logo_url: logoUrl || null,
-      resort_id: form.resort_id || null,
+      category: form.industries.length > 0 ? form.industries[0] : null,
       social_links: Object.keys(socialLinks).length > 0 ? socialLinks : null,
       standard_perks: form.perks.length > 0 ? form.perks : [],
-    }).eq("id", profileId);
+    };
+
+    // These columns may not exist yet — add them conditionally
+    // They are added by migration 00010
+    updateData.industries = form.industries.length > 0 ? form.industries : [];
+    updateData.address = form.address || null;
+    updateData.country = form.country || null;
+    updateData.resort_id = form.resort_id || null;
+
+    console.log("Saving profile:", currentProfileId, "data:", updateData);
+
+    const { error, status, statusText } = await supabase
+      .from("business_profiles")
+      .update(updateData)
+      .eq("id", currentProfileId);
+
+    console.log("Save response:", status, statusText, error);
 
     if (error) {
-      alert("Error saving profile: " + error.message);
+      console.error("Save error:", error);
+      // If error is about missing columns, retry without the new columns
+      if (error.message?.includes("column") || error.code === "PGRST204") {
+        console.warn("Retrying save without new columns (industries/address/country/resort_id)...");
+        delete updateData.industries;
+        delete updateData.address;
+        delete updateData.country;
+        delete updateData.resort_id;
+
+        const { error: retryError } = await supabase
+          .from("business_profiles")
+          .update(updateData)
+          .eq("id", currentProfileId);
+
+        if (retryError) {
+          alert("Error saving profile: " + retryError.message + "\n\nPlease check the browser console for details.");
+        } else {
+          alert("Profile saved! Note: Some fields (industries, address, country, resort) could not be saved. Please run the database migration in Supabase SQL Editor.");
+          // Update logo_url in form state
+          if (logoUrl !== form.logo_url) {
+            setForm((prev) => ({ ...prev, logo_url: logoUrl }));
+          }
+          setSaved(true);
+        }
+      } else {
+        alert("Error saving profile: " + error.message + "\n\nPlease check the browser console for details.");
+      }
     } else {
       // Update logo_url in form state
       if (logoUrl !== form.logo_url) {
@@ -342,7 +431,6 @@ export default function CompanyProfilePage() {
       }
       setSaved(true);
     }
-    setSaving(false);
   };
 
   const handleSubmitForVerification = async () => {
