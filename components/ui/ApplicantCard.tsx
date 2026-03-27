@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import type { SeedApplicant } from "@/lib/data/applications";
 
 // Helpers to normalize union types from seed data vs Supabase
@@ -48,6 +48,26 @@ export default function ApplicantCard({
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"application" | "profile" | "resume">("application");
   const statusStyle = STATUS_STYLES[applicant.status] || STATUS_STYLES.new;
+  const hasAutoViewed = useRef(false);
+
+  // Auto-mark as "viewed" the first time a business interacts with this applicant
+  const markViewed = useCallback(() => {
+    if (applicant.status === "new" && !hasAutoViewed.current && onStatusChange) {
+      hasAutoViewed.current = true;
+      onStatusChange(applicant.application_id, "viewed");
+    }
+  }, [applicant.status, applicant.application_id, onStatusChange]);
+
+  const handleExpand = () => {
+    const opening = !expanded;
+    setExpanded(opening);
+    if (opening) markViewed();
+  };
+
+  const handleTabClick = (tab: "application" | "profile" | "resume") => {
+    setActiveTab(tab);
+    markViewed();
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -73,12 +93,12 @@ export default function ApplicantCard({
       <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <button onClick={() => setExpanded(!expanded)} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-sm font-bold text-primary">
+          <button onClick={handleExpand} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-sm font-bold text-primary">
             {initials}
           </button>
 
           {/* Info */}
-          <button onClick={() => setExpanded(!expanded)} className="min-w-0 flex-1 text-left">
+          <button onClick={handleExpand} className="min-w-0 flex-1 text-left">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-primary">{applicant.worker_name}</h3>
               <span
@@ -119,7 +139,7 @@ export default function ApplicantCard({
           {/* Quick action icons */}
           <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => { setExpanded(true); setActiveTab("profile"); }}
+              onClick={() => { setExpanded(true); handleTabClick("profile"); }}
               title="View Profile"
               className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
             >
@@ -132,6 +152,7 @@ export default function ApplicantCard({
                 href={applicant.worker_resume_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => markViewed()}
                 title="View Resume"
                 className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
               >
@@ -141,7 +162,7 @@ export default function ApplicantCard({
               </a>
             ) : (
               <button
-                onClick={() => { setExpanded(true); setActiveTab("resume"); }}
+                onClick={() => { setExpanded(true); handleTabClick("resume"); }}
                 title="View Resume"
                 className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
               >
@@ -169,7 +190,7 @@ export default function ApplicantCard({
           </div>
 
           {/* Expand indicator */}
-          <button onClick={() => setExpanded(!expanded)}>
+          <button onClick={handleExpand}>
             <svg
               className={`h-4 w-4 text-foreground/30 transition-transform ${expanded ? "rotate-180" : ""}`}
               fill="none"
@@ -190,7 +211,7 @@ export default function ApplicantCard({
             {(["application", "profile", "resume"] as const).map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabClick(tab)}
                 className={`px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab
                     ? "border-b-2 border-secondary text-secondary"
