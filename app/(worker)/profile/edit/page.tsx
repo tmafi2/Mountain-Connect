@@ -196,32 +196,69 @@ const PROFICIENCY_OPTIONS = [
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "AUD", "NZD", "CAD", "JPY", "CHF"];
 
-/* ─── nationality → country code mapping ─────────────────── */
-const NATIONALITY_TO_CODE: Record<string, string> = {
-  australian: "au", british: "gb", canadian: "ca", american: "us",
-  "new zealander": "nz", french: "fr", german: "de", swiss: "ch",
-  austrian: "at", japanese: "jp", "south african": "za", irish: "ie",
-  dutch: "nl", swedish: "se", norwegian: "no", italian: "it",
-  spanish: "es", brazilian: "br", chilean: "cl", argentine: "ar",
-  mexican: "mx", korean: "kr", chinese: "cn", indian: "in",
-  thai: "th", filipino: "ph", indonesian: "id", malaysian: "my",
-  singaporean: "sg", danish: "dk", finnish: "fi", polish: "pl",
-  czech: "cz", slovak: "sk", romanian: "ro", bulgarian: "bg",
-  croatian: "hr", slovenian: "si", hungarian: "hu", portuguese: "pt",
-  belgian: "be", greek: "gr", turkish: "tr", israeli: "il",
-  colombian: "co", peruvian: "pe", ecuadorian: "ec", uruguayan: "uy",
-  venezuelan: "ve",
-};
+/* ─── countries with flags ─────────────────────────────────── */
+const COUNTRIES: { name: string; flag: string; code: string }[] = [
+  { name: "Argentina", flag: "🇦🇷", code: "ar" },
+  { name: "Australia", flag: "🇦🇺", code: "au" },
+  { name: "Austria", flag: "🇦🇹", code: "at" },
+  { name: "Belgium", flag: "🇧🇪", code: "be" },
+  { name: "Brazil", flag: "🇧🇷", code: "br" },
+  { name: "Bulgaria", flag: "🇧🇬", code: "bg" },
+  { name: "Canada", flag: "🇨🇦", code: "ca" },
+  { name: "Chile", flag: "🇨🇱", code: "cl" },
+  { name: "China", flag: "🇨🇳", code: "cn" },
+  { name: "Colombia", flag: "🇨🇴", code: "co" },
+  { name: "Croatia", flag: "🇭🇷", code: "hr" },
+  { name: "Czech Republic", flag: "🇨🇿", code: "cz" },
+  { name: "Denmark", flag: "🇩🇰", code: "dk" },
+  { name: "Ecuador", flag: "🇪🇨", code: "ec" },
+  { name: "Finland", flag: "🇫🇮", code: "fi" },
+  { name: "France", flag: "🇫🇷", code: "fr" },
+  { name: "Germany", flag: "🇩🇪", code: "de" },
+  { name: "Greece", flag: "🇬🇷", code: "gr" },
+  { name: "Hungary", flag: "🇭🇺", code: "hu" },
+  { name: "India", flag: "🇮🇳", code: "in" },
+  { name: "Indonesia", flag: "🇮🇩", code: "id" },
+  { name: "Ireland", flag: "🇮🇪", code: "ie" },
+  { name: "Israel", flag: "🇮🇱", code: "il" },
+  { name: "Italy", flag: "🇮🇹", code: "it" },
+  { name: "Japan", flag: "🇯🇵", code: "jp" },
+  { name: "Malaysia", flag: "🇲🇾", code: "my" },
+  { name: "Mexico", flag: "🇲🇽", code: "mx" },
+  { name: "Netherlands", flag: "🇳🇱", code: "nl" },
+  { name: "New Zealand", flag: "🇳🇿", code: "nz" },
+  { name: "Norway", flag: "🇳🇴", code: "no" },
+  { name: "Peru", flag: "🇵🇪", code: "pe" },
+  { name: "Philippines", flag: "🇵🇭", code: "ph" },
+  { name: "Poland", flag: "🇵🇱", code: "pl" },
+  { name: "Portugal", flag: "🇵🇹", code: "pt" },
+  { name: "Romania", flag: "🇷🇴", code: "ro" },
+  { name: "Singapore", flag: "🇸🇬", code: "sg" },
+  { name: "Slovakia", flag: "🇸🇰", code: "sk" },
+  { name: "Slovenia", flag: "🇸🇮", code: "si" },
+  { name: "South Africa", flag: "🇿🇦", code: "za" },
+  { name: "South Korea", flag: "🇰🇷", code: "kr" },
+  { name: "Spain", flag: "🇪🇸", code: "es" },
+  { name: "Sweden", flag: "🇸🇪", code: "se" },
+  { name: "Switzerland", flag: "🇨🇭", code: "ch" },
+  { name: "Thailand", flag: "🇹🇭", code: "th" },
+  { name: "Turkey", flag: "🇹🇷", code: "tr" },
+  { name: "United Kingdom", flag: "🇬🇧", code: "gb" },
+  { name: "United States", flag: "🇺🇸", code: "us" },
+  { name: "Uruguay", flag: "🇺🇾", code: "uy" },
+  { name: "Venezuela", flag: "🇻🇪", code: "ve" },
+];
 
-function nationalityToCode(nationality: string): string | null {
-  if (!nationality) return null;
-  const key = nationality.trim().toLowerCase();
-  return NATIONALITY_TO_CODE[key] || null;
+function getCountryFlag(countryName: string): string | null {
+  if (!countryName) return null;
+  const c = COUNTRIES.find((c) => c.name.toLowerCase() === countryName.trim().toLowerCase());
+  return c?.flag || null;
 }
 
-function getFlagUrl(nationality: string): string | null {
-  const code = nationalityToCode(nationality);
-  return code ? `https://flagcdn.com/w160/${code}.png` : null;
+function getFlagUrl(countryName: string): string | null {
+  if (!countryName) return null;
+  const c = COUNTRIES.find((c) => c.name.toLowerCase() === countryName.trim().toLowerCase());
+  return c ? `https://flagcdn.com/w160/${c.code}.png` : null;
 }
 
 /* ─── helpers ─────────────────────────────────────────────── */
@@ -852,13 +889,9 @@ export default function ProfileEditPage() {
                       alt="Profile photo"
                       className="h-20 w-20 rounded-full object-cover border-2 border-accent"
                     />
-                  ) : getFlagUrl(form.nationality) ? (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent bg-accent/20 overflow-hidden">
-                      <img
-                        src={getFlagUrl(form.nationality)!}
-                        alt={`${form.nationality} flag`}
-                        className="h-12 w-12 object-contain"
-                      />
+                  ) : getCountryFlag(form.nationality) ? (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent bg-accent/20">
+                      <span className="text-4xl">{getCountryFlag(form.nationality)}</span>
                     </div>
                   ) : (
                     <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/40 text-2xl text-foreground/40">
@@ -969,11 +1002,31 @@ export default function ProfileEditPage() {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
                 <Label htmlFor="nationality">Nationality *</Label>
-                <Input id="nationality" value={form.nationality} onChange={(v) => set("nationality", v)} placeholder="Australian" />
+                <select
+                  id="nationality"
+                  value={form.nationality}
+                  onChange={(e) => set("nationality", e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                >
+                  <option value="">Select country...</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <Label htmlFor="second_nat">Second Nationality</Label>
-                <Input id="second_nat" value={form.second_nationality} onChange={(v) => set("second_nationality", v)} placeholder="Optional" />
+                <select
+                  id="second_nat"
+                  value={form.second_nationality}
+                  onChange={(e) => set("second_nationality", e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                >
+                  <option value="">None</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
