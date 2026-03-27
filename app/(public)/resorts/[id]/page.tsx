@@ -806,7 +806,6 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                     </div>
 
                     <div className="mt-3 flex items-center gap-4 text-xs text-foreground/50">
-                      <span>{job.applications_count} applicant{job.applications_count !== 1 ? "s" : ""}</span>
                       {job.start_date && (
                         <span>
                           Starts{" "}

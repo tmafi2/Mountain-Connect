@@ -785,7 +785,6 @@ function JobCard({
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground/50">
         <span>Posted {timeAgo(job.created_at)}</span>
         {job.start_date && <span>{daysUntil(job.start_date)}</span>}
-        <span>{job.applications_count} applicants</span>
       </div>
       </button>
 
@@ -1001,10 +1000,6 @@ function JobDetailPanel({
                 <div>
                   <p className="font-medium text-foreground/40">Posted</p>
                   <p>{timeAgo(job.created_at)}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground/40">Applicants</p>
-                  <p>{job.applications_count}</p>
                 </div>
                 {job.start_date && (
                   <div>

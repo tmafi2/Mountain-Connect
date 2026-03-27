@@ -28,6 +28,7 @@ interface JobFormData {
   accommodationCost: string;
   urgentlyHiring: boolean;
   positions: number;
+  showPositions: boolean;
   customPerks: string[];
 }
 
@@ -147,6 +148,7 @@ export default function PostJobPage() {
     accommodationCost: "",
     urgentlyHiring: false,
     positions: 1,
+    showPositions: true,
     customPerks: [],
   });
 
@@ -229,6 +231,7 @@ export default function PostJobPage() {
       accommodation_type: form.accommodationType || null,
       accommodation_cost: form.accommodationCost.trim() || null,
       custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
+      show_positions: form.showPositions,
       status,
     };
   };
@@ -726,6 +729,12 @@ export default function PostJobPage() {
               className={inputClass}
             />
           </div>
+
+          <Toggle
+            label="Show position count to applicants"
+            value={form.showPositions}
+            onChange={(v) => updateField("showPositions", v)}
+          />
         </div>
       </div>
 
