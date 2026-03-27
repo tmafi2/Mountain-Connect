@@ -15,6 +15,7 @@ interface Business {
   industries: string[] | null;
   verification_status: string | null;
   resort_names: string[];
+  resort_ids: string[];
   active_listings: number;
 }
 
@@ -36,6 +37,24 @@ const INDUSTRY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const INDUSTRY_EMOJIS: Record<string, string> = {
+  ski_school: "🎿",
+  hospitality: "🏨",
+  food_beverage: "🍽️",
+  retail: "🛍️",
+  resort_operations: "⛷️",
+  accommodation: "🏠",
+  rental_shop: "🎿",
+  transport: "🚐",
+  entertainment: "🎭",
+  cleaning_housekeeping: "🧹",
+  construction_maintenance: "🔧",
+  childcare: "👶",
+  health_fitness: "💪",
+  tourism: "🏔️",
+  other: "📋",
+};
+
 const COUNTRIES = [
   "Australia", "Austria", "Canada", "Chile", "Finland", "France", "Germany",
   "Italy", "Japan", "New Zealand", "Norway", "South Korea", "Spain",
@@ -54,14 +73,15 @@ function getInitials(name: string) {
 /* ═══════════════════════════════════════════════════════════ */
 export default function EmployersPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [allResorts, setAllResorts] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("");
   const [industry, setIndustry] = useState("");
+  const [resort, setResort] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -98,7 +118,10 @@ export default function EmployersPage() {
           .select("business_id, resort_id")
           .in("business_id", bizIds);
 
-        let resortMap: Record<string, string[]> = {};
+        const resortMap: Record<string, string[]> = {};
+        const resortIdMap: Record<string, string[]> = {};
+        const allResortIds = new Set<string>();
+
         if (bizResorts && bizResorts.length > 0) {
           const resortIds = [...new Set(bizResorts.map((br) => br.resort_id))];
           const { data: resorts } = await supabase
@@ -113,16 +136,25 @@ export default function EmployersPage() {
 
           for (const br of bizResorts) {
             if (!resortMap[br.business_id]) resortMap[br.business_id] = [];
+            if (!resortIdMap[br.business_id]) resortIdMap[br.business_id] = [];
             const name = resortNameMap[br.resort_id];
             if (name && !resortMap[br.business_id].includes(name)) {
               resortMap[br.business_id].push(name);
+              resortIdMap[br.business_id].push(br.resort_id);
+              allResortIds.add(br.resort_id);
             }
           }
         }
 
-        // Also check direct resort_id on profiles
-        const profilesWithResort = bps.filter((b) => b.id && !resortMap[b.id]?.length);
-        // We'll handle this if needed
+        // Get all resorts for the dropdown
+        const { data: allResortsData } = await supabase
+          .from("resorts")
+          .select("id, name")
+          .order("name", { ascending: true });
+
+        if (allResortsData) {
+          setAllResorts(allResortsData);
+        }
 
         const mapped: Business[] = bps.map((b) => ({
           id: b.id,
@@ -134,6 +166,7 @@ export default function EmployersPage() {
           industries: b.industries,
           verification_status: b.verification_status,
           resort_names: resortMap[b.id] || [],
+          resort_ids: resortIdMap[b.id] || [],
           active_listings: jobCounts[b.id] || 0,
         }));
 
@@ -145,11 +178,15 @@ export default function EmployersPage() {
     })();
   }, []);
 
+  // Determine if any filter is active
+  const hasActiveFilter = !!(search.trim() || country || industry || resort || verifiedOnly);
+
   // Filtered + sorted results
   const filtered = useMemo(() => {
+    if (!hasActiveFilter) return [];
+
     let results = businesses;
 
-    // Search
     if (search.trim()) {
       const q = search.toLowerCase();
       results = results.filter(
@@ -161,32 +198,59 @@ export default function EmployersPage() {
       );
     }
 
-    // Country
     if (country) {
       results = results.filter((b) => b.country === country);
     }
 
-    // Industry
     if (industry) {
       results = results.filter((b) => b.industries?.includes(industry));
     }
 
-    // Verified only
+    if (resort) {
+      results = results.filter((b) => b.resort_ids.includes(resort));
+    }
+
     if (verifiedOnly) {
       results = results.filter((b) => b.verification_status === "verified");
     }
 
-    // Sort: verified first, then by name
     return results.sort((a, b) => {
       const aV = a.verification_status === "verified" ? 0 : 1;
       const bV = b.verification_status === "verified" ? 0 : 1;
       if (aV !== bV) return aV - bV;
       return a.business_name.localeCompare(b.business_name);
     });
-  }, [businesses, search, country, industry, verifiedOnly]);
+  }, [businesses, search, country, industry, resort, verifiedOnly, hasActiveFilter]);
 
-  const activeFilterCount = [country, industry, verifiedOnly].filter(Boolean).length;
   const verifiedCount = businesses.filter((b) => b.verification_status === "verified").length;
+  const featuredEmployers = useMemo(
+    () => businesses.filter((b) => b.verification_status === "verified").slice(0, 4),
+    [businesses]
+  );
+
+  // Count businesses per industry for the category cards
+  const industryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const b of businesses) {
+      if (b.industries) {
+        for (const ind of b.industries) {
+          counts[ind] = (counts[ind] || 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }, [businesses]);
+
+  // Only show categories that have at least 1 business
+  const activeCategories = INDUSTRY_OPTIONS.filter((opt) => (industryCounts[opt.value] || 0) > 0);
+
+  const clearFilters = () => {
+    setSearch("");
+    setCountry("");
+    setIndustry("");
+    setResort("");
+    setVerifiedOnly(false);
+  };
 
   if (loading) {
     return (
@@ -214,7 +278,7 @@ export default function EmployersPage() {
           </div>
           <h1 className="text-2xl font-bold text-white sm:text-3xl">Employers</h1>
           <p className="mt-2 max-w-xl text-sm text-white/50">
-            Browse ski resort businesses hiring seasonal workers worldwide. Verified employers are highlighted for your confidence.
+            Discover ski resort businesses hiring seasonal workers worldwide. Search by name, browse by category, or filter by resort.
           </p>
           <div className="mt-4 flex items-center gap-4 text-sm text-white/40">
             <span>{businesses.length} employers</span>
@@ -229,231 +293,344 @@ export default function EmployersPage() {
         </div>
       </div>
 
-      {/* Search + Filter toggle */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by name, location, resort, or industry..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-accent/40 bg-white py-2.5 pl-10 pr-4 text-sm text-primary placeholder-foreground/40 shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-          />
-        </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-colors ${
-            showFilters || activeFilterCount > 0
-              ? "border-secondary bg-secondary/10 text-secondary"
-              : "border-accent/40 bg-white text-foreground/60 hover:border-secondary/50"
-          }`}
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-white">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
+      {/* Search bar */}
+      <div className="relative">
+        <svg className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Search employers by name, location, or resort..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-2xl border border-accent/40 bg-white py-3.5 pl-12 pr-4 text-sm text-primary placeholder-foreground/40 shadow-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+        />
       </div>
 
-      {/* Filter panel */}
-      {showFilters && (
-        <div className="mt-3 rounded-xl border border-accent/40 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-[180px] flex-1">
-              <label className="mb-1 block text-xs font-medium text-foreground/50">Country</label>
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="w-full rounded-lg border border-accent/40 bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-              >
-                <option value="">All countries</option>
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+      {/* Filter row — always visible */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <select
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        >
+          <option value="">All Countries</option>
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        <select
+          value={resort}
+          onChange={(e) => setResort(e.target.value)}
+          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        >
+          <option value="">All Resorts</option>
+          {allResorts.map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
+
+        <select
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value)}
+          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        >
+          <option value="">All Industries</option>
+          {INDUSTRY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-foreground/70 shadow-sm hover:border-secondary/50 transition-colors">
+          <input
+            type="checkbox"
+            checked={verifiedOnly}
+            onChange={(e) => setVerifiedOnly(e.target.checked)}
+            className="h-4 w-4 rounded border-accent text-secondary focus:ring-secondary"
+          />
+          Verified only
+        </label>
+
+        {hasActiveFilter && (
+          <button
+            onClick={clearFilters}
+            className="rounded-xl px-4 py-2.5 text-sm font-medium text-secondary hover:bg-secondary/10 transition-colors"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/*  LANDING VIEW — shown when no filters are active       */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {!hasActiveFilter && (
+        <div className="mt-8 space-y-10">
+
+          {/* Browse by Category */}
+          <div>
+            <h2 className="text-lg font-bold text-primary mb-4">Browse by Category</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {activeCategories.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setIndustry(cat.value)}
+                  className="group flex items-center gap-3 rounded-2xl border border-accent/40 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md hover:shadow-secondary/5"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-xl group-hover:bg-secondary/20 transition-colors">
+                    {INDUSTRY_EMOJIS[cat.value] || "📋"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-primary group-hover:text-secondary transition-colors truncate">
+                      {cat.label}
+                    </p>
+                    <p className="text-xs text-foreground/40">
+                      {industryCounts[cat.value]} employer{industryCounts[cat.value] !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </button>
+              ))}
             </div>
-            <div className="min-w-[180px] flex-1">
-              <label className="mb-1 block text-xs font-medium text-foreground/50">Industry</label>
-              <select
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                className="w-full rounded-lg border border-accent/40 bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-              >
-                <option value="">All industries</option>
-                {INDUSTRY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+          </div>
+
+          {/* Featured / Verified Employers */}
+          {featuredEmployers.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Verified Employers
+                </h2>
+                {verifiedCount > 4 && (
+                  <button
+                    onClick={() => setVerifiedOnly(true)}
+                    className="text-sm font-medium text-secondary hover:text-secondary/80 transition-colors"
+                  >
+                    View all {verifiedCount} →
+                  </button>
+                )}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {featuredEmployers.map((biz) => (
+                  <Link
+                    key={biz.id}
+                    href={`/business/${biz.id}`}
+                    className="group rounded-2xl border border-accent/50 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-lg hover:shadow-secondary/10"
+                  >
+                    <div className="flex items-center gap-3">
+                      {biz.logo_url ? (
+                        <img
+                          src={biz.logo_url}
+                          alt={biz.business_name}
+                          className="h-11 w-11 rounded-xl object-cover border border-accent/30 shadow-sm"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-sm font-bold text-secondary shadow-sm">
+                          {getInitials(biz.business_name)}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-primary truncate group-hover:text-secondary transition-colors">
+                          {biz.business_name}
+                        </h3>
+                        {biz.location && (
+                          <p className="text-xs text-foreground/40 truncate">{biz.location}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Verified
+                      </span>
+                      {biz.active_listings > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-foreground/40">
+                          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                          {biz.active_listings} listing{biz.active_listings !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
                 ))}
-              </select>
+              </div>
             </div>
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-accent/40 px-4 py-2 text-sm text-foreground/70 hover:border-secondary/50 transition-colors">
-              <input
-                type="checkbox"
-                checked={verifiedOnly}
-                onChange={(e) => setVerifiedOnly(e.target.checked)}
-                className="h-4 w-4 rounded border-accent text-secondary focus:ring-secondary"
-              />
-              Verified only
-            </label>
-            {activeFilterCount > 0 && (
-              <button
-                onClick={() => { setCountry(""); setIndustry(""); setVerifiedOnly(false); }}
-                className="text-xs font-medium text-secondary hover:text-secondary/80 transition-colors"
-              >
-                Clear all
-              </button>
-            )}
+          )}
+
+          {/* Prompt */}
+          <div className="rounded-2xl border border-dashed border-accent/50 bg-accent/5 p-8 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
+              <svg className="h-6 w-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground/60">
+              Use the search bar or filters above to find specific employers
+            </p>
+            <p className="mt-1 text-xs text-foreground/40">
+              Or click a category to browse employers by industry
+            </p>
           </div>
         </div>
       )}
 
-      {/* Results count */}
-      <p className="mt-4 text-xs text-foreground/40">
-        Showing {filtered.length} employer{filtered.length !== 1 ? "s" : ""}
-        {search && <> matching &ldquo;<span className="font-medium text-foreground/60">{search}</span>&rdquo;</>}
-      </p>
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/*  RESULTS VIEW — shown when filters are active          */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {hasActiveFilter && (
+        <>
+          <p className="mt-5 text-xs text-foreground/40">
+            Showing {filtered.length} employer{filtered.length !== 1 ? "s" : ""}
+            {search && <> matching &ldquo;<span className="font-medium text-foreground/60">{search}</span>&rdquo;</>}
+            {industry && <> in <span className="font-medium text-foreground/60">{INDUSTRY_LABELS[industry]}</span></>}
+            {resort && <> at <span className="font-medium text-foreground/60">{allResorts.find((r) => r.id === resort)?.name}</span></>}
+            {country && <> in <span className="font-medium text-foreground/60">{country}</span></>}
+          </p>
 
-      {/* Results grid */}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-accent/40 bg-white p-12 text-center shadow-sm">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent/20">
-              <svg className="h-7 w-7 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-foreground/60">No employers match your search.</p>
-            <p className="mt-1 text-xs text-foreground/40">Try adjusting your filters or search terms.</p>
-          </div>
-        ) : (
-          filtered.map((biz) => {
-            const isVerified = biz.verification_status === "verified";
-            return (
-              <Link
-                key={biz.id}
-                href={`/business/${biz.id}`}
-                className={`group rounded-2xl border bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-                  isVerified
-                    ? "border-accent/50 hover:border-secondary/50 hover:shadow-secondary/10"
-                    : "border-accent/30 opacity-75 hover:opacity-100 hover:border-accent"
-                }`}
-              >
-                {/* Card content */}
-                <div className="p-5">
-                  {/* Logo + Name + Verified */}
-                  <div className="flex items-start gap-3.5">
-                    {biz.logo_url ? (
-                      <img
-                        src={biz.logo_url}
-                        alt={biz.business_name}
-                        className="h-12 w-12 rounded-xl object-cover border border-accent/30 shadow-sm"
-                      />
-                    ) : (
-                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-sm ${
-                        isVerified
-                          ? "bg-secondary/15 text-secondary"
-                          : "bg-accent/30 text-foreground/40"
-                      }`}>
-                        {getInitials(biz.business_name)}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-accent/40 bg-white p-12 text-center shadow-sm">
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent/20">
+                  <svg className="h-7 w-7 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-foreground/60">No employers match your filters.</p>
+                <p className="mt-1 text-xs text-foreground/40">Try adjusting your search or filter criteria.</p>
+                <button
+                  onClick={clearFilters}
+                  className="mt-3 rounded-lg bg-secondary/10 px-4 py-2 text-xs font-medium text-secondary hover:bg-secondary/20 transition-colors"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            ) : (
+              filtered.map((biz) => {
+                const isVerified = biz.verification_status === "verified";
+                return (
+                  <Link
+                    key={biz.id}
+                    href={`/business/${biz.id}`}
+                    className={`group rounded-2xl border bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                      isVerified
+                        ? "border-accent/50 hover:border-secondary/50 hover:shadow-secondary/10"
+                        : "border-accent/30 opacity-75 hover:opacity-100 hover:border-accent"
+                    }`}
+                  >
+                    <div className="p-5">
+                      {/* Logo + Name + Verified */}
+                      <div className="flex items-start gap-3.5">
+                        {biz.logo_url ? (
+                          <img
+                            src={biz.logo_url}
+                            alt={biz.business_name}
+                            className="h-12 w-12 rounded-xl object-cover border border-accent/30 shadow-sm"
+                          />
+                        ) : (
+                          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-sm ${
+                            isVerified
+                              ? "bg-secondary/15 text-secondary"
+                              : "bg-accent/30 text-foreground/40"
+                          }`}>
+                            {getInitials(biz.business_name)}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className={`font-semibold truncate group-hover:text-secondary transition-colors ${
+                              isVerified ? "text-primary" : "text-foreground/70"
+                            }`}>
+                              {biz.business_name}
+                            </h3>
+                            {isVerified && (
+                              <span className="shrink-0 flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Verified
+                              </span>
+                            )}
+                          </div>
+                          {biz.location && (
+                            <p className="mt-0.5 text-xs text-foreground/50 truncate flex items-center gap-1">
+                              <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                              </svg>
+                              {biz.location}{biz.country ? `, ${biz.country}` : ""}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className={`font-semibold truncate group-hover:text-secondary transition-colors ${
-                          isVerified ? "text-primary" : "text-foreground/70"
-                        }`}>
-                          {biz.business_name}
-                        </h3>
-                        {isVerified && (
-                          <span className="shrink-0 flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Verified
+
+                      {/* Description */}
+                      {biz.description && (
+                        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-foreground/50">
+                          {biz.description}
+                        </p>
+                      )}
+
+                      {/* Industries */}
+                      {biz.industries && biz.industries.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {biz.industries.slice(0, 3).map((ind) => (
+                            <span
+                              key={ind}
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
+                                isVerified
+                                  ? "bg-secondary/10 text-secondary/80"
+                                  : "bg-accent/30 text-foreground/50"
+                              }`}
+                            >
+                              {INDUSTRY_LABELS[ind] || ind}
+                            </span>
+                          ))}
+                          {biz.industries.length > 3 && (
+                            <span className="rounded-full bg-accent/20 px-2.5 py-0.5 text-[10px] font-medium text-foreground/40">
+                              +{biz.industries.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Resort names + active listings */}
+                      <div className="mt-3 flex items-center justify-between border-t border-accent/30 pt-3">
+                        <div className="flex items-center gap-1 text-[11px] text-foreground/40 min-w-0">
+                          {biz.resort_names.length > 0 ? (
+                            <>
+                              <svg className="h-3 w-3 shrink-0 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+                              </svg>
+                              <span className="truncate">{biz.resort_names.slice(0, 2).join(", ")}</span>
+                              {biz.resort_names.length > 2 && <span>+{biz.resort_names.length - 2}</span>}
+                            </>
+                          ) : (
+                            <span className="text-foreground/30">No resort linked</span>
+                          )}
+                        </div>
+                        {biz.active_listings > 0 && (
+                          <span className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                            isVerified
+                              ? "bg-green-50 text-green-700"
+                              : "bg-accent/30 text-foreground/50"
+                          }`}>
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                            {biz.active_listings} active listing{biz.active_listings !== 1 ? "s" : ""}
                           </span>
                         )}
                       </div>
-                      {biz.location && (
-                        <p className="mt-0.5 text-xs text-foreground/50 truncate flex items-center gap-1">
-                          <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                          </svg>
-                          {biz.location}{biz.country ? `, ${biz.country}` : ""}
-                        </p>
-                      )}
                     </div>
-                  </div>
-
-                  {/* Description */}
-                  {biz.description && (
-                    <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-foreground/50">
-                      {biz.description}
-                    </p>
-                  )}
-
-                  {/* Industries */}
-                  {biz.industries && biz.industries.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {biz.industries.slice(0, 3).map((ind) => (
-                        <span
-                          key={ind}
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
-                            isVerified
-                              ? "bg-secondary/10 text-secondary/80"
-                              : "bg-accent/30 text-foreground/50"
-                          }`}
-                        >
-                          {INDUSTRY_LABELS[ind] || ind}
-                        </span>
-                      ))}
-                      {biz.industries.length > 3 && (
-                        <span className="rounded-full bg-accent/20 px-2.5 py-0.5 text-[10px] font-medium text-foreground/40">
-                          +{biz.industries.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Resort names + active listings */}
-                  <div className="mt-3 flex items-center justify-between border-t border-accent/30 pt-3">
-                    <div className="flex items-center gap-1 text-[11px] text-foreground/40 min-w-0">
-                      {biz.resort_names.length > 0 ? (
-                        <>
-                          <svg className="h-3 w-3 shrink-0 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
-                          </svg>
-                          <span className="truncate">{biz.resort_names.slice(0, 2).join(", ")}</span>
-                          {biz.resort_names.length > 2 && <span>+{biz.resort_names.length - 2}</span>}
-                        </>
-                      ) : (
-                        <span className="text-foreground/30">No resort linked</span>
-                      )}
-                    </div>
-                    {biz.active_listings > 0 && (
-                      <span className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                        isVerified
-                          ? "bg-green-50 text-green-700"
-                          : "bg-accent/30 text-foreground/50"
-                      }`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                        {biz.active_listings} active listing{biz.active_listings !== 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            );
-          })
-        )}
-      </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
