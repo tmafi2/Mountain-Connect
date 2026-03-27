@@ -517,7 +517,7 @@ export default function ProfileEditPage() {
       if (uploadError) throw uploadError;
 
       // Save path to profile
-      const columnName = isResume ? "resume_url" : "cover_letter_url";
+      const columnName = isResume ? "cv_url" : "cover_letter_url";
       await supabaseClient.from("worker_profiles").update({ [columnName]: path }).eq("user_id", userId);
 
       if (isResume) { setResumeUrl(path); setResumeFileName(file.name); }
@@ -539,7 +539,7 @@ export default function ProfileEditPage() {
       await supabaseClient.storage.from("documents").remove([currentPath]);
     }
 
-    const columnName = isResume ? "resume_url" : "cover_letter_url";
+    const columnName = isResume ? "cv_url" : "cover_letter_url";
     await supabaseClient.from("worker_profiles").update({ [columnName]: null }).eq("user_id", userId);
 
     if (isResume) { setResumeUrl(null); setResumeFileName(null); }
@@ -731,9 +731,9 @@ export default function ProfileEditPage() {
         }
 
         // Load document URLs
-        if (profile.resume_url) {
-          setResumeUrl(profile.resume_url);
-          setResumeFileName(profile.resume_url.split("/").pop() || "resume");
+        if (profile.cv_url) {
+          setResumeUrl(profile.cv_url);
+          setResumeFileName(profile.cv_url.split("/").pop() || "resume");
         }
         if (profile.cover_letter_url) {
           setCoverLetterUrl(profile.cover_letter_url);
