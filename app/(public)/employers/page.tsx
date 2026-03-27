@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { regionHierarchy } from "@/lib/data/region-hierarchy";
 
 /* ─── Types ────────────────────────────────────────────── */
 interface Business {
@@ -63,10 +64,29 @@ const COUNTRIES = [
 
 const INDUSTRY_OPTIONS = Object.entries(INDUSTRY_LABELS).map(([value, label]) => ({ value, label }));
 
+/* ─── Build resort → country map from region hierarchy ── */
+const RESORT_COUNTRY_MAP: Record<string, string> = {};
+const COUNTRY_RESORTS_MAP: Record<string, { id: string; name: string }[]> = {};
+for (const continent of regionHierarchy) {
+  for (const countryEntry of continent.countries) {
+    if (!COUNTRY_RESORTS_MAP[countryEntry.name]) COUNTRY_RESORTS_MAP[countryEntry.name] = [];
+    for (const resort of countryEntry.resorts) {
+      RESORT_COUNTRY_MAP[resort.id] = countryEntry.name;
+      COUNTRY_RESORTS_MAP[countryEntry.name].push({ id: resort.id, name: resort.name });
+    }
+  }
+}
+
 /* ─── Helpers ──────────────────────────────────────────── */
 function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
+
+/** Map country names from region-hierarchy to the COUNTRIES list used in business profiles */
+const COUNTRY_NAME_ALIASES: Record<string, string> = {
+  "USA": "United States",
+  "United States": "USA",
+};
 
 /* ═══════════════════════════════════════════════════════════ */
 /*  PAGE                                                       */
@@ -244,6 +264,19 @@ export default function EmployersPage() {
   // Only show categories that have at least 1 business
   const activeCategories = INDUSTRY_OPTIONS.filter((opt) => (industryCounts[opt.value] || 0) > 0);
 
+  // Filter resort dropdown options by selected country
+  const filteredResortOptions = useMemo(() => {
+    if (!country) return allResorts;
+    // Try to match the country filter value to region-hierarchy country names
+    const matchingResorts = COUNTRY_RESORTS_MAP[country] || COUNTRY_RESORTS_MAP[COUNTRY_NAME_ALIASES[country] || ""];
+    if (matchingResorts && matchingResorts.length > 0) {
+      const ids = new Set(matchingResorts.map((r) => r.id));
+      return allResorts.filter((r) => ids.has(r.id));
+    }
+    // Fallback: filter allResorts by matching country name in resort data
+    return allResorts;
+  }, [country, allResorts]);
+
   const clearFilters = () => {
     setSearch("");
     setCountry("");
@@ -278,7 +311,7 @@ export default function EmployersPage() {
           </div>
           <h1 className="text-2xl font-bold text-white sm:text-3xl">Employers</h1>
           <p className="mt-2 max-w-xl text-sm text-white/50">
-            Discover ski resort businesses hiring seasonal workers worldwide. Search by name, browse by category, or filter by resort.
+            Discover ski resort businesses hiring seasonal workers worldwide. Browse by resort, search by name, or filter by country and industry.
           </p>
           <div className="mt-4 flex items-center gap-4 text-sm text-white/40">
             <span>{businesses.length} employers</span>
@@ -311,7 +344,17 @@ export default function EmployersPage() {
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <select
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={(e) => {
+            const newCountry = e.target.value;
+            setCountry(newCountry);
+            // Reset resort if it doesn't belong to the new country
+            if (newCountry && resort) {
+              const resortCountry = RESORT_COUNTRY_MAP[resort];
+              if (resortCountry !== newCountry && COUNTRY_NAME_ALIASES[resortCountry] !== newCountry) {
+                setResort("");
+              }
+            }
+          }}
           className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         >
           <option value="">All Countries</option>
@@ -326,7 +369,7 @@ export default function EmployersPage() {
           className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         >
           <option value="">All Resorts</option>
-          {allResorts.map((r) => (
+          {filteredResortOptions.map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
           ))}
         </select>
@@ -367,32 +410,6 @@ export default function EmployersPage() {
       {/* ═══════════════════════════════════════════════════════ */}
       {!hasActiveFilter && (
         <div className="mt-8 space-y-10">
-
-          {/* Browse by Category */}
-          <div>
-            <h2 className="text-lg font-bold text-primary mb-4">Browse by Category</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {activeCategories.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => setIndustry(cat.value)}
-                  className="group flex items-center gap-3 rounded-2xl border border-accent/40 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md hover:shadow-secondary/5"
-                >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-xl group-hover:bg-secondary/20 transition-colors">
-                    {INDUSTRY_EMOJIS[cat.value] || "📋"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-primary group-hover:text-secondary transition-colors truncate">
-                      {cat.label}
-                    </p>
-                    <p className="text-xs text-foreground/40">
-                      {industryCounts[cat.value]} employer{industryCounts[cat.value] !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Featured / Verified Employers */}
           {featuredEmployers.length > 0 && (
@@ -461,6 +478,61 @@ export default function EmployersPage() {
             </div>
           )}
 
+          {/* Browse by Ski Resort — grouped by country */}
+          <div>
+            <h2 className="text-lg font-bold text-primary mb-6">Browse by Ski Resort</h2>
+            <div className="space-y-8">
+              {regionHierarchy.map((continent) => (
+                <div key={continent.name}>
+                  {/* Continent header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-base font-bold text-primary">{continent.name}</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-accent to-transparent" />
+                    <span className="rounded-full bg-primary/5 px-2.5 py-0.5 text-[10px] font-semibold text-primary/60">
+                      {continent.countries.reduce((s, c) => s + c.resorts.length, 0)} resorts
+                    </span>
+                  </div>
+
+                  <div className="space-y-5">
+                    {continent.countries.map((countryEntry) => (
+                      <div key={countryEntry.name}>
+                        {/* Country label */}
+                        <div className="mb-2.5 flex items-center gap-2">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-secondary">
+                            {countryEntry.name}
+                          </h4>
+                          <span className="text-xs text-foreground/30">
+                            {countryEntry.resorts.length} {countryEntry.resorts.length === 1 ? "resort" : "resorts"}
+                          </span>
+                        </div>
+
+                        {/* Resort cards grid */}
+                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                          {countryEntry.resorts.map((resortEntry) => (
+                            <button
+                              key={resortEntry.id}
+                              onClick={() => setResort(resortEntry.id)}
+                              className="group flex items-center gap-2.5 rounded-xl border border-accent/40 bg-white px-3.5 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md hover:shadow-secondary/5"
+                            >
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-base group-hover:bg-secondary/20 transition-colors">
+                                <svg className="h-4.5 w-4.5 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+                                </svg>
+                              </span>
+                              <span className="text-sm font-medium text-primary group-hover:text-secondary transition-colors truncate">
+                                {resortEntry.name}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Prompt */}
           <div className="rounded-2xl border border-dashed border-accent/50 bg-accent/5 p-8 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
@@ -472,7 +544,7 @@ export default function EmployersPage() {
               Use the search bar or filters above to find specific employers
             </p>
             <p className="mt-1 text-xs text-foreground/40">
-              Or click a category to browse employers by industry
+              Or click a resort above to browse employers at that location
             </p>
           </div>
         </div>
