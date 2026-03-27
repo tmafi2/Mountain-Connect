@@ -32,22 +32,26 @@ export default function BusinessDashboard() {
       if (user) {
         const { data: profile } = await supabase
           .from("business_profiles")
-          .select("id, business_name, company_name, description, category, year_established, website, phone, email, location, standard_perks")
+          .select("*")
           .eq("user_id", user.id)
           .single();
 
         if (profile) {
-          setCompanyName(profile.company_name || profile.business_name || "");
+          setCompanyName(profile.business_name || "");
+          // Same completion calculation as company-profile page
           const fields = [
-            profile.business_name || profile.company_name,
+            profile.business_name,
             profile.description,
-            profile.category,
-            profile.year_established,
+            Array.isArray(profile.industries) && profile.industries.length > 0 ? "has_industries" : "",
             profile.website,
             profile.phone,
             profile.email,
             profile.location,
-            profile.standard_perks?.length > 0 ? "has_perks" : "",
+            profile.country,
+            profile.address,
+            Array.isArray(profile.standard_perks) && profile.standard_perks.length > 0 ? "has_perks" : "",
+            profile.resort_id ? "has_resort" : "",
+            profile.logo_url ? "has_logo" : "",
           ];
           const filled = fields.filter((f) => f && String(f).length > 0).length;
           setProfileCompletion(Math.round((filled / fields.length) * 100));
