@@ -51,15 +51,23 @@ export default function LoginPage() {
       }
 
       // Verify user has admin role
-      const { data: userData } = await supabase
+      const { data: userData, error: roleError } = await supabase
         .from("users")
         .select("role")
         .eq("id", signInData.user.id)
         .single();
 
+      if (roleError) {
+        console.error("Role query error:", roleError);
+      }
+
       if (userData?.role !== "admin") {
         await supabase.auth.signOut();
-        setAdminError("Access denied. Admin privileges required.");
+        setAdminError(
+          roleError
+            ? `Database error: ${roleError.message}`
+            : `Access denied. Role found: "${userData?.role || "none"}"`
+        );
         return;
       }
 
