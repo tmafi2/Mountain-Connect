@@ -15,7 +15,60 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [businessClickCount, setBusinessClickCount] = useState(0);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
   const router = useRouter();
+
+  const handleBusinessClick = () => {
+    setLoginType("business");
+    const newCount = businessClickCount + 1;
+    setBusinessClickCount(newCount);
+    if (newCount >= 5) {
+      setShowAdminLogin(true);
+      setBusinessClickCount(0);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError(null);
+    setAdminLoading(true);
+
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword,
+      });
+
+      if (signInError) {
+        setAdminError(signInError.message);
+        return;
+      }
+
+      // Verify user has admin role
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .single();
+
+      if (userData?.role !== "admin") {
+        await supabase.auth.signOut();
+        setAdminError("Access denied. Admin privileges required.");
+        return;
+      }
+
+      router.push("/admin/dashboard");
+    } catch {
+      setAdminError("Something went wrong. Please try again.");
+    } finally {
+      setAdminLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +188,7 @@ export default function LoginPage() {
           <div className="mt-6 flex items-center rounded-xl border border-accent bg-accent/20 p-1">
             <button
               type="button"
-              onClick={() => setLoginType("worker")}
+              onClick={() => { setLoginType("worker"); setBusinessClickCount(0); }}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${
                 loginType === "worker"
                   ? "bg-white text-primary shadow-sm"
@@ -149,7 +202,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => setLoginType("business")}
+              onClick={handleBusinessClick}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-all ${
                 loginType === "business"
                   ? "bg-white text-primary shadow-sm"
@@ -280,6 +333,73 @@ export default function LoginPage() {
               Create one
             </Link>
           </p>
+
+          {/* Hidden Admin Login — appears after 5 clicks on Business */}
+          {showAdminLogin && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div className="relative w-full max-w-sm rounded-2xl border border-red-500/20 bg-[#0a1e33] p-8 shadow-2xl">
+                <button
+                  onClick={() => { setShowAdminLogin(false); setAdminError(null); }}
+                  className="absolute right-4 top-4 text-white/40 hover:text-white/70"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/20">
+                    <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Admin Access</h2>
+                    <p className="text-xs text-white/40">Restricted area</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleAdminLogin} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-white/50">Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                      placeholder="admin@mountainconnects.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-white/50">Password</label>
+                    <input
+                      type="password"
+                      required
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                      placeholder="Enter admin password"
+                    />
+                  </div>
+
+                  {adminError && (
+                    <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-xs text-red-300">
+                      {adminError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={adminLoading}
+                    className="w-full rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white transition-all hover:bg-red-500 disabled:opacity-50"
+                  >
+                    {adminLoading ? "Verifying..." : "Access Admin Portal"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Test Portal Buttons — dev only */}
           {process.env.NODE_ENV === "development" && (
