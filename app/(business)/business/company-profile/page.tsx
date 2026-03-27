@@ -122,7 +122,7 @@ export default function CompanyProfilePage() {
 
   // Resort search
   const [resortQuery, setResortQuery] = useState("");
-  const [resortResults, setResortResults] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [allResorts, setAllResorts] = useState<{ id: string; name: string; country: string }[]>([]);
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
   const [selectedResortName, setSelectedResortName] = useState("");
 
@@ -218,19 +218,22 @@ export default function CompanyProfilePage() {
     load();
   }, [router]);
 
-  // Resort search with debounce
+  // Load all resorts once on mount
   useEffect(() => {
-    if (resortQuery.length < 1) { setResortResults([]); return; }
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search-resorts?q=${encodeURIComponent(resortQuery)}`);
-        const data = await res.json();
-        setResortResults(data.resorts || data || []);
-        setResortSearchOpen(true);
-      } catch { setResortResults([]); }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [resortQuery]);
+    fetch("/api/search-resorts?all=1")
+      .then((r) => r.json())
+      .then((data) => setAllResorts(Array.isArray(data) ? data : []))
+      .catch(() => setAllResorts([]));
+  }, []);
+
+  // Filter resorts by search query
+  const filteredResorts = resortQuery.trim()
+    ? allResorts.filter(
+        (r) =>
+          r.name.toLowerCase().includes(resortQuery.toLowerCase()) ||
+          r.country.toLowerCase().includes(resortQuery.toLowerCase())
+      )
+    : allResorts;
 
   // Calculate profile completion
   const fields = [
@@ -781,33 +784,57 @@ export default function CompanyProfilePage() {
           <div className="relative">
             <label className="block text-sm font-medium text-foreground">Associated Resort</label>
             <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="h-4 w-4 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <input
                 type="text"
-                value={resortQuery || selectedResortName}
+                value={resortSearchOpen ? resortQuery : selectedResortName || resortQuery}
                 onChange={(e) => {
                   setResortQuery(e.target.value);
-                  setSelectedResortName("");
-                  updateField("resort_id", null);
+                  if (!resortSearchOpen) setResortSearchOpen(true);
                 }}
-                placeholder="Search for a ski resort..."
-                className={inputClass}
-                onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+                placeholder="Search resorts..."
+                className={inputClass + " !pl-9"}
+                onFocus={() => setResortSearchOpen(true)}
                 onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
               />
-              {form.resort_id && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+              {form.resort_id && !resortSearchOpen && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                   Linked
                 </span>
               )}
             </div>
-            {resortSearchOpen && resortResults.length > 0 && (
-              <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
-                {resortResults.map((r: { id: string; name: string; country: string }) => (
+            {resortSearchOpen && (
+              <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-xl max-h-56 overflow-y-auto">
+                {form.resort_id && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 border-b border-accent/50 px-4 py-2 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setSelectedResortName("");
+                      updateField("resort_id", null);
+                      setResortQuery("");
+                      setResortSearchOpen(false);
+                    }}
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Clear selection
+                  </button>
+                )}
+                {filteredResorts.length > 0 ? filteredResorts.map((r: { id: string; name: string; country: string }) => (
                   <button
                     key={r.id}
                     type="button"
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                    className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors ${
+                      form.resort_id === r.id ? "bg-secondary/10 text-secondary" : "hover:bg-accent/20"
+                    }`}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setSelectedResortName(r.name);
@@ -816,15 +843,24 @@ export default function CompanyProfilePage() {
                       setResortSearchOpen(false);
                     }}
                   >
-                    <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className={`h-4 w-4 shrink-0 ${form.resort_id === r.id ? "text-secondary" : "text-foreground/30"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     </svg>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <span className="font-medium text-primary">{r.name}</span>
-                      <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
                     </div>
+                    <span className="shrink-0 text-xs text-foreground/40">{r.country}</span>
+                    {form.resort_id === r.id && (
+                      <svg className="h-4 w-4 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
                   </button>
-                ))}
+                )) : (
+                  <div className="px-4 py-6 text-center text-sm text-foreground/40">
+                    No resorts found for &ldquo;{resortQuery}&rdquo;
+                  </div>
+                )}
               </div>
             )}
           </div>
