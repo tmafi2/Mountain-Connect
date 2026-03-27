@@ -28,6 +28,7 @@ interface ListingDetail {
   language: string;
   visaSponsorship: boolean;
   urgent: boolean;
+  showPositions: boolean;
   positionsAvailable: number;
   positionsFilled: number;
   applicants: number;
@@ -96,6 +97,7 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: false,
+    showPositions: true,
     positionsAvailable: 5,
     positionsFilled: 2,
     applicants: 34,
@@ -125,6 +127,7 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: true,
+    showPositions: true,
     positionsAvailable: 3,
     positionsFilled: 1,
     applicants: 12,
@@ -154,6 +157,7 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: false,
+    showPositions: true,
     positionsAvailable: 4,
     positionsFilled: 0,
     applicants: 8,
@@ -183,6 +187,7 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English or French",
     visaSponsorship: false,
     urgent: false,
+    showPositions: true,
     positionsAvailable: 2,
     positionsFilled: 1,
     applicants: 6,
@@ -212,6 +217,7 @@ const demoListings: Record<string, ListingDetail> = {
     language: "English",
     visaSponsorship: false,
     urgent: false,
+    showPositions: true,
     positionsAvailable: 10,
     positionsFilled: 5,
     applicants: 22,
@@ -279,6 +285,7 @@ export default function ListingDetailPage() {
     skiPass: listing?.skiPass || false,
     meals: listing?.meals || false,
     visaSponsorship: listing?.visaSponsorship || false,
+    showPositions: listing?.showPositions !== false,
   });
 
   // New state for tabs and panels
@@ -333,6 +340,7 @@ export default function ListingDetailPage() {
             language: jobData.language_required || "English",
             visaSponsorship: jobData.visa_sponsorship || false,
             urgent: jobData.urgently_hiring || false,
+            showPositions: jobData.show_positions !== false,
             positionsAvailable: jobData.positions_available || 1,
             positionsFilled: 0,
             applicants: 0,
@@ -351,6 +359,7 @@ export default function ListingDetailPage() {
             skiPass: jobData.ski_pass_included || false,
             meals: jobData.meal_perks || false,
             visaSponsorship: jobData.visa_sponsorship || false,
+            showPositions: jobData.show_positions !== false,
           });
         }
 
@@ -473,7 +482,29 @@ export default function ListingDetailPage() {
 
   const handleSaveEdit = async () => {
     setActionLoading("save");
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      const supabase = createClient();
+      await supabase
+        .from("job_posts")
+        .update({
+          title: editForm.title,
+          description: editForm.description,
+          requirements: editForm.requirements || null,
+          pay_amount: editForm.pay || null,
+          salary_range: editForm.pay || null,
+          start_date: editForm.startDate || null,
+          end_date: editForm.endDate || null,
+          accommodation_included: editForm.housing,
+          housing_details: editForm.housing ? editForm.housingDetails : null,
+          ski_pass_included: editForm.skiPass,
+          meal_perks: editForm.meals,
+          visa_sponsorship: editForm.visaSponsorship,
+          show_positions: editForm.showPositions,
+        })
+        .eq("id", listing.id);
+    } catch (err) {
+      console.error("Failed to save listing:", err);
+    }
     setListing({
       ...listing,
       title: editForm.title,
@@ -487,6 +518,7 @@ export default function ListingDetailPage() {
       skiPass: editForm.skiPass,
       meals: editForm.meals,
       visaSponsorship: editForm.visaSponsorship,
+      showPositions: editForm.showPositions,
     });
     setEditing(false);
     setActionLoading(null);
@@ -1250,6 +1282,26 @@ export default function ListingDetailPage() {
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editForm.visaSponsorship ? 'bg-secondary' : 'bg-gray-200'}`}
               >
                 <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.visaSponsorship ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-accent/30 pt-3">
+              <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">Visibility</p>
+            </div>
+
+            {/* Show Positions to Public */}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm text-foreground/60">Show position count publicly</span>
+                <p className="text-xs text-foreground/35 mt-0.5">Workers will see how many positions are available</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditForm({ ...editForm, showPositions: !editForm.showPositions })}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${editForm.showPositions ? 'bg-secondary' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.showPositions ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
           </div>
