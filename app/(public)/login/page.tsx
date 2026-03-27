@@ -143,10 +143,28 @@ function LoginContent() {
         return;
       }
 
-      // Route to the correct dashboard
+      // Check if user needs onboarding (no profile yet)
       if (role === "business_owner") {
+        const { data: bizProfile } = await supabase
+          .from("business_profiles")
+          .select("id")
+          .eq("user_id", signInData.user.id)
+          .single();
+        if (!bizProfile) {
+          router.push("/onboarding?type=business");
+          return;
+        }
         router.push("/business/dashboard");
       } else {
+        const { data: workerProfile } = await supabase
+          .from("worker_profiles")
+          .select("id")
+          .eq("user_id", signInData.user.id)
+          .single();
+        if (!workerProfile) {
+          router.push("/onboarding?type=worker");
+          return;
+        }
         router.push("/dashboard");
       }
     } catch {

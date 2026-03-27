@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         // Determine account type from URL param, or fall back to user metadata
         const accountType = type || user.user_metadata?.account_type;
 
-        // If user has no role yet, they're new — create user row and send to onboarding
+        // If user has no role yet, they're new — create user row and redirect to login
         if (!role) {
           const newRole = accountType === "business" ? "business_owner" : "worker";
 
@@ -46,10 +46,9 @@ export async function GET(request: Request) {
             { onConflict: "id" }
           );
 
-          if (accountType === "business") {
-            return NextResponse.redirect(`${origin}/onboarding?type=business`);
-          }
-          return NextResponse.redirect(`${origin}/onboarding?type=worker`);
+          // Sign out so user must log in manually
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/login`);
         }
 
         // ── Existing user — enforce role-based routing ──
