@@ -347,11 +347,18 @@ export default function CompanyProfilePage() {
 
   const handleSubmitForVerification = async () => {
     setSubmitting(true);
+    // Save all profile data first, then submit for verification
+    await handleSave();
     const supabase = createClient();
     if (profileId) {
-      await supabase.from("business_profiles").update({
+      const { error } = await supabase.from("business_profiles").update({
         verification_status: "pending_review",
       }).eq("id", profileId);
+      if (error) {
+        alert("Error submitting for verification: " + error.message);
+        setSubmitting(false);
+        return;
+      }
     }
     setVerificationStatus("pending_review");
     setSubmitting(false);
