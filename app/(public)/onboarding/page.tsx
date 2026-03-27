@@ -26,6 +26,20 @@ function OnboardingContent() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Fallback: if no type param, check user metadata for account_type
+  useEffect(() => {
+    if (typeParam) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const accountType = data.user?.user_metadata?.account_type;
+      if (accountType === "business") {
+        setStep("business");
+      } else if (accountType === "worker") {
+        setStep("worker");
+      }
+    });
+  }, [typeParam]);
+
   const selectRole = (role: UserRole) => {
     setStep(role === "worker" ? "worker" : "business");
   };

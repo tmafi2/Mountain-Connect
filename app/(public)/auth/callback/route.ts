@@ -15,6 +15,10 @@ export async function GET(request: Request) {
       if (type === "recovery" || next === "/reset-password") {
         return NextResponse.redirect(`${origin}/dashboard?reset_password=true`);
       }
+      // Pass account type to onboarding so it routes to the right portal
+      if (type && (type === "business" || type === "worker")) {
+        return NextResponse.redirect(`${origin}/onboarding?type=${type}`);
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
