@@ -14,6 +14,7 @@ import { resorts } from "@/lib/data/resorts";
 import ResortMap from "@/components/ui/ResortMap";
 import type { MapPin } from "@/components/ui/Map";
 import { createClient } from "@/lib/supabase/client";
+import { formatPay } from "@/lib/utils/format-pay";
 
 /* ─── filter state ────────────────────────────────────────── */
 interface Filters {
@@ -665,7 +666,7 @@ function FindAJobContent() {
                           <span className="mx-2 text-foreground/30">·</span>
                           <span className="text-foreground/60">{job.resort_name}</span>
                         </div>
-                        <span className="shrink-0 font-medium text-primary">{job.pay_amount}</span>
+                        <span className="shrink-0 font-medium text-primary">{formatPay(job.pay_amount, job.pay_currency)}</span>
                       </div>
                     </button>
                   ))}
@@ -760,7 +761,7 @@ function JobCard({
         </div>
 
         <div className="text-right">
-          <p className="text-sm font-semibold text-primary">{job.pay_amount}</p>
+          <p className="text-sm font-semibold text-primary">{formatPay(job.pay_amount, job.pay_currency)}</p>
           <p className="text-xs text-foreground/50">
             {job.position_type === "full_time"
               ? "Full Time"
@@ -929,7 +930,7 @@ function JobDetailPanel({
             {/* Quick info grid */}
             <div className="grid grid-cols-2 gap-3">
               <InfoBox label="Location" value={`${job.resort_name}, ${job.resort_country}`} />
-              <InfoBox label="Pay" value={job.pay_amount || job.salary_range || "TBD"} />
+              <InfoBox label="Pay" value={formatPay(job.pay_amount, job.pay_currency, job.salary_range)} />
               <InfoBox
                 label="Position"
                 value={

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { formatPay } from "@/lib/utils/format-pay";
 
 interface BusinessPageProps {
   params: Promise<{ id: string }>;
@@ -69,7 +70,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
   // Get active job listings
   const { data: jobs } = await supabase
     .from("job_posts")
-    .select("id, title, category, position_type, pay_amount, accommodation_included, ski_pass_included, start_date, status")
+    .select("id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, start_date, status")
     .eq("business_id", id)
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -256,7 +257,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                   </div>
                   {job.pay_amount && (
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-primary">{job.pay_amount}</p>
+                      <p className="text-sm font-semibold text-primary">{formatPay(job.pay_amount, job.pay_currency)}</p>
                       <p className="text-xs text-foreground/50">
                         {job.position_type === "full_time" ? "Full Time" : job.position_type === "part_time" ? "Part Time" : "Casual"}
                       </p>

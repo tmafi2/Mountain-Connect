@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
+import { formatPay } from "@/lib/utils/format-pay";
 import { seedJobs } from "@/lib/data/jobs";
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
@@ -96,6 +97,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     category: string | null;
     position_type: string | null;
     pay_amount: string | null;
+    pay_currency: string | null;
     accommodation_included: boolean;
     ski_pass_included: boolean;
     start_date: string | null;
@@ -169,7 +171,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
       const { data: jobs } = await supabase
         .from("job_posts")
         .select(`
-          id, title, category, position_type, pay_amount,
+          id, title, category, position_type, pay_amount, pay_currency,
           accommodation_included, ski_pass_included, start_date,
           status, business_id,
           business_profiles!inner(business_name, verification_status)
@@ -195,6 +197,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
             category: job.category,
             position_type: job.position_type,
             pay_amount: job.pay_amount,
+            pay_currency: (job as any).pay_currency || null,
             accommodation_included: job.accommodation_included || false,
             ski_pass_included: job.ski_pass_included || false,
             start_date: job.start_date,
@@ -750,7 +753,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                       {job.pay_amount && (
                         <div className="text-right">
                           <p className="text-sm font-semibold text-primary">
-                            {job.pay_amount}
+                            {formatPay(job.pay_amount, job.pay_currency)}
                           </p>
                           <p className="text-xs text-foreground/50">
                             {job.position_type === "full_time"

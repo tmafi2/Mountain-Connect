@@ -378,7 +378,7 @@ export default function ManageListingsPage() {
               resort: resort?.name || "",
               location: resort ? `${resort.name}, ${resort.country}` : "",
               status: (j.status as string) === "draft" ? "paused" : (j.status as string) as "active" | "paused" | "closed",
-              pay: (j.pay_amount as string) || (j.salary_range as string) || "",
+              pay: (j.pay_amount as string) ? `${(j.pay_currency as string) || "AUD"} $${j.pay_amount as string}` : (j.salary_range as string) || "",
               type: posType,
               posted: new Date(j.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
               startDate: j.start_date ? new Date(j.start_date as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",

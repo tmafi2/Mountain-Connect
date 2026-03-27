@@ -133,7 +133,7 @@ export default function AdminJobsPage() {
                 <td className="px-5 py-3 text-foreground/70">{job.business_name}</td>
                 <td className="px-5 py-3 text-foreground/70 capitalize">{job.position_type?.replace("_", " ") || "—"}</td>
                 <td className="px-5 py-3 text-foreground/70">
-                  {job.pay_amount ? `${job.pay_currency || "$"}${job.pay_amount}` : "—"}
+                  {job.pay_amount ? `${job.pay_currency || "AUD"} $${job.pay_amount}` : "—"}
                 </td>
                 <td className="px-5 py-3">
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
