@@ -1,69 +1,98 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-/* ─── Demo worker data ──────────────────────────────────── */
-
-interface DemoWorker {
+interface WorkerRow {
   id: string;
-  name: string;
-  email: string;
-  location: string;
-  skills: string[];
-  applications: number;
-  joined: string;
-  status: "active" | "suspended" | "flagged";
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  location_current: string | null;
+  country_of_residence: string | null;
+  nationality: string | null;
+  skills: string[] | null;
+  profile_photo_url: string | null;
+  created_at: string;
+  user_email?: string;
 }
 
-const demoWorkers: DemoWorker[] = [
-  { id: "w1", name: "Emma Johansson", email: "emma.j@example.com", location: "Stockholm, Sweden", skills: ["Ski Instruction", "First Aid", "Swedish", "English"], applications: 4, joined: "2025-09-15", status: "active" },
-  { id: "w2", name: "Sophie Chen", email: "sophie.c@example.com", location: "Melbourne, Australia", skills: ["Bartending", "Hospitality", "Barista"], applications: 3, joined: "2025-10-01", status: "active" },
-  { id: "w3", name: "Jake Thompson", email: "jake.t@example.com", location: "Queenstown, NZ", skills: ["Lift Operations", "Snow Grooming", "Driving"], applications: 2, joined: "2025-08-20", status: "active" },
-  { id: "w4", name: "Marie Dubois", email: "marie.d@example.com", location: "Chamonix, France", skills: ["Ski Instruction", "French", "English", "Children"], applications: 5, joined: "2025-07-10", status: "active" },
-  { id: "w5", name: "Liam O'Brien", email: "liam.o@example.com", location: "Dublin, Ireland", skills: ["Hospitality", "F&B", "Management"], applications: 6, joined: "2025-06-01", status: "active" },
-  { id: "w6", name: "Yuki Tanaka", email: "yuki.t@example.com", location: "Tokyo, Japan", skills: ["Snowboard Instruction", "Japanese", "English"], applications: 2, joined: "2025-11-01", status: "active" },
-  { id: "w7", name: "Carlos Mendez", email: "carlos.m@example.com", location: "Santiago, Chile", skills: ["Ski Patrol", "EMT", "Spanish", "English"], applications: 3, joined: "2025-09-05", status: "flagged" },
-  { id: "w8", name: "Anna Petrov", email: "anna.p@example.com", location: "Moscow, Russia", skills: ["Retail", "Customer Service", "Russian", "English"], applications: 1, joined: "2025-12-01", status: "active" },
-];
-
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  active: { bg: "bg-green-50", text: "text-green-700" },
-  suspended: { bg: "bg-red-50", text: "text-red-600" },
-  flagged: { bg: "bg-yellow-50", text: "text-yellow-700" },
-};
-
-/* ─── Page ──────────────────────────────────────────────── */
-
 export default function AdminWorkersPage() {
+  const [workers, setWorkers] = useState<WorkerRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "flagged" | "suspended">("all");
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+
+      // Get worker profiles
+      const { data: profiles, error } = await supabase
+        .from("worker_profiles")
+        .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading workers:", error);
+        setLoading(false);
+        return;
+      }
+
+      // Get user emails for each worker
+      if (profiles && profiles.length > 0) {
+        const userIds = profiles.map((p) => p.user_id);
+        const { data: users } = await supabase
+          .from("users")
+          .select("id, email")
+          .in("id", userIds);
+
+        const emailMap: Record<string, string> = {};
+        if (users) {
+          users.forEach((u) => { emailMap[u.id] = u.email; });
+        }
+
+        const enriched = profiles.map((p) => ({
+          ...p,
+          user_email: emailMap[p.user_id] || "",
+        }));
+
+        setWorkers(enriched as WorkerRow[]);
+      } else {
+        setWorkers([]);
+      }
+
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
-    let results = [...demoWorkers];
+    if (!search.trim()) return workers;
+    const q = search.toLowerCase();
+    return workers.filter(
+      (w) =>
+        (w.first_name && w.first_name.toLowerCase().includes(q)) ||
+        (w.last_name && w.last_name.toLowerCase().includes(q)) ||
+        (w.user_email && w.user_email.toLowerCase().includes(q)) ||
+        (w.location_current && w.location_current.toLowerCase().includes(q)) ||
+        (w.nationality && w.nationality.toLowerCase().includes(q)) ||
+        (w.skills && w.skills.some((s) => s.toLowerCase().includes(q)))
+    );
+  }, [workers, search]);
 
-    if (statusFilter !== "all") {
-      results = results.filter((w) => w.status === statusFilter);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      results = results.filter(
-        (w) =>
-          w.name.toLowerCase().includes(q) ||
-          w.email.toLowerCase().includes(q) ||
-          w.location.toLowerCase().includes(q) ||
-          w.skills.some((s) => s.toLowerCase().includes(q))
-      );
-    }
-
-    return results;
-  }, [search, statusFilter]);
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="text-2xl font-bold text-primary">All Workers</h1>
       <p className="mt-1 text-sm text-foreground/60">
-        Browse and manage all registered workers on the platform.
+        Browse all registered workers on the platform.
       </p>
 
       {/* Filters */}
@@ -74,16 +103,6 @@ export default function AdminWorkersPage() {
           placeholder="Search workers..."
           className="w-64 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none"
-        >
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="flagged">Flagged</option>
-          <option value="suspended">Suspended</option>
-        </select>
         <span className="text-sm text-foreground/50">{filtered.length} workers</span>
       </div>
 
@@ -95,43 +114,57 @@ export default function AdminWorkersPage() {
               <th className="px-5 py-3">Worker</th>
               <th className="px-5 py-3">Location</th>
               <th className="px-5 py-3">Skills</th>
-              <th className="px-5 py-3">Applications</th>
-              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Nationality</th>
               <th className="px-5 py-3">Joined</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((worker) => {
-              const style = STATUS_STYLES[worker.status];
+              const fullName = [worker.first_name, worker.last_name].filter(Boolean).join(" ") || "No name";
+              const initials = fullName !== "No name"
+                ? fullName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+                : "?";
               return (
                 <tr key={worker.id} className="border-b border-accent/30 transition-colors hover:bg-accent/5">
                   <td className="px-5 py-3">
-                    <div>
-                      <p className="font-medium text-primary">{worker.name}</p>
-                      <p className="text-xs text-foreground/40">{worker.email}</p>
+                    <div className="flex items-center gap-3">
+                      {worker.profile_photo_url ? (
+                        <img src={worker.profile_photo_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-xs font-bold text-secondary">
+                          {initials}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-primary">{fullName}</p>
+                        {worker.user_email && <p className="text-xs text-foreground/40">{worker.user_email}</p>}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-foreground/70">{worker.location}</td>
+                  <td className="px-5 py-3 text-foreground/70">
+                    {worker.location_current || worker.country_of_residence || "—"}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {worker.skills.slice(0, 3).map((skill) => (
-                        <span key={skill} className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] text-foreground/60">
-                          {skill}
-                        </span>
-                      ))}
-                      {worker.skills.length > 3 && (
-                        <span className="text-[10px] text-foreground/40">+{worker.skills.length - 3}</span>
+                      {worker.skills && worker.skills.length > 0 ? (
+                        <>
+                          {worker.skills.slice(0, 3).map((skill) => (
+                            <span key={skill} className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] text-foreground/60">
+                              {skill}
+                            </span>
+                          ))}
+                          {worker.skills.length > 3 && (
+                            <span className="text-[10px] text-foreground/40">+{worker.skills.length - 3}</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-foreground/40">—</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-center font-medium text-primary">{worker.applications}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${style.bg} ${style.text}`}>
-                      {worker.status}
-                    </span>
-                  </td>
+                  <td className="px-5 py-3 text-foreground/70">{worker.nationality || "—"}</td>
                   <td className="px-5 py-3 text-foreground/50">
-                    {new Date(worker.joined).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                    {new Date(worker.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                   </td>
                 </tr>
               );

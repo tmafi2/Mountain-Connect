@@ -1,44 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { seedBusinesses, getCategoryLabel } from "@/lib/data/businesses";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { BusinessVerificationStatus } from "@/types/database";
-
-/* ─── Types ──────────────────────────────────────────────── */
-
-interface VerificationBusiness {
-  id: string;
-  business_name: string;
-  slug: string;
-  category: string | null;
-  location: string | null;
-  description: string | null;
-  website: string | null;
-  email: string | null;
-  phone: string | null;
-  year_established: number | null;
-  verification_status: BusinessVerificationStatus;
-  resort_ids: string[];
-  submitted_at: string;
-}
-
-/* ─── Demo data ──────────────────────────────────────────── */
-
-const verificationQueue: VerificationBusiness[] = seedBusinesses.map((b) => ({
-  id: b.id,
-  business_name: b.business_name,
-  slug: b.slug || "",
-  category: b.category,
-  location: b.location,
-  description: b.description || "",
-  website: b.website,
-  email: b.email,
-  phone: b.phone,
-  year_established: b.year_established,
-  verification_status: b.verification_status,
-  resort_ids: b.resort_ids,
-  submitted_at: b.created_at,
-}));
 
 const STATUS_STYLES: Record<BusinessVerificationStatus, { bg: string; text: string; label: string }> = {
   unverified: { bg: "bg-gray-50", text: "text-gray-600", label: "Unverified" },
@@ -47,63 +11,119 @@ const STATUS_STYLES: Record<BusinessVerificationStatus, { bg: string; text: stri
   rejected: { bg: "bg-red-50", text: "text-red-600", label: "Rejected" },
 };
 
-/* ─── Page ──────────────────────────────────────────────── */
+interface BusinessRecord {
+  id: string;
+  business_name: string;
+  category: string | null;
+  industries: string[] | null;
+  location: string | null;
+  country: string | null;
+  address: string | null;
+  description: string | null;
+  website: string | null;
+  email: string | null;
+  phone: string | null;
+  year_established: number | null;
+  logo_url: string | null;
+  verification_status: BusinessVerificationStatus;
+  created_at: string;
+}
 
 export default function AdminVerificationPage() {
+  const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [statuses, setStatuses] = useState<Record<string, BusinessVerificationStatus>>(() => {
-    const initial: Record<string, BusinessVerificationStatus> = {};
-    verificationQueue.forEach((b) => {
-      initial[b.id] = b.verification_status;
-    });
-    return initial;
-  });
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [actionLog, setActionLog] = useState<{ id: string; action: string; target: string; time: string }[]>([
-    { id: "log-1", action: "Verified", target: "Whistler Blackcomb Ski & Snowboard School", time: "3 days ago" },
-    { id: "log-2", action: "Verified", target: "Fairmont Chateau Whistler", time: "5 days ago" },
-  ]);
+  const [processing, setProcessing] = useState(false);
 
-  const filtered = useMemo(() => {
-    if (filter === "pending") {
-      return verificationQueue.filter((b) => statuses[b.id] === "pending_review");
+  useEffect(() => {
+    loadBusinesses();
+  }, []);
+
+  async function loadBusinesses() {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("business_profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading businesses:", error);
     }
-    return verificationQueue;
-  }, [filter, statuses]);
+    setBusinesses((data as BusinessRecord[]) || []);
+    setLoading(false);
+  }
 
-  const pendingCount = Object.values(statuses).filter((s) => s === "pending_review").length;
-  const verifiedCount = Object.values(statuses).filter((s) => s === "verified").length;
+  const filtered = filter === "pending"
+    ? businesses.filter((b) => b.verification_status === "pending_review")
+    : businesses;
 
-  const selected = selectedId ? verificationQueue.find((b) => b.id === selectedId) : null;
+  const pendingCount = businesses.filter((b) => b.verification_status === "pending_review").length;
+  const verifiedCount = businesses.filter((b) => b.verification_status === "verified").length;
+  const selected = selectedId ? businesses.find((b) => b.id === selectedId) : null;
 
-  const handleApprove = (id: string) => {
-    const biz = verificationQueue.find((b) => b.id === id);
-    setStatuses((prev) => ({ ...prev, [id]: "verified" }));
-    setActionLog((prev) => [
-      { id: `log-${Date.now()}`, action: "Verified", target: biz?.business_name || "", time: "Just now" },
-      ...prev,
-    ]);
-    setSelectedId(null);
+  const handleApprove = async (id: string) => {
+    setProcessing(true);
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("business_profiles")
+      .update({ verification_status: "verified", is_verified: true })
+      .eq("id", id);
+
+    if (error) {
+      alert("Error approving business: " + error.message);
+    } else {
+      // Update local state
+      setBusinesses((prev) =>
+        prev.map((b) => b.id === id ? { ...b, verification_status: "verified" as const } : b)
+      );
+      setSelectedId(null);
+    }
+    setProcessing(false);
   };
 
-  const handleReject = (id: string) => {
-    const biz = verificationQueue.find((b) => b.id === id);
-    setStatuses((prev) => ({ ...prev, [id]: "rejected" }));
-    setActionLog((prev) => [
-      { id: `log-${Date.now()}`, action: `Rejected — ${rejectReason || "No reason given"}`, target: biz?.business_name || "", time: "Just now" },
-      ...prev,
-    ]);
+  const handleReject = async (id: string) => {
+    setProcessing(true);
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("business_profiles")
+      .update({ verification_status: "rejected", is_verified: false })
+      .eq("id", id);
+
+    if (error) {
+      alert("Error rejecting business: " + error.message);
+    } else {
+      setBusinesses((prev) =>
+        prev.map((b) => b.id === id ? { ...b, verification_status: "rejected" as const } : b)
+      );
+      setSelectedId(null);
+    }
     setRejectingId(null);
     setRejectReason("");
-    setSelectedId(null);
+    setProcessing(false);
   };
 
-  const FILTERS = [
-    { value: "pending" as const, label: `Pending (${pendingCount})` },
-    { value: "all" as const, label: "All Submissions" },
-  ];
+  const getIndustryLabels = (biz: BusinessRecord): string => {
+    if (biz.industries && biz.industries.length > 0) {
+      return biz.industries.map((i) => i.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())).join(", ");
+    }
+    if (biz.category) {
+      return biz.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+    return "Not specified";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -126,19 +146,26 @@ export default function AdminVerificationPage() {
 
       {/* Filter tabs */}
       <div className="mt-6 flex gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              filter === f.value
-                ? "bg-primary text-white"
-                : "bg-white text-foreground/60 border border-accent hover:bg-accent/20"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        <button
+          onClick={() => setFilter("pending")}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            filter === "pending"
+              ? "bg-primary text-white"
+              : "bg-white text-foreground/60 border border-accent hover:bg-accent/20"
+          }`}
+        >
+          Pending ({pendingCount})
+        </button>
+        <button
+          onClick={() => setFilter("all")}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            filter === "all"
+              ? "bg-primary text-white"
+              : "bg-white text-foreground/60 border border-accent hover:bg-accent/20"
+          }`}
+        >
+          All Submissions
+        </button>
       </div>
 
       {/* Split panel */}
@@ -150,13 +177,16 @@ export default function AdminVerificationPage() {
               <svg className="mx-auto h-10 w-10 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="mt-3 text-sm font-medium text-foreground/50">All caught up!</p>
-              <p className="mt-1 text-xs text-foreground/40">No pending verification requests.</p>
+              <p className="mt-3 text-sm font-medium text-foreground/50">
+                {filter === "pending" ? "All caught up!" : "No businesses yet."}
+              </p>
+              <p className="mt-1 text-xs text-foreground/40">
+                {filter === "pending" ? "No pending verification requests." : "Businesses will appear here as they register."}
+              </p>
             </div>
           ) : (
             filtered.map((biz) => {
-              const status = statuses[biz.id];
-              const style = STATUS_STYLES[status];
+              const style = STATUS_STYLES[biz.verification_status];
               return (
                 <button
                   key={biz.id}
@@ -169,13 +199,17 @@ export default function AdminVerificationPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                        {biz.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-                      </div>
+                      {biz.logo_url ? (
+                        <img src={biz.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                          {biz.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <h3 className="font-semibold text-primary">{biz.business_name}</h3>
                         <p className="mt-0.5 text-xs text-foreground/50">
-                          {getCategoryLabel(biz.category as any)} · {biz.location}
+                          {biz.location}{biz.country ? `, ${biz.country}` : ""}
                         </p>
                       </div>
                     </div>
@@ -194,28 +228,57 @@ export default function AdminVerificationPage() {
           {selected ? (
             <div className="rounded-xl border border-accent bg-white p-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-primary">{selected.business_name}</h2>
-                  <p className="mt-1 text-sm text-foreground/60">
-                    {getCategoryLabel(selected.category as any)} · {selected.location}
-                  </p>
+                <div className="flex items-start gap-4">
+                  {selected.logo_url ? (
+                    <img src={selected.logo_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
+                      {selected.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-xl font-bold text-primary">{selected.business_name}</h2>
+                    <p className="mt-1 text-sm text-foreground/60">
+                      {selected.location}{selected.country ? `, ${selected.country}` : ""}
+                    </p>
+                  </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLES[statuses[selected.id]].bg} ${STATUS_STYLES[statuses[selected.id]].text}`}>
-                  {STATUS_STYLES[statuses[selected.id]].label}
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLES[selected.verification_status].bg} ${STATUS_STYLES[selected.verification_status].text}`}>
+                  {STATUS_STYLES[selected.verification_status].label}
                 </span>
               </div>
 
               {/* Detail fields */}
               <div className="mt-6 space-y-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Description</p>
-                  <p className="mt-1 text-sm leading-relaxed text-foreground/80">{selected.description || "—"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Industry</p>
+                  <p className="mt-1 text-sm text-foreground/80">{getIndustryLabels(selected)}</p>
                 </div>
+
+                {selected.description && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Description</p>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground/80">{selected.description}</p>
+                  </div>
+                )}
+
+                {selected.address && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Address</p>
+                    <p className="mt-1 text-sm text-foreground/80">{selected.address}</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Website</p>
-                    <p className="mt-1 text-sm text-primary">{selected.website || "—"}</p>
+                    <p className="mt-1 text-sm text-primary">
+                      {selected.website ? (
+                        <a href={selected.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          {selected.website}
+                        </a>
+                      ) : "—"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Email</p>
@@ -232,15 +295,15 @@ export default function AdminVerificationPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Resorts</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Registered</p>
                   <p className="mt-1 text-sm text-foreground/80">
-                    {selected.resort_ids.length > 0 ? selected.resort_ids.join(", ") : "None specified"}
+                    {new Date(selected.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                   </p>
                 </div>
               </div>
 
               {/* Action buttons */}
-              {statuses[selected.id] === "pending_review" && (
+              {selected.verification_status === "pending_review" && (
                 <div className="mt-6 border-t border-accent pt-5">
                   {rejectingId === selected.id ? (
                     <div className="space-y-3">
@@ -255,15 +318,13 @@ export default function AdminVerificationPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleReject(selected.id)}
-                          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+                          disabled={processing}
+                          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                         >
-                          Confirm Reject
+                          {processing ? "Processing..." : "Confirm Reject"}
                         </button>
                         <button
-                          onClick={() => {
-                            setRejectingId(null);
-                            setRejectReason("");
-                          }}
+                          onClick={() => { setRejectingId(null); setRejectReason(""); }}
                           className="rounded-lg border border-accent bg-white px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent/20"
                         >
                           Cancel
@@ -274,9 +335,10 @@ export default function AdminVerificationPage() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => handleApprove(selected.id)}
-                        className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                        disabled={processing}
+                        className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                       >
-                        Approve & Verify
+                        {processing ? "Processing..." : "Approve & Verify"}
                       </button>
                       <button
                         onClick={() => setRejectingId(selected.id)}
@@ -289,21 +351,28 @@ export default function AdminVerificationPage() {
                 </div>
               )}
 
-              {statuses[selected.id] === "verified" && (
+              {selected.verification_status === "verified" && (
                 <div className="mt-6 border-t border-accent pt-5">
                   <p className="text-sm text-green-600 font-medium">This business is verified and visible on resort pages.</p>
                 </div>
               )}
 
-              {statuses[selected.id] === "rejected" && (
+              {selected.verification_status === "rejected" && (
                 <div className="mt-6 border-t border-accent pt-5">
                   <p className="text-sm text-red-600 font-medium">This business has been rejected.</p>
                   <button
                     onClick={() => handleApprove(selected.id)}
-                    className="mt-3 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+                    disabled={processing}
+                    className="mt-3 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                   >
                     Override — Approve & Verify
                   </button>
+                </div>
+              )}
+
+              {selected.verification_status === "unverified" && (
+                <div className="mt-6 border-t border-accent pt-5">
+                  <p className="text-sm text-foreground/50">This business has not yet submitted for verification.</p>
                 </div>
               )}
             </div>
@@ -311,35 +380,6 @@ export default function AdminVerificationPage() {
             <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-accent bg-white">
               <p className="text-sm text-foreground/40">Select a business to review</p>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Action log */}
-      <div className="mt-8 rounded-xl border border-accent bg-white p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Recent Actions</h2>
-        <div className="mt-4">
-          {actionLog.length === 0 ? (
-            <p className="text-sm text-foreground/40">No actions yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-accent text-left text-xs uppercase tracking-wider text-foreground/40">
-                  <th className="pb-2">Action</th>
-                  <th className="pb-2">Business</th>
-                  <th className="pb-2 text-right">When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {actionLog.map((log) => (
-                  <tr key={log.id} className="border-b border-accent/30">
-                    <td className="py-2.5 text-foreground/70">{log.action}</td>
-                    <td className="py-2.5 font-medium text-primary">{log.target}</td>
-                    <td className="py-2.5 text-right text-foreground/40">{log.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           )}
         </div>
       </div>
