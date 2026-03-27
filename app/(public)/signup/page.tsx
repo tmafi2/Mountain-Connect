@@ -35,6 +35,7 @@ export default function SignupPage() {
             business_name: accountType === "business" ? firstName.trim() : undefined,
             account_type: accountType,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=${accountType}`,
         },
       });
 

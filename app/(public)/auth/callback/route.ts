@@ -16,62 +16,78 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/dashboard?reset_password=true`);
       }
 
-      // For login flows (type is "business" or "worker"), check role enforcement
-      if (type === "business" || type === "worker") {
-        const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
-        if (user) {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("role")
-            .eq("id", user.id)
-            .single();
+      if (user) {
+        // Check if user already has a role in the users table
+        const { data: userData } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", user.id)
+          .single();
 
-          const role = userData?.role;
+        const role = userData?.role;
 
-          // If user has no role yet, they're new — send to onboarding
-          if (!role) {
-            return NextResponse.redirect(`${origin}/onboarding?type=${type}`);
+        // Determine account type from URL param, or fall back to user metadata
+        const accountType = type || user.user_metadata?.account_type;
+
+        // If user has no role yet, they're new — create user row and send to onboarding
+        if (!role) {
+          const newRole = accountType === "business" ? "business_owner" : "worker";
+
+          // Create the users table row with the correct role
+          await supabase.from("users").upsert(
+            {
+              id: user.id,
+              email: user.email!,
+              full_name: user.user_metadata?.full_name || "",
+              role: newRole,
+            },
+            { onConflict: "id" }
+          );
+
+          if (accountType === "business") {
+            return NextResponse.redirect(`${origin}/onboarding?type=business`);
           }
+          return NextResponse.redirect(`${origin}/onboarding?type=worker`);
+        }
 
-          // Admin can access any portal
-          if (role === "admin") {
-            if (type === "business") {
-              return NextResponse.redirect(`${origin}/business/dashboard`);
-            }
-            return NextResponse.redirect(`${origin}/dashboard`);
-          }
+        // ── Existing user — enforce role-based routing ──
 
-          // Enforce role matches login type
-          if (type === "business" && role !== "business_owner") {
-            await supabase.auth.signOut();
-            return NextResponse.redirect(
-              `${origin}/login?error=${encodeURIComponent("This account is registered as a worker. Please use the Seasonal Worker login.")}`
-            );
-          }
-
-          if (type === "worker" && role === "business_owner") {
-            await supabase.auth.signOut();
-            return NextResponse.redirect(
-              `${origin}/login?error=${encodeURIComponent("This account is registered as a business. Please use the Business login.")}`
-            );
-          }
-
-          // Existing user with matching role — send to their dashboard
-          if (role === "business_owner") {
+        // Admin can access any portal
+        if (role === "admin") {
+          if (accountType === "business") {
             return NextResponse.redirect(`${origin}/business/dashboard`);
           }
           return NextResponse.redirect(`${origin}/dashboard`);
         }
 
-        // Fallback: send to onboarding with type
-        return NextResponse.redirect(`${origin}/onboarding?type=${type}`);
+        // For login flows, enforce role matches the selected login type
+        if (accountType === "business" && role !== "business_owner") {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(
+            `${origin}/login?error=${encodeURIComponent("This account is registered as a worker. Please use the Seasonal Worker login.")}`
+          );
+        }
+
+        if (accountType === "worker" && role === "business_owner") {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(
+            `${origin}/login?error=${encodeURIComponent("This account is registered as a business. Please use the Business login.")}`
+          );
+        }
+
+        // Route to the correct dashboard based on actual role
+        if (role === "business_owner") {
+          return NextResponse.redirect(`${origin}/business/dashboard`);
+        }
+        return NextResponse.redirect(`${origin}/dashboard`);
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      // No user found — fall back to onboarding
+      return NextResponse.redirect(`${origin}/onboarding?type=${type || "worker"}`);
     }
   }
 
-  // Check if there's an error param from the URL (e.g., from Supabase)
   return NextResponse.redirect(`${origin}/login?error=auth_failed`);
 }
