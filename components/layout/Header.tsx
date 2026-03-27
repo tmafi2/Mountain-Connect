@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import RegionsDropdown from "./RegionsDropdown";
@@ -16,10 +16,18 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<{ role?: string; name?: string } | null>(null);
   const [checked, setChecked] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push("/login");
+  };
 
   // Track scroll for transparent → solid header
   useEffect(() => {
@@ -127,12 +135,23 @@ export default function Header() {
           {/* Auth area */}
           <div className="flex items-center gap-3">
             {checked && user ? (
-              <Link
-                href={dashboardHref}
-                className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
-              >
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  href={dashboardHref}
+                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-lg border border-accent bg-white px-3 py-2 text-sm font-medium text-foreground/60 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  <svg className="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+                  <span className="hidden sm:inline">Log out</span>
+                </button>
+              </>
             ) : checked ? (
               <>
                 <Link
