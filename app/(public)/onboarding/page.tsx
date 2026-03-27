@@ -640,15 +640,22 @@ function BusinessSetup({
     }
 
     // Update user role
-    await supabase.from("users").upsert({
+    const { error: userError } = await supabase.from("users").upsert({
       id: user.id,
       email: user.email!,
       full_name: user.user_metadata.full_name ?? "",
       role: "business_owner",
     });
 
+    if (userError) {
+      console.error("User upsert error:", userError);
+      alert(`Error saving user: ${userError.message}`);
+      setLoading(false);
+      return;
+    }
+
     // Create business profile
-    await supabase.from("business_profiles").insert({
+    const { error: profileError } = await supabase.from("business_profiles").insert({
       user_id: user.id,
       business_name: businessName,
       industries: industries,
@@ -662,6 +669,13 @@ function BusinessSetup({
       is_verified: false,
       verification_status: "unverified",
     });
+
+    if (profileError) {
+      console.error("Business profile insert error:", profileError);
+      alert(`Error saving profile: ${profileError.message}`);
+      setLoading(false);
+      return;
+    }
 
     setLoading(false);
     router.push("/business/dashboard");
