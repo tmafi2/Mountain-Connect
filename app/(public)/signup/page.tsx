@@ -26,12 +26,13 @@ export default function SignupPage() {
 
     try {
       const supabase = createClient();
-      const { error: signUpError } = await supabase.auth.signUp({
+      const fullName = accountType === "business" ? firstName.trim() : `${firstName.trim()} ${lastName.trim()}`;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: accountType === "business" ? firstName.trim() : `${firstName.trim()} ${lastName.trim()}`,
+            full_name: fullName,
             business_name: accountType === "business" ? firstName.trim() : undefined,
             account_type: accountType,
           },
@@ -42,6 +43,21 @@ export default function SignupPage() {
       if (signUpError) {
         setError(signUpError.message);
         return;
+      }
+
+      // Create the users table row NOW with the correct role
+      // This ensures the role is locked in at signup, not at email confirmation
+      if (signUpData.user) {
+        const role = accountType === "business" ? "business_owner" : "worker";
+        await supabase.from("users").upsert(
+          {
+            id: signUpData.user.id,
+            email: email,
+            full_name: fullName,
+            role: role,
+          },
+          { onConflict: "id" }
+        );
       }
 
       // Sign out immediately — user must verify email before logging in
