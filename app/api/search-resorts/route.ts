@@ -12,24 +12,26 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("resorts")
-      .select("id, name, country")
+      .select("id, legacy_id, name, country")
       .order("name");
 
     if (all) {
       query = query.limit(200);
     } else if (q.length >= 1) {
-      query = query.ilike("name", `%${q}%`).limit(10);
+      // Search by name or country
+      query = query.or(`name.ilike.%${q}%,country.ilike.%${q}%`).limit(15);
     } else {
       return NextResponse.json([]);
     }
 
     const { data, error } = await query;
 
-    // If Supabase returned results, use them
+    // If Supabase returned results, use them (with real UUIDs)
     if (!error && data && data.length > 0) {
       return NextResponse.json(
         data.map((r) => ({
-          id: r.id,
+          id: r.id,           // Real UUID from database
+          legacy_id: r.legacy_id,
           name: r.name,
           country: r.country,
         }))
@@ -39,9 +41,9 @@ export async function GET(req: NextRequest) {
     console.error("Supabase resort query failed, falling back to static data:", err);
   }
 
-  // Fallback: use static resort data
+  // Fallback: use static resort data (non-UUID IDs)
   const allStatic = staticResorts
-    .map((r) => ({ id: r.id, name: r.name, country: r.country }))
+    .map((r) => ({ id: r.id, legacy_id: r.id, name: r.name, country: r.country }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   if (all) {
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
       (r) =>
         r.name.toLowerCase().includes(lower) ||
         r.country.toLowerCase().includes(lower)
-    ).slice(0, 10);
+    ).slice(0, 15);
     return NextResponse.json(filtered);
   }
 

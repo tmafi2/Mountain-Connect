@@ -6,6 +6,7 @@ import { regions } from "@/lib/data/regions";
 import { seedJobs } from "@/lib/data/jobs";
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
+import { createClient } from "@/lib/supabase/server";
 
 interface ResortPageProps {
   params: Promise<{ id: string }>;
@@ -76,6 +77,135 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
   }
 
   const region = regions.find((r) => r.id === resort.region_id);
+
+  // ── Query Supabase for linked businesses and real job posts ──
+  let linkedBusinesses: {
+    id: string;
+    business_name: string;
+    logo_url: string | null;
+    industries: string[] | null;
+    location: string | null;
+    verification_status: string | null;
+    description: string | null;
+  }[] = [];
+  let realJobs: {
+    id: string;
+    title: string;
+    business_name: string;
+    business_verified: boolean;
+    category: string | null;
+    position_type: string | null;
+    pay_amount: string | null;
+    accommodation_included: boolean;
+    ski_pass_included: boolean;
+    start_date: string | null;
+    applications_count: number;
+  }[] = [];
+
+  try {
+    const supabase = await createClient();
+
+    // Get the resort's UUID from Supabase using legacy_id
+    const { data: dbResort } = await supabase
+      .from("resorts")
+      .select("id")
+      .eq("legacy_id", id)
+      .single();
+
+    const resortUuid = dbResort?.id;
+
+    if (resortUuid) {
+      // Get businesses linked via business_resorts junction table
+      const { data: bizResorts } = await supabase
+        .from("business_resorts")
+        .select("business_id")
+        .eq("resort_id", resortUuid);
+
+      // Also get businesses with resort_id directly on their profile
+      const { data: directBiz } = await supabase
+        .from("business_profiles")
+        .select("id, business_name, logo_url, industries, location, verification_status, description")
+        .eq("resort_id", resortUuid);
+
+      // Merge both sources
+      const bizIds = new Set<string>();
+      const allBusinesses: typeof linkedBusinesses = [];
+
+      if (directBiz) {
+        for (const b of directBiz) {
+          if (!bizIds.has(b.id)) {
+            bizIds.add(b.id);
+            allBusinesses.push(b);
+          }
+        }
+      }
+
+      if (bizResorts && bizResorts.length > 0) {
+        const junctionBizIds = bizResorts.map((br) => br.business_id).filter((bid) => !bizIds.has(bid));
+        if (junctionBizIds.length > 0) {
+          const { data: junctionBiz } = await supabase
+            .from("business_profiles")
+            .select("id, business_name, logo_url, industries, location, verification_status, description")
+            .in("id", junctionBizIds);
+          if (junctionBiz) {
+            for (const b of junctionBiz) {
+              if (!bizIds.has(b.id)) {
+                bizIds.add(b.id);
+                allBusinesses.push(b);
+              }
+            }
+          }
+        }
+      }
+
+      // Sort: verified first, then alphabetically
+      linkedBusinesses = allBusinesses.sort((a, b) => {
+        if (a.verification_status === "verified" && b.verification_status !== "verified") return -1;
+        if (b.verification_status === "verified" && a.verification_status !== "verified") return 1;
+        return a.business_name.localeCompare(b.business_name);
+      });
+
+      // Get real job posts for this resort
+      const { data: jobs } = await supabase
+        .from("job_posts")
+        .select(`
+          id, title, category, position_type, pay_amount,
+          accommodation_included, ski_pass_included, start_date,
+          status, business_id,
+          business_profiles!inner(business_name, verification_status)
+        `)
+        .eq("resort_id", resortUuid)
+        .eq("status", "active")
+        .limit(10);
+
+      if (jobs) {
+        // Get application counts
+        for (const job of jobs) {
+          const { count } = await supabase
+            .from("applications")
+            .select("id", { count: "exact", head: true })
+            .eq("job_id", job.id);
+
+          const biz = job.business_profiles as any;
+          realJobs.push({
+            id: job.id,
+            title: job.title,
+            business_name: biz?.business_name || "Unknown",
+            business_verified: biz?.verification_status === "verified",
+            category: job.category,
+            position_type: job.position_type,
+            pay_amount: job.pay_amount,
+            accommodation_included: job.accommodation_included || false,
+            ski_pass_included: job.ski_pass_included || false,
+            start_date: job.start_date,
+            applications_count: count ?? 0,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load resort data from Supabase:", err);
+  }
 
   const formatSeason = () => {
     if (!resort.season_start || !resort.season_end) return null;
@@ -369,65 +499,83 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                   </div>
                 )}
 
-                {/* Verified Employers */}
-                {(() => {
-                  const verifiedBusinesses = getVerifiedBusinessesForResort(resort.id);
-                  if (verifiedBusinesses.length === 0 && resort.main_employers) {
-                    // Fallback to text list if no verified businesses yet
-                    return (
-                      <div>
-                        <p className="mb-2 text-sm font-medium text-foreground/60">
-                          Main Employers
-                        </p>
-                        <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
-                          {resort.main_employers.map((emp) => (
-                            <li key={emp}>{emp}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  }
-                  if (verifiedBusinesses.length > 0) {
-                    return (
-                      <div>
-                        <p className="mb-3 text-sm font-medium text-foreground/60">
-                          Verified Employers
-                        </p>
-                        <div className="space-y-2">
-                          {verifiedBusinesses.map((biz) => (
-                            <Link
-                              key={biz.id}
-                              href={`/employers/${biz.slug}`}
-                              className="group flex items-center gap-3 rounded-lg border border-accent bg-white p-3 transition-all hover:border-secondary hover:shadow-sm"
-                            >
-                              {/* Logo placeholder */}
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                {/* Linked Businesses (from Supabase) */}
+                {linkedBusinesses.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-sm font-medium text-foreground/60">
+                      Businesses at {resort.name}
+                    </p>
+                    <div className="space-y-2">
+                      {linkedBusinesses.map((biz) => {
+                        const isVerified = biz.verification_status === "verified";
+                        return (
+                          <Link
+                            key={biz.id}
+                            href={`/business/${biz.id}`}
+                            className={`group flex items-center gap-3 rounded-lg border p-3 transition-all hover:shadow-sm ${
+                              isVerified
+                                ? "border-accent bg-white hover:border-secondary"
+                                : "border-accent/60 bg-accent/5 hover:border-accent"
+                            }`}
+                          >
+                            {biz.logo_url ? (
+                              <img src={biz.logo_url} alt={biz.business_name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                            ) : (
+                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                                isVerified ? "bg-primary/10 text-primary" : "bg-accent/20 text-foreground/40"
+                              }`}>
                                 {biz.business_name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-primary group-hover:text-secondary truncate">
-                                    {biz.business_name}
-                                  </p>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={`text-sm font-semibold truncate ${
+                                  isVerified ? "text-primary group-hover:text-secondary" : "text-foreground/60"
+                                }`}>
+                                  {biz.business_name}
+                                </p>
+                                {isVerified ? (
                                   <span className="shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
                                     Verified
                                   </span>
-                                </div>
-                                <p className="text-xs text-foreground/50 truncate">
-                                  {getCategoryLabel(biz.category)} · {biz.open_positions} open position{biz.open_positions !== 1 ? "s" : ""}
-                                </p>
+                                ) : (
+                                  <span className="shrink-0 rounded-full bg-accent/30 px-1.5 py-0.5 text-[10px] font-medium text-foreground/40">
+                                    Unverified
+                                  </span>
+                                )}
                               </div>
-                              <svg className="h-4 w-4 shrink-0 text-foreground/30 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
+                              <p className="text-xs text-foreground/50 truncate">
+                                {Array.isArray(biz.industries) && biz.industries.length > 0
+                                  ? biz.industries.map((ind: string) => {
+                                      const label = ind.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+                                      return label;
+                                    }).join(", ")
+                                  : biz.location || ""}
+                              </p>
+                            </div>
+                            <svg className="h-4 w-4 shrink-0 text-foreground/30 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback: Main Employers from static data */}
+                {linkedBusinesses.length === 0 && resort.main_employers && (
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-foreground/60">
+                      Main Employers
+                    </p>
+                    <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
+                      {resort.main_employers.map((emp) => (
+                        <li key={emp}>{emp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {resort.common_jobs && (
                   <div>
@@ -558,63 +706,48 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
             </section>
           )}
 
-          {/* Open Positions */}
+          {/* Open Positions — Real jobs from Supabase */}
           <section>
             <SectionHeading>Open Positions</SectionHeading>
-            {(() => {
-              const resortJobs = seedJobs.filter(
-                (j) => j.resort_id === resort.id && j.is_active
-              );
-
-              if (resortJobs.length === 0) {
-                return (
-                  <div className="mt-4 rounded-xl border border-accent bg-white p-6 text-center">
-                    <p className="text-foreground/60">
-                      No jobs posted yet for this resort. Check back soon or{" "}
-                      <Link href="/signup" className="text-primary underline">
-                        sign up
-                      </Link>{" "}
-                      for alerts.
-                    </p>
-                    <Link
-                      href={`/jobs?resort=${encodeURIComponent(resort.name)}`}
-                      className="mt-3 inline-block text-sm font-medium text-primary underline decoration-secondary underline-offset-4 hover:decoration-primary"
-                    >
-                      Browse all jobs at {resort.name} &rarr;
-                    </Link>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="mt-4 space-y-3">
-                  {resortJobs.map((job) => (
-                    <Link
-                      key={job.id}
-                      href={`/jobs?resort=${encodeURIComponent(resort.name)}&open=${job.id}`}
-                      className="group block rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary hover:shadow-md"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-semibold text-primary group-hover:text-secondary">
-                              {job.title}
-                            </h3>
-                            {job.urgently_hiring && (
-                              <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
-                                Urgently Hiring
-                              </span>
-                            )}
-                          </div>
-                          <p className="mt-1 text-sm text-foreground">
-                            {job.business_name}
-                            {job.business_verified && (
-                              <span className="ml-2 text-xs text-blue-500">
-                                &#10003; Verified
-                              </span>
-                            )}
-                          </p>
-                        </div>
+            {realJobs.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-accent bg-white p-6 text-center">
+                <p className="text-foreground/60">
+                  No jobs posted yet for this resort. Check back soon or{" "}
+                  <Link href="/signup" className="text-primary underline">
+                    sign up
+                  </Link>{" "}
+                  for alerts.
+                </p>
+                <Link
+                  href={`/jobs?resort=${encodeURIComponent(resort.name)}`}
+                  className="mt-3 inline-block text-sm font-medium text-primary underline decoration-secondary underline-offset-4 hover:decoration-primary"
+                >
+                  Browse all jobs at {resort.name} &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {realJobs.map((job) => (
+                  <Link
+                    key={job.id}
+                    href={`/jobs?resort=${encodeURIComponent(resort.name)}&open=${job.id}`}
+                    className="group block rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary hover:shadow-md"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-primary group-hover:text-secondary">
+                          {job.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-foreground">
+                          {job.business_name}
+                          {job.business_verified && (
+                            <span className="ml-2 text-xs text-green-600">
+                              &#10003; Verified
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      {job.pay_amount && (
                         <div className="text-right">
                           <p className="text-sm font-semibold text-primary">
                             {job.pay_amount}
@@ -627,61 +760,51 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                                 : "Casual"}
                           </p>
                         </div>
-                      </div>
+                      )}
+                    </div>
 
-                      {/* Perk tags */}
-                      <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {job.category && (
                         <span className="rounded-full bg-accent/40 px-2.5 py-0.5 text-xs font-medium text-foreground">
-                          {job.category}
+                          {job.category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
                         </span>
-                        {job.accommodation_included && (
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                            Accommodation
-                          </span>
-                        )}
-                        {job.ski_pass_included && (
-                          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                            Ski Pass
-                          </span>
-                        )}
-                        {job.meal_perks && (
-                          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-                            Meals
-                          </span>
-                        )}
-                        {job.visa_sponsorship && (
-                          <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700">
-                            Visa Sponsorship
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {job.accommodation_included && (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                          Accommodation
+                        </span>
+                      )}
+                      {job.ski_pass_included && (
+                        <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                          Ski Pass
+                        </span>
+                      )}
+                    </div>
 
-                      <div className="mt-3 flex items-center gap-4 text-xs text-foreground/50">
-                        <span>{job.applications_count} applicants</span>
-                        {job.start_date && (
-                          <span>
-                            Starts{" "}
-                            {new Date(job.start_date).toLocaleDateString(
-                              "en-GB",
-                              { month: "short", year: "numeric" }
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-
-                  {/* View all link */}
-                  <Link
-                    href={`/jobs?resort=${encodeURIComponent(resort.name)}`}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-accent bg-white py-4 text-sm font-medium text-primary transition-colors hover:border-secondary hover:bg-secondary/5"
-                  >
-                    View all jobs at {resort.name}
-                    <span>&rarr;</span>
+                    <div className="mt-3 flex items-center gap-4 text-xs text-foreground/50">
+                      <span>{job.applications_count} applicant{job.applications_count !== 1 ? "s" : ""}</span>
+                      {job.start_date && (
+                        <span>
+                          Starts{" "}
+                          {new Date(job.start_date).toLocaleDateString(
+                            "en-GB",
+                            { month: "short", year: "numeric" }
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </Link>
-                </div>
-              );
-            })()}
+                ))}
+
+                <Link
+                  href={`/jobs?resort=${encodeURIComponent(resort.name)}`}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-accent bg-white py-4 text-sm font-medium text-primary transition-colors hover:border-secondary hover:bg-secondary/5"
+                >
+                  View all jobs at {resort.name}
+                  <span>&rarr;</span>
+                </Link>
+              </div>
+            )}
           </section>
         </div>
 
