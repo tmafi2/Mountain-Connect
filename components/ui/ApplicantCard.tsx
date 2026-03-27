@@ -9,19 +9,55 @@ function getLangLabel(lang: string | { language: string; proficiency: string }):
   return typeof lang === "string" ? lang : lang.language;
 }
 
+function getLangProficiency(lang: string | { language: string; proficiency: string }): string | null {
+  return typeof lang === "string" ? null : lang.proficiency;
+}
+
 function getCertLabel(cert: string | { name: string; issuing_body: string | null }): string {
   return typeof cert === "string" ? cert : cert.name;
+}
+
+function getCertBody(cert: string | { name: string; issuing_body: string | null }): string | null {
+  return typeof cert === "string" ? null : cert.issuing_body;
 }
 
 function getWorkRole(job: { role?: string; title?: string }): string {
   return job.role || job.title || "";
 }
 
-function getWorkPeriod(job: { period?: string; start_date?: string; end_date?: string | null }): string {
+function getWorkPeriod(job: { period?: string; start_date?: string; end_date?: string | null; is_current?: boolean }): string {
   if (job.period) return job.period;
-  if (job.start_date) return job.end_date ? `${job.start_date} – ${job.end_date}` : `${job.start_date} – Present`;
+  if (job.start_date) {
+    const start = formatShortDate(job.start_date);
+    if (job.is_current) return `${start} – Present`;
+    return job.end_date ? `${start} – ${formatShortDate(job.end_date)}` : `${start} – Present`;
+  }
   return "";
 }
+
+function getWorkLocation(job: { location?: string; country?: string | null }): string | null {
+  const parts = [job.location, job.country].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+function formatShortDate(dateStr: string): string {
+  // If it's already a formatted period like "2023 – 2025", return as-is
+  if (dateStr.length <= 7 || !dateStr.includes("-")) return dateStr;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  hospitality: "Hospitality",
+  retail: "Retail",
+  outdoor: "Outdoor / Adventure",
+  food_beverage: "Food & Beverage",
+  admin: "Administration",
+  maintenance: "Maintenance",
+  instruction: "Instruction",
+  cleaning_housekeeping: "Cleaning / Housekeeping",
+  other: "Other",
+};
 
 interface ApplicantCardProps {
   applicant: SeedApplicant;
@@ -48,6 +84,7 @@ export default function ApplicantCard({
 }: ApplicantCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"application" | "profile" | "resume">("application");
+  const [selectedJob, setSelectedJob] = useState<(typeof applicant.work_history)[number] | null>(null);
   const statusStyle = STATUS_STYLES[applicant.status] || STATUS_STYLES.new;
   const hasAutoViewed = useRef(false);
 
@@ -401,21 +438,66 @@ export default function ApplicantCard({
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Work History</h4>
                   <div className="mt-2 space-y-0">
-                    {applicant.work_history.map((job, i) => (
-                      <div key={i} className="relative flex gap-4 pb-4">
-                        {/* Timeline line */}
-                        {i < applicant.work_history.length - 1 && (
-                          <div className="absolute left-[7px] top-3 h-full w-px bg-accent" />
-                        )}
-                        {/* Dot */}
-                        <div className="relative mt-1.5 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-secondary bg-white" />
-                        <div className="flex-1 rounded-lg border border-accent/50 p-3">
-                          <p className="text-sm font-semibold text-primary">{getWorkRole(job)}</p>
-                          <p className="text-sm text-foreground/60">{job.company}</p>
-                          <p className="mt-1 text-xs text-foreground/40">{getWorkPeriod(job)}</p>
+                    {applicant.work_history.map((job, i) => {
+                      const location = getWorkLocation(job as { location?: string; country?: string | null });
+                      const category = (job as { category?: string }).category;
+                      const description = (job as { description?: string }).description;
+                      const isCurrent = (job as { is_current?: boolean }).is_current;
+
+                      return (
+                        <div key={i} className="relative flex gap-4 pb-4">
+                          {/* Timeline line */}
+                          {i < applicant.work_history.length - 1 && (
+                            <div className="absolute left-[7px] top-3 h-full w-px bg-accent" />
+                          )}
+                          {/* Dot */}
+                          <div className={`relative mt-1.5 h-[15px] w-[15px] shrink-0 rounded-full border-2 bg-white ${isCurrent ? "border-green-500" : "border-secondary"}`} />
+                          <button
+                            onClick={() => setSelectedJob(job)}
+                            className="flex-1 rounded-lg border border-accent/50 p-3 text-left transition-all hover:border-secondary/50 hover:bg-secondary/5 hover:shadow-sm group cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-primary group-hover:text-secondary transition-colors">{getWorkRole(job)}</p>
+                                  {isCurrent && (
+                                    <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">Current</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-foreground/60">{job.company}</p>
+                                {location && (
+                                  <p className="mt-0.5 flex items-center gap-1 text-xs text-foreground/40">
+                                    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                    </svg>
+                                    {location}
+                                  </p>
+                                )}
+                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                  <span className="text-xs text-foreground/40">{getWorkPeriod(job)}</span>
+                                  {category && (
+                                    <>
+                                      <span className="h-3 w-px bg-foreground/15" />
+                                      <span className="rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-medium text-foreground/50">
+                                        {CATEGORY_LABELS[category] || category}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                {description && (
+                                  <p className="mt-1.5 text-xs text-foreground/40 line-clamp-1">{description}</p>
+                                )}
+                              </div>
+                              {/* View detail arrow */}
+                              <svg className="h-4 w-4 shrink-0 text-foreground/20 group-hover:text-secondary transition-colors mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -488,6 +570,123 @@ export default function ApplicantCard({
               </div>
 
               <p className="text-xs text-foreground/40">Applied {formatDate(applicant.applied_at)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── WORK HISTORY DETAIL POPUP ── */}
+      {selectedJob && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedJob(null)} />
+          <div className="relative w-full max-w-lg rounded-2xl border border-accent/30 bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-accent/30 px-6 py-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-primary">{getWorkRole(selectedJob)}</h3>
+                  {(selectedJob as { is_current?: boolean }).is_current && (
+                    <span className="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Current Role</span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-sm text-foreground/60">{selectedJob.company}</p>
+              </div>
+              <button
+                onClick={() => setSelectedJob(null)}
+                className="shrink-0 rounded-lg p-1.5 text-foreground/40 transition-colors hover:bg-accent/30 hover:text-foreground/70"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Detail grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Period */}
+                <div className="rounded-xl bg-accent/10 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Period</p>
+                  <p className="mt-1 text-sm font-medium text-primary">{getWorkPeriod(selectedJob)}</p>
+                </div>
+
+                {/* Location */}
+                {getWorkLocation(selectedJob as { location?: string; country?: string | null }) && (
+                  <div className="rounded-xl bg-accent/10 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Location</p>
+                    <p className="mt-1 text-sm font-medium text-primary flex items-center gap-1.5">
+                      <svg className="h-3.5 w-3.5 shrink-0 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                      </svg>
+                      {getWorkLocation(selectedJob as { location?: string; country?: string | null })}
+                    </p>
+                  </div>
+                )}
+
+                {/* Category */}
+                {(selectedJob as { category?: string }).category && (
+                  <div className="rounded-xl bg-accent/10 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Category</p>
+                    <p className="mt-1 text-sm font-medium text-primary">
+                      {CATEGORY_LABELS[(selectedJob as { category?: string }).category!] || (selectedJob as { category?: string }).category}
+                    </p>
+                  </div>
+                )}
+
+                {/* Status */}
+                <div className="rounded-xl bg-accent/10 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Status</p>
+                  <p className="mt-1 text-sm font-medium text-primary">
+                    {(selectedJob as { is_current?: boolean }).is_current ? (
+                      <span className="text-green-600">Currently Working</span>
+                    ) : (
+                      <span>Completed</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Description */}
+              {(selectedJob as { description?: string }).description && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Role Description</h4>
+                  <div className="mt-2 rounded-xl bg-accent/10 p-4">
+                    <p className="text-sm leading-relaxed text-foreground/70 whitespace-pre-line">
+                      {(selectedJob as { description?: string }).description}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Verification */}
+              {(selectedJob as { is_verified?: boolean }).is_verified && (
+                <div className="flex items-center gap-2 rounded-xl bg-green-50 p-3">
+                  <svg className="h-4 w-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs font-medium text-green-700">This role has been verified by the employer</span>
+                </div>
+              )}
+
+              {/* No description fallback */}
+              {!(selectedJob as { description?: string }).description &&
+               !getWorkLocation(selectedJob as { location?: string; country?: string | null }) &&
+               !(selectedJob as { category?: string }).category && (
+                <div className="rounded-xl border border-dashed border-accent/50 bg-accent/5 p-6 text-center">
+                  <p className="text-sm text-foreground/40">No additional details provided for this role.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-accent/30 px-6 py-3 flex justify-end">
+              <button
+                onClick={() => setSelectedJob(null)}
+                className="rounded-lg bg-accent/20 px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-accent/30"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
