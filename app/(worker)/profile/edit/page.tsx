@@ -768,7 +768,7 @@ export default function ProfileEditPage() {
         nationality: form.nationality || null,
         second_nationality: form.second_nationality || null,
         visa_status: form.visa_status || null,
-        visa_expiry_date: form.visa_expiry_date || null,
+        visa_expiry_date: form.visa_expiry_date && form.visa_expiry_date !== "n/a" ? form.visa_expiry_date : null,
         work_eligible_countries: form.work_eligible_countries,
         languages: form.languages,
         drivers_license: form.drivers_license,
