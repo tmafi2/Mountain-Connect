@@ -218,7 +218,7 @@ export default function ApplicantCard({
                     : "text-foreground/50 hover:text-foreground/70"
                 }`}
               >
-                {tab === "application" ? "Application" : tab === "profile" ? "Profile" : "Resume"}
+                {tab === "application" ? "Application" : tab === "profile" ? "Profile" : "Work Experience"}
               </button>
             ))}
           </div>
