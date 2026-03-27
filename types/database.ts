@@ -1,4 +1,4 @@
-export type UserRole = "worker" | "business_owner";
+export type UserRole = "worker" | "business_owner" | "admin";
 export type ApplicationStatus = "new" | "viewed" | "interview_pending" | "interview" | "offered" | "accepted" | "rejected";
 export type VisaStatus = "citizen" | "permanent_resident" | "working_holiday" | "work_visa" | "student_visa" | "no_visa" | "other";
 export type SeasonPreference = "northern_winter" | "southern_winter" | "both" | "year_round";
