@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import type { SeedApplicant } from "@/lib/data/applications";
+import ResumeViewer from "@/components/ui/ResumeViewer";
 
 // Helpers to normalize union types from seed data vs Supabase
 function getLangLabel(lang: string | { language: string; proficiency: string }): string {
@@ -148,18 +149,15 @@ export default function ApplicantCard({
               </svg>
             </button>
             {applicant.worker_resume_url ? (
-              <a
-                href={applicant.worker_resume_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => markViewed()}
+              <button
+                onClick={() => { setExpanded(true); handleTabClick("resume"); markViewed(); }}
                 title="View Resume"
                 className="rounded-lg p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-              </a>
+              </button>
             ) : (
               <button
                 onClick={() => { setExpanded(true); handleTabClick("resume"); }}
@@ -373,29 +371,13 @@ export default function ApplicantCard({
             {/* ── RESUME TAB ── */}
             {activeTab === "resume" && (
               <div className="space-y-5">
-                {/* Resume download */}
+                {/* Resume preview & download */}
                 {applicant.worker_resume_url ? (
-                  <a
-                    href={applicant.worker_resume_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-xl border border-accent bg-accent/10 p-3 hover:bg-accent/20 transition-colors group"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-primary truncate">
-                        {applicant.worker_name.replace(/\s+/g, "-").toLowerCase()}-resume.pdf
-                      </p>
-                      <p className="text-xs text-foreground/40">PDF Document — Click to download</p>
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-foreground/30 group-hover:text-primary transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </a>
+                  <ResumeViewer
+                    resumePath={applicant.worker_resume_url}
+                    fileName={`${applicant.worker_name.replace(/\s+/g, "-")}-resume`}
+                    variant="inline"
+                  />
                 ) : (
                   <div className="flex items-center gap-3 rounded-xl border border-accent/50 bg-accent/5 p-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">

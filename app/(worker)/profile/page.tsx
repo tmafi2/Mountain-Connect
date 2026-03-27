@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkerProfile } from "@/types/database";
+import ResumeViewer from "@/components/ui/ResumeViewer";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "Australia": "🇦🇺", "Austria": "🇦🇹", "Argentina": "🇦🇷", "Brazil": "🇧🇷",
@@ -534,16 +535,18 @@ export default function WorkerProfilePage() {
             >
               <div className="flex flex-wrap gap-3">
                 {profile.cv_url && (
-                  <a href={profile.cv_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm font-medium text-primary transition-all hover:border-secondary/50 hover:shadow-sm">
-                    <svg className="h-4 w-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                    Resume / CV
-                  </a>
+                  <ResumeViewer
+                    resumePath={profile.cv_url}
+                    fileName="Resume / CV"
+                    variant="button"
+                  />
                 )}
                 {profile.cover_letter_url && (
-                  <a href={profile.cover_letter_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm font-medium text-primary transition-all hover:border-secondary/50 hover:shadow-sm">
-                    <svg className="h-4 w-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                    Cover Letter
-                  </a>
+                  <ResumeViewer
+                    resumePath={profile.cover_letter_url}
+                    fileName="Cover Letter"
+                    variant="button"
+                  />
                 )}
               </div>
             </Section>
