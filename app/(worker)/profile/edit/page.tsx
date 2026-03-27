@@ -511,7 +511,7 @@ export default function ProfileEditPage() {
       const path = `${userId}/${type}.${ext}`;
 
       const { error: uploadError } = await supabaseClient.storage
-        .from("documents")
+        .from("resumes")
         .upload(path, file, { upsert: true });
 
       if (uploadError) throw uploadError;
@@ -536,7 +536,7 @@ export default function ProfileEditPage() {
     const currentPath = isResume ? resumeUrl : coverLetterUrl;
 
     if (currentPath) {
-      await supabaseClient.storage.from("documents").remove([currentPath]);
+      await supabaseClient.storage.from("resumes").remove([currentPath]);
     }
 
     const columnName = isResume ? "cv_url" : "cover_letter_url";
@@ -550,7 +550,7 @@ export default function ProfileEditPage() {
     const path = type === "resume" ? resumeUrl : coverLetterUrl;
     if (!path) return;
 
-    const { data, error } = await supabaseClient.storage.from("documents").createSignedUrl(path, 60);
+    const { data, error } = await supabaseClient.storage.from("resumes").createSignedUrl(path, 60);
     if (error || !data?.signedUrl) { alert("Could not generate download link"); return; }
     window.open(data.signedUrl, "_blank");
   }

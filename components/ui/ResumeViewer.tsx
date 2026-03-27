@@ -36,7 +36,7 @@ export default function ResumeViewer({
     try {
       const supabase = createClient();
       const { data, error: urlError } = await supabase.storage
-        .from("documents")
+        .from("resumes")
         .createSignedUrl(resumePath, 300); // 5 min expiry
 
       if (urlError || !data?.signedUrl) {
