@@ -533,6 +533,19 @@ function BusinessSetup({
   const [website, setWebsite] = useState("");
   const [location, setLocation] = useState("");
 
+  // Pre-fill business name from signup metadata
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const meta = data.user?.user_metadata;
+      if (meta?.business_name) {
+        setBusinessName(meta.business_name);
+      } else if (meta?.full_name) {
+        setBusinessName(meta.full_name);
+      }
+    });
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
