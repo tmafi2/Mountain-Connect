@@ -95,6 +95,10 @@ export default function CompanyProfilePage() {
   const [saved, setSaved] = useState(false);
   const [newPerk, setNewPerk] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const [form, setForm] = useState<ProfileFormData>({
     business_name: "",
@@ -120,6 +124,10 @@ export default function CompanyProfilePage() {
         router.push("/login");
         return;
       }
+
+      // Check email verification status
+      setUserEmail(user.email ?? "");
+      setEmailVerified(!!user.email_confirmed_at);
 
       const { data: profile } = await supabase
         .from("business_profiles")
@@ -268,6 +276,26 @@ export default function CompanyProfilePage() {
     setSubmitting(false);
   };
 
+  const handleResendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: userEmail,
+      });
+      if (error) {
+        alert("Error sending verification email: " + error.message);
+      } else {
+        setVerificationSent(true);
+        setTimeout(() => setVerificationSent(false), 10000);
+      }
+    } catch {
+      alert("Failed to send verification email. Please try again.");
+    }
+    setSendingVerification(false);
+  };
+
   const statusInfo = VERIFICATION_STATUS_INFO[verificationStatus];
 
   // Resort search
@@ -348,6 +376,56 @@ export default function CompanyProfilePage() {
         {(verificationStatus === "unverified" || verificationStatus === "rejected") && completionPct < 70 && (
           <p className="mt-2 text-xs text-foreground/50">
             Complete at least 70% of your profile to submit for verification. Currently at {completionPct}%.
+          </p>
+        )}
+      </div>
+
+      {/* Email verification status */}
+      <div className={`rounded-2xl border p-5 mb-4 ${emailVerified ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {emailVerified ? (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+                <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+                <svg className="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+            )}
+            <div>
+              <p className={`text-sm font-semibold ${emailVerified ? "text-green-700" : "text-amber-700"}`}>
+                {emailVerified ? "Email Verified" : "Email Not Verified"}
+              </p>
+              <p className="text-xs text-foreground/50">
+                {emailVerified
+                  ? `Your email (${userEmail}) has been verified.`
+                  : `Please verify your email (${userEmail}) to unlock all features.`}
+              </p>
+            </div>
+          </div>
+          {!emailVerified && (
+            <div className="flex items-center gap-2 shrink-0">
+              {verificationSent && (
+                <span className="text-xs text-green-600 font-medium">Sent!</span>
+              )}
+              <button
+                onClick={handleResendVerification}
+                disabled={sendingVerification}
+                className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-700 hover:-translate-y-0.5 disabled:opacity-50"
+              >
+                {sendingVerification ? "Sending..." : "Verify My Email"}
+              </button>
+            </div>
+          )}
+        </div>
+        {!emailVerified && (
+          <p className="mt-2 ml-11 text-xs text-amber-600/70">
+            Some features like posting jobs and appearing in search results require a verified email.
           </p>
         )}
       </div>
