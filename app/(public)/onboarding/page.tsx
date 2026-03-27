@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
@@ -519,6 +519,30 @@ function WorkerSetup({
   );
 }
 
+const INDUSTRY_OPTIONS = [
+  { value: "ski_school", label: "Ski / Snowboard School" },
+  { value: "hospitality", label: "Hospitality" },
+  { value: "food_beverage", label: "Food & Beverage" },
+  { value: "retail", label: "Retail" },
+  { value: "resort_operations", label: "Resort Operations" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "rental_shop", label: "Rental Shop" },
+  { value: "transport", label: "Transport" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "cleaning_housekeeping", label: "Cleaning / Housekeeping" },
+  { value: "construction_maintenance", label: "Construction / Maintenance" },
+  { value: "childcare", label: "Childcare" },
+  { value: "health_fitness", label: "Health & Fitness" },
+  { value: "tourism", label: "Tourism / Adventure" },
+  { value: "other", label: "Other" },
+];
+
+const BIZ_COUNTRIES = [
+  "Australia", "Austria", "Canada", "Chile", "Finland", "France", "Germany",
+  "Italy", "Japan", "New Zealand", "Norway", "South Korea", "Spain",
+  "Sweden", "Switzerland", "United Kingdom", "United States", "Other",
+];
+
 function BusinessSetup({
   loading,
   setLoading,
@@ -529,9 +553,19 @@ function BusinessSetup({
   router: ReturnType<typeof useRouter>;
 }) {
   const [businessName, setBusinessName] = useState("");
-  const [description, setDescription] = useState("");
+  const [industries, setIndustries] = useState<string[]>([]);
   const [website, setWebsite] = useState("");
   const [location, setLocation] = useState("");
+  const [country, setCountry] = useState("");
+  const [resortQuery, setResortQuery] = useState("");
+  const [resortResults, setResortResults] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [resortSearchOpen, setResortSearchOpen] = useState(false);
+  const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
+  const [selectedResortName, setSelectedResortName] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-fill business name from signup metadata
   useEffect(() => {
@@ -545,6 +579,34 @@ function BusinessSetup({
       }
     });
   }, []);
+
+  // Resort search with debounce
+  useEffect(() => {
+    if (resortQuery.length < 1) { setResortResults([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search-resorts?q=${encodeURIComponent(resortQuery)}`);
+        const data = await res.json();
+        setResortResults(data.resorts || []);
+        setResortSearchOpen(true);
+      } catch { setResortResults([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [resortQuery]);
+
+  const toggleIndustry = (value: string) => {
+    setIndustries((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert("Logo must be under 2MB"); return; }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -560,6 +622,22 @@ function BusinessSetup({
       return;
     }
 
+    // Upload logo if selected
+    let logoUrl: string | null = null;
+    if (logoFile) {
+      setUploading(true);
+      const fileExt = logoFile.name.split(".").pop();
+      const filePath = `${user.id}/logo.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, logoFile, { upsert: true });
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        logoUrl = urlData.publicUrl + "?t=" + Date.now();
+      }
+      setUploading(false);
+    }
+
     // Update user role
     await supabase.from("users").upsert({
       id: user.id,
@@ -572,16 +650,19 @@ function BusinessSetup({
     await supabase.from("business_profiles").insert({
       user_id: user.id,
       business_name: businessName,
-      description: description || null,
+      industries: industries,
       website: website || null,
       location: location || null,
+      country: country || null,
+      resort_id: selectedResortId || null,
+      logo_url: logoUrl,
       email: user.email ?? null,
       is_verified: false,
       verification_status: "unverified",
     });
 
     setLoading(false);
-    router.push("/business/dashboard"); // business portal
+    router.push("/business/dashboard");
   };
 
   return (
@@ -591,10 +672,36 @@ function BusinessSetup({
         Register your business to start posting jobs and finding staff.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        {/* Logo upload */}
+        <div className="flex items-center gap-4">
+          <div
+            onClick={() => logoInputRef.current?.click()}
+            className="group relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-accent bg-accent/10 transition-colors hover:border-secondary hover:bg-secondary/5"
+          >
+            {logoPreview ? (
+              <img src={logoPreview} alt="Logo" className="h-full w-full object-cover" />
+            ) : (
+              <svg className="h-8 w-8 text-foreground/30 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-primary">Business Logo</p>
+            <p className="text-xs text-foreground/50">Upload your logo (max 2MB)</p>
+            <button type="button" onClick={() => logoInputRef.current?.click()} className="mt-1 text-xs font-medium text-secondary hover:underline">
+              {logoPreview ? "Change logo" : "Upload"}
+            </button>
+          </div>
+          <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoSelect} className="hidden" />
+        </div>
+
+        {/* Business name */}
         <div>
           <label htmlFor="businessName" className="block text-sm font-medium text-foreground">
-            Business Name
+            Business Name *
           </label>
           <input
             id="businessName"
@@ -607,20 +714,120 @@ function BusinessSetup({
           />
         </div>
 
+        {/* Industries multi-select */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-foreground">
-            Description
+          <label className="block text-sm font-medium text-foreground">
+            Industry *
           </label>
-          <textarea
-            id="description"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+          <p className="mt-0.5 text-xs text-foreground/50">Select all that apply</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {INDUSTRY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggleIndustry(opt.value)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
+                  industries.includes(opt.value)
+                    ? "bg-secondary text-white shadow-sm"
+                    : "bg-accent/20 text-foreground/60 hover:bg-accent/40"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Country dropdown */}
+        <div>
+          <label htmlFor="bizCountry" className="block text-sm font-medium text-foreground">
+            Country *
+          </label>
+          <select
+            id="bizCountry"
+            required
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+          >
+            <option value="">Select a country</option>
+            {BIZ_COUNTRIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Location */}
+        <div>
+          <label htmlFor="bizLocation" className="block text-sm font-medium text-foreground">
+            City / Town
+          </label>
+          <input
+            id="bizLocation"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
             className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-            placeholder="What does your business do?"
+            placeholder="e.g. Whistler"
           />
         </div>
 
+        {/* Resort search */}
+        <div className="relative">
+          <label htmlFor="bizResort" className="block text-sm font-medium text-foreground">
+            Associated Resort
+          </label>
+          <div className="relative">
+            <input
+              id="bizResort"
+              type="text"
+              value={resortQuery || selectedResortName}
+              onChange={(e) => {
+                setResortQuery(e.target.value);
+                setSelectedResortName("");
+                setSelectedResortId(null);
+              }}
+              placeholder="Search for a ski resort..."
+              className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+              onFocus={() => resortResults.length > 0 && setResortSearchOpen(true)}
+              onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
+            />
+            {selectedResortId && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Linked
+              </span>
+            )}
+          </div>
+          {resortSearchOpen && resortResults.length > 0 && (
+            <div className="absolute z-20 mt-1 w-full rounded-lg border border-accent bg-white shadow-lg max-h-48 overflow-y-auto">
+              {resortResults.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-secondary/10"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setSelectedResortName(r.name);
+                    setSelectedResortId(r.id);
+                    setResortQuery("");
+                    setResortSearchOpen(false);
+                  }}
+                >
+                  <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  </svg>
+                  <div>
+                    <span className="font-medium text-primary">{r.name}</span>
+                    <span className="ml-2 text-xs text-foreground/50">{r.country}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Website */}
         <div>
           <label htmlFor="website" className="block text-sm font-medium text-foreground">
             Website
@@ -635,26 +842,12 @@ function BusinessSetup({
           />
         </div>
 
-        <div>
-          <label htmlFor="bizLocation" className="block text-sm font-medium text-foreground">
-            Location
-          </label>
-          <input
-            id="bizLocation"
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-primary placeholder-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-            placeholder="City, Country"
-          />
-        </div>
-
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploading || industries.length === 0}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? "Saving…" : "Complete Setup"}
+          {uploading ? "Uploading logo…" : loading ? "Saving…" : "Complete Setup"}
         </button>
       </form>
     </div>
