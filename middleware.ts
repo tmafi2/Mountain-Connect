@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
   const isComingSoon = pathname === "/coming-soon";
   const isTestPortals = pathname === "/test-portals";
   const isTestPortalApi = pathname === "/api/test-portal";
-  const isAuthRoute = pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname.startsWith("/auth/");
+  const isAuthRoute = pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/login" || pathname === "/signup" || pathname === "/signup-confirmation" || pathname === "/onboarding" || pathname.startsWith("/auth/");
   const hasAccessCookie = request.cookies.get("site-access")?.value === "granted";
 
   if (!isAccessPage && !isAccessApi && !isComingSoon && !isTestPortals && !isTestPortalApi && !isAuthRoute && !hasAccessCookie) {

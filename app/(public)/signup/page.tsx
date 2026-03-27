@@ -43,7 +43,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push(`/onboarding?type=${accountType}`);
+      router.push("/signup-confirmation");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
