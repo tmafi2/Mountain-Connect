@@ -318,7 +318,7 @@ export default function ListingDetailPage() {
           setListing({
             id: jobData.id,
             title: jobData.title,
-            status: jobData.status || "active",
+            status: jobData.status === "draft" ? "paused" : (jobData.status || "active") as "active" | "paused" | "closed",
             resort: resort?.name || "",
             location: resort ? `${resort.name}, ${resort.country}` : "",
             businessName: "",
@@ -464,15 +464,32 @@ export default function ListingDetailPage() {
 
   const handleStatusAction = async (action: "pause" | "resume" | "close" | "reopen") => {
     setActionLoading(action);
-    await new Promise((r) => setTimeout(r, 800));
 
-    const statusMap: Record<string, "active" | "paused" | "closed"> = {
+    const uiStatusMap: Record<string, "active" | "paused" | "closed"> = {
       pause: "paused",
       resume: "active",
       close: "closed",
       reopen: "active",
     };
-    setListing({ ...listing, status: statusMap[action] });
+    // Map UI status to DB status (DB uses "draft" for paused)
+    const dbStatusMap: Record<string, string> = {
+      pause: "draft",
+      resume: "active",
+      close: "closed",
+      reopen: "active",
+    };
+
+    try {
+      const supabase = createClient();
+      await supabase
+        .from("job_posts")
+        .update({ status: dbStatusMap[action] })
+        .eq("id", listing.id);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+
+    setListing({ ...listing, status: uiStatusMap[action] });
     setActionLoading(null);
   };
 
