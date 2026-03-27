@@ -10,11 +10,10 @@ const ADMIN_ROUTES_PREFIX = "/admin";
 
 export async function middleware(request: NextRequest) {
   // Always refresh the Supabase session first
-  const response = await updateSession(request);
+  const { response, supabase, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
   // ── Site-wide access gate ────────────────────────────────
-  // Skip lock screen for the access page itself and the access API
   const isAccessPage = pathname === "/access";
   const isAccessApi = pathname === "/api/access";
   const isComingSoon = pathname === "/coming-soon";
@@ -38,7 +37,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Skip auth check if Supabase isn't configured (dev mode without env vars)
+  // Skip auth check if Supabase isn't configured
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -46,9 +45,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Allow test mode access:
-  // - In development: ?test=true sets the cookie directly
-  // - In production: cookie is set via /test-portals page (requires access code)
+  // Allow test mode access
   const hasTestCookie = request.cookies.get("test-mode")?.value === "true";
   if (hasTestCookie) {
     return response;
@@ -59,7 +56,7 @@ export async function middleware(request: NextRequest) {
     if (isTestParam) {
       response.cookies.set("test-mode", "true", {
         path: "/",
-        maxAge: 60 * 60 * 4, // 4 hours
+        maxAge: 60 * 60 * 4,
         httpOnly: true,
         sameSite: "lax",
       });
@@ -67,16 +64,43 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check for auth session via cookie (lightweight check)
-  const hasSession = request.cookies.getAll().some((c) =>
-    c.name.includes("auth-token")
-  );
-
-  if (!hasSession) {
-    // Not logged in — redirect to login
+  // Check for auth session
+  if (!user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // ── Role-based enforcement ─────────────────────────────────
+  // Query the user's role from the database
+  if (supabase && (isWorkerRoute || isBusinessRoute || isAdminRoute)) {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const role = userData?.role;
+
+    // Business user trying to access worker routes → redirect to business dashboard
+    if (isWorkerRoute && role === "business_owner") {
+      return NextResponse.redirect(new URL("/business/dashboard", request.url));
+    }
+
+    // Worker trying to access business routes → redirect to worker dashboard
+    if (isBusinessRoute && role === "worker") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    // Admin can access everything — no redirect needed
+    // Non-admin trying to access admin routes → redirect based on role
+    if (isAdminRoute && role !== "admin") {
+      if (role === "business_owner") {
+        return NextResponse.redirect(new URL("/business/dashboard", request.url));
+      } else {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
   }
 
   return response;
