@@ -385,7 +385,9 @@ export default function CompanyProfilePage() {
     updateData.industries = form.industries.length > 0 ? form.industries : [];
     updateData.address = form.address || null;
     updateData.country = form.country || null;
-    updateData.resort_id = form.resort_id || null;
+    // Only save resort_id if it's a valid UUID (static resort IDs are not UUIDs)
+    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    updateData.resort_id = form.resort_id && isUuid(form.resort_id) ? form.resort_id : null;
 
     console.log("Saving profile:", currentProfileId, "data:", updateData);
 
