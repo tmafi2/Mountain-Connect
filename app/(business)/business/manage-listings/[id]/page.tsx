@@ -1156,6 +1156,28 @@ export default function ListingDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Show positions publicly toggle */}
+        <div className="mt-4 flex items-center justify-between rounded-lg bg-accent/10 px-4 py-3">
+          <div>
+            <span className="text-sm font-medium text-foreground/70">Visible to applicants</span>
+            <p className="text-xs text-foreground/40 mt-0.5">Show position count on the public job listing</p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              const newVal = !listing.showPositions;
+              setListing({ ...listing, showPositions: newVal });
+              try {
+                const supabase = createClient();
+                await supabase.from("job_posts").update({ show_positions: newVal }).eq("id", listing.id);
+              } catch {}
+            }}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${listing.showPositions ? 'bg-secondary' : 'bg-gray-200'}`}
+          >
+            <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${listing.showPositions ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
       </div>
 
       {/* Edit mode */}
@@ -1285,25 +1307,6 @@ export default function ListingDetailPage() {
               </button>
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-accent/30 pt-3">
-              <p className="text-xs font-semibold text-foreground/40 uppercase tracking-wider mb-3">Visibility</p>
-            </div>
-
-            {/* Show Positions to Public */}
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-sm text-foreground/60">Show position count publicly</span>
-                <p className="text-xs text-foreground/35 mt-0.5">Workers will see how many positions are available</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditForm({ ...editForm, showPositions: !editForm.showPositions })}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${editForm.showPositions ? 'bg-secondary' : 'bg-gray-200'}`}
-              >
-                <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${editForm.showPositions ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
