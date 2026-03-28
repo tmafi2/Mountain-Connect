@@ -6,6 +6,7 @@ import {
   Group,
   Mesh,
   ConeGeometry,
+  CylinderGeometry,
   MeshLambertMaterial,
   MeshBasicMaterial,
   RingGeometry,
@@ -132,43 +133,42 @@ const markerData: MountainMarker[] = resorts.map((resort) => {
 
 /* ─── 3D object builders ──────────────────────────────────── */
 
-const ROCK_BASE = new Color(0x6b5b4f);
-const ROCK_DARK = new Color(0x4a3c32);
-const SNOW_COLOR = 0xf0f0f0;
+const PIN_COLOR = new Color(0xe74c3c);
+const PIN_HEAD_COLOR = new Color(0xc0392b);
 
 function createMountain(d: object): Object3D {
   const marker = d as MountainMarker;
   const group = new Group();
-  const height = marker.height;
-  const baseRadius = 1.6;
+  const pinHeight = 5;
 
-  const hueShift = (parseFloat(marker.id) * 0.03) % 0.1;
-  const rockColor = ROCK_BASE.clone().offsetHSL(hueShift, -0.05, -0.02);
-  const darkRock = ROCK_DARK.clone().offsetHSL(hueShift, -0.03, -0.01);
+  // Pin stem (thin cylinder)
+  const stemGeo = new CylinderGeometry(0.3, 0.3, pinHeight, 8);
+  const stemMat = new MeshLambertMaterial({
+    color: PIN_COLOR,
+    emissive: PIN_HEAD_COLOR,
+    emissiveIntensity: 0.2,
+  });
+  const stem = new Mesh(stemGeo, stemMat);
+  stem.position.y = pinHeight / 2;
+  group.add(stem);
 
-  const bodyGeo = new ConeGeometry(baseRadius, height, 6);
-  const bodyMat = new MeshLambertMaterial({
-    color: rockColor,
-    emissive: darkRock,
+  // Pin head (sphere on top)
+  const headGeo = new SphereGeometry(1.2, 12, 12);
+  const headMat = new MeshLambertMaterial({
+    color: PIN_COLOR,
+    emissive: PIN_HEAD_COLOR,
     emissiveIntensity: 0.15,
   });
-  const body = new Mesh(bodyGeo, bodyMat);
-  body.position.y = height / 2;
-  body.rotation.y = Math.random() * Math.PI;
-  group.add(body);
+  const head = new Mesh(headGeo, headMat);
+  head.position.y = pinHeight + 1.0;
+  group.add(head);
 
-  const capH = height * 0.28;
-  const capR = baseRadius * 0.42;
-  const capGeo = new ConeGeometry(capR, capH, 6);
-  const capMat = new MeshLambertMaterial({
-    color: SNOW_COLOR,
-    emissive: 0xdddddd,
-    emissiveIntensity: 0.1,
-  });
-  const cap = new Mesh(capGeo, capMat);
-  cap.position.y = height - capH / 2;
-  cap.rotation.y = body.rotation.y;
-  group.add(cap);
+  // White dot on pin head
+  const dotGeo = new SphereGeometry(0.5, 8, 8);
+  const dotMat = new MeshBasicMaterial({ color: 0xffffff });
+  const dot = new Mesh(dotGeo, dotMat);
+  dot.position.y = pinHeight + 1.6;
+  group.add(dot);
 
   group.userData = { marker, currentRise: 0 };
   return group;
@@ -607,7 +607,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-center"
+      className="relative flex items-center justify-center overflow-hidden"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}

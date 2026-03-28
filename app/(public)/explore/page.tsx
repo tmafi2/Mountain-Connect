@@ -420,7 +420,7 @@ export default function ExplorePage() {
         </div>
 
         {/* Fade to background */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#0a1628] to-transparent" />
       </section>
 
       {/* ═══ SEARCH + RESORT LIST ═════════════════════════ */}
