@@ -257,6 +257,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [ready, setReady] = useState(false);
   const hoveredIdRef = useRef<string | null>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targetScalesRef = useRef<Map<string, number>>(new Map());
   const animFrameRef = useRef<number>(0);
   const mountainObjectsRef = useRef<Map<string, Object3D>>(new Map());
   const clusterObjectsRef = useRef<Map<string, Object3D>>(new Map());
@@ -355,8 +357,11 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ud.currentRise = lerped;
 
         const isHovered = hoveredIdRef.current === marker.id;
-        const baseScale = radius * pinScale * (isHovered ? 1.25 : 1.0);
-        const s = baseScale * Math.max(lerped, 0.01);
+        const targetScale = radius * pinScale * (isHovered ? 1.3 : 1.0);
+        const currentScale = targetScalesRef.current.get(marker.id) ?? targetScale;
+        const smoothedScale = currentScale + (targetScale - currentScale) * 0.12;
+        targetScalesRef.current.set(marker.id, smoothedScale);
+        const s = smoothedScale * Math.max(lerped, 0.01);
         obj.scale.set(s, s, s);
 
         obj.position.set(coords.x, coords.y, coords.z);
@@ -384,8 +389,11 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ud.currentRise = lerped;
 
         const isHovered = hoveredIdRef.current === cluster.id;
-        const baseScale = radius * (isHovered ? 0.04 : 0.032);
-        const cs = baseScale * Math.max(lerped, 0.01);
+        const targetCs = radius * (isHovered ? 0.04 : 0.032);
+        const currentCs = targetScalesRef.current.get(cluster.id) ?? targetCs;
+        const smoothedCs = currentCs + (targetCs - currentCs) * 0.12;
+        targetScalesRef.current.set(cluster.id, smoothedCs);
+        const cs = smoothedCs * Math.max(lerped, 0.01);
         obj.scale.set(cs, cs, cs);
 
         obj.position.set(coords.x, coords.y, coords.z);
@@ -465,44 +473,45 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     []
   );
 
-  // Hover handlers
+  // Hover handlers — debounced to prevent flickering
   const handleMarkerHover = useCallback((obj: object | null) => {
     const marker = obj as MountainMarker | null;
-    hoveredIdRef.current = marker?.id ?? null;
-    if (containerRef.current) {
-      containerRef.current.style.cursor = marker ? "pointer" : "default";
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
     if (marker) {
+      hoveredIdRef.current = marker.id;
+      if (containerRef.current) containerRef.current.style.cursor = "pointer";
       const { x, y } = mousePosRef.current;
-      setTooltip({
-        name: marker.name,
-        country: marker.country,
-        id: marker.id,
-        x,
-        y,
-      });
+      setTooltip({ name: marker.name, country: marker.country, id: marker.id, x, y });
     } else {
-      setTooltip(null);
+      // Delay clearing hover to prevent flicker between pin parts
+      hoverTimeoutRef.current = setTimeout(() => {
+        hoveredIdRef.current = null;
+        if (containerRef.current) containerRef.current.style.cursor = "default";
+        setTooltip(null);
+      }, 150);
     }
   }, []);
 
   const handleClusterHover = useCallback((obj: object | null) => {
     const cluster = obj as CountryCluster | null;
-    hoveredIdRef.current = cluster?.id ?? null;
-    if (containerRef.current) {
-      containerRef.current.style.cursor = cluster ? "pointer" : "default";
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
     if (cluster) {
+      hoveredIdRef.current = cluster.id;
+      if (containerRef.current) containerRef.current.style.cursor = "pointer";
       const { x, y } = mousePosRef.current;
-      setTooltip({
-        name: cluster.name,
-        country: `${cluster.count} resorts`,
-        id: cluster.id,
-        x,
-        y,
-      });
+      setTooltip({ name: cluster.name, country: `${cluster.count} resorts`, id: cluster.id, x, y });
     } else {
-      setTooltip(null);
+      hoverTimeoutRef.current = setTimeout(() => {
+        hoveredIdRef.current = null;
+        if (containerRef.current) containerRef.current.style.cursor = "default";
+        setTooltip(null);
+      }, 150);
     }
   }, []);
 
