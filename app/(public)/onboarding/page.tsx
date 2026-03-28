@@ -366,7 +366,7 @@ function WorkerSetup({
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-primary">A job</h3>
+                <h3 className="text-lg font-bold text-primary">Work</h3>
                 <p className="text-sm text-foreground/50">I&apos;m looking for seasonal work at a ski resort</p>
               </div>
               <div className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-300 ${
