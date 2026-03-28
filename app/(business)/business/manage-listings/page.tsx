@@ -354,6 +354,8 @@ export default function ManageListingsPage() {
   const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
   const [listings, setListings] = useState<DemoListing[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
+  const [acceptConfirm, setAcceptConfirm] = useState<DemoApplicant | null>(null);
+  const [editingStatus, setEditingStatus] = useState<string | null>(null);
 
   // Fetch real listings from Supabase
   useEffect(() => {
@@ -900,50 +902,92 @@ export default function ManageListingsPage() {
                           <div className="mt-5 border-t border-accent/40 pt-4">
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-3">Actions</h4>
                             <div className="flex flex-wrap gap-2">
-                              {activeApplicant.status !== "rejected" && (
-                                <button
-                                  onClick={() => handleStatusChange(activeApplicant.id, "rejected")}
-                                  disabled={actionLoading !== null}
-                                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100 hover:-translate-y-0.5 disabled:opacity-50"
-                                >
-                                  {actionLoading === activeApplicant.id + "rejected" ? "Updating…" : "Unsuccessful"}
-                                </button>
-                              )}
-                              {activeApplicant.status !== "interview_scheduled" && activeApplicant.status !== "accepted" && activeApplicant.status !== "rejected" && (
-                                <button
-                                  onClick={() => handleStatusChange(activeApplicant.id, "interview_scheduled")}
-                                  disabled={actionLoading !== null}
-                                  className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
-                                >
-                                  {actionLoading === activeApplicant.id + "interview_scheduled" ? "Requesting…" : "Request Interview"}
-                                </button>
-                              )}
-                              {activeApplicant.status !== "accepted" && activeApplicant.status !== "rejected" && (
-                                <button
-                                  onClick={() => handleStatusChange(activeApplicant.id, "accepted")}
-                                  disabled={actionLoading !== null}
-                                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 hover:-translate-y-0.5 disabled:opacity-50"
-                                >
-                                  {actionLoading === activeApplicant.id + "accepted" ? "Accepting…" : "Mark Successful"}
-                                </button>
-                              )}
-                              {activeApplicant.status === "rejected" && (
-                                <button
-                                  onClick={() => handleStatusChange(activeApplicant.id, "pending")}
-                                  disabled={actionLoading !== null}
-                                  className="rounded-xl border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
-                                >
-                                  {actionLoading === activeApplicant.id + "pending" ? "Reverting…" : "Undo Decline"}
-                                </button>
-                              )}
-                              {activeApplicant.status === "accepted" && (
-                                <button
-                                  onClick={() => handleStatusChange(activeApplicant.id, "reviewed")}
-                                  disabled={actionLoading !== null}
-                                  className="rounded-xl border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
-                                >
-                                  {actionLoading === activeApplicant.id + "reviewed" ? "Reverting…" : "Undo Accept"}
-                                </button>
+                              {(activeApplicant.status === "accepted" || activeApplicant.status === "rejected") ? (
+                                editingStatus === activeApplicant.id ? (
+                                  <>
+                                    <button
+                                      onClick={() => { handleStatusChange(activeApplicant.id, "pending"); setEditingStatus(null); }}
+                                      disabled={actionLoading !== null}
+                                      className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-all hover:bg-blue-100 hover:-translate-y-0.5 disabled:opacity-50"
+                                    >
+                                      Move to Pending
+                                    </button>
+                                    <button
+                                      onClick={() => { handleStatusChange(activeApplicant.id, "reviewed"); setEditingStatus(null); }}
+                                      disabled={actionLoading !== null}
+                                      className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-2 text-sm font-medium text-yellow-700 transition-all hover:bg-yellow-100 hover:-translate-y-0.5 disabled:opacity-50"
+                                    >
+                                      Mark Reviewed
+                                    </button>
+                                    <button
+                                      onClick={() => { handleStatusChange(activeApplicant.id, "interview_scheduled"); setEditingStatus(null); }}
+                                      disabled={actionLoading !== null}
+                                      className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
+                                    >
+                                      Request Interview
+                                    </button>
+                                    {activeApplicant.status === "rejected" && (
+                                      <button
+                                        onClick={() => { setAcceptConfirm(activeApplicant); setEditingStatus(null); }}
+                                        disabled={actionLoading !== null}
+                                        className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 hover:-translate-y-0.5 disabled:opacity-50"
+                                      >
+                                        Accept
+                                      </button>
+                                    )}
+                                    {activeApplicant.status === "accepted" && (
+                                      <button
+                                        onClick={() => { handleStatusChange(activeApplicant.id, "rejected"); setEditingStatus(null); }}
+                                        disabled={actionLoading !== null}
+                                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100 hover:-translate-y-0.5 disabled:opacity-50"
+                                      >
+                                        Unsuccessful
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => setEditingStatus(null)}
+                                      className="rounded-xl border border-accent/40 px-4 py-2 text-sm font-medium text-foreground/50 transition-colors hover:bg-accent/10"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => setEditingStatus(activeApplicant.id)}
+                                    className="rounded-xl border border-accent/40 px-4 py-2 text-sm font-medium text-foreground/60 transition-colors hover:bg-accent/10 flex items-center gap-1.5"
+                                  >
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                                    </svg>
+                                    Edit Status
+                                  </button>
+                                )
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleStatusChange(activeApplicant.id, "rejected")}
+                                    disabled={actionLoading !== null}
+                                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100 hover:-translate-y-0.5 disabled:opacity-50"
+                                  >
+                                    {actionLoading === activeApplicant.id + "rejected" ? "Updating…" : "Unsuccessful"}
+                                  </button>
+                                  {activeApplicant.status !== "interview_scheduled" && (
+                                    <button
+                                      onClick={() => handleStatusChange(activeApplicant.id, "interview_scheduled")}
+                                      disabled={actionLoading !== null}
+                                      className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
+                                    >
+                                      {actionLoading === activeApplicant.id + "interview_scheduled" ? "Requesting…" : "Request Interview"}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => setAcceptConfirm(activeApplicant)}
+                                    disabled={actionLoading !== null}
+                                    className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-green-700 hover:-translate-y-0.5 disabled:opacity-50"
+                                  >
+                                    Accept
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -957,6 +1001,53 @@ export default function ManageListingsPage() {
           );
         })}
       </div>
+
+      {/* ─── Accept Confirmation Modal ─── */}
+      {acceptConfirm && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setAcceptConfirm(null)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-primary">
+              Accept Applicant
+            </h3>
+            <p className="mt-2 text-center text-sm text-foreground/60">
+              Are you sure you want to accept <span className="font-semibold text-primary">{acceptConfirm.name}</span>?
+            </p>
+            <div className="mt-4 rounded-xl bg-green-50 border border-green-200 p-3">
+              <div className="flex items-start gap-2">
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+                <p className="text-xs text-green-700">
+                  Accepting will notify <span className="font-semibold">{acceptConfirm.name}</span> that their application has been successful. This will count towards your filled positions.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setAcceptConfirm(null)}
+                className="flex-1 rounded-xl border border-accent/40 px-4 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleStatusChange(acceptConfirm.id, "accepted");
+                  setAcceptConfirm(null);
+                }}
+                className="flex-1 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+              >
+                Yes, Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
