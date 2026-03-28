@@ -115,6 +115,12 @@ export default function CompanyProfilePage() {
   const [sendingVerification, setSendingVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
 
+  // Business name lock
+  const [isNameLocked, setIsNameLocked] = useState(true);
+  const [showNameWarning, setShowNameWarning] = useState(false);
+  const [showNameConfirm, setShowNameConfirm] = useState(false);
+  const [originalName, setOriginalName] = useState("");
+
   // Logo upload
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -201,6 +207,8 @@ export default function CompanyProfilePage() {
           perks: Array.isArray(profile.standard_perks) ? profile.standard_perks : [],
           resort_id: typeof profile.resort_id === "string" ? profile.resort_id : null,
         });
+
+        setOriginalName(profile.business_name ?? "");
 
         // Set logo preview from existing URL
         if (profile.logo_url) {
@@ -320,6 +328,16 @@ export default function CompanyProfilePage() {
   };
 
   const handleSave = async () => {
+    // If the business name changed, show confirmation modal instead of saving directly
+    const nameChanged = originalName.trim() !== "" && form.business_name.trim() !== originalName.trim();
+    if (nameChanged) {
+      setShowNameConfirm(true);
+      return;
+    }
+    await proceedWithSave(false);
+  };
+
+  const proceedWithSave = async (resetVerification: boolean) => {
     setSaving(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -361,6 +379,28 @@ export default function CompanyProfilePage() {
     }
 
     await saveProfile(supabase, user.id, profileId);
+
+    // If name changed, reset verification status
+    if (resetVerification && profileId) {
+      const { error: verError } = await supabase
+        .from("business_profiles")
+        .update({
+          verification_status: "unverified",
+          is_verified: false,
+        })
+        .eq("id", profileId);
+
+      if (verError) {
+        console.error("Error resetting verification:", verError);
+        alert("Profile saved, but failed to reset verification status: " + verError.message);
+      } else {
+        setVerificationStatus("unverified");
+      }
+
+      setOriginalName(form.business_name);
+      setIsNameLocked(true);
+    }
+
     setSaving(false);
   };
 
@@ -734,11 +774,42 @@ export default function CompanyProfilePage() {
           {/* Business Name */}
           <div>
             <label className="block text-sm font-medium text-foreground">Business Name *</label>
-            <input
-              value={form.business_name}
-              onChange={(e) => updateField("business_name", e.target.value)}
-              className={inputClass}
-            />
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                value={form.business_name}
+                onChange={(e) => updateField("business_name", e.target.value)}
+                readOnly={isNameLocked}
+                className={`${inputClass} ${isNameLocked ? "bg-gray-50 text-foreground/60 cursor-not-allowed" : ""} flex-1`}
+              />
+              {isNameLocked ? (
+                <button
+                  type="button"
+                  onClick={() => setShowNameWarning(true)}
+                  className="shrink-0 rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm font-medium text-foreground/70 shadow-sm transition-all hover:bg-accent/10 hover:text-foreground flex items-center gap-1.5"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                  </svg>
+                  Edit
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm((prev) => ({ ...prev, business_name: originalName }));
+                    setIsNameLocked(true);
+                  }}
+                  className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-all hover:bg-red-100"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+            {!isNameLocked && (
+              <p className="mt-1.5 text-xs text-amber-600 font-medium">
+                Changing your business name will require re-verification.
+              </p>
+            )}
           </div>
 
           {/* Industries multi-select */}
@@ -1120,6 +1191,86 @@ export default function CompanyProfilePage() {
           {saving || uploading ? "Saving..." : "Save Profile"}
         </button>
       </div>
+
+      {/* Warning Modal: Edit Business Name */}
+      {showNameWarning && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNameWarning(false)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+              <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-primary">
+              Caution: Business Name Change
+            </h3>
+            <p className="mt-2 text-center text-sm text-foreground/60">
+              Editing your business name will require re-verification. Your verified status will be removed and you will need to re-submit for verification.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowNameWarning(false)}
+                className="flex-1 rounded-xl border border-accent/40 px-4 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowNameWarning(false);
+                  setIsNameLocked(false);
+                }}
+                className="flex-1 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 transition-colors"
+              >
+                I Understand, Edit Name
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Save Changed Business Name */}
+      {showNameConfirm && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowNameConfirm(false)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-primary">
+              Confirm Business Name Change
+            </h3>
+            <p className="mt-2 text-center text-sm text-foreground/60">
+              Are you sure you want to save the new company name? Your verification status will be reset to <span className="font-semibold text-red-600">unverified</span> and you will need to re-submit for verification.
+            </p>
+            <div className="mt-4 rounded-xl bg-gray-50 p-3 text-center">
+              <p className="text-xs text-foreground/40">Changing from</p>
+              <p className="text-sm font-medium text-foreground/70 line-through">{originalName}</p>
+              <p className="text-xs text-foreground/40 mt-1">to</p>
+              <p className="text-sm font-semibold text-primary">{form.business_name}</p>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowNameConfirm(false)}
+                className="flex-1 rounded-xl border border-accent/40 px-4 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={async () => {
+                  setShowNameConfirm(false);
+                  await proceedWithSave(true);
+                }}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors"
+              >
+                Confirm &amp; Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
