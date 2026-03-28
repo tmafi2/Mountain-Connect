@@ -40,6 +40,7 @@ type ApplicantStatus = "pending" | "reviewed" | "interview_scheduled" | "accepte
 
 interface Applicant {
   id: string;
+  applicationId: string;
   name: string;
   email: string;
   location: string;
@@ -385,6 +386,7 @@ export default function ListingDetailPage() {
 
             return {
               id: (wp?.id as string) || (a.worker_id as string),
+              applicationId: a.id as string,
               name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
               email: "",
               location: (wp?.location_current as string) || "",
@@ -559,14 +561,53 @@ export default function ListingDetailPage() {
     setActionLoading(null);
   };
 
-  const handleApplicantStatusChange = (applicantId: string, newStatus: ApplicantStatus) => {
+  const handleApplicantStatusChange = async (applicantId: string, newStatus: ApplicantStatus) => {
+    // Map local status back to database status
+    const dbStatusMap: Record<ApplicantStatus, string> = {
+      pending: "new",
+      reviewed: "viewed",
+      interview_scheduled: "interview",
+      accepted: "accepted",
+      rejected: "rejected",
+    };
+
+    // Optimistic update
     setApplicants((prev) =>
       prev.map((a) => (a.id === applicantId ? { ...a, status: newStatus } : a))
     );
+
     // If rejected or status changed away from accepted, remove from filled slots
     if (newStatus === "rejected" || newStatus !== "accepted") {
       setFilledSlots((prev) => prev.filter((sid) => sid !== applicantId));
     }
+    if (newStatus === "accepted" && !filledSlots.includes(applicantId)) {
+      setFilledSlots((prev) => [...prev, applicantId]);
+    }
+
+    // Update in database
+    try {
+      const applicant = applicants.find((a) => a.id === applicantId);
+      if (applicant?.applicationId) {
+        const supabase = createClient();
+        await supabase
+          .from("applications")
+          .update({ status: dbStatusMap[newStatus] })
+          .eq("id", applicant.applicationId);
+      }
+    } catch (err) {
+      console.error("Failed to update application status:", err);
+    }
+
+    // Update listing counts
+    setListing((prev) => {
+      if (!prev) return prev;
+      const updated = applicants.map((a) => a.id === applicantId ? { ...a, status: newStatus } : a);
+      return {
+        ...prev,
+        interviews: updated.filter((a) => a.status === "interview_scheduled").length,
+        positionsFilled: updated.filter((a) => a.status === "accepted").length,
+      };
+    });
   };
 
   const handleTabClick = (tab: ActiveTab) => {

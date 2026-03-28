@@ -26,6 +26,7 @@ type ApplicantStatus = "pending" | "reviewed" | "interview_scheduled" | "accepte
 
 interface DemoApplicant {
   id: string;
+  applicationId: string;
   jobId: string;
   name: string;
   email: string;
@@ -123,6 +124,7 @@ const demoApplicants: DemoApplicant[] = [
   // j1 — Ski Instructor
   {
     id: "a1",
+    applicationId: "demo-a1",
     jobId: "j1",
     name: "Emma Johansson",
     email: "emma.j@example.com",
@@ -137,6 +139,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a2",
+    applicationId: "demo-a2",
     jobId: "j1",
     name: "Lucas Müller",
     email: "lucas.m@example.com",
@@ -151,6 +154,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a3",
+    applicationId: "demo-a3",
     jobId: "j1",
     name: "Marie Dubois",
     email: "marie.d@example.com",
@@ -165,6 +169,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a4",
+    applicationId: "demo-a4",
     jobId: "j1",
     name: "Kenji Nakamura",
     email: "kenji.n@example.com",
@@ -180,6 +185,7 @@ const demoApplicants: DemoApplicant[] = [
   // j2 — Bartender
   {
     id: "a5",
+    applicationId: "demo-a5",
     jobId: "j2",
     name: "Sophie Chen",
     email: "sophie.c@example.com",
@@ -194,6 +200,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a6",
+    applicationId: "demo-a6",
     jobId: "j2",
     name: "Isabella Rossi",
     email: "isabella.r@example.com",
@@ -208,6 +215,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a7",
+    applicationId: "demo-a7",
     jobId: "j2",
     name: "Tom Wilson",
     email: "tom.w@example.com",
@@ -223,6 +231,7 @@ const demoApplicants: DemoApplicant[] = [
   // j3 — Housekeeping
   {
     id: "a8",
+    applicationId: "demo-a8",
     jobId: "j3",
     name: "Ana Santos",
     email: "ana.s@example.com",
@@ -237,6 +246,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a9",
+    applicationId: "demo-a9",
     jobId: "j3",
     name: "Jake Thompson",
     email: "jake.t@example.com",
@@ -252,6 +262,7 @@ const demoApplicants: DemoApplicant[] = [
   // j4 — Chef de Partie
   {
     id: "a10",
+    applicationId: "demo-a10",
     jobId: "j4",
     name: "Ollie Hansen",
     email: "ollie.h@example.com",
@@ -266,6 +277,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a11",
+    applicationId: "demo-a11",
     jobId: "j4",
     name: "Claire Bonnet",
     email: "claire.b@example.com",
@@ -281,6 +293,7 @@ const demoApplicants: DemoApplicant[] = [
   // j5 — Lift Operator
   {
     id: "a12",
+    applicationId: "demo-a12",
     jobId: "j5",
     name: "Hiroshi Tanaka",
     email: "hiroshi.t@example.com",
@@ -295,6 +308,7 @@ const demoApplicants: DemoApplicant[] = [
   },
   {
     id: "a13",
+    applicationId: "demo-a13",
     jobId: "j5",
     name: "Ryan O'Brien",
     email: "ryan.o@example.com",
@@ -395,6 +409,7 @@ export default function ManageListingsPage() {
 
               return {
                 id: (wp?.id as string) || (a.worker_id as string),
+                applicationId: a.id as string,
                 jobId: a.job_post_id as string,
                 name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
                 email: "",
@@ -492,11 +507,36 @@ export default function ManageListingsPage() {
   const getRawApplicantsForJob = (jobId: string) => applicants.filter((a) => a.jobId === jobId);
 
   const handleStatusChange = async (applicantId: string, newStatus: ApplicantStatus) => {
+    // Map local status back to database status
+    const dbStatusMap: Record<ApplicantStatus, string> = {
+      pending: "new",
+      reviewed: "viewed",
+      interview_scheduled: "interview",
+      accepted: "accepted",
+      rejected: "rejected",
+    };
+
     setActionLoading(applicantId + newStatus);
-    await new Promise((r) => setTimeout(r, 600));
+
+    // Optimistic update
     setApplicants((prev) =>
       prev.map((a) => (a.id === applicantId ? { ...a, status: newStatus } : a))
     );
+
+    // Update in database
+    try {
+      const applicant = applicants.find((a) => a.id === applicantId);
+      if (applicant?.applicationId) {
+        const supabase = createClient();
+        await supabase
+          .from("applications")
+          .update({ status: dbStatusMap[newStatus] })
+          .eq("id", applicant.applicationId);
+      }
+    } catch (err) {
+      console.error("Failed to update application status:", err);
+    }
+
     setActionLoading(null);
   };
 
