@@ -337,24 +337,28 @@ export default function AdminDashboardPage() {
               </div>
               <div className="mt-2 flex items-end gap-2">
                 <p className="text-3xl font-bold text-primary">{stats[stat.key]}</p>
-                {delta && delta.direction !== "none" && delta.value > 0 && (
+                {delta && (
                   <span
                     className={`mb-1 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
                       delta.direction === "up"
                         ? "bg-green-50 text-green-600"
-                        : "bg-red-50 text-red-600"
+                        : delta.direction === "down"
+                        ? "bg-red-50 text-red-600"
+                        : "bg-gray-100 text-gray-500"
                     }`}
                   >
                     {delta.direction === "up" ? (
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
                       </svg>
-                    ) : (
+                    ) : delta.direction === "down" ? (
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
                       </svg>
+                    ) : (
+                      <span className="text-xs">—</span>
                     )}
-                    {delta.direction === "up" ? "+" : "-"}{delta.value}
+                    {delta.direction === "up" ? `+${delta.value}` : delta.direction === "down" ? `-${delta.value}` : "0"}
                   </span>
                 )}
               </div>
