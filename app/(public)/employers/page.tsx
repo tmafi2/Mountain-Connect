@@ -111,24 +111,28 @@ export default function EmployersPage() {
         // Fetch all business profiles
         const { data: bps } = await supabase
           .from("business_profiles")
-          .select("id, business_name, logo_url, description, location, country, industries, verification_status")
+          .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id")
           .order("verification_status", { ascending: true })
           .order("business_name", { ascending: true });
 
         if (!bps || bps.length === 0) { setLoading(false); return; }
 
-        // Get active listing counts per business
+        // Get active listing counts per business (also grab resort_id for resort linking)
         const bizIds = bps.map((b) => b.id);
         const { data: jobs } = await supabase
           .from("job_posts")
-          .select("business_id")
+          .select("business_id, resort_id")
           .in("business_id", bizIds)
           .eq("status", "active");
 
         const jobCounts: Record<string, number> = {};
+        const jobResortLinks: { business_id: string; resort_id: string }[] = [];
         if (jobs) {
           for (const j of jobs) {
             jobCounts[j.business_id] = (jobCounts[j.business_id] || 0) + 1;
+            if (j.resort_id) {
+              jobResortLinks.push({ business_id: j.business_id, resort_id: j.resort_id });
+            }
           }
         }
 
@@ -162,6 +166,62 @@ export default function EmployersPage() {
               resortMap[br.business_id].push(name);
               resortIdMap[br.business_id].push(br.resort_id);
               allResortIds.add(br.resort_id);
+            }
+          }
+        }
+
+        // Also include resort_id directly from business_profiles (set in company profile)
+        const directResortIds = bps
+          .filter((b) => b.resort_id)
+          .map((b) => b.resort_id as string);
+
+        if (directResortIds.length > 0) {
+          const uniqueDirectIds = [...new Set(directResortIds)];
+          const { data: directResorts } = await supabase
+            .from("resorts")
+            .select("id, name")
+            .in("id", uniqueDirectIds);
+
+          const directNameMap: Record<string, string> = {};
+          if (directResorts) {
+            for (const r of directResorts) directNameMap[r.id] = r.name;
+          }
+
+          for (const b of bps) {
+            if (b.resort_id && directNameMap[b.resort_id]) {
+              if (!resortMap[b.id]) resortMap[b.id] = [];
+              if (!resortIdMap[b.id]) resortIdMap[b.id] = [];
+              if (!resortIdMap[b.id].includes(b.resort_id)) {
+                resortMap[b.id].push(directNameMap[b.resort_id]);
+                resortIdMap[b.id].push(b.resort_id);
+                allResortIds.add(b.resort_id);
+              }
+            }
+          }
+        }
+
+        // Also link businesses to resorts via their active job posts
+        if (jobResortLinks.length > 0) {
+          const jobResortIds = [...new Set(jobResortLinks.map((jrl) => jrl.resort_id))];
+          const { data: jobResorts } = await supabase
+            .from("resorts")
+            .select("id, name")
+            .in("id", jobResortIds);
+
+          const jobResortNameMap: Record<string, string> = {};
+          if (jobResorts) {
+            for (const r of jobResorts) jobResortNameMap[r.id] = r.name;
+          }
+
+          for (const jrl of jobResortLinks) {
+            if (jobResortNameMap[jrl.resort_id]) {
+              if (!resortMap[jrl.business_id]) resortMap[jrl.business_id] = [];
+              if (!resortIdMap[jrl.business_id]) resortIdMap[jrl.business_id] = [];
+              if (!resortIdMap[jrl.business_id].includes(jrl.resort_id)) {
+                resortMap[jrl.business_id].push(jobResortNameMap[jrl.resort_id]);
+                resortIdMap[jrl.business_id].push(jrl.resort_id);
+                allResortIds.add(jrl.resort_id);
+              }
             }
           }
         }
