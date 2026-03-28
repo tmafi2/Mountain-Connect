@@ -5,8 +5,14 @@ import { interviewCancelledEmail } from "./templates/interview-cancelled";
 import { businessNewJobEmail } from "./templates/business-new-job";
 import { waitlistWorkerEmail } from "./templates/waitlist-worker";
 import { waitlistBusinessEmail } from "./templates/waitlist-business";
+import { applicationReceivedEmail } from "./templates/application-received";
+import { applicationStatusChangedEmail } from "./templates/application-status-changed";
+import { newApplicantEmail } from "./templates/new-applicant";
+import { businessVerifiedEmail } from "./templates/business-verified";
+import { welcomeWorkerEmail } from "./templates/welcome-worker";
+import { welcomeBusinessEmail } from "./templates/welcome-business";
 
-const FROM_EMAIL = "Mountain Connect <hello@mountainconnects.com>";
+const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
 
 export async function sendInterviewInviteEmail(params: {
   to: string;
@@ -123,4 +129,79 @@ export async function sendWaitlistBusinessEmail(params: {
     subject,
     html,
   });
+}
+
+// ── New notification emails ──────────────────────────────
+
+export async function sendApplicationReceivedEmail(params: {
+  to: string;
+  workerName: string;
+  jobTitle: string;
+  businessName: string;
+  jobUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = applicationReceivedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendApplicationStatusChangedEmail(params: {
+  to: string;
+  workerName: string;
+  jobTitle: string;
+  businessName: string;
+  newStatus: string;
+  dashboardUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = applicationStatusChangedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendNewApplicantEmail(params: {
+  to: string;
+  businessName: string;
+  workerName: string;
+  jobTitle: string;
+  applicantsUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = newApplicantEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendBusinessVerifiedEmail(params: {
+  to: string;
+  businessName: string;
+  dashboardUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = businessVerifiedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendWelcomeWorkerEmail(params: {
+  to: string;
+  workerName: string;
+  profileUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = welcomeWorkerEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendWelcomeBusinessEmail(params: {
+  to: string;
+  businessName: string;
+  profileUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = welcomeBusinessEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }
