@@ -2106,7 +2106,7 @@ export default function ProfileEditPage() {
             </SectionCard>
 
             {/* References */}
-            <SectionCard title="References" description="Add professional or personal references. These will be visible to employers when you apply.">
+            <SectionCard title="References" description="Add professional or personal references. These will be visible to employers when you apply. We recommend having at least one professional and one personal reference.">
               {form.references.length > 0 && (
                 <div className="space-y-3">
                   {form.references.map((ref, i) => (
