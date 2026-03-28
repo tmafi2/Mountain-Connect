@@ -27,7 +27,7 @@ export interface SeedApplicant {
   date_of_birth: string | null;
   nationality: string | null;
   worker_resume_url: string | null;
-  references: { id: string; name: string; relationship: string; type: "professional" | "personal"; company: string | null; job_title: string | null; email: string; phone: string | null; notes: string | null }[] | null;
+  references: { id: string; name: string; relationship: string; type: "professional" | "personal"; company: string | null; job_title: string | null; location: string | null; email: string; phone: string | null; notes: string | null }[] | null;
 }
 
 export const seedApplicants: SeedApplicant[] = [

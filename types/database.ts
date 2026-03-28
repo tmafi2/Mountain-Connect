@@ -121,6 +121,7 @@ export interface Reference {
   type: ReferenceType;
   company: string | null;
   job_title: string | null;
+  location: string | null;
   email: string;
   phone: string | null;
   notes: string | null;

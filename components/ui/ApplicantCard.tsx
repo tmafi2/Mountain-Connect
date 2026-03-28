@@ -435,6 +435,7 @@ export default function ApplicantCard({
                                 </span>
                               </div>
                               <p className="text-xs text-foreground/60">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
+                              {ref.location && <p className="text-xs text-foreground/40">{ref.location}</p>}
                               <p className="text-xs text-foreground/40">{ref.email}{ref.phone ? ` | ${ref.phone}` : ""}</p>
                             </div>
                           </div>

@@ -62,7 +62,7 @@ interface FormState {
   certifications: Certification[];
   skills: string[];
   years_seasonal_experience: string;
-  references: { id: string; name: string; relationship: string; type: "professional" | "personal"; company: string | null; job_title: string | null; email: string; phone: string | null; notes: string | null }[];
+  references: { id: string; name: string; relationship: string; type: "professional" | "personal"; company: string | null; job_title: string | null; location: string | null; email: string; phone: string | null; notes: string | null }[];
 
   // Preferences
   preferred_job_types: string[];
@@ -446,7 +446,7 @@ export default function ProfileEditPage() {
   });
 
   // Reference temp state
-  const [newRef, setNewRef] = useState<{ name: string; relationship: string; type: "professional" | "personal"; company: string; job_title: string; email: string; phone: string; notes: string }>({ name: "", relationship: "", type: "professional", company: "", job_title: "", email: "", phone: "", notes: "" });
+  const [newRef, setNewRef] = useState<{ name: string; relationship: string; type: "professional" | "personal"; company: string; job_title: string; location: string; email: string; phone: string; notes: string }>({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
 
   // Work history temp state
   const [newWork, setNewWork] = useState<Partial<WorkHistoryEntry>>({
@@ -2065,6 +2065,7 @@ export default function ProfileEditPage() {
                             <p className="font-medium text-primary">{ref.name}</p>
                             <p className="text-sm text-foreground/60">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
                             {ref.job_title && <p className="text-xs text-foreground/40">{ref.job_title}</p>}
+                            {ref.location && <p className="text-xs text-foreground/40">{ref.location}</p>}
                             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-foreground/50">
                               <span>{ref.email}</span>
                               {ref.phone && <span>{ref.phone}</span>}
@@ -2106,6 +2107,10 @@ export default function ProfileEditPage() {
                     <Input id="ref_job_title" value={newRef.job_title} onChange={(v) => setNewRef((p) => ({ ...p, job_title: v }))} placeholder="e.g. Operations Manager" />
                   </div>
                   <div>
+                    <Label htmlFor="ref_location">Location (Town/Resort, Country)</Label>
+                    <Input id="ref_location" value={newRef.location} onChange={(v) => setNewRef((p) => ({ ...p, location: v }))} placeholder="e.g. Thredbo, Australia" />
+                  </div>
+                  <div>
                     <Label htmlFor="ref_email">Email Address *</Label>
                     <Input id="ref_email" type="email" value={newRef.email} onChange={(v) => setNewRef((p) => ({ ...p, email: v }))} placeholder="john@example.com" />
                   </div>
@@ -2129,11 +2134,12 @@ export default function ProfileEditPage() {
                         type: newRef.type,
                         company: newRef.company.trim() || null,
                         job_title: newRef.job_title.trim() || null,
+                        location: newRef.location.trim() || null,
                         email: newRef.email.trim(),
                         phone: newRef.phone.trim() || null,
                         notes: newRef.notes.trim() || null,
                       }]);
-                      setNewRef({ name: "", relationship: "", type: "professional", company: "", job_title: "", email: "", phone: "", notes: "" });
+                      setNewRef({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
                     }
                   }}
                   className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
@@ -2389,6 +2395,7 @@ export default function ProfileEditPage() {
                         </span>
                       </div>
                       <p className="text-sm text-foreground/60">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
+                      {ref.location && <p className="text-xs text-foreground/50">{ref.location}</p>}
                       <p className="text-xs text-foreground/50">{ref.email}{ref.phone ? ` | ${ref.phone}` : ""}</p>
                     </div>
                   ))}
