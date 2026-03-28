@@ -490,6 +490,7 @@ export default function ProfileEditPage() {
     expiry_date: null,
     credential_url: null,
   });
+  const [editingCertIndex, setEditingCertIndex] = useState<number | null>(null);
 
   // Reference temp state
   const [newRef, setNewRef] = useState<{ name: string; relationship: string; type: "professional" | "personal"; company: string; job_title: string; location: string; email: string; phone: string; notes: string }>({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
@@ -2004,8 +2005,33 @@ export default function ProfileEditPage() {
                       <div>
                         <p className="text-sm font-medium text-primary">{cert.name}</p>
                         {cert.issuing_body && <p className="text-xs text-foreground/50">{cert.issuing_body}</p>}
+                        <div className="flex flex-wrap gap-2 mt-1 text-xs text-foreground/40">
+                          {cert.date_obtained && <span>Obtained: {cert.date_obtained}</span>}
+                          {cert.expiry_date && <span>Expires: {cert.expiry_date}</span>}
+                        </div>
                       </div>
-                      <button type="button" onClick={() => set("certifications", form.certifications.filter((_, idx) => idx !== i))} className="text-foreground/40 hover:text-red-500">&times;</button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewCert({
+                              name: cert.name,
+                              issuing_body: cert.issuing_body,
+                              date_obtained: cert.date_obtained,
+                              expiry_date: cert.expiry_date,
+                              credential_url: cert.credential_url,
+                            });
+                            setEditingCertIndex(i);
+                          }}
+                          className="rounded p-1 text-foreground/40 hover:bg-accent/30 hover:text-primary"
+                          title="Edit certification"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+                        </button>
+                        <button type="button" onClick={() => set("certifications", form.certifications.filter((_, idx) => idx !== i))} className="rounded p-1 text-foreground/40 hover:bg-red-50 hover:text-red-500" title="Remove certification">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2029,18 +2055,39 @@ export default function ProfileEditPage() {
                     <Input id="cert_exp" type="date" value={newCert.expiry_date || ""} onChange={(v) => setNewCert((p) => ({ ...p, expiry_date: v || null }))} />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newCert.name.trim()) {
-                      set("certifications", [...form.certifications, { ...newCert }]);
-                      setNewCert({ name: "", issuing_body: null, date_obtained: null, expiry_date: null, credential_url: null });
-                    }
-                  }}
-                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
-                >
-                  + Add Certification
-                </button>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newCert.name.trim()) {
+                        if (editingCertIndex !== null) {
+                          const updated = [...form.certifications];
+                          updated[editingCertIndex] = { ...newCert };
+                          set("certifications", updated);
+                        } else {
+                          set("certifications", [...form.certifications, { ...newCert }]);
+                        }
+                        setNewCert({ name: "", issuing_body: null, date_obtained: null, expiry_date: null, credential_url: null });
+                        setEditingCertIndex(null);
+                      }
+                    }}
+                    className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                  >
+                    {editingCertIndex !== null ? "Save Changes" : "+ Add Certification"}
+                  </button>
+                  {editingCertIndex !== null && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewCert({ name: "", issuing_body: null, date_obtained: null, expiry_date: null, credential_url: null });
+                        setEditingCertIndex(null);
+                      }}
+                      className="rounded-lg border border-accent px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/20"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Document uploads */}
