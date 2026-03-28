@@ -596,7 +596,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       "Europe": { lat: 47, lng: 10, altitude: 1.2 },
       "North America": { lat: 45, lng: -105, altitude: 1.2 },
       "Asia": { lat: 37, lng: 139, altitude: 1.2 },
-      "Oceania": { lat: -38, lng: 155, altitude: 1.2 },
+      "Australia / New Zealand": { lat: -38, lng: 155, altitude: 1.2 },
       "South America": { lat: -34, lng: -70, altitude: 1.2 },
     };
 

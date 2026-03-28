@@ -127,7 +127,7 @@ export const regionHierarchy: ContinentEntry[] = [
     ],
   },
   {
-    name: "Oceania",
+    name: "Australia / New Zealand",
     countries: [
       {
         name: "Australia",

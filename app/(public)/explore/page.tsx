@@ -37,7 +37,7 @@ const CONTINENT_ICONS: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
     </svg>
   ),
-  Oceania: (
+  "Australia / New Zealand": (
     <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 3.03v.568c0 .334.148.65.405.864l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 01-1.161.886l-.143.048a1.107 1.107 0 00-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 01-1.652.928l-.679-.906a1.125 1.125 0 00-1.906.172L4.5 15.75l-.612.153M12.75 3.031a9 9 0 00-8.862 12.872M12.75 3.031a9 9 0 016.69 14.036" />
     </svg>
@@ -104,14 +104,14 @@ function MobileRegionExplorer({ continentFilter, onSelectContinent }: { continen
 
 const resortMap = new Map(resorts.map((r) => [r.id, r]));
 
-const CONTINENTS = ["All", "North America", "Europe", "Asia", "Oceania", "South America"];
+const CONTINENTS = ["All", "North America", "Europe", "Asia", "Australia / New Zealand", "South America"];
 
 const CONTINENT_COUNTS: Record<string, number> = {
   All: resorts.length,
   "North America": 0,
   Europe: 0,
   Asia: 0,
-  Oceania: 0,
+  "Australia / New Zealand": 0,
   "South America": 0,
 };
 
@@ -128,7 +128,7 @@ const CONTINENT_IMAGES: Record<string, string> = {
   "North America": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80",
   Europe: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400&q=80",
   Asia: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&q=80",
-  Oceania: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=400&q=80",
+  "Australia / New Zealand": "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=400&q=80",
   "South America": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80",
 };
 
