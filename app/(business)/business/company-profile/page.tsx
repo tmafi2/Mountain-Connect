@@ -270,7 +270,7 @@ export default function CompanyProfilePage() {
     { label: "Country", filled: !!form.country },
     { label: "Address", filled: !!form.address },
     { label: "Perks", filled: form.perks.length > 0 },
-    { label: "Ski Resort", filled: !!form.resort_id },
+    { label: "Associated Resort", filled: !!form.resort_id },
     { label: "Logo", filled: !!(form.logo_url || logoFile) },
   ];
   const filledCount = profileFields.filter((f) => f.filled).length;
@@ -922,7 +922,7 @@ export default function CompanyProfilePage() {
 
           {/* Associated Resort */}
           <div className="relative">
-            <label className="block text-sm font-medium text-foreground">Associated Resort</label>
+            <label className="block text-sm font-medium text-foreground">Associated Resort <span className="text-foreground/40 font-normal">(or closest)</span></label>
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <svg className="h-4 w-4 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
