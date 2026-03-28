@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { getBusinessBySlug, getCategoryLabel, seedBusinesses } from "@/lib/data/businesses";
 import { type SeedJob } from "@/lib/data/jobs";
 import { resorts } from "@/lib/data/resorts";
@@ -50,8 +51,64 @@ export default function EmployerProfilePage() {
     .map((rid) => resorts.find((r) => r.id === rid))
     .filter(Boolean);
 
-  // Jobs will be fetched from Supabase — no mock data
-  const businessJobs: SeedJob[] = [];
+  // Fetch real jobs from Supabase
+  const [businessJobs, setBusinessJobs] = useState<SeedJob[]>([]);
+
+  useEffect(() => {
+    async function fetchJobs() {
+      const supabase = createClient();
+
+      // Get real business profile by slug to get the UUID
+      const { data: bizProfile } = await supabase
+        .from("business_profiles")
+        .select("id, business_name, is_verified")
+        .eq("slug", slug)
+        .single();
+
+      if (!bizProfile) return;
+
+      // Fetch active job posts for this business
+      const { data: jobs } = await supabase
+        .from("job_posts")
+        .select("*, resorts(name, country)")
+        .eq("business_id", bizProfile.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (!jobs || jobs.length === 0) return;
+
+      // Get application counts per job
+      const jobIds = jobs.map((j) => j.id);
+      const { data: appCounts } = await supabase
+        .from("applications")
+        .select("job_post_id")
+        .in("job_post_id", jobIds);
+
+      const countMap: Record<string, number> = {};
+      if (appCounts) {
+        for (const a of appCounts) {
+          countMap[a.job_post_id] = (countMap[a.job_post_id] || 0) + 1;
+        }
+      }
+
+      // Map to SeedJob shape
+      const mapped: SeedJob[] = jobs.map((j) => {
+        const resort = j.resorts as { name: string; country: string } | null;
+        return {
+          ...j,
+          business_name: bizProfile.business_name,
+          business_verified: bizProfile.is_verified,
+          resort_name: resort?.name || "",
+          resort_country: resort?.country || "",
+          applications_count: countMap[j.id] || 0,
+          pay_amount: j.pay_amount ? `${j.pay_currency || ""} ${j.pay_amount}`.trim() : null,
+        } as SeedJob;
+      });
+
+      setBusinessJobs(mapped);
+    }
+    fetchJobs();
+  }, [slug]);
 
   const handleFollow = async () => {
     setFollowLoading(true);
