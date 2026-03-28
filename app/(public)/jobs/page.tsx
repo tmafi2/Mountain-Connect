@@ -263,7 +263,7 @@ function FindAJobContent() {
     }
 
     return jobs;
-  }, [filters]);
+  }, [filters, allJobs]);
 
   const activeFilterCount = [
     filters.category,
