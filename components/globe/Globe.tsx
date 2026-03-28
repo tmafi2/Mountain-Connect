@@ -296,6 +296,10 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       const cam = globe.camera();
       const cameraPos = cam.position;
       const radius = globe.getGlobeRadius();
+      const camDist = cameraPos.length();
+      // Scale pins relative to camera distance — smaller when zoomed in
+      const distRatio = Math.min(camDist / (radius * 3.5), 1.0);
+      const pinScale = 0.005 + distRatio * 0.007; // ranges from 0.005 (close) to 0.012 (far)
 
       // Animate individual pins
       mountainObjectsRef.current.forEach((obj) => {
@@ -317,7 +321,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ud.currentRise = lerped;
 
         const isHovered = hoveredIdRef.current === marker.id;
-        const baseScale = radius * (isHovered ? 0.018 : 0.014);
+        const baseScale = radius * pinScale * (isHovered ? 1.25 : 1.0);
         const s = baseScale * Math.max(lerped, 0.01);
         obj.scale.set(s, s, s);
 
@@ -492,7 +496,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       obj.rotateX(-Math.PI / 2);
 
       const radius = globeRef.current.getGlobeRadius();
-      const s = radius * 0.014 * 0.01;
+      const s = radius * 0.005 * 0.01;
       obj.scale.set(s, s, s);
     },
     []
