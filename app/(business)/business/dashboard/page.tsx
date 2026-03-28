@@ -67,26 +67,42 @@ export default function BusinessDashboard() {
           const filled = fields.filter((f) => f && String(f).length > 0).length;
           setProfileCompletion(Math.round((filled / fields.length) * 100));
 
-          const [listings, applicants, interviews] = await Promise.all([
-            supabase
-              .from("job_posts")
-              .select("id", { count: "exact", head: true })
-              .eq("business_id", profile.id)
-              .eq("status", "active"),
-            supabase
-              .from("applications")
-              .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
-              .eq("job_posts.business_id", profile.id),
-            supabase
-              .from("interviews")
-              .select("id", { count: "exact", head: true })
-              .eq("business_id", profile.id)
-              .in("status", ["scheduled", "invited"]),
-          ]);
+          // Fetch active listings
+          const { count: activeListingCount } = await supabase
+            .from("job_posts")
+            .select("id", { count: "exact", head: true })
+            .eq("business_id", profile.id)
+            .eq("status", "active");
 
-          setListingCount(String(listings.count ?? 0));
-          setApplicantCount(String(applicants.count ?? 0));
-          setInterviewCount(String(interviews.count ?? 0));
+          setListingCount(String(activeListingCount ?? 0));
+
+          // Fetch ALL job IDs for this business (not just active) to count applicants across all listings
+          const { data: allJobIds } = await supabase
+            .from("job_posts")
+            .select("id")
+            .eq("business_id", profile.id);
+
+          if (allJobIds && allJobIds.length > 0) {
+            const jobIds = allJobIds.map((j) => j.id);
+
+            const [applicants, interviews] = await Promise.all([
+              supabase
+                .from("applications")
+                .select("id", { count: "exact", head: true })
+                .in("job_id", jobIds),
+              supabase
+                .from("interviews")
+                .select("id", { count: "exact", head: true })
+                .eq("business_id", profile.id)
+                .in("status", ["scheduled", "invited"]),
+            ]);
+
+            setApplicantCount(String(applicants.count ?? 0));
+            setInterviewCount(String(interviews.count ?? 0));
+          } else {
+            setApplicantCount("0");
+            setInterviewCount("0");
+          }
         }
       }
 
