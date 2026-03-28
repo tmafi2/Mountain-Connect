@@ -275,6 +275,52 @@ function toggleInArray(arr: string[], item: string) {
   return arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item];
 }
 
+function getStepMissingFields(f: FormState, stepIndex: number): string[] {
+  const isFilled = (v: unknown): boolean => {
+    if (typeof v === "string" && v) return true;
+    if (typeof v === "boolean" && v) return true;
+    if (Array.isArray(v) && v.length > 0) return true;
+    if (typeof v === "number" && v > 0) return true;
+    return false;
+  };
+
+  const stepFields: Record<number, { label: string; value: unknown }[]> = {
+    0: [ // Core Info
+      { label: "First Name", value: f.first_name },
+      { label: "Last Name", value: f.last_name },
+      { label: "Date of Birth", value: f.date_of_birth },
+      { label: "Phone", value: f.phone },
+      { label: "Current Location", value: f.location_current },
+      { label: "Country of Residence", value: f.country_of_residence },
+    ],
+    1: [ // Eligibility
+      { label: "Nationality", value: f.nationality },
+      { label: "Visa Status", value: f.visa_status },
+      { label: "Languages", value: f.languages },
+    ],
+    2: [ // Availability
+      { label: "Available From", value: f.availability_start },
+      { label: "Season Preference", value: f.season_preference },
+    ],
+    3: [ // Experience
+      { label: "Work History", value: f.work_history },
+      { label: "Skills", value: f.skills },
+    ],
+    4: [ // Preferences
+      { label: "Preferred Job Types", value: f.preferred_job_types },
+      { label: "Position Type", value: f.position_type },
+    ],
+    5: [ // Community
+      { label: "Bio", value: f.bio },
+    ],
+    6: [], // Review — no fields
+  };
+
+  return (stepFields[stepIndex] || [])
+    .filter((field) => !isFilled(field.value))
+    .map((field) => field.label);
+}
+
 function calcCompletion(f: FormState): number {
   let filled = 0;
   let total = 0;
@@ -854,10 +900,22 @@ export default function ProfileEditPage() {
 
   /* ─── render step content ───────────────────────────────── */
   function renderStep(step: Step) {
+    const missingFields = getStepMissingFields(form, currentStep);
+
+    const missingBanner = missingFields.length > 0 && currentStep < 6 ? (
+      <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+        <div>
+          <p className="text-sm font-medium text-amber-800">{missingFields.length} field{missingFields.length !== 1 ? "s" : ""} still needed</p>
+          <p className="text-xs text-amber-600">{missingFields.join(", ")}</p>
+        </div>
+      </div>
+    ) : null;
+
     switch (step) {
       /* ── CORE INFO ─────────────────────────────────────── */
       case "Core Info":
-        return <>
+        return <>{missingBanner}
           <SectionCard
             title="Core Account Info"
             description="Let's start with the basics. This information helps employers identify you."
@@ -1042,7 +1100,7 @@ export default function ProfileEditPage() {
 
       /* ── ELIGIBILITY ───────────────────────────────────── */
       case "Eligibility":
-        return (
+        return (<>{missingBanner}
           <SectionCard
             title="Work Eligibility & Legal"
             description="Help employers understand your work rights and language skills."
@@ -1227,11 +1285,11 @@ export default function ProfileEditPage() {
               </div>
             </div>
           </SectionCard>
-        );
+        </>);
 
       /* ── AVAILABILITY ──────────────────────────────────── */
       case "Availability":
-        return (
+        return (<>{missingBanner}
           <SectionCard
             title="Availability"
             description="When and where are you looking to work?"
@@ -1330,12 +1388,12 @@ export default function ProfileEditPage() {
               <Toggle checked={form.available_immediately} onChange={(v) => set("available_immediately", v)} label="Available immediately" />
             </div>
           </SectionCard>
-        );
+        </>);
 
       /* ── EXPERIENCE ────────────────────────────────────── */
       case "Experience":
         return (
-          <div className="space-y-6">
+          <div className="space-y-6">{missingBanner}
             {/* Work History */}
             <SectionCard
               title="Work Experience"
@@ -2201,7 +2259,7 @@ export default function ProfileEditPage() {
 
       /* ── PREFERENCES ───────────────────────────────────── */
       case "Preferences":
-        return (
+        return (<>{missingBanner}
           <SectionCard
             title="Job Preferences"
             description="What kind of work are you looking for?"
@@ -2244,12 +2302,12 @@ export default function ProfileEditPage() {
               <Toggle checked={form.open_to_second_job} onChange={(v) => set("open_to_second_job", v)} label="Open to a second job" />
             </div>
           </SectionCard>
-        );
+        </>);
 
       /* ── COMMUNITY ─────────────────────────────────────── */
       case "Community":
         return (
-          <div className="space-y-6">
+          <div className="space-y-6">{missingBanner}
             <SectionCard
               title="Community & Bio"
               description="Tell employers a bit about yourself beyond work."
@@ -2539,37 +2597,50 @@ export default function ProfileEditPage() {
       {/* Progress stepper */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
-          {STEPS.map((s, i) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setCurrentStep(i)}
-              className="flex flex-col items-center gap-1.5"
-            >
-              <div
-                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
-                  i === currentStep
-                    ? "bg-primary text-white"
-                    : i < currentStep
-                    ? "bg-secondary text-white"
-                    : "bg-accent/40 text-foreground/50"
-                }`}
+          {STEPS.map((s, i) => {
+            const missing = getStepMissingFields(form, i);
+            const isComplete = missing.length === 0 && i < 6; // Review step excluded
+            const hasIssues = missing.length > 0;
+
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setCurrentStep(i)}
+                className="relative flex flex-col items-center gap-1.5"
               >
-                {i < currentStep ? (
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                ) : (
-                  i + 1
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                    i === currentStep
+                      ? "bg-primary text-white"
+                      : isComplete
+                      ? "bg-secondary text-white"
+                      : hasIssues
+                      ? "bg-amber-100 text-amber-700 ring-2 ring-amber-300"
+                      : "bg-accent/40 text-foreground/50"
+                  }`}
+                >
+                  {isComplete ? (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  ) : (
+                    i + 1
+                  )}
+                </div>
+                {hasIssues && i !== currentStep && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                    {missing.length}
+                  </span>
                 )}
-              </div>
-              <span
-                className={`hidden text-xs font-medium sm:block ${
-                  i === currentStep ? "text-primary" : "text-foreground/40"
-                }`}
-              >
-                {s}
-              </span>
-            </button>
-          ))}
+                <span
+                  className={`hidden text-xs font-medium sm:block ${
+                    i === currentStep ? "text-primary" : isComplete ? "text-secondary" : hasIssues ? "text-amber-600" : "text-foreground/40"
+                  }`}
+                >
+                  {s}
+                </span>
+              </button>
+            );
+          })}
         </div>
         {/* Progress bar */}
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-accent/30">

@@ -259,22 +259,23 @@ export default function CompanyProfilePage() {
     : allResorts;
 
   // Calculate profile completion
-  const fields = [
-    form.business_name,
-    form.description,
-    form.industries.length > 0 ? "has_industries" : "",
-    form.website,
-    form.phone,
-    form.email,
-    form.location,
-    form.country,
-    form.address,
-    form.perks.length > 0 ? "has_perks" : "",
-    form.resort_id ? "has_resort" : "",
-    form.logo_url || logoFile ? "has_logo" : "",
+  const profileFields: { label: string; filled: boolean }[] = [
+    { label: "Business Name", filled: !!form.business_name },
+    { label: "Description", filled: !!form.description },
+    { label: "Industries", filled: form.industries.length > 0 },
+    { label: "Website", filled: !!form.website },
+    { label: "Phone", filled: !!form.phone },
+    { label: "Email", filled: !!form.email },
+    { label: "Location", filled: !!form.location },
+    { label: "Country", filled: !!form.country },
+    { label: "Address", filled: !!form.address },
+    { label: "Perks", filled: form.perks.length > 0 },
+    { label: "Ski Resort", filled: !!form.resort_id },
+    { label: "Logo", filled: !!(form.logo_url || logoFile) },
   ];
-  const filledCount = fields.filter((f) => f && f.length > 0).length;
-  const completionPct = Math.round((filledCount / fields.length) * 100);
+  const filledCount = profileFields.filter((f) => f.filled).length;
+  const completionPct = Math.round((filledCount / profileFields.length) * 100);
+  const missingFields = profileFields.filter((f) => !f.filled).map((f) => f.label);
 
   const updateField = (field: keyof ProfileFormData, value: string | string[] | null) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -733,6 +734,14 @@ export default function CompanyProfilePage() {
             style={{ width: `${completionPct}%` }}
           />
         </div>
+        {missingFields.length > 0 && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+            <div>
+              <p className="text-xs font-medium text-amber-800">Still needed: {missingFields.join(", ")}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Form Sections ─────────────────────────────────── */}
