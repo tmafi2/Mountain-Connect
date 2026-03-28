@@ -7,6 +7,7 @@ import {
   Mesh,
   ConeGeometry,
   CylinderGeometry,
+  TorusGeometry,
   MeshLambertMaterial,
   MeshBasicMaterial,
   RingGeometry,
@@ -116,7 +117,7 @@ const drops = resorts.map((r) => r.vertical_drop_m ?? 500);
 const minDrop = Math.min(...drops);
 const maxDrop = Math.max(...drops);
 
-const markerData: MountainMarker[] = resorts.map((resort) => {
+const rawMarkers: MountainMarker[] = resorts.map((resort) => {
   const drop = resort.vertical_drop_m ?? 500;
   const normalized = maxDrop > minDrop ? (drop - minDrop) / (maxDrop - minDrop) : 0.5;
   const mapping = COUNTRY_MAP[resort.id];
@@ -131,44 +132,77 @@ const markerData: MountainMarker[] = resorts.map((resort) => {
   };
 });
 
+// Space out pins that are too close together
+function spaceOutMarkers(markers: MountainMarker[], minDist: number): MountainMarker[] {
+  const result = markers.map((m) => ({ ...m }));
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 0; i < result.length; i++) {
+      for (let j = i + 1; j < result.length; j++) {
+        const dLat = result[i].lat - result[j].lat;
+        const dLng = result[i].lng - result[j].lng;
+        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+        if (dist < minDist && dist > 0) {
+          const push = (minDist - dist) / 2;
+          const angle = Math.atan2(dLat, dLng);
+          result[i].lat += Math.sin(angle) * push;
+          result[i].lng += Math.cos(angle) * push;
+          result[j].lat -= Math.sin(angle) * push;
+          result[j].lng -= Math.cos(angle) * push;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+const markerData = spaceOutMarkers(rawMarkers, 1.2);
+
 /* ─── 3D object builders ──────────────────────────────────── */
 
-const PIN_COLOR = new Color(0xe74c3c);
-const PIN_HEAD_COLOR = new Color(0xc0392b);
+const PIN_COLOR = new Color(0xef5350);
+const PIN_DARK = new Color(0xc62828);
 
 function createMountain(d: object): Object3D {
   const marker = d as MountainMarker;
   const group = new Group();
-  const pinHeight = 5;
 
-  // Pin stem (thin cylinder)
-  const stemGeo = new CylinderGeometry(0.15, 0.15, pinHeight, 6);
-  const stemMat = new MeshLambertMaterial({
+  const pinMat = new MeshLambertMaterial({
     color: PIN_COLOR,
-    emissive: PIN_HEAD_COLOR,
+    emissive: PIN_DARK,
     emissiveIntensity: 0.2,
   });
-  const stem = new Mesh(stemGeo, stemMat);
-  stem.position.y = pinHeight / 2;
-  group.add(stem);
 
-  // Pin head (sphere on top)
-  const headGeo = new SphereGeometry(0.7, 10, 10);
-  const headMat = new MeshLambertMaterial({
-    color: PIN_COLOR,
-    emissive: PIN_HEAD_COLOR,
-    emissiveIntensity: 0.15,
-  });
-  const head = new Mesh(headGeo, headMat);
-  head.position.y = pinHeight + 0.5;
+  // Rounded head (top sphere)
+  const headGeo = new SphereGeometry(1.8, 16, 16);
+  const head = new Mesh(headGeo, pinMat);
+  head.position.y = 4.5;
   group.add(head);
 
-  // White dot on pin head
-  const dotGeo = new SphereGeometry(0.28, 6, 6);
-  const dotMat = new MeshBasicMaterial({ color: 0xffffff });
-  const dot = new Mesh(dotGeo, dotMat);
-  dot.position.y = pinHeight + 0.9;
-  group.add(dot);
+  // Pointed bottom (cone tapering down)
+  const pointGeo = new ConeGeometry(1.8, 3.5, 16);
+  const point = new Mesh(pointGeo, pinMat);
+  point.position.y = 1.5;
+  point.rotation.x = Math.PI; // flip cone to point downward
+  group.add(point);
+
+  // Inner circle/ring (the hole in the pin)
+  const ringGeo = new TorusGeometry(0.85, 0.25, 8, 16);
+  const ringMat = new MeshBasicMaterial({ color: 0xffffff });
+  const ring = new Mesh(ringGeo, ringMat);
+  ring.position.y = 4.5;
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+
+  // Dark circle fill inside the ring
+  const innerGeo = new CylinderGeometry(0.6, 0.6, 0.15, 12);
+  const innerMat = new MeshLambertMaterial({
+    color: PIN_DARK,
+    emissive: PIN_DARK,
+    emissiveIntensity: 0.3,
+  });
+  const inner = new Mesh(innerGeo, innerMat);
+  inner.position.y = 4.5;
+  group.add(inner);
 
   group.userData = { marker, currentRise: 0 };
   return group;
