@@ -89,7 +89,7 @@ export default function BusinessDashboard() {
               supabase
                 .from("applications")
                 .select("id", { count: "exact", head: true })
-                .in("job_id", jobIds),
+                .in("job_post_id", jobIds),
               supabase
                 .from("interviews")
                 .select("id", { count: "exact", head: true })
