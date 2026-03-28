@@ -110,7 +110,9 @@ export default function PostJobPage() {
   const router = useRouter();
   const [posting, setPosting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingDrafts, setExistingDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -163,7 +165,17 @@ export default function PostJobPage() {
         .select("id")
         .eq("user_id", user.id)
         .single();
-      if (bp) setBusinessId(bp.id);
+      if (bp) {
+        setBusinessId(bp.id);
+        // Load existing drafts
+        const { data: drafts } = await supabase
+          .from("job_posts")
+          .select("id, title, created_at")
+          .eq("business_id", bp.id)
+          .eq("status", "draft")
+          .order("created_at", { ascending: false });
+        if (drafts) setExistingDrafts(drafts);
+      }
       setLoading(false);
     })();
     // Load all resorts
@@ -254,10 +266,15 @@ export default function PostJobPage() {
     if (!businessId || !selectedResortId) { setError("Please select a resort first."); return; }
     setSavingDraft(true);
     setError(null);
+    setDraftSaved(false);
     const supabase = createClient();
-    const { error: insertError } = await supabase.from("job_posts").insert(buildJobRow("draft"));
-    if (insertError) { setError(insertError.message); }
+    const { data: inserted, error: insertError } = await supabase.from("job_posts").insert(buildJobRow("draft")).select("id, title, created_at").single();
+    if (insertError) { setError(insertError.message); setSavingDraft(false); return; }
+    // Add to drafts list and show success
+    if (inserted) setExistingDrafts((prev) => [inserted, ...prev]);
+    setDraftSaved(true);
     setSavingDraft(false);
+    setTimeout(() => setDraftSaved(false), 4000);
   };
 
   if (loading) {
@@ -294,6 +311,33 @@ export default function PostJobPage() {
           </p>
         </div>
       </div>
+
+      {/* Existing drafts */}
+      {existingDrafts.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-blue-200/50 bg-blue-50/30 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+            <h3 className="text-sm font-semibold text-blue-700">Saved Drafts ({existingDrafts.length})</h3>
+          </div>
+          <div className="space-y-2">
+            {existingDrafts.map((draft) => (
+              <a
+                key={draft.id}
+                href={`/business/manage-listings/${draft.id}`}
+                className="flex items-center justify-between rounded-lg border border-blue-100 bg-white p-3 transition-all hover:border-blue-300 hover:shadow-sm"
+              >
+                <div>
+                  <p className="text-sm font-medium text-primary">{draft.title || "Untitled Draft"}</p>
+                  <p className="text-xs text-foreground/40">
+                    Saved {new Date(draft.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+                <span className="text-xs font-medium text-blue-600">Continue editing &rarr;</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Section 1: Basic Info ─────────────────────────── */}
       <div className="rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
@@ -742,6 +786,13 @@ export default function PostJobPage() {
       {error && (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {draftSaved && (
+        <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Draft saved successfully! You can find it in your <a href="/business/manage-listings" className="underline font-medium">Manage Listings</a> under the Draft tab.
         </div>
       )}
 

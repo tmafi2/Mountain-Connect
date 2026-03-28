@@ -21,7 +21,7 @@ interface DemoListing {
   title: string;
   resort: string;
   location: string;
-  status: "active" | "paused" | "closed";
+  status: "active" | "paused" | "closed" | "draft";
   pay: string;
   type: string;
   posted: string;
@@ -339,6 +339,7 @@ const demoApplicants: DemoApplicant[] = [
 
 const LISTING_STATUS_STYLES: Record<string, { bg: string; text: string; dot: string; label: string }> = {
   active: { bg: "bg-green-50 border-green-200", text: "text-green-700", dot: "bg-green-500", label: "Active" },
+  draft: { bg: "bg-blue-50 border-blue-200", text: "text-blue-600", dot: "bg-blue-400", label: "Draft" },
   paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", dot: "bg-yellow-400", label: "Paused" },
   closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", dot: "bg-gray-400", label: "Closed" },
 };
@@ -351,7 +352,7 @@ const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label:
   rejected: { bg: "bg-red-50", text: "text-red-500", label: "Unsuccessful" },
 };
 
-type FilterTab = "all" | "active" | "paused" | "closed";
+type FilterTab = "all" | "active" | "draft" | "paused" | "closed";
 
 /* ─── Page component ─────────────────────────────────────── */
 
@@ -450,7 +451,7 @@ export default function ManageListingsPage() {
               title: j.title as string,
               resort: resort?.name || "",
               location: resort ? `${resort.name}, ${resort.country}` : "",
-              status: (j.status as string) === "draft" ? "paused" : (j.status as string) as "active" | "paused" | "closed",
+              status: (j.status as string) as "active" | "paused" | "closed" | "draft",
               pay: (j.pay_amount as string) ? `${(j.pay_currency as string) || "AUD"} $${j.pay_amount as string}` : (j.salary_range as string) || "",
               type: posType,
               posted: new Date(j.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -488,6 +489,7 @@ export default function ManageListingsPage() {
   const counts = {
     all: searchFiltered.length,
     active: searchFiltered.filter((l) => l.status === "active").length,
+    draft: searchFiltered.filter((l) => l.status === "draft").length,
     paused: searchFiltered.filter((l) => l.status === "paused").length,
     closed: searchFiltered.filter((l) => l.status === "closed").length,
   };
@@ -620,7 +622,7 @@ export default function ManageListingsPage() {
 
       {/* Filter tabs */}
       <div className="mb-6 flex gap-2">
-        {(["all", "active", "paused", "closed"] as FilterTab[]).map((tab) => (
+        {(["all", "active", "draft", "paused", "closed"] as FilterTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}

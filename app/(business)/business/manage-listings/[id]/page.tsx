@@ -92,6 +92,7 @@ type ActiveTab = null | "applicants" | "interviews" | "filled";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   active: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Active" },
+  draft: { bg: "bg-blue-50 border-blue-200", text: "text-blue-600", label: "Draft" },
   paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", label: "Paused" },
   closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", label: "Closed" },
 };
@@ -354,7 +355,7 @@ export default function ListingDetailPage() {
           setListing({
             id: jobData.id,
             title: jobData.title,
-            status: jobData.status === "draft" ? "paused" : (jobData.status || "active") as "active" | "paused" | "closed",
+            status: (jobData.status || "active") as "active" | "paused" | "closed" | "draft",
             resort: resort?.name || "",
             location: resort ? `${resort.name}, ${resort.country}` : "",
             businessName: "",
@@ -509,21 +510,22 @@ export default function ListingDetailPage() {
 
   const style = STATUS_STYLES[listing.status];
 
-  const handleStatusAction = async (action: "pause" | "resume" | "close" | "reopen") => {
+  const handleStatusAction = async (action: "pause" | "resume" | "close" | "reopen" | "publish") => {
     setActionLoading(action);
 
-    const uiStatusMap: Record<string, "active" | "paused" | "closed"> = {
+    const uiStatusMap: Record<string, "active" | "paused" | "closed" | "draft"> = {
       pause: "paused",
       resume: "active",
       close: "closed",
       reopen: "active",
+      publish: "active",
     };
-    // Map UI status to DB status (DB uses "draft" for paused)
     const dbStatusMap: Record<string, string> = {
-      pause: "draft",
+      pause: "paused",
       resume: "active",
       close: "closed",
       reopen: "active",
+      publish: "active",
     };
 
     try {
@@ -712,6 +714,17 @@ export default function ListingDetailPage() {
           >
             Edit Listing
           </button>
+        )}
+        {listing.status === "draft" && (
+          <>
+            <button
+              onClick={() => handleStatusAction("publish")}
+              disabled={actionLoading !== null}
+              className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
+            >
+              {actionLoading === "publish" ? "Publishing…" : "Publish Listing"}
+            </button>
+          </>
         )}
         {listing.status === "active" && (
           <>
