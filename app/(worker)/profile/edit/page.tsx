@@ -447,6 +447,7 @@ export default function ProfileEditPage() {
 
   // Reference temp state
   const [newRef, setNewRef] = useState<{ name: string; relationship: string; type: "professional" | "personal"; company: string; job_title: string; location: string; email: string; phone: string; notes: string }>({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
+  const [editingRefIndex, setEditingRefIndex] = useState<number | null>(null);
 
   // Work history temp state
   const [newWork, setNewWork] = useState<Partial<WorkHistoryEntry>>({
@@ -1542,7 +1543,7 @@ export default function ProfileEditPage() {
                             </div>
                           </div>
                           <div className="mt-4 relative">
-                            <Label htmlFor={`edit_resort_${i}`}>Ski Resort</Label>
+                            <Label htmlFor={`edit_resort_${i}`}>Ski Resort <span className="text-foreground/40 font-normal">(optional)</span></Label>
                             <div className="relative">
                               <input
                                 id={`edit_resort_${i}`}
@@ -1763,7 +1764,7 @@ export default function ProfileEditPage() {
                     </div>
                   </div>
                   <div className="mt-4 relative">
-                    <Label htmlFor="wh_resort">Ski Resort</Label>
+                    <Label htmlFor="wh_resort">Ski Resort <span className="text-foreground/40 font-normal">(optional)</span></Label>
                     <div className="relative">
                       <input
                         id="wh_resort"
@@ -2072,7 +2073,32 @@ export default function ProfileEditPage() {
                             </div>
                           </div>
                         </div>
-                        <button type="button" onClick={() => set("references", form.references.filter((_, idx) => idx !== i))} className="text-foreground/40 hover:text-red-500 text-lg">&times;</button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewRef({
+                                name: ref.name,
+                                relationship: ref.relationship,
+                                type: ref.type,
+                                company: ref.company || "",
+                                job_title: ref.job_title || "",
+                                location: ref.location || "",
+                                email: ref.email,
+                                phone: ref.phone || "",
+                                notes: ref.notes || "",
+                              });
+                              setEditingRefIndex(i);
+                            }}
+                            className="rounded p-1 text-foreground/40 hover:bg-accent/30 hover:text-primary"
+                            title="Edit reference"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+                          </button>
+                          <button type="button" onClick={() => set("references", form.references.filter((_, idx) => idx !== i))} className="rounded p-1 text-foreground/40 hover:bg-red-50 hover:text-red-500" title="Remove reference">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
                       </div>
                       <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${ref.type === "professional" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
                         {ref.type === "professional" ? "Professional" : "Personal"}
@@ -2123,29 +2149,51 @@ export default function ProfileEditPage() {
                     <Input id="ref_notes" value={newRef.notes} onChange={(v) => setNewRef((p) => ({ ...p, notes: v }))} placeholder="e.g. Best contacted after 5pm, speaks French" />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newRef.name.trim() && newRef.relationship.trim() && newRef.email.trim()) {
-                      set("references", [...form.references, {
-                        id: crypto.randomUUID(),
-                        name: newRef.name.trim(),
-                        relationship: newRef.relationship.trim(),
-                        type: newRef.type,
-                        company: newRef.company.trim() || null,
-                        job_title: newRef.job_title.trim() || null,
-                        location: newRef.location.trim() || null,
-                        email: newRef.email.trim(),
-                        phone: newRef.phone.trim() || null,
-                        notes: newRef.notes.trim() || null,
-                      }]);
-                      setNewRef({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
-                    }
-                  }}
-                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
-                >
-                  + Add Reference
-                </button>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newRef.name.trim() && newRef.relationship.trim() && newRef.email.trim()) {
+                        const updatedRef = {
+                          id: editingRefIndex !== null ? form.references[editingRefIndex].id : crypto.randomUUID(),
+                          name: newRef.name.trim(),
+                          relationship: newRef.relationship.trim(),
+                          type: newRef.type,
+                          company: newRef.company.trim() || null,
+                          job_title: newRef.job_title.trim() || null,
+                          location: newRef.location.trim() || null,
+                          email: newRef.email.trim(),
+                          phone: newRef.phone.trim() || null,
+                          notes: newRef.notes.trim() || null,
+                        };
+                        if (editingRefIndex !== null) {
+                          const updated = [...form.references];
+                          updated[editingRefIndex] = updatedRef;
+                          set("references", updated);
+                        } else {
+                          set("references", [...form.references, updatedRef]);
+                        }
+                        setNewRef({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
+                        setEditingRefIndex(null);
+                      }
+                    }}
+                    className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                  >
+                    {editingRefIndex !== null ? "Save Changes" : "+ Add Reference"}
+                  </button>
+                  {editingRefIndex !== null && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewRef({ name: "", relationship: "", type: "professional", company: "", job_title: "", location: "", email: "", phone: "", notes: "" });
+                        setEditingRefIndex(null);
+                      }}
+                      className="rounded-lg border border-accent px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/20"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             </SectionCard>
           </div>
