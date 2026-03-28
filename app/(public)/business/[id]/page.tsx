@@ -128,7 +128,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
             />
           )}
           {/* Gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-black/5" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" />
         </div>
 
         <div className="relative px-6 pb-6 sm:px-8 sm:pb-8">
@@ -164,7 +164,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
               </div>
 
               {/* Location & Resort tags */}
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-white" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.3)" }}>
                 {(business.location || business.country) && (
                   <span className="flex items-center gap-1.5">
                     <svg className="h-3.5 w-3.5 shrink-0 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
