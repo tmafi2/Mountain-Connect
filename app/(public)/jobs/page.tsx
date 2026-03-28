@@ -922,14 +922,24 @@ function JobDetailPanel({
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-foreground">
-              {job.business_name}
-              {job.business_verified && (
-                <span className="ml-2 text-xs text-blue-500">
-                  &#10003; Verified
-                </span>
+            <Link
+              href={`/business/${job.business_id}`}
+              className="mt-2 inline-flex items-center gap-2 group"
+            >
+              {job.business_logo_url ? (
+                <img src={job.business_logo_url} alt={job.business_name} className="h-7 w-7 rounded-lg border border-accent/30 object-cover" />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/20 text-[10px] font-bold text-primary/60">
+                  {job.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
               )}
-            </p>
+              <span className="text-sm font-medium text-foreground group-hover:text-secondary transition-colors">
+                {job.business_name}
+              </span>
+              {job.business_verified && (
+                <span className="text-xs text-blue-500">&#10003; Verified</span>
+              )}
+            </Link>
           </div>
           <button
             type="button"
