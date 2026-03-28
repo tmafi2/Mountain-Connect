@@ -142,7 +142,7 @@ function createMountain(d: object): Object3D {
   const pinHeight = 5;
 
   // Pin stem (thin cylinder)
-  const stemGeo = new CylinderGeometry(0.3, 0.3, pinHeight, 8);
+  const stemGeo = new CylinderGeometry(0.15, 0.15, pinHeight, 6);
   const stemMat = new MeshLambertMaterial({
     color: PIN_COLOR,
     emissive: PIN_HEAD_COLOR,
@@ -153,21 +153,21 @@ function createMountain(d: object): Object3D {
   group.add(stem);
 
   // Pin head (sphere on top)
-  const headGeo = new SphereGeometry(1.2, 12, 12);
+  const headGeo = new SphereGeometry(0.7, 10, 10);
   const headMat = new MeshLambertMaterial({
     color: PIN_COLOR,
     emissive: PIN_HEAD_COLOR,
     emissiveIntensity: 0.15,
   });
   const head = new Mesh(headGeo, headMat);
-  head.position.y = pinHeight + 1.0;
+  head.position.y = pinHeight + 0.5;
   group.add(head);
 
   // White dot on pin head
-  const dotGeo = new SphereGeometry(0.5, 8, 8);
+  const dotGeo = new SphereGeometry(0.28, 6, 6);
   const dotMat = new MeshBasicMaterial({ color: 0xffffff });
   const dot = new Mesh(dotGeo, dotMat);
-  dot.position.y = pinHeight + 1.6;
+  dot.position.y = pinHeight + 0.9;
   group.add(dot);
 
   group.userData = { marker, currentRise: 0 };
@@ -297,7 +297,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       const cameraPos = cam.position;
       const radius = globe.getGlobeRadius();
 
-      // Animate individual mountains
+      // Animate individual pins
       mountainObjectsRef.current.forEach((obj) => {
         const ud = obj.userData;
         const marker = ud.marker as MountainMarker;
@@ -313,13 +313,13 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         else if (dot > 0.15) target = (dot - 0.15) / 0.4;
 
         const current = ud.currentRise as number;
-        const lerped = current + (target - current) * 0.06;
+        const lerped = current + (target - current) * 0.08;
         ud.currentRise = lerped;
 
         const isHovered = hoveredIdRef.current === marker.id;
-        const baseScale = radius * (isHovered ? 0.038 : 0.028);
-        const yScale = baseScale * Math.max(lerped, 0.01);
-        obj.scale.set(baseScale, yScale, baseScale);
+        const baseScale = radius * (isHovered ? 0.018 : 0.014);
+        const s = baseScale * Math.max(lerped, 0.01);
+        obj.scale.set(s, s, s);
 
         obj.position.set(coords.x, coords.y, coords.z);
         obj.lookAt(0, 0, 0);
@@ -346,8 +346,9 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ud.currentRise = lerped;
 
         const isHovered = hoveredIdRef.current === cluster.id;
-        const baseScale = radius * (isHovered ? 0.05 : 0.04);
-        obj.scale.set(baseScale, baseScale * Math.max(lerped, 0.01), baseScale);
+        const baseScale = radius * (isHovered ? 0.04 : 0.032);
+        const cs = baseScale * Math.max(lerped, 0.01);
+        obj.scale.set(cs, cs, cs);
 
         obj.position.set(coords.x, coords.y, coords.z);
         obj.lookAt(0, 0, 0);
@@ -491,8 +492,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       obj.rotateX(-Math.PI / 2);
 
       const radius = globeRef.current.getGlobeRadius();
-      const baseScale = radius * 0.028;
-      obj.scale.set(baseScale, baseScale * 0.01, baseScale);
+      const s = radius * 0.014 * 0.01;
+      obj.scale.set(s, s, s);
     },
     []
   );
@@ -510,8 +511,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       obj.rotateX(-Math.PI / 2);
 
       const radius = globeRef.current.getGlobeRadius();
-      const baseScale = radius * 0.04;
-      obj.scale.set(baseScale, baseScale * 0.01, baseScale);
+      const cs = radius * 0.032 * 0.01;
+      obj.scale.set(cs, cs, cs);
     },
     []
   );
