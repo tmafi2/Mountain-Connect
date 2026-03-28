@@ -323,7 +323,7 @@ export default function PostJobPage() {
             {existingDrafts.map((draft) => (
               <a
                 key={draft.id}
-                href={`/business/manage-listings/${draft.id}`}
+                href={`/business/post-job/${draft.id}`}
                 className="flex items-center justify-between rounded-lg border border-blue-100 bg-white p-3 transition-all hover:border-blue-300 hover:shadow-sm"
               >
                 <div>

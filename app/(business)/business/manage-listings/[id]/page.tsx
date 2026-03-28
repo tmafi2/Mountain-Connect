@@ -707,14 +707,12 @@ export default function ListingDetailPage() {
 
       {/* Action bar */}
       <div className="mt-5 flex flex-wrap gap-2">
-        {!editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
-          >
-            Edit Listing
-          </button>
-        )}
+        <Link
+          href={`/business/post-job/${listing.id}`}
+          className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
+        >
+          Edit Listing
+        </Link>
         {listing.status === "draft" && (
           <>
             <button
