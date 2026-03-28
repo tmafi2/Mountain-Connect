@@ -366,7 +366,7 @@ export default function ListingDetailPage() {
         // Fetch applicants for this listing
         const { data: appData } = await supabase
           .from("applications")
-          .select("*, worker_profiles(id, first_name, last_name, phone, location_current, skills, years_seasonal_experience, languages, cv_url)")
+          .select("*, worker_profiles(id, first_name, last_name, phone, location_current, skills, years_seasonal_experience, languages, references, cv_url)")
           .eq("job_post_id", id);
 
         if (appData && appData.length > 0) {

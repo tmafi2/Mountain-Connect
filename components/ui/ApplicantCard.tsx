@@ -222,6 +222,15 @@ export default function ApplicantCard({
           <div className="flex items-center gap-3 text-xs text-foreground/40">
             <span>{applicant.years_experience} yrs experience</span>
             <span>Applied {formatDate(applicant.applied_at)}</span>
+                      {applicant.references && applicant.references.length > 0 && (
+                        <>
+                          <span className="h-3 w-px bg-foreground/15" />
+                          <span className="flex items-center gap-1 text-foreground/50">
+                            <svg className="h-3.5 w-3.5 text-blue-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+                            {applicant.references.length} ref{applicant.references.length !== 1 ? "s" : ""}
+                          </span>
+                        </>
+                      )}
           </div>
 
           {/* Expand indicator */}
@@ -402,6 +411,38 @@ export default function ApplicantCard({
                     ))}
                   </div>
                 </div>
+
+                {/* References */}
+                {applicant.references && applicant.references.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">References</h4>
+                    <div className="mt-2 space-y-2">
+                      {applicant.references.map((ref: { id?: string; name: string; relationship: string; type: string; company: string | null; job_title: string | null; email: string; phone: string | null }, i: number) => (
+                        <div key={ref.id || i} className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+                          <div className="flex items-start gap-2">
+                            <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${ref.type === "professional" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"}`}>
+                              {ref.type === "professional" ? (
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                              ) : (
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-primary">{ref.name}</p>
+                                <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${ref.type === "professional" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
+                                  {ref.type === "professional" ? "Professional" : "Personal"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-foreground/60">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
+                              <p className="text-xs text-foreground/40">{ref.email}{ref.phone ? ` | ${ref.phone}` : ""}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

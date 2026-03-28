@@ -46,7 +46,7 @@ export default function ApplicantsPage() {
         // Fetch applications
         const { data } = await supabase
           .from("applications")
-          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, cv_url)")
+          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, references, cv_url)")
           .eq("job_posts.business_id", business.id);
 
         if (data && data.length > 0) {

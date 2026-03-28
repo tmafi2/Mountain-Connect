@@ -526,6 +526,53 @@ export default function WorkerProfilePage() {
             </Section>
           )}
 
+          {/* ── References ──────────────────────────────────── */}
+          {profile.references && profile.references.length > 0 && (
+            <Section
+              icon={<svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
+              iconBg="bg-blue-500/10"
+              title="References"
+            >
+              <div className="space-y-3">
+                {profile.references.map((ref: { id: string; name: string; relationship: string; type: string; company: string | null; job_title: string | null; email: string; phone: string | null; notes: string | null }, i: number) => (
+                  <div key={ref.id || i} className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ref.type === "professional" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"}`}>
+                        {ref.type === "professional" ? (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        ) : (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-primary">{ref.name}</p>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ref.type === "professional" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
+                            {ref.type === "professional" ? "Professional" : "Personal"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground/70">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
+                        {ref.job_title && <p className="text-xs text-foreground/50">{ref.job_title}</p>}
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-foreground/50">
+                          <span className="flex items-center gap-1">
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                            {ref.email}
+                          </span>
+                          {ref.phone && (
+                            <span className="flex items-center gap-1">
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                              {ref.phone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
           {/* ── Documents ──────────────────────────────────── */}
           {(profile.cv_url || profile.cover_letter_url) && (
             <Section

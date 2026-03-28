@@ -11,6 +11,7 @@ import type {
   LanguageProficiency,
   WorkHistoryEntry,
   Certification,
+  Reference,
 } from "@/types/database";
 
 /* ─── step definitions ────────────────────────────────────── */
@@ -61,6 +62,7 @@ interface FormState {
   certifications: Certification[];
   skills: string[];
   years_seasonal_experience: string;
+  references: { id: string; name: string; relationship: string; type: "professional" | "personal"; company: string | null; job_title: string | null; email: string; phone: string | null; notes: string | null }[];
 
   // Preferences
   preferred_job_types: string[];
@@ -110,6 +112,7 @@ const INITIAL: FormState = {
   certifications: [],
   skills: [],
   years_seasonal_experience: "",
+  references: [],
 
   preferred_job_types: [],
   pay_currency: "USD",
@@ -442,6 +445,9 @@ export default function ProfileEditPage() {
     credential_url: null,
   });
 
+  // Reference temp state
+  const [newRef, setNewRef] = useState<{ name: string; relationship: string; type: "professional" | "personal"; company: string; job_title: string; email: string; phone: string; notes: string }>({ name: "", relationship: "", type: "professional", company: "", job_title: "", email: "", phone: "", notes: "" });
+
   // Work history temp state
   const [newWork, setNewWork] = useState<Partial<WorkHistoryEntry>>({
     title: "",
@@ -710,6 +716,7 @@ export default function ProfileEditPage() {
           available_immediately: profile.available_immediately || false,
           work_history: profile.work_history || [],
           certifications: profile.certifications || [],
+          references: profile.references || [],
           skills: profile.skills || [],
           years_seasonal_experience: profile.years_seasonal_experience?.toString() || "",
           preferred_job_types: profile.preferred_job_types || [],
@@ -783,6 +790,7 @@ export default function ProfileEditPage() {
         available_immediately: form.available_immediately,
         work_history: form.work_history,
         certifications: form.certifications,
+        references: form.references,
         skills: form.skills,
         years_seasonal_experience: form.years_seasonal_experience ? parseInt(form.years_seasonal_experience) : null,
         preferred_job_types: form.preferred_job_types,
@@ -2037,6 +2045,103 @@ export default function ProfileEditPage() {
                 </div>
               </div>
             </SectionCard>
+
+            {/* References */}
+            <SectionCard title="References" description="Add professional or personal references. These will be visible to employers when you apply.">
+              {form.references.length > 0 && (
+                <div className="space-y-3">
+                  {form.references.map((ref, i) => (
+                    <div key={ref.id} className="rounded-lg border border-accent bg-background p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${ref.type === "professional" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"}`}>
+                            {ref.type === "professional" ? (
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            ) : (
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-primary">{ref.name}</p>
+                            <p className="text-sm text-foreground/60">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
+                            {ref.job_title && <p className="text-xs text-foreground/40">{ref.job_title}</p>}
+                            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-foreground/50">
+                              <span>{ref.email}</span>
+                              {ref.phone && <span>{ref.phone}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => set("references", form.references.filter((_, idx) => idx !== i))} className="text-foreground/40 hover:text-red-500 text-lg">&times;</button>
+                      </div>
+                      <span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${ref.type === "professional" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
+                        {ref.type === "professional" ? "Professional" : "Personal"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rounded-lg border-2 border-dashed border-accent p-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="ref_name">Full Name *</Label>
+                    <Input id="ref_name" value={newRef.name} onChange={(v) => setNewRef((p) => ({ ...p, name: v }))} placeholder="John Smith" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ref_type">Reference Type *</Label>
+                    <Select id="ref_type" value={newRef.type} onChange={(v) => setNewRef((p) => ({ ...p, type: v as "professional" | "personal" }))}>
+                      <option value="professional">Professional</option>
+                      <option value="personal">Personal</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ref_relationship">Relationship *</Label>
+                    <Input id="ref_relationship" value={newRef.relationship} onChange={(v) => setNewRef((p) => ({ ...p, relationship: v }))} placeholder="e.g. Former Manager, Colleague, Mentor" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ref_company">Company / Organisation</Label>
+                    <Input id="ref_company" value={newRef.company} onChange={(v) => setNewRef((p) => ({ ...p, company: v }))} placeholder="e.g. Whistler Ski School" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ref_job_title">Their Job Title</Label>
+                    <Input id="ref_job_title" value={newRef.job_title} onChange={(v) => setNewRef((p) => ({ ...p, job_title: v }))} placeholder="e.g. Operations Manager" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ref_email">Email Address *</Label>
+                    <Input id="ref_email" type="email" value={newRef.email} onChange={(v) => setNewRef((p) => ({ ...p, email: v }))} placeholder="john@example.com" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ref_phone">Phone Number</Label>
+                    <Input id="ref_phone" type="tel" value={newRef.phone} onChange={(v) => setNewRef((p) => ({ ...p, phone: v }))} placeholder="+1 234 567 8901" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="ref_notes">Notes (optional)</Label>
+                    <Input id="ref_notes" value={newRef.notes} onChange={(v) => setNewRef((p) => ({ ...p, notes: v }))} placeholder="e.g. Best contacted after 5pm, speaks French" />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newRef.name.trim() && newRef.relationship.trim() && newRef.email.trim()) {
+                      set("references", [...form.references, {
+                        id: crypto.randomUUID(),
+                        name: newRef.name.trim(),
+                        relationship: newRef.relationship.trim(),
+                        type: newRef.type,
+                        company: newRef.company.trim() || null,
+                        job_title: newRef.job_title.trim() || null,
+                        email: newRef.email.trim(),
+                        phone: newRef.phone.trim() || null,
+                        notes: newRef.notes.trim() || null,
+                      }]);
+                      setNewRef({ name: "", relationship: "", type: "professional", company: "", job_title: "", email: "", phone: "", notes: "" });
+                    }
+                  }}
+                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  + Add Reference
+                </button>
+              </div>
+            </SectionCard>
           </div>
         );
 
@@ -2269,6 +2374,25 @@ export default function ProfileEditPage() {
                     ))}
                   </div>
                 )}
+              </SectionCard>
+            )}
+
+            {form.references.length > 0 && (
+              <SectionCard title={`References (${form.references.length})`}>
+                <div className="space-y-3">
+                  {form.references.map((ref, i) => (
+                    <div key={ref.id} className="border-l-2 border-secondary pl-4">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-primary">{ref.name}</p>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ref.type === "professional" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"}`}>
+                          {ref.type === "professional" ? "Professional" : "Personal"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground/60">{ref.relationship}{ref.company ? ` at ${ref.company}` : ""}</p>
+                      <p className="text-xs text-foreground/50">{ref.email}{ref.phone ? ` | ${ref.phone}` : ""}</p>
+                    </div>
+                  ))}
+                </div>
               </SectionCard>
             )}
 

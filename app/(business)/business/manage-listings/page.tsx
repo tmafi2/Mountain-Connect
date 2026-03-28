@@ -389,7 +389,7 @@ export default function ManageListingsPage() {
           const jobIds = jobs.map((j: Record<string, unknown>) => j.id as string);
           const { data: appData } = await supabase
             .from("applications")
-            .select("*, worker_profiles(id, first_name, last_name, location_current, skills, years_seasonal_experience, languages)")
+            .select("*, worker_profiles(id, first_name, last_name, location_current, skills, years_seasonal_experience, languages, references)")
             .in("job_post_id", jobIds);
 
           if (appData && appData.length > 0) {

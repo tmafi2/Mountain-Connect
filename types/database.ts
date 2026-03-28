@@ -57,6 +57,7 @@ export interface WorkerProfile {
   // Work Experience
   work_history: WorkHistoryEntry[] | null;
   certifications: Certification[] | null;
+  references: Reference[] | null;
   skills: string[] | null;
   years_seasonal_experience: number | null;
   cv_url: string | null;
@@ -109,6 +110,20 @@ export interface Certification {
   date_obtained: string | null;
   expiry_date: string | null;
   credential_url: string | null;
+}
+
+export type ReferenceType = "professional" | "personal";
+
+export interface Reference {
+  id: string;
+  name: string;
+  relationship: string;
+  type: ReferenceType;
+  company: string | null;
+  job_title: string | null;
+  email: string;
+  phone: string | null;
+  notes: string | null;
 }
 
 export interface EmployerReview {
