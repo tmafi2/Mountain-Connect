@@ -399,6 +399,15 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                     href={`/jobs/${job.id}`}
                     className="group block rounded-xl border border-accent/30 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md"
                   >
+                    <div className="flex items-start gap-3">
+                      {business.logo_url ? (
+                        <img src={business.logo_url} alt={business.business_name} className="h-10 w-10 shrink-0 rounded-lg border border-accent/30 object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-xs font-bold text-primary/60">
+                          {business.business_name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="font-semibold text-primary group-hover:text-secondary transition-colors">
@@ -444,6 +453,8 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                           {job.end_date && ` – ${new Date(job.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
                         </span>
                       )}
+                    </div>
+                      </div>
                     </div>
                   </Link>
                 ))}

@@ -195,7 +195,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
           id, title, category, position_type, pay_amount, pay_currency,
           accommodation_included, ski_pass_included, start_date,
           status, business_id,
-          business_profiles(business_name, verification_status)
+          business_profiles(business_name, verification_status, logo_url)
         `)
         .eq("resort_id", resortUuid)
         .eq("status", "active")
@@ -215,6 +215,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
             title: job.title,
             business_name: biz?.business_name || "Unknown",
             business_verified: biz?.verification_status === "verified",
+            business_logo_url: biz?.logo_url || null,
             category: job.category,
             position_type: job.position_type,
             pay_amount: job.pay_amount,
@@ -757,6 +758,15 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                     href={`/jobs/${job.id}`}
                     className="group block rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary hover:shadow-md"
                   >
+                    <div className="flex items-start gap-3">
+                      {job.business_logo_url ? (
+                        <img src={job.business_logo_url} alt={job.business_name} className="h-10 w-10 shrink-0 rounded-lg border border-accent/30 object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-xs font-bold text-primary/60">
+                          {job.business_name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="font-semibold text-primary group-hover:text-secondary">
@@ -815,6 +825,8 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                           )}
                         </span>
                       )}
+                    </div>
+                      </div>
                     </div>
                   </Link>
                 ))}
