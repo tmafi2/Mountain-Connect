@@ -102,6 +102,7 @@ export default function EmployersPage() {
   const [industry, setIndustry] = useState("");
   const [resort, setResort] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [legacyResortMap, setLegacyResortMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     (async () => {
@@ -226,14 +227,20 @@ export default function EmployersPage() {
           }
         }
 
-        // Get all resorts for the dropdown
+        // Get all resorts for the dropdown (include legacy_id for mapping)
         const { data: allResortsData } = await supabase
           .from("resorts")
-          .select("id, name")
+          .select("id, name, legacy_id")
           .order("name", { ascending: true });
 
         if (allResortsData) {
           setAllResorts(allResortsData);
+          // Build legacy ID → UUID mapping for browse-by-resort cards
+          const legacyMap: Record<string, string> = {};
+          for (const r of allResortsData) {
+            if (r.legacy_id) legacyMap[r.legacy_id] = r.id;
+          }
+          setLegacyResortMap(legacyMap);
         }
 
         const mapped: Business[] = bps.map((b) => ({
@@ -571,7 +578,19 @@ export default function EmployersPage() {
                           {countryEntry.resorts.map((resortEntry) => (
                             <button
                               key={resortEntry.id}
-                              onClick={() => setResort(resortEntry.id)}
+                              onClick={() => {
+                                // Map legacy ID to Supabase UUID, fall back to resort name filter
+                                const uuid = legacyResortMap[resortEntry.id];
+                                if (uuid) {
+                                  setResort(uuid);
+                                } else {
+                                  // Fallback: try matching by name
+                                  const match = allResorts.find((r) => r.name === resortEntry.name);
+                                  setResort(match?.id || resortEntry.id);
+                                }
+                                // Scroll to results
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
                               className="group flex items-center gap-2.5 rounded-xl border border-accent/40 bg-white px-3.5 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md hover:shadow-secondary/5"
                             >
                               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-base group-hover:bg-secondary/20 transition-colors">
