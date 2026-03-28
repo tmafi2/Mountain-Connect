@@ -16,6 +16,7 @@ const BUSINESS_PORTAL_ROUTES = [
   "/business/availability",
   "/business/analytics",
   "/business/settings",
+  "/business/workers",
 ];
 // Routes that require the "admin" role
 const ADMIN_ROUTES_PREFIX = "/admin";
