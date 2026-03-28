@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // Routes that require the "worker" role
-const WORKER_ROUTES = ["/dashboard", "/profile", "/applications", "/saved-jobs", "/messages", "/interviews", "/employers", "/following"];
+const WORKER_ROUTES = ["/dashboard", "/profile", "/applications", "/saved-jobs", "/messages", "/interviews", "/following"];
 // Routes that require the "business_owner" role
 // Business portal routes (not including /business/[id] which is the public profile page)
 const BUSINESS_PORTAL_ROUTES = [
