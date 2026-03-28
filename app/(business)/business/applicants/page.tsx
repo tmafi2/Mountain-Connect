@@ -110,6 +110,13 @@ export default function ApplicantsPage() {
         .from("applications")
         .update({ status: newStatus })
         .eq("id", applicationId);
+
+      // Send status change email to worker (non-blocking)
+      fetch("/api/emails/application-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, newStatus }),
+      }).catch((err) => console.error("Failed to trigger status email:", err));
     } catch {
       // Optimistic update already applied
     }

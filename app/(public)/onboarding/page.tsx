@@ -158,6 +158,18 @@ function WorkerSetup({
       work_history: [],
     });
 
+    // Send welcome email (non-blocking)
+    fetch("/api/emails/welcome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "worker",
+        email: user.email,
+        name: user.user_metadata.full_name || "",
+        profileUrl: `${window.location.origin}/profile`,
+      }),
+    }).catch((err) => console.error("Failed to send welcome email:", err));
+
     setLoading(false);
     router.push(destination === "explore" ? "/explore" : "/profile/edit");
   };
@@ -736,6 +748,18 @@ function BusinessSetup({
         return;
       }
     }
+
+    // Send welcome email (non-blocking)
+    fetch("/api/emails/welcome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "business",
+        email: user.email,
+        name: businessName,
+        profileUrl: `${window.location.origin}/business/company-profile`,
+      }),
+    }).catch((err) => console.error("Failed to send welcome email:", err));
 
     setLoading(false);
     router.push(destination === "profile" ? "/business/company-profile" : "/business/dashboard");

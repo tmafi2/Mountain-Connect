@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications/create";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendBusinessVerifiedEmail } from "@/lib/email/send";
 
 /**
  * POST /api/notifications/verify-business
@@ -30,6 +31,17 @@ export async function POST(request: Request) {
       .from("business_profiles")
       .update({ show_verified_celebration: true })
       .eq("id", businessId);
+
+    // Send verification email to the business owner
+    const { data: businessUser } = await supabase.auth.admin.getUserById(userId);
+    if (businessUser?.user?.email) {
+      const dashboardUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://mountainconnects.com"}/business/dashboard`;
+      sendBusinessVerifiedEmail({
+        to: businessUser.user.email,
+        businessName,
+        dashboardUrl,
+      }).catch((err) => console.error("Failed to send business verified email:", err));
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

@@ -631,6 +631,16 @@ export default function ListingDetailPage() {
           .from("applications")
           .update({ status: dbStatusMap[newStatus] })
           .eq("id", applicant.applicationId);
+
+        // Send status change email to worker (non-blocking)
+        fetch("/api/emails/application-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            applicationId: applicant.applicationId,
+            newStatus: dbStatusMap[newStatus],
+          }),
+        }).catch((err) => console.error("Failed to trigger status email:", err));
       }
     } catch (err) {
       console.error("Failed to update application status:", err);

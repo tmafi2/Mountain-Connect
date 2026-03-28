@@ -50,6 +50,13 @@ export default function JobApplyButton({ jobId }: { jobId: string }) {
       } else {
         setApplied(true);
         setShowForm(false);
+
+        // Send email notifications (non-blocking)
+        fetch("/api/emails/application-submitted", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId, workerId: wp.id }),
+        }).catch((err) => console.error("Failed to trigger application emails:", err));
       }
     } catch {
       setError("Something went wrong. Please try again.");
