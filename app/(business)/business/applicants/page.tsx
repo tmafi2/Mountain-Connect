@@ -46,7 +46,7 @@ export default function ApplicantsPage() {
         // Fetch applications
         const { data } = await supabase
           .from("applications")
-          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, references, cv_url)")
+          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, references, cv_url)")
           .eq("job_posts.business_id", business.id);
 
         if (data && data.length > 0) {
@@ -68,7 +68,7 @@ export default function ApplicantsPage() {
                 worker_name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
                 worker_email: "",
                 worker_phone: (wp?.phone as string) || null,
-                worker_avatar: (wp?.profile_photo_url as string) || null,
+                worker_avatar: (wp?.avatar_url as string) || (wp?.profile_photo_url as string) || null,
                 worker_location: (wp?.location_current as string) || null,
                 worker_skills: (wp?.skills as string[]) || [],
                 years_experience: (wp?.years_seasonal_experience as number) || 0,

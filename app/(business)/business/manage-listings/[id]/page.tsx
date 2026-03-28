@@ -5,6 +5,36 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Australia": "🇦🇺", "Austria": "🇦🇹", "Argentina": "🇦🇷", "Brazil": "🇧🇷",
+  "Canada": "🇨🇦", "Chile": "🇨🇱", "France": "🇫🇷", "Germany": "🇩🇪",
+  "Ireland": "🇮🇪", "Italy": "🇮🇹", "Japan": "🇯🇵", "Mexico": "🇲🇽",
+  "Netherlands": "🇳🇱", "New Zealand": "🇳🇿", "Norway": "🇳🇴", "Poland": "🇵🇱",
+  "Portugal": "🇵🇹", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
+  "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "United Kingdom": "🇬🇧", "USA": "🇺🇸",
+  "United States": "🇺🇸",
+};
+
+function ApplicantAvatar({ avatar, nationality, name, size = "md" }: { avatar: string | null; nationality: string | null; name: string; size?: "sm" | "md" }) {
+  const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  const sizeClass = size === "sm" ? "h-6 w-6 text-[10px]" : "h-10 w-10 text-sm";
+  const emojiSize = size === "sm" ? "text-sm" : "text-xl";
+
+  return (
+    <div className={`flex ${sizeClass} shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary/10 font-bold text-secondary`}>
+      {avatar && avatar.startsWith("flag:") ? (
+        <span className={emojiSize}>{avatar.replace("flag:", "")}</span>
+      ) : avatar ? (
+        <img src={avatar} alt={name} className="h-full w-full object-cover" />
+      ) : nationality && COUNTRY_FLAGS[nationality] ? (
+        <span className={emojiSize}>{COUNTRY_FLAGS[nationality]}</span>
+      ) : (
+        initials
+      )}
+    </div>
+  );
+}
+
 /* ─── Types ──────────────────────────────────────────────── */
 
 interface ListingDetail {
@@ -44,6 +74,8 @@ interface Applicant {
   name: string;
   email: string;
   location: string;
+  avatar: string | null;
+  nationality: string | null;
   skills: string[];
   experience: number;
   status: ApplicantStatus;
@@ -366,7 +398,7 @@ export default function ListingDetailPage() {
         // Fetch applicants for this listing
         const { data: appData } = await supabase
           .from("applications")
-          .select("*, worker_profiles(id, first_name, last_name, phone, location_current, skills, years_seasonal_experience, languages, references, cv_url)")
+          .select("*, worker_profiles(id, first_name, last_name, phone, avatar_url, profile_photo_url, nationality, location_current, skills, years_seasonal_experience, languages, references, cv_url)")
           .eq("job_post_id", id);
 
         if (appData && appData.length > 0) {
@@ -392,6 +424,8 @@ export default function ListingDetailPage() {
               name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
               email: "",
               location: (wp?.location_current as string) || "",
+              avatar: (wp?.avatar_url as string) || (wp?.profile_photo_url as string) || null,
+              nationality: (wp?.nationality as string) || null,
               skills: (wp?.skills as string[]) || [],
               experience: (wp?.years_seasonal_experience as number) || 0,
               status: statusMap[a.status as string] || "pending",
@@ -841,11 +875,8 @@ export default function ListingDetailPage() {
                     {/* Collapsed card */}
                     <div className="flex w-full items-center gap-4 p-4">
                       {/* Avatar */}
-                      <button
-                        onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-sm font-bold text-secondary"
-                      >
-                        {getInitials(applicant.name)}
+                      <button onClick={() => setExpandedApplicant(isExpanded ? null : applicant.id)}>
+                        <ApplicantAvatar avatar={applicant.avatar} nationality={applicant.nationality} name={applicant.name} />
                       </button>
 
                       {/* Info */}
@@ -1092,9 +1123,7 @@ export default function ListingDetailPage() {
               {interviewApplicants.map((applicant) => (
                 <div key={applicant.id} className="flex items-center gap-4 rounded-lg border border-accent p-4">
                   {/* Avatar */}
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-sm font-bold text-secondary">
-                    {getInitials(applicant.name)}
-                  </div>
+                  <ApplicantAvatar avatar={applicant.avatar} nationality={applicant.nationality} name={applicant.name} />
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
@@ -1145,9 +1174,7 @@ export default function ListingDetailPage() {
               if (!worker) return null;
               return (
                 <div key={slotId} className="flex items-center gap-4 rounded-lg border border-green-200 bg-green-50/30 p-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
-                    {getInitials(worker.name)}
-                  </div>
+                  <ApplicantAvatar avatar={worker.avatar} nationality={worker.nationality} name={worker.name} />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-primary">{worker.name}</p>
                     <p className="text-xs text-foreground/60">{worker.location}</p>
@@ -1190,9 +1217,7 @@ export default function ListingDetailPage() {
                             onClick={() => handleAssignWorker(a.id)}
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary hover:bg-accent/10"
                           >
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary/10 text-[10px] font-bold text-secondary">
-                              {getInitials(a.name)}
-                            </span>
+                            <ApplicantAvatar avatar={a.avatar} nationality={a.nationality} name={a.name} size="sm" />
                             {a.name}
                           </button>
                         ))}

@@ -48,6 +48,21 @@ function formatShortDate(dateStr: string): string {
   return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 }
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Australia": "🇦🇺", "Austrian": "🇦🇹", "Austria": "🇦🇹", "Argentine": "🇦🇷", "Argentina": "🇦🇷",
+  "Brazilian": "🇧🇷", "Brazil": "🇧🇷", "Canadian": "🇨🇦", "Canada": "🇨🇦",
+  "Chilean": "🇨🇱", "Chile": "🇨🇱", "French": "🇫🇷", "France": "🇫🇷",
+  "German": "🇩🇪", "Germany": "🇩🇪", "Irish": "🇮🇪", "Ireland": "🇮🇪",
+  "Italian": "🇮🇹", "Italy": "🇮🇹", "Japanese": "🇯🇵", "Japan": "🇯🇵",
+  "Mexican": "🇲🇽", "Mexico": "🇲🇽", "Dutch": "🇳🇱", "Netherlands": "🇳🇱",
+  "New Zealand": "🇳🇿", "New Zealander": "🇳🇿", "Norwegian": "🇳🇴", "Norway": "🇳🇴",
+  "Polish": "🇵🇱", "Poland": "🇵🇱", "Portuguese": "🇵🇹", "Portugal": "🇵🇹",
+  "South African": "🇿🇦", "South Africa": "🇿🇦", "South Korean": "🇰🇷", "South Korea": "🇰🇷",
+  "Spanish": "🇪🇸", "Spain": "🇪🇸", "Swedish": "🇸🇪", "Sweden": "🇸🇪",
+  "Swiss": "🇨🇭", "Switzerland": "🇨🇭", "British": "🇬🇧", "United Kingdom": "🇬🇧",
+  "American": "🇺🇸", "USA": "🇺🇸", "United States": "🇺🇸",
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   hospitality: "Hospitality",
   retail: "Retail",
@@ -132,8 +147,16 @@ export default function ApplicantCard({
       <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <button onClick={handleExpand} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-sm font-bold text-primary">
-            {initials}
+          <button onClick={handleExpand} className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary/20 text-sm font-bold text-primary">
+            {applicant.worker_avatar && applicant.worker_avatar.startsWith("flag:") ? (
+              <span className="text-2xl">{applicant.worker_avatar.replace("flag:", "")}</span>
+            ) : applicant.worker_avatar ? (
+              <img src={applicant.worker_avatar} alt={applicant.worker_name} className="h-full w-full object-cover" />
+            ) : applicant.nationality && COUNTRY_FLAGS[applicant.nationality] ? (
+              <span className="text-2xl">{COUNTRY_FLAGS[applicant.nationality]}</span>
+            ) : (
+              initials
+            )}
           </button>
 
           {/* Info */}

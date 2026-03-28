@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Australia": "🇦🇺", "Austria": "🇦🇹", "Argentina": "🇦🇷", "Brazil": "🇧🇷",
+  "Canada": "🇨🇦", "Chile": "🇨🇱", "France": "🇫🇷", "Germany": "🇩🇪",
+  "Ireland": "🇮🇪", "Italy": "🇮🇹", "Japan": "🇯🇵", "Mexico": "🇲🇽",
+  "Netherlands": "🇳🇱", "New Zealand": "🇳🇿", "Norway": "🇳🇴", "Poland": "🇵🇱",
+  "Portugal": "🇵🇹", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Spain": "🇪🇸",
+  "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "United Kingdom": "🇬🇧", "USA": "🇺🇸",
+  "United States": "🇺🇸",
+};
+
 /* ─── Types ──────────────────────────────────────────────── */
 
 interface DemoListing {
@@ -31,6 +41,8 @@ interface DemoApplicant {
   name: string;
   email: string;
   location: string;
+  avatar: string | null;
+  nationality: string | null;
   skills: string[];
   experience: number;
   status: ApplicantStatus;
@@ -389,7 +401,7 @@ export default function ManageListingsPage() {
           const jobIds = jobs.map((j: Record<string, unknown>) => j.id as string);
           const { data: appData } = await supabase
             .from("applications")
-            .select("*, worker_profiles(id, first_name, last_name, location_current, skills, years_seasonal_experience, languages, references)")
+            .select("*, worker_profiles(id, first_name, last_name, avatar_url, profile_photo_url, nationality, location_current, skills, years_seasonal_experience, languages, references)")
             .in("job_post_id", jobIds);
 
           if (appData && appData.length > 0) {
@@ -416,6 +428,8 @@ export default function ManageListingsPage() {
                 name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
                 email: "",
                 location: (wp?.location_current as string) || "",
+                avatar: (wp?.avatar_url as string) || (wp?.profile_photo_url as string) || null,
+                nationality: (wp?.nationality as string) || null,
                 skills: (wp?.skills as string[]) || [],
                 experience: (wp?.years_seasonal_experience as number) || 0,
                 status: statusMap[a.status as string] || "pending",
@@ -792,8 +806,16 @@ export default function ManageListingsPage() {
                                 }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-xs font-bold text-primary">
-                                    {initials}
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary/20 text-xs font-bold text-primary">
+                                    {applicant.avatar && applicant.avatar.startsWith("flag:") ? (
+                                      <span className="text-xl">{applicant.avatar.replace("flag:", "")}</span>
+                                    ) : applicant.avatar ? (
+                                      <img src={applicant.avatar} alt={applicant.name} className="h-full w-full object-cover" />
+                                    ) : applicant.nationality && COUNTRY_FLAGS[applicant.nationality] ? (
+                                      <span className="text-xl">{COUNTRY_FLAGS[applicant.nationality]}</span>
+                                    ) : (
+                                      initials
+                                    )}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
