@@ -61,7 +61,7 @@ export default function EmployerProfilePage() {
       // Get real business profile by slug to get the UUID
       const { data: bizProfile } = await supabase
         .from("business_profiles")
-        .select("id, business_name, is_verified")
+        .select("id, business_name, is_verified, logo_url")
         .eq("slug", slug)
         .single();
 
@@ -98,6 +98,7 @@ export default function EmployerProfilePage() {
           ...j,
           business_name: bizProfile.business_name,
           business_verified: bizProfile.is_verified,
+          business_logo_url: bizProfile.logo_url || null,
           resort_name: resort?.name || "",
           resort_country: resort?.country || "",
           applications_count: countMap[j.id] || 0,

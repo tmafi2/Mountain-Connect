@@ -93,12 +93,12 @@ function FindAJobContent() {
         const supabase = createClient();
         const { data } = await supabase
           .from("job_posts")
-          .select("*, business_profiles(business_name, verification_status), resorts(name, country)")
+          .select("*, business_profiles(business_name, verification_status, logo_url), resorts(name, country)")
           .eq("status", "active");
 
         if (data && data.length > 0) {
           const mapped: SeedJob[] = data.map((j: Record<string, unknown>) => {
-            const bp = j.business_profiles as { business_name: string; verification_status: string } | null;
+            const bp = j.business_profiles as { business_name: string; verification_status: string; logo_url: string | null } | null;
             const resort = j.resorts as { name: string; country: string } | null;
             const posType = (j.position_type as string) || "full_time";
             return {
@@ -116,6 +116,7 @@ function FindAJobContent() {
               created_at: j.created_at as string,
               business_name: bp?.business_name || "Unknown Business",
               business_verified: bp?.verification_status === "verified",
+              business_logo_url: bp?.logo_url || null,
               resort_name: resort?.name || "",
               resort_country: resort?.country || "",
               category: (j.category as string) || "Other",
@@ -734,59 +735,76 @@ function JobCard({
       }`}
     >
       <button type="button" onClick={onClick} className="w-full text-left">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-primary">
-              {job.title}
-            </h3>
-            {job.urgently_hiring && (
-              <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
-                Urgently Hiring
-              </span>
-            )}
-          </div>
+        <div className="flex items-start gap-3">
+          {/* Business logo */}
+          {job.business_logo_url ? (
+            <img
+              src={job.business_logo_url}
+              alt={job.business_name}
+              className="h-10 w-10 shrink-0 rounded-lg border border-accent/30 object-cover"
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-xs font-bold text-primary/60">
+              {job.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+            </div>
+          )}
 
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
-            <span className="font-medium">{job.business_name}</span>
-            {job.business_verified && (
-              <span className="text-xs text-blue-500" title="Verified business">
-                &#10003; Verified
-              </span>
-            )}
-            <span className="text-foreground/30">|</span>
-            <span>{job.resort_name}</span>
-            <span className="text-foreground/30">|</span>
-            <span>{job.resort_country}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-semibold text-primary">
+                    {job.title}
+                  </h3>
+                  {job.urgently_hiring && (
+                    <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+                      Urgently Hiring
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
+                  <span className="font-medium">{job.business_name}</span>
+                  {job.business_verified && (
+                    <span className="text-xs text-blue-500" title="Verified business">
+                      &#10003; Verified
+                    </span>
+                  )}
+                  <span className="text-foreground/30">|</span>
+                  <span>{job.resort_name}</span>
+                  <span className="text-foreground/30">|</span>
+                  <span>{job.resort_country}</span>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm font-semibold text-primary">{formatPay(job.pay_amount, job.pay_currency)}</p>
+                <p className="text-xs text-foreground/50">
+                  {job.position_type === "full_time"
+                    ? "Full Time"
+                    : job.position_type === "part_time"
+                      ? "Part Time"
+                      : "Casual"}
+                </p>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <PerkTag label={job.category || "Other"} />
+              {job.accommodation_included && <PerkTag label="Accommodation" variant="green" />}
+              {job.ski_pass_included && <PerkTag label="Ski Pass" variant="blue" />}
+              {job.meal_perks && <PerkTag label="Meals" variant="amber" />}
+              {job.visa_sponsorship && <PerkTag label="Visa Sponsorship" variant="purple" />}
+            </div>
+
+            {/* Footer */}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground/50">
+              <span>Posted {timeAgo(job.created_at)}</span>
+              {job.start_date && <span>{daysUntil(job.start_date)}</span>}
+            </div>
           </div>
         </div>
-
-        <div className="text-right">
-          <p className="text-sm font-semibold text-primary">{formatPay(job.pay_amount, job.pay_currency)}</p>
-          <p className="text-xs text-foreground/50">
-            {job.position_type === "full_time"
-              ? "Full Time"
-              : job.position_type === "part_time"
-                ? "Part Time"
-                : "Casual"}
-          </p>
-        </div>
-      </div>
-
-      {/* Tags */}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <PerkTag label={job.category || "Other"} />
-        {job.accommodation_included && <PerkTag label="Accommodation" variant="green" />}
-        {job.ski_pass_included && <PerkTag label="Ski Pass" variant="blue" />}
-        {job.meal_perks && <PerkTag label="Meals" variant="amber" />}
-        {job.visa_sponsorship && <PerkTag label="Visa Sponsorship" variant="purple" />}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground/50">
-        <span>Posted {timeAgo(job.created_at)}</span>
-        {job.start_date && <span>{daysUntil(job.start_date)}</span>}
-      </div>
       </button>
 
       {/* Bookmark button */}
