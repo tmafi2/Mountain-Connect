@@ -73,7 +73,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   interview: { bg: "bg-purple-50", text: "text-purple-700", label: "Interview" },
   offered: { bg: "bg-orange-50", text: "text-orange-700", label: "Offered" },
   accepted: { bg: "bg-green-50", text: "text-green-700", label: "Accepted" },
-  rejected: { bg: "bg-red-50", text: "text-red-700", label: "Rejected" },
+  rejected: { bg: "bg-red-50", text: "text-red-700", label: "Unsuccessful" },
 };
 
 export default function ApplicantCard({
@@ -548,7 +548,7 @@ export default function ApplicantCard({
                     onClick={() => onStatusChange(applicant.application_id, "rejected")}
                     className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                   >
-                    Decline
+                    Unsuccessful
                   </button>
                 )}
                 {(applicant.status === "interview" || applicant.status === "interview_pending") && onStatusChange && (

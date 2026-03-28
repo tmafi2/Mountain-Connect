@@ -15,7 +15,7 @@ const VERIFICATION_BADGE: Record<string, { bg: string; text: string; label: stri
   verified: { bg: "bg-green-50", text: "text-green-700", label: "Verified" },
   pending_review: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending" },
   unverified: { bg: "bg-gray-50", text: "text-gray-500", label: "Unverified" },
-  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Rejected" },
+  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Unsuccessful" },
 };
 
 /* ─── Page ───────────────────────────────────────────────── */

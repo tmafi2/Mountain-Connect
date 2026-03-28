@@ -195,7 +195,7 @@ export default function ApplicantsPage() {
     { value: "interview", label: "Interview", color: "bg-purple-50 text-purple-700" },
     { value: "offered", label: "Offered / Contract Sent", color: "bg-orange-50 text-orange-700" },
     { value: "accepted", label: "Accepted", color: "bg-green-50 text-green-700" },
-    { value: "rejected", label: "Rejected", color: "bg-red-50 text-red-700" },
+    { value: "rejected", label: "Unsuccessful", color: "bg-red-50 text-red-700" },
   ];
 
   if (pageLoading) {

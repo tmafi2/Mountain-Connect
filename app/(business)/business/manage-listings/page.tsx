@@ -322,7 +322,7 @@ const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label:
   reviewed: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Reviewed" },
   interview_scheduled: { bg: "bg-purple-50", text: "text-purple-700", label: "Interview" },
   accepted: { bg: "bg-green-50", text: "text-green-700", label: "Accepted" },
-  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Declined" },
+  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Unsuccessful" },
 };
 
 type FilterTab = "all" | "active" | "paused" | "closed";
@@ -660,7 +660,7 @@ export default function ManageListingsPage() {
                                 { value: "reviewed", label: "Reviewed" },
                                 { value: "interview_scheduled", label: "Interview" },
                                 { value: "accepted", label: "Accepted" },
-                                { value: "rejected", label: "Declined" },
+                                { value: "rejected", label: "Unsuccessful" },
                               ] as const
                             ).map((pill) => (
                               <button
@@ -824,7 +824,7 @@ export default function ManageListingsPage() {
                                   disabled={actionLoading !== null}
                                   className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100 hover:-translate-y-0.5 disabled:opacity-50"
                                 >
-                                  {actionLoading === activeApplicant.id + "rejected" ? "Declining…" : "Decline"}
+                                  {actionLoading === activeApplicant.id + "rejected" ? "Updating…" : "Unsuccessful"}
                                 </button>
                               )}
                               {activeApplicant.status !== "interview_scheduled" && activeApplicant.status !== "accepted" && activeApplicant.status !== "rejected" && (

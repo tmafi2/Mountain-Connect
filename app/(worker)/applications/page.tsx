@@ -184,7 +184,7 @@ const STATUS_LABELS: Record<Application["status"], string> = {
   interview: "Interview",
   offered: "Offered",
   accepted: "Accepted",
-  rejected: "Rejected",
+  rejected: "Unsuccessful",
 };
 
 const STATUS_STYLES: Record<Application["status"], { bg: string; text: string }> = {
@@ -375,7 +375,7 @@ export default function ApplicationsPage() {
     { key: "interview", label: "Interview" },
     { key: "offered", label: "Offered" },
     { key: "accepted", label: "Accepted" },
-    { key: "rejected", label: "Rejected" },
+    { key: "rejected", label: "Unsuccessful" },
   ];
 
   const getTimelineIndex = (status: Application["status"]): number => {

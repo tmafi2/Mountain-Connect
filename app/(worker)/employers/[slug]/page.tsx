@@ -15,7 +15,7 @@ const VERIFICATION_BADGE = {
   verified: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Verified Employer" },
   pending_review: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", label: "Pending Verification" },
   unverified: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", label: "Unverified" },
-  rejected: { bg: "bg-red-50 border-red-200", text: "text-red-500", label: "Rejected" },
+  rejected: { bg: "bg-red-50 border-red-200", text: "text-red-500", label: "Unsuccessful" },
 };
 
 /* ─── Page ───────────────────────────────────────────────── */

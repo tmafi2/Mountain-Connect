@@ -68,7 +68,7 @@ const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label:
   reviewed: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Reviewed" },
   interview_scheduled: { bg: "bg-purple-50", text: "text-purple-700", label: "Interview" },
   accepted: { bg: "bg-green-50", text: "text-green-700", label: "Accepted" },
-  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Declined" },
+  rejected: { bg: "bg-red-50", text: "text-red-500", label: "Unsuccessful" },
 };
 
 /* ─── Demo data ──────────────────────────────────────────── */
@@ -582,7 +582,7 @@ export default function ListingDetailPage() {
     { value: "reviewed", label: "Reviewed" },
     { value: "interview_scheduled", label: "Interview" },
     { value: "accepted", label: "Accepted" },
-    { value: "rejected", label: "Declined" },
+    { value: "rejected", label: "Unsuccessful" },
   ];
 
   return (
@@ -931,7 +931,7 @@ export default function ListingDetailPage() {
                                 onClick={() => handleApplicantStatusChange(applicant.id, "rejected")}
                                 className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                               >
-                                Decline
+                                Unsuccessful
                               </button>
                             )}
                             {applicant.status !== "interview_scheduled" && applicant.status !== "accepted" && applicant.status !== "rejected" && (
@@ -1009,7 +1009,7 @@ export default function ListingDetailPage() {
                       onClick={() => handleApplicantStatusChange(applicant.id, "rejected")}
                       className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
                     >
-                      Decline
+                      Unsuccessful
                     </button>
                     <a
                       href="#"
