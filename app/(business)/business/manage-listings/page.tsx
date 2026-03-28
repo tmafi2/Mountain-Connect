@@ -369,6 +369,48 @@ export default function ManageListingsPage() {
           .order("created_at", { ascending: false });
 
         if (jobs && jobs.length > 0) {
+          // Fetch real applicants for all job listings
+          const jobIds = jobs.map((j: Record<string, unknown>) => j.id as string);
+          const { data: appData } = await supabase
+            .from("applications")
+            .select("*, worker_profiles(id, first_name, last_name, location_current, skills, years_seasonal_experience, languages)")
+            .in("job_post_id", jobIds);
+
+          if (appData && appData.length > 0) {
+            const statusMap: Record<string, ApplicantStatus> = {
+              new: "pending",
+              viewed: "reviewed",
+              interview_pending: "interview_scheduled",
+              interview: "interview_scheduled",
+              offered: "accepted",
+              accepted: "accepted",
+              rejected: "rejected",
+            };
+
+            const mappedApplicants: DemoApplicant[] = appData.map((a: Record<string, unknown>) => {
+              const wp = a.worker_profiles as Record<string, unknown> | null;
+              const firstName = (wp?.first_name as string) || "";
+              const lastName = (wp?.last_name as string) || "";
+              const langs = (wp?.languages as { language: string }[]) || [];
+
+              return {
+                id: (wp?.id as string) || (a.worker_id as string),
+                jobId: a.job_post_id as string,
+                name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
+                email: "",
+                location: (wp?.location_current as string) || "",
+                skills: (wp?.skills as string[]) || [],
+                experience: (wp?.years_seasonal_experience as number) || 0,
+                status: statusMap[a.status as string] || "pending",
+                appliedAt: a.applied_at as string,
+                coverLetter: (a.cover_letter as string) || "",
+                availability: "",
+                languages: langs.map((l) => l.language),
+              };
+            });
+            setApplicants(mappedApplicants);
+          }
+
           const mapped: DemoListing[] = jobs.map((j: Record<string, unknown>) => {
             const resort = j.resorts as { name: string; country: string } | null;
             const posType = j.position_type === "full_time" ? "Full-time" : j.position_type === "part_time" ? "Part-time" : "Casual";

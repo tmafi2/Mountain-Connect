@@ -340,7 +340,7 @@ export default function ListingDetailPage() {
             showPositions: jobData.show_positions !== false,
             positionsAvailable: jobData.positions_available || 1,
             positionsFilled: 0,
-            applicants: 0,
+            applicants: 0, // Updated below after fetching applicants
             interviews: 0,
             views: 0,
           });
@@ -400,8 +400,16 @@ export default function ListingDetailPage() {
           });
           setApplicants(mappedApplicants);
 
+          // Update the listing counts with real data
+          const interviewCount = mappedApplicants.filter((a) => a.status === "interview_scheduled").length;
           const accepted = mappedApplicants.filter((a) => a.status === "accepted");
           setFilledSlots(accepted.map((a) => a.id));
+          setListing((prev) => prev ? {
+            ...prev,
+            applicants: mappedApplicants.length,
+            interviews: interviewCount,
+            positionsFilled: accepted.length,
+          } : prev);
         }
       } catch (err) {
         console.error("Failed to load listing data:", err);
