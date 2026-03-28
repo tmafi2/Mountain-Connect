@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { getBusinessBySlug, getCategoryLabel, seedBusinesses } from "@/lib/data/businesses";
-import { seedJobs } from "@/lib/data/jobs";
+import { type SeedJob } from "@/lib/data/jobs";
 import { resorts } from "@/lib/data/resorts";
 import PhotoGallery from "@/components/ui/PhotoGallery";
 import ResortMap from "@/components/ui/ResortMap";
@@ -50,12 +50,8 @@ export default function EmployerProfilePage() {
     .map((rid) => resorts.find((r) => r.id === rid))
     .filter(Boolean);
 
-  // Get active job listings for this business (match by business_name)
-  const businessJobs = seedJobs.filter(
-    (j) =>
-      j.is_active &&
-      j.business_name.toLowerCase().includes(business.business_name.split(" ")[0].toLowerCase())
-  );
+  // Jobs will be fetched from Supabase — no mock data
+  const businessJobs: SeedJob[] = [];
 
   const handleFollow = async () => {
     setFollowLoading(true);

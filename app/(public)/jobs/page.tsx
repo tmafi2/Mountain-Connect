@@ -4,10 +4,6 @@ import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  seedJobs,
-  JOB_CATEGORIES,
-  JOB_COUNTRIES,
-  JOB_RESORTS,
   type SeedJob,
 } from "@/lib/data/jobs";
 import { resorts } from "@/lib/data/resorts";
@@ -87,10 +83,10 @@ export default function FindAJobPage() {
 
 function FindAJobContent() {
   const searchParams = useSearchParams();
-  const [allJobs, setAllJobs] = useState<SeedJob[]>(seedJobs);
+  const [allJobs, setAllJobs] = useState<SeedJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
 
-  // Fetch real jobs from Supabase, fallback to seed data
+  // Fetch real jobs from Supabase
   useEffect(() => {
     (async () => {
       try {
@@ -142,11 +138,16 @@ function FindAJobContent() {
           setAllJobs(mapped);
         }
       } catch {
-        // Fallback to seed data (already set)
+        // No fallback — only show real jobs
       }
       setJobsLoading(false);
     })();
   }, []);
+
+  // Derive filter options from real job data
+  const JOB_CATEGORIES = useMemo(() => [...new Set(allJobs.map((j) => j.category).filter((c): c is string => !!c))].sort(), [allJobs]);
+  const JOB_COUNTRIES = useMemo(() => [...new Set(allJobs.map((j) => j.resort_country).filter(Boolean))].sort(), [allJobs]);
+  const JOB_RESORTS = useMemo(() => [...new Set(allJobs.map((j) => j.resort_name).filter(Boolean))].sort(), [allJobs]);
 
   const [filters, setFilters] = useState<Filters>(() => {
     // Pre-populate filters from URL query params
@@ -390,7 +391,7 @@ function FindAJobContent() {
                     placeholder="All resorts"
                     options={(filters.country
                       ? JOB_RESORTS.filter((r) =>
-                          seedJobs.some(
+                          allJobs.some(
                             (j) =>
                               j.resort_name === r &&
                               j.resort_country === filters.country

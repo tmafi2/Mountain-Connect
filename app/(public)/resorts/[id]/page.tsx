@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
 import { formatPay } from "@/lib/utils/format-pay";
-import { seedJobs } from "@/lib/data/jobs";
+
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
 import { createClient } from "@/lib/supabase/server";
