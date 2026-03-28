@@ -19,6 +19,7 @@ interface ProfileFormData {
   address: string;
   location: string;
   country: string;
+  timezone: string;
   logo_url: string;
   cover_photo_url: string;
   instagram: string;
@@ -150,6 +151,7 @@ export default function CompanyProfilePage() {
     address: "",
     location: "",
     country: "",
+    timezone: "",
     logo_url: "",
     cover_photo_url: "",
     instagram: "",
@@ -199,6 +201,7 @@ export default function CompanyProfilePage() {
           address: typeof profile.address === "string" ? profile.address : "",
           location: profile.location ?? "",
           country: typeof profile.country === "string" ? profile.country : "",
+          timezone: profile.timezone ?? "",
           logo_url: profile.logo_url ?? "",
           cover_photo_url: profile.cover_photo_url ?? "",
           instagram: social.instagram ?? "",
@@ -474,6 +477,7 @@ export default function CompanyProfilePage() {
     updateData.industries = form.industries.length > 0 ? form.industries : [];
     updateData.address = form.address || null;
     updateData.country = form.country || null;
+    updateData.timezone = form.timezone || null;
     // Only save resort_id if it's a valid UUID (static resort IDs are not UUIDs)
     const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     updateData.resort_id = form.resort_id && isUuid(form.resort_id) ? form.resort_id : null;
@@ -918,6 +922,53 @@ export default function CompanyProfilePage() {
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* Time Zone */}
+          <div>
+            <label className="block text-sm font-medium text-foreground">Time Zone</label>
+            <select
+              value={form.timezone}
+              onChange={(e) => updateField("timezone", e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Select time zone</option>
+              <optgroup label="Australia & NZ">
+                <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                <option value="Australia/Melbourne">Australia/Melbourne (AEST)</option>
+                <option value="Australia/Brisbane">Australia/Brisbane (AEST)</option>
+                <option value="Australia/Hobart">Australia/Hobart (AEST)</option>
+                <option value="Australia/Perth">Australia/Perth (AWST)</option>
+                <option value="Pacific/Auckland">New Zealand (NZST)</option>
+              </optgroup>
+              <optgroup label="North America">
+                <option value="America/Vancouver">Pacific - Vancouver (PST)</option>
+                <option value="America/Edmonton">Mountain - Calgary (MST)</option>
+                <option value="America/Toronto">Eastern - Toronto (EST)</option>
+                <option value="America/Denver">Mountain - Denver (MST)</option>
+                <option value="America/Los_Angeles">Pacific - LA (PST)</option>
+                <option value="America/New_York">Eastern - New York (EST)</option>
+                <option value="America/Anchorage">Alaska (AKST)</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="Europe/London">London (GMT)</option>
+                <option value="Europe/Paris">Paris / Berlin (CET)</option>
+                <option value="Europe/Zurich">Zurich (CET)</option>
+                <option value="Europe/Vienna">Vienna (CET)</option>
+                <option value="Europe/Oslo">Oslo (CET)</option>
+                <option value="Europe/Stockholm">Stockholm (CET)</option>
+                <option value="Europe/Rome">Rome (CET)</option>
+                <option value="Europe/Madrid">Madrid (CET)</option>
+              </optgroup>
+              <optgroup label="Asia">
+                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                <option value="Asia/Seoul">Seoul (KST)</option>
+              </optgroup>
+              <optgroup label="South America">
+                <option value="America/Santiago">Santiago (CLT)</option>
+                <option value="America/Argentina/Buenos_Aires">Buenos Aires (ART)</option>
+              </optgroup>
+            </select>
           </div>
 
           {/* Associated Resort */}
