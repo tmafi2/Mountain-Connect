@@ -190,7 +190,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
           {industries.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {industries.map((ind: string) => (
-                <span key={ind} className="rounded-full bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary">
+                <span key={ind} className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
                   {INDUSTRY_LABELS[ind] || ind.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
                 </span>
               ))}
@@ -204,7 +204,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                 <Link
                   key={r.id}
                   href={`/resorts/${r.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30"
                 >
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M3 7l9-4 9 4" />
