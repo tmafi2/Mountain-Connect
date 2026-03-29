@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -357,12 +358,22 @@ type FilterTab = "all" | "active" | "draft" | "paused" | "closed";
 /* ─── Page component ─────────────────────────────────────── */
 
 export default function ManageListingsPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" /></div>}>
+      <ManageListingsContent />
+    </Suspense>
+  );
+}
+
+function ManageListingsContent() {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
   const [filter, setFilter] = useState<FilterTab>("all");
   const [expandedListing, setExpandedListing] = useState<string | null>(null);
   const [selectedApplicant, setSelectedApplicant] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<typeof demoApplicants>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [applicantSort, setApplicantSort] = useState<"newest" | "oldest" | "experience" | "name">("newest");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
   const [listings, setListings] = useState<DemoListing[]>([]);

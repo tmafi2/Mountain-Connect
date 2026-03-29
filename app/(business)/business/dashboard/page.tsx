@@ -368,7 +368,7 @@ export default function BusinessDashboard() {
             });
           });
 
-          // Search applicants
+          // Search applicants — find workers by name, then match to applications
           const { data: jobIds } = await supabase
             .from("job_posts")
             .select("id")
@@ -376,17 +376,29 @@ export default function BusinessDashboard() {
 
           if (jobIds && jobIds.length > 0) {
             const jids = jobIds.map((j) => j.id);
-            const { data: apps } = await supabase
-              .from("applications")
-              .select("id, worker_id, job_post_id, worker_profiles(first_name, last_name), job_posts(title)")
-              .in("job_post_id", jids)
+
+            // Search by first_name or last_name using ilike
+            const { data: matchingWorkers } = await supabase
+              .from("worker_profiles")
+              .select("id, user_id, first_name, last_name")
+              .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`)
               .limit(20);
 
-            apps?.forEach((a) => {
-              const wp = a.worker_profiles as unknown as { first_name: string | null; last_name: string | null } | null;
-              const jp = a.job_posts as unknown as { title: string } | null;
-              const name = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown";
-              if (name.toLowerCase().includes(q)) {
+            if (matchingWorkers && matchingWorkers.length > 0) {
+              const workerIds = matchingWorkers.map((w) => w.id);
+
+              // Find applications from these workers for this business's jobs
+              const { data: matchedApps } = await supabase
+                .from("applications")
+                .select("id, worker_id, job_post_id, job_posts(title)")
+                .in("worker_id", workerIds)
+                .in("job_post_id", jids)
+                .limit(5);
+
+              matchedApps?.forEach((a) => {
+                const worker = matchingWorkers.find((w) => w.id === a.worker_id);
+                const jp = a.job_posts as unknown as { title: string } | null;
+                const name = [worker?.first_name, worker?.last_name].filter(Boolean).join(" ") || "Unknown";
                 results.push({
                   id: a.id,
                   type: "applicant",
@@ -394,8 +406,8 @@ export default function BusinessDashboard() {
                   subtitle: jp?.title || "Job Application",
                   href: `/business/applicants`,
                 });
-              }
-            });
+              });
+            }
           }
 
           // Search resorts (from static data import or Supabase)
@@ -437,15 +449,17 @@ export default function BusinessDashboard() {
   return (
     <div className="mx-auto max-w-5xl">
       {/* ── Hero header — clean corporate gradient ────────────── */}
-      <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-2xl px-8 py-10 sm:px-10 sm:py-12">
-        {/* Gradient background — deeper, more corporate */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#132d4a]" />
-        {/* Subtle geometric shapes instead of organic blobs */}
-        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-3xl bg-secondary/8 blur-2xl rotate-12" />
-        <div className="absolute bottom-0 left-1/3 h-32 w-64 rounded-full bg-secondary/6 blur-3xl" />
-        <div className="absolute right-0 bottom-0 h-24 w-24 rounded-2xl bg-highlight/5 blur-xl" />
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+      <div className="relative -mx-6 -mt-6 mb-8 rounded-2xl px-8 py-10 sm:px-10 sm:py-12">
+        {/* Gradient background — deeper, more corporate (overflow-hidden only on bg layer) */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#132d4a]" />
+          {/* Subtle geometric shapes instead of organic blobs */}
+          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-3xl bg-secondary/8 blur-2xl rotate-12" />
+          <div className="absolute bottom-0 left-1/3 h-32 w-64 rounded-full bg-secondary/6 blur-3xl" />
+          <div className="absolute right-0 bottom-0 h-24 w-24 rounded-2xl bg-highlight/5 blur-xl" />
+          {/* Subtle grid pattern overlay */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+        </div>
 
         <div className="relative z-10">
           <div className="flex items-center justify-between">
@@ -528,7 +542,7 @@ export default function BusinessDashboard() {
 
             {/* Search dropdown */}
             {searchOpen && (
-              <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-xl border border-accent/30 bg-white shadow-2xl">
+              <div className="absolute left-0 right-0 top-full z-[70] mt-2 max-h-80 overflow-y-auto rounded-xl border border-accent/30 bg-white shadow-2xl">
                 {searchResults.length === 0 ? (
                   <div className="px-4 py-6 text-center">
                     <svg className="mx-auto h-8 w-8 text-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
