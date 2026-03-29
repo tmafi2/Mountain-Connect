@@ -62,6 +62,12 @@ export default function WorkerDashboard() {
   const [hasInvitedInterview, setHasInvitedInterview] = useState(false);
   const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
+  const [checklistDismissed, setChecklistDismissed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("mc-onboarding-dismissed") === "true";
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (
@@ -357,6 +363,20 @@ export default function WorkerDashboard() {
         </div>
       </div>
 
+      {/* ── Onboarding Checklist ──────────────────────────────── */}
+      {!checklistDismissed && (
+        <OnboardingChecklist
+          profileCompletion={profileCompletion}
+          appCount={appCount}
+          savedCount={savedCount}
+          interviewCount={interviewCount}
+          onDismiss={() => {
+            setChecklistDismissed(true);
+            localStorage.setItem("mc-onboarding-dismissed", "true");
+          }}
+        />
+      )}
+
       {/* ── Stats row — glassmorphism cards with icons ──────── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
@@ -621,6 +641,158 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </div>
       <span className="flex-shrink-0 text-xs text-foreground/40">{formatTimeAgo(item.date)}</span>
     </Link>
+  );
+}
+
+/* ── Onboarding Checklist ─────────────────────────────────── */
+interface ChecklistStep {
+  id: string;
+  label: string;
+  href: string;
+  done: boolean;
+}
+
+function OnboardingChecklist({
+  profileCompletion,
+  appCount,
+  savedCount,
+  interviewCount,
+  onDismiss,
+}: {
+  profileCompletion: number;
+  appCount: number;
+  savedCount: number;
+  interviewCount: number;
+  onDismiss: () => void;
+}) {
+  const steps: ChecklistStep[] = [
+    { id: "account", label: "Create your account", href: "/profile", done: true }, // always done if they're on the dashboard
+    { id: "profile", label: "Complete your profile", href: "/profile/edit", done: profileCompletion >= 80 },
+    { id: "browse", label: "Browse available jobs", href: "/jobs", done: appCount > 0 || savedCount > 0 },
+    { id: "save", label: "Save your first job", href: "/jobs", done: savedCount > 0 },
+    { id: "apply", label: "Submit your first application", href: "/jobs", done: appCount > 0 },
+    { id: "interview", label: "Land your first interview", href: "/interviews", done: interviewCount > 0 },
+  ];
+
+  const completed = steps.filter((s) => s.done).length;
+  const total = steps.length;
+  const pct = Math.round((completed / total) * 100);
+  const allDone = completed === total;
+
+  return (
+    <div className="mb-8 rounded-2xl border border-accent/60 bg-white/70 backdrop-blur-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${allDone ? "bg-green-100 text-green-600" : "bg-secondary/15 text-secondary"}`}>
+            {allDone ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.841m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-primary">
+              {allDone ? "All set! You're ready to go" : "Getting Started"}
+            </h2>
+            <p className="text-xs text-foreground/40">
+              {allDone ? "You've completed all onboarding steps" : `${completed} of ${total} steps completed`}
+            </p>
+          </div>
+        </div>
+        {allDone && (
+          <button
+            onClick={onDismiss}
+            className="rounded-lg bg-green-50 px-3 py-1.5 text-xs font-medium text-green-600 transition-colors hover:bg-green-100"
+          >
+            Dismiss
+          </button>
+        )}
+        {!allDone && (
+          <button
+            onClick={onDismiss}
+            className="rounded-lg p-1.5 text-foreground/30 transition-colors hover:bg-accent/20 hover:text-foreground/50"
+            title="Dismiss checklist"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <div className="mx-5 mb-4">
+        <div className="h-2 overflow-hidden rounded-full bg-accent/30">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${allDone ? "bg-green-500" : "bg-secondary"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Steps */}
+      {!allDone && (
+        <div className="border-t border-accent/30 divide-y divide-accent/20">
+          {steps.map((step) => (
+            <Link
+              key={step.id}
+              href={step.done ? "#" : step.href}
+              className={`flex items-center gap-3 px-5 py-3 transition-colors ${
+                step.done ? "cursor-default" : "hover:bg-accent/10"
+              }`}
+              onClick={step.done ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+            >
+              {/* Checkbox */}
+              <div
+                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                  step.done
+                    ? "border-green-500 bg-green-500"
+                    : "border-accent/50"
+                }`}
+              >
+                {step.done && (
+                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                )}
+              </div>
+
+              {/* Label */}
+              <span
+                className={`flex-1 text-sm ${
+                  step.done
+                    ? "text-foreground/40 line-through"
+                    : "font-medium text-primary"
+                }`}
+              >
+                {step.label}
+              </span>
+
+              {/* Arrow for incomplete steps */}
+              {!step.done && (
+                <svg className="h-4 w-4 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Congratulatory message when all done */}
+      {allDone && (
+        <div className="border-t border-accent/30 px-5 py-4 text-center">
+          <p className="text-sm text-foreground/60">
+            You&apos;re all set up! Keep exploring jobs and applying — your mountain adventure awaits.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
