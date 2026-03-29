@@ -26,6 +26,18 @@ function getCountryFlag(name: string): string | null {
   return COUNTRY_FLAGS[name] || null;
 }
 
+/* ─── Upcoming interview type ─────────────────────────────── */
+interface UpcomingInterview {
+  id: string;
+  jobTitle: string;
+  businessName: string;
+  scheduledDate: string; // ISO date
+  scheduledTime: string | null; // HH:MM:SS
+  endTime: string | null;
+  videoUrl: string | null;
+  urgency: "today" | "tomorrow";
+}
+
 /* ─── Activity item type ──────────────────────────────────── */
 interface ActivityItem {
   id: string;
@@ -48,6 +60,8 @@ export default function WorkerDashboard() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [hasOffer, setHasOffer] = useState(false);
   const [hasInvitedInterview, setHasInvitedInterview] = useState(false);
+  const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (
@@ -89,7 +103,7 @@ export default function WorkerDashboard() {
             // Fetch recent interviews with details
             supabase
               .from("interviews")
-              .select("id, status, invited_at, scheduled_at, scheduled_date, scheduled_start_time, completed_at, cancelled_at, application_id, applications(job_post_id, job_posts(title, business_profiles(business_name)))")
+              .select("id, status, invited_at, scheduled_at, scheduled_date, scheduled_start_time, scheduled_end_time, completed_at, cancelled_at, video_room_url, application_id, applications(job_post_id, job_posts(title, business_profiles(business_name)))")
               .eq("worker_id", profile.id)
               .order("created_at", { ascending: false })
               .limit(10),
@@ -208,6 +222,54 @@ export default function WorkerDashboard() {
           if (recentApps.data?.some((a) => a.status === "offered")) setHasOffer(true);
           if (recentInterviews.data?.some((iv) => iv.status === "invited")) setHasInvitedInterview(true);
 
+          // Detect interviews within the next 24 hours
+          if (recentInterviews.data) {
+            const now = new Date();
+            const todayStr = now.toISOString().slice(0, 10);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+            const upcoming: UpcomingInterview[] = [];
+            for (const iv of recentInterviews.data) {
+              if (iv.status !== "scheduled" || !iv.scheduled_date) continue;
+
+              const ivDate = iv.scheduled_date.slice(0, 10);
+              const isToday = ivDate === todayStr;
+              const isTomorrow = ivDate === tomorrowStr;
+
+              if (!isToday && !isTomorrow) continue;
+
+              // If today and has an end time, skip if the interview has already ended
+              if (isToday && iv.scheduled_end_time) {
+                const [eh, em] = iv.scheduled_end_time.split(":").map(Number);
+                const endDateTime = new Date(now);
+                endDateTime.setHours(eh, em, 0, 0);
+                if (now > endDateTime) continue; // already passed
+              }
+
+              const ivApp = iv.applications as unknown as { job_posts: { title: string; business_profiles: { business_name: string } } } | null;
+              upcoming.push({
+                id: iv.id,
+                jobTitle: ivApp?.job_posts?.title || "Interview",
+                businessName: ivApp?.job_posts?.business_profiles?.business_name || "a business",
+                scheduledDate: iv.scheduled_date,
+                scheduledTime: iv.scheduled_start_time || null,
+                endTime: iv.scheduled_end_time || null,
+                videoUrl: iv.video_room_url || null,
+                urgency: isToday ? "today" : "tomorrow",
+              });
+            }
+
+            // Sort: today first, then by time
+            upcoming.sort((a, b) => {
+              if (a.urgency !== b.urgency) return a.urgency === "today" ? -1 : 1;
+              return (a.scheduledTime || "").localeCompare(b.scheduledTime || "");
+            });
+
+            setUpcomingInterviews(upcoming);
+          }
+
           // Sort by date descending
           feed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           setActivities(feed);
@@ -233,8 +295,23 @@ export default function WorkerDashboard() {
     return "Good evening";
   };
 
+  const visibleBanners = upcomingInterviews.filter((iv) => !dismissedBanners.has(iv.id));
+
   return (
     <div className="mx-auto max-w-5xl">
+      {/* ── Interview Alert Banners ─────────────────────────────── */}
+      {visibleBanners.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {visibleBanners.map((iv) => (
+            <InterviewBanner
+              key={iv.id}
+              interview={iv}
+              onDismiss={() => setDismissedBanners((prev) => new Set(prev).add(iv.id))}
+            />
+          ))}
+        </div>
+      )}
+
       {/* ── Hero header with gradient mesh ─────────────────────── */}
       <div className="relative -mx-6 -mt-6 mb-8 overflow-hidden rounded-2xl px-8 py-10 sm:px-10 sm:py-12">
         {/* Gradient mesh background */}
@@ -544,6 +621,130 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </div>
       <span className="flex-shrink-0 text-xs text-foreground/40">{formatTimeAgo(item.date)}</span>
     </Link>
+  );
+}
+
+/* ── Interview Alert Banner ───────────────────────────────── */
+function InterviewBanner({
+  interview,
+  onDismiss,
+}: {
+  interview: UpcomingInterview;
+  onDismiss: () => void;
+}) {
+  const isToday = interview.urgency === "today";
+
+  // Format time display
+  let timeDisplay = "";
+  if (interview.scheduledTime) {
+    const [h, m] = interview.scheduledTime.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0);
+    timeDisplay = d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+
+  // For tomorrow, also show the day
+  let dateLabel = "";
+  if (!isToday) {
+    const d = new Date(interview.scheduledDate);
+    dateLabel = d.toLocaleDateString("en-AU", { weekday: "long", month: "short", day: "numeric" });
+  }
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl border px-5 py-4 ${
+        isToday
+          ? "border-secondary/40 bg-gradient-to-r from-secondary/10 via-secondary/5 to-highlight/5"
+          : "border-accent/60 bg-gradient-to-r from-primary/5 via-white to-white"
+      }`}
+    >
+      {/* Animated pulse dot for today */}
+      {isToday && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary" />
+      )}
+
+      <div className="flex items-center gap-4">
+        {/* Icon */}
+        <div
+          className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${
+            isToday ? "bg-secondary/15 text-secondary" : "bg-primary/10 text-primary/70"
+          }`}
+        >
+          {isToday ? (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+          ) : (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            {isToday && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-secondary" />
+                </span>
+                Today
+              </span>
+            )}
+            {!isToday && (
+              <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary/70">
+                Tomorrow
+              </span>
+            )}
+          </div>
+          <p className={`mt-1 text-sm font-semibold ${isToday ? "text-primary" : "text-primary/80"}`}>
+            {isToday ? "You have an interview" : "Upcoming interview"}
+            {timeDisplay ? ` at ${timeDisplay}` : ""}
+            {!isToday && dateLabel ? ` — ${dateLabel}` : ""}
+          </p>
+          <p className="truncate text-xs text-foreground/50">
+            {interview.jobTitle} — {interview.businessName}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-shrink-0 items-center gap-2">
+          {isToday && interview.videoUrl ? (
+            <Link
+              href={interview.videoUrl}
+              className="flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-secondary-light hover:shadow-md hover:shadow-secondary/20"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+              Join Call
+            </Link>
+          ) : (
+            <Link
+              href="/interviews"
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                isToday
+                  ? "bg-secondary/10 text-secondary hover:bg-secondary/20"
+                  : "bg-primary/5 text-primary/70 hover:bg-primary/10"
+              }`}
+            >
+              View Details
+            </Link>
+          )}
+          <button
+            onClick={onDismiss}
+            className="rounded-lg p-1.5 text-foreground/30 transition-colors hover:bg-accent/30 hover:text-foreground/60"
+            title="Dismiss"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
