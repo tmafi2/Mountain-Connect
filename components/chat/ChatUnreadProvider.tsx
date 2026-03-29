@@ -3,11 +3,10 @@
 import {
   createContext,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { StreamChat } from "stream-chat";
+import { createClient } from "@/lib/supabase/client";
 
 export const ChatUnreadContext = createContext<number>(0);
 
@@ -17,53 +16,72 @@ export default function ChatUnreadProvider({
   children: ReactNode;
 }) {
   const [unreadCount, setUnreadCount] = useState(0);
-  const clientRef = useRef<StreamChat | null>(null);
-  const initRef = useRef(false);
 
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-
-    let didCancel = false;
+    const supabase = createClient();
+    let userId: string | null = null;
+    let convIds: string[] = [];
 
     async function init() {
-      try {
-        const res = await fetch("/api/chat/token", { method: "POST" });
-        if (!res.ok) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      userId = user.id;
 
-        const { token, userId, userName, apiKey } = await res.json();
-        const chatClient = StreamChat.getInstance(apiKey);
-        clientRef.current = chatClient;
+      // Get conversations the user is in
+      const { data: participations } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", user.id);
 
-        const connection = await chatClient.connectUser(
-          { id: userId, name: userName },
-          token
-        );
+      if (!participations || participations.length === 0) return;
+      convIds = participations.map((p) => p.conversation_id);
 
-        if (!didCancel && connection?.me) {
-          setUnreadCount(connection.me.total_unread_count ?? 0);
-        }
+      // Get initial unread count
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .in("conversation_id", convIds)
+        .eq("read", false)
+        .neq("sender_id", user.id);
 
-        // Listen for unread count changes
-        chatClient.on((event) => {
-          if (!didCancel && event.total_unread_count !== undefined) {
-            setUnreadCount(event.total_unread_count);
+      setUnreadCount(count ?? 0);
+
+      // Subscribe to new messages for real-time unread updates
+      const channel = supabase
+        .channel("unread-messages")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages" },
+          (payload) => {
+            const msg = payload.new as { conversation_id: string; sender_id: string; read: boolean };
+            if (convIds.includes(msg.conversation_id) && msg.sender_id !== userId) {
+              setUnreadCount((prev) => prev + 1);
+            }
           }
-        });
-      } catch {
-        // Stream not configured — silently ignore
-      }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "messages" },
+          (payload) => {
+            const msg = payload.new as { conversation_id: string; sender_id: string; read: boolean };
+            const old = payload.old as { read: boolean };
+            // Message was marked as read
+            if (convIds.includes(msg.conversation_id) && msg.sender_id !== userId && !old.read && msg.read) {
+              setUnreadCount((prev) => Math.max(0, prev - 1));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
 
-    init();
+    const cleanupPromise = init();
 
     return () => {
-      didCancel = true;
-      if (clientRef.current) {
-        clientRef.current.disconnectUser().catch(() => {});
-        clientRef.current = null;
-      }
-      initRef.current = false;
+      cleanupPromise.then((cleanup) => cleanup?.());
     };
   }, []);
 
