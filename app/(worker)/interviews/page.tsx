@@ -725,6 +725,7 @@ export default function WorkerInterviewsPage() {
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [rescheduleSending, setRescheduleSending] = useState(false);
   const [rescheduleSuccess, setRescheduleSuccess] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState("");
   const [calYear, setCalYear] = useState(today.getFullYear());
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -861,32 +862,37 @@ export default function WorkerInterviewsPage() {
     setRescheduleSending(true);
     try {
       const supabase = createClient();
-      // Create a notification for the business
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         // Update interview status to indicate reschedule requested
-        await supabase
+        const { error: updateError } = await supabase
           .from("interviews")
           .update({ status: "reschedule_requested", worker_notes: rescheduleReason })
           .eq("id", rescheduleInterview.id);
 
-        // Also create a notification for the business
+        if (updateError) throw updateError;
+
+        // Create a notification for the business
         if (rescheduleInterview.business_id) {
-          await supabase.from("notifications").insert({
-            user_id: rescheduleInterview.business_id,
-            type: "reschedule_request",
-            title: "Interview Reschedule Requested",
-            message: `A worker has requested to reschedule their interview for ${rescheduleInterview.job_title}. Reason: ${rescheduleReason || "No reason provided"}`,
-            interview_id: rescheduleInterview.id,
-          }).catch(() => {
-            // notifications table may not exist yet — that's OK
-          });
+          try {
+            await supabase.from("notifications").insert({
+              user_id: rescheduleInterview.business_id,
+              type: "interview_rescheduled",
+              title: "Interview Reschedule Requested",
+              message: `A worker has requested to reschedule their interview for ${rescheduleInterview.job_title}. Reason: ${rescheduleReason || "No reason provided"}`,
+              metadata: { interview_id: rescheduleInterview.id },
+            });
+          } catch {
+            // notification insert failed — non-critical, continue
+          }
         }
       }
       setRescheduleSuccess(true);
+      // Auto-close modal after showing success
+      setTimeout(() => setRescheduleInterview(null), 2500);
     } catch (err) {
       console.error("Reschedule request failed:", err);
-      alert("Failed to send reschedule request. Please try again.");
+      setRescheduleError("Failed to send reschedule request. Please try again.");
     } finally {
       setRescheduleSending(false);
     }
@@ -1258,6 +1264,7 @@ export default function WorkerInterviewsPage() {
             setRescheduleInterview(iv);
             setRescheduleReason("");
             setRescheduleSuccess(false);
+            setRescheduleError("");
           }}
         />
       )}
@@ -1322,11 +1329,19 @@ export default function WorkerInterviewsPage() {
                     />
                   </div>
 
+                  {/* Error message */}
+                  {rescheduleError && (
+                    <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-2.5 text-sm text-red-600">
+                      {rescheduleError}
+                    </div>
+                  )}
+
                   {/* Buttons */}
                   <div className="flex gap-3">
                     <button
                       onClick={() => setRescheduleInterview(null)}
-                      className="flex-1 rounded-xl border border-accent/50 py-2.5 text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent/30"
+                      disabled={rescheduleSending}
+                      className="flex-1 rounded-xl border border-accent/50 py-2.5 text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent/30 disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -1335,7 +1350,14 @@ export default function WorkerInterviewsPage() {
                       disabled={rescheduleSending}
                       className="flex-1 rounded-xl bg-yellow-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-yellow-600 disabled:opacity-50"
                     >
-                      {rescheduleSending ? "Sending..." : "Send Request"}
+                      {rescheduleSending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                          Sending...
+                        </span>
+                      ) : (
+                        "Send Request"
+                      )}
                     </button>
                   </div>
                 </>
