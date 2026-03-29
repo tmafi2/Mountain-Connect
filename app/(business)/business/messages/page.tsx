@@ -81,14 +81,36 @@ function BusinessMessagesContent() {
       if (!user) { setLoading(false); return; }
       setCurrentUserId(user.id);
 
-      const { data: participations } = await supabase
+      let { data: participations } = await supabase
         .from("conversation_participants")
         .select("conversation_id, role")
         .eq("user_id", user.id);
 
       if (!participations || participations.length === 0) {
-        setLoading(false);
-        return;
+        // Auto-seed demo conversations for business users on first visit
+        try {
+          const res = await fetch("/api/seed-conversations", { method: "POST" });
+          const result = await res.json();
+          if (result.success && result.conversationsCreated > 0) {
+            // Re-fetch after seeding
+            const { data: newParticipations } = await supabase
+              .from("conversation_participants")
+              .select("conversation_id, role")
+              .eq("user_id", user.id);
+            if (!newParticipations || newParticipations.length === 0) {
+              setLoading(false);
+              return;
+            }
+            // Continue with the seeded data
+            participations = newParticipations;
+          } else {
+            setLoading(false);
+            return;
+          }
+        } catch {
+          setLoading(false);
+          return;
+        }
       }
 
       const convIds = participations.map((p) => p.conversation_id);
