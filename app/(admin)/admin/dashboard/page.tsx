@@ -256,7 +256,7 @@ export default function AdminDashboardPage() {
     {
       key: "totalApplications",
       label: "Total Applications",
-      href: "/admin/businesses",
+      href: "/admin/jobs",
       color: "text-cyan-700",
       iconBg: "bg-cyan-50 text-cyan-600",
       icon: (

@@ -13,6 +13,8 @@ interface WorkerRow {
   nationality: string | null;
   skills: string[] | null;
   profile_photo_url: string | null;
+  profile_completion_pct: number | null;
+  is_suspended: boolean;
   created_at: string;
   user_email?: string;
 }
@@ -21,6 +23,7 @@ export default function AdminWorkersPage() {
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "incomplete">("all");
 
   useEffect(() => {
     async function load() {
@@ -29,7 +32,7 @@ export default function AdminWorkersPage() {
       // Get worker profiles
       const { data: profiles, error } = await supabase
         .from("worker_profiles")
-        .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, created_at")
+        .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, created_at")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -53,6 +56,7 @@ export default function AdminWorkersPage() {
 
         const enriched = profiles.map((p) => ({
           ...p,
+          is_suspended: false, // No suspended column yet — default to false
           user_email: emailMap[p.user_id] || "",
         }));
 
@@ -67,18 +71,32 @@ export default function AdminWorkersPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return workers;
-    const q = search.toLowerCase();
-    return workers.filter(
-      (w) =>
-        (w.first_name && w.first_name.toLowerCase().includes(q)) ||
-        (w.last_name && w.last_name.toLowerCase().includes(q)) ||
-        (w.user_email && w.user_email.toLowerCase().includes(q)) ||
-        (w.location_current && w.location_current.toLowerCase().includes(q)) ||
-        (w.nationality && w.nationality.toLowerCase().includes(q)) ||
-        (w.skills && w.skills.some((s) => s.toLowerCase().includes(q)))
-    );
-  }, [workers, search]);
+    let results = [...workers];
+
+    // Status filter
+    if (statusFilter === "active") {
+      results = results.filter((w) => !w.is_suspended && (w.profile_completion_pct ?? 0) >= 50);
+    } else if (statusFilter === "suspended") {
+      results = results.filter((w) => w.is_suspended);
+    } else if (statusFilter === "incomplete") {
+      results = results.filter((w) => !w.first_name || !w.last_name || (w.profile_completion_pct ?? 0) < 50);
+    }
+
+    // Search filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      results = results.filter(
+        (w) =>
+          (w.first_name && w.first_name.toLowerCase().includes(q)) ||
+          (w.last_name && w.last_name.toLowerCase().includes(q)) ||
+          (w.user_email && w.user_email.toLowerCase().includes(q)) ||
+          (w.location_current && w.location_current.toLowerCase().includes(q)) ||
+          (w.nationality && w.nationality.toLowerCase().includes(q)) ||
+          (w.skills && w.skills.some((s) => s.toLowerCase().includes(q)))
+      );
+    }
+    return results;
+  }, [workers, search, statusFilter]);
 
   if (loading) {
     return (
@@ -103,6 +121,16 @@ export default function AdminWorkersPage() {
           placeholder="Search workers..."
           className="w-64 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "suspended" | "incomplete")}
+          className="rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none"
+        >
+          <option value="all">All Workers</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="incomplete">Incomplete Profile</option>
+        </select>
         <span className="text-sm text-foreground/50">{filtered.length} workers</span>
       </div>
 

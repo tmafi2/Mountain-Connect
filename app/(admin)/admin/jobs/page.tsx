@@ -19,7 +19,7 @@ export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "closed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "closed">("all");
 
   useEffect(() => {
     async function load() {
@@ -64,8 +64,10 @@ export default function AdminJobsPage() {
     let results = [...jobs];
     if (statusFilter === "active") {
       results = results.filter((j) => j.status === "active");
+    } else if (statusFilter === "draft") {
+      results = results.filter((j) => j.status === "draft");
     } else if (statusFilter === "closed") {
-      results = results.filter((j) => j.status !== "active");
+      results = results.filter((j) => j.status !== "active" && j.status !== "draft");
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -104,11 +106,12 @@ export default function AdminJobsPage() {
         />
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "closed")}
+          onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "draft" | "closed")}
           className="rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none"
         >
           <option value="all">All Statuses</option>
           <option value="active">Active</option>
+          <option value="draft">Draft</option>
           <option value="closed">Closed / Paused</option>
         </select>
         <span className="text-sm text-foreground/50">{filtered.length} jobs</span>
