@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
@@ -154,6 +155,16 @@ const RUNS_OPTIONS = [
 const DIFFICULTY_OPTIONS = ["Beginner Friendly", "Intermediate", "Advanced"] as const;
 
 export default function ExplorePage() {
+  return (
+    <Suspense fallback={null}>
+      <ExploreContent />
+    </Suspense>
+  );
+}
+
+function ExploreContent() {
+  const searchParams = useSearchParams();
+  const initialCompare = searchParams.get("compare");
   const [continentFilter, setContinentFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -162,7 +173,21 @@ export default function ExplorePage() {
   const [runsFilter, setRunsFilter] = useState(0); // index into RUNS_OPTIONS
   const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>(() => {
+    if (initialCompare && resortMap.has(initialCompare)) return [initialCompare];
+    return [];
+  });
   const hasInteracted = useRef(false);
+
+  const toggleCompare = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 3) return prev; // max 3
+      return [...prev, id];
+    });
+  };
 
   // Globe search
   const [globeSearch, setGlobeSearch] = useState("");
@@ -693,6 +718,27 @@ export default function ExplorePage() {
                               )}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
 
+                              {/* Compare checkbox */}
+                              <button
+                                onClick={(e) => toggleCompare(resort.id, e)}
+                                className={`absolute top-3 left-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg backdrop-blur-sm transition-all ${
+                                  compareIds.includes(resort.id)
+                                    ? "bg-secondary text-white shadow-md"
+                                    : "bg-white/80 text-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-secondary"
+                                } ${compareIds.includes(resort.id) ? "opacity-100" : ""}`}
+                                title={compareIds.includes(resort.id) ? "Remove from comparison" : compareIds.length >= 3 ? "Max 3 resorts" : "Add to comparison"}
+                              >
+                                {compareIds.includes(resort.id) ? (
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                  </svg>
+                                ) : (
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                  </svg>
+                                )}
+                              </button>
+
                               {/* Verified badge */}
                               {resort.is_verified && (
                                 <div className="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-green-600 backdrop-blur-sm">
@@ -836,6 +882,64 @@ export default function ExplorePage() {
           </div>
         </div>
       </section>
+
+      {/* ═══ Floating Compare Bar ═══════════════════════════ */}
+      {compareIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-4 rounded-2xl border border-accent/40 bg-white px-5 py-3 shadow-2xl shadow-black/10">
+            <div className="flex items-center gap-2">
+              {compareIds.map((id) => {
+                const r = resortMap.get(id);
+                if (!r) return null;
+                return (
+                  <div key={id} className="flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5">
+                    <span className="max-w-[100px] truncate text-xs font-medium text-primary">{r.name}</span>
+                    <button
+                      onClick={() => setCompareIds((prev) => prev.filter((x) => x !== id))}
+                      className="ml-0.5 text-foreground/40 hover:text-red-500 transition-colors"
+                    >
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+              {compareIds.length < 3 && (
+                <span className="text-xs text-foreground/40">
+                  {compareIds.length === 1 ? "Select 1 more" : `${3 - compareIds.length} slots left`}
+                </span>
+              )}
+            </div>
+
+            <div className="h-6 w-px bg-accent/40" />
+
+            <Link
+              href={`/compare?ids=${compareIds.join(",")}`}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                compareIds.length >= 2
+                  ? "bg-secondary text-white hover:bg-secondary-light shadow-sm"
+                  : "bg-accent/30 text-foreground/40 pointer-events-none"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+              </svg>
+              Compare ({compareIds.length})
+            </Link>
+
+            <button
+              onClick={() => setCompareIds([])}
+              className="rounded-lg p-1.5 text-foreground/30 hover:bg-accent/20 hover:text-foreground/60 transition-colors"
+              title="Clear all"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
