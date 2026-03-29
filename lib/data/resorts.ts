@@ -3349,7 +3349,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "45",
     name: "Furano",
-    banner_image_url: "https://images.unsplash.com/photo-1606567595334-d39972c85dbe?w=1200&q=80",
+    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
     region_id: "3",
     country: "Japan",
     description:
