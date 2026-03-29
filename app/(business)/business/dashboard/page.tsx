@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import confetti from "canvas-confetti";
+
+/* ─── search result types ─────────────────────────────────── */
+interface SearchResult {
+  id: string;
+  type: "listing" | "applicant" | "resort";
+  title: string;
+  subtitle: string;
+  href: string;
+}
 
 export default function BusinessDashboard() {
   const router = useRouter();
@@ -19,6 +28,11 @@ export default function BusinessDashboard() {
   const [interviewCount, setInterviewCount] = useState("0");
   const [showCelebration, setShowCelebration] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (
@@ -167,6 +181,114 @@ export default function BusinessDashboard() {
     }
   };
 
+  // Close search dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Debounced search
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      if (!query.trim()) {
+        setSearchResults([]);
+        setSearchOpen(false);
+        return;
+      }
+
+      debounceRef.current = setTimeout(async () => {
+        if (!profileId) return;
+        setSearching(true);
+        const results: SearchResult[] = [];
+        const q = query.toLowerCase().trim();
+
+        try {
+          const supabase = createClient();
+
+          // Search job listings
+          const { data: listings } = await supabase
+            .from("job_posts")
+            .select("id, title, status")
+            .eq("business_id", profileId)
+            .ilike("title", `%${q}%`)
+            .limit(5);
+
+          listings?.forEach((l) => {
+            results.push({
+              id: l.id,
+              type: "listing",
+              title: l.title,
+              subtitle: l.status === "active" ? "Active" : l.status === "draft" ? "Draft" : l.status === "paused" ? "Paused" : "Closed",
+              href: `/business/manage-listings/${l.id}`,
+            });
+          });
+
+          // Search applicants
+          const { data: jobIds } = await supabase
+            .from("job_posts")
+            .select("id")
+            .eq("business_id", profileId);
+
+          if (jobIds && jobIds.length > 0) {
+            const jids = jobIds.map((j) => j.id);
+            const { data: apps } = await supabase
+              .from("applications")
+              .select("id, worker_id, job_post_id, worker_profiles(first_name, last_name), job_posts(title)")
+              .in("job_post_id", jids)
+              .limit(20);
+
+            apps?.forEach((a) => {
+              const wp = a.worker_profiles as unknown as { first_name: string | null; last_name: string | null } | null;
+              const jp = a.job_posts as unknown as { title: string } | null;
+              const name = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown";
+              if (name.toLowerCase().includes(q)) {
+                results.push({
+                  id: a.id,
+                  type: "applicant",
+                  title: name,
+                  subtitle: jp?.title || "Job Application",
+                  href: `/business/applicants`,
+                });
+              }
+            });
+          }
+
+          // Search resorts (from static data import or Supabase)
+          const { data: resortResults } = await supabase
+            .from("resorts")
+            .select("id, name, country")
+            .ilike("name", `%${q}%`)
+            .limit(5);
+
+          resortResults?.forEach((r) => {
+            results.push({
+              id: r.id,
+              type: "resort",
+              title: r.name,
+              subtitle: r.country || "",
+              href: `/resorts/${r.id}`,
+            });
+          });
+        } catch (err) {
+          console.error("Search failed:", err);
+        }
+
+        setSearchResults(results);
+        setSearchOpen(true);
+        setSearching(false);
+      }, 300);
+    },
+    [profileId]
+  );
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -238,21 +360,124 @@ export default function BusinessDashboard() {
           </div>
 
           {/* Search bar — integrated into header */}
-          <div className="relative mt-6 max-w-xl">
+          <div ref={searchRef} className="relative mt-6 max-w-xl">
             <svg className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && searchQuery.trim()) {
-                  router.push(`/business/manage-listings?search=${encodeURIComponent(searchQuery.trim())}`);
-                }
-              }}
+              onChange={(e) => handleSearch(e.target.value)}
+              onFocus={() => { if (searchResults.length > 0) setSearchOpen(true); }}
               placeholder="Search listings, applicants, resorts..."
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder:text-white/30 backdrop-blur-sm transition-colors focus:border-secondary/40 focus:bg-white/10 focus:outline-none"
+              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-10 text-sm text-white placeholder:text-white/30 backdrop-blur-sm transition-colors focus:border-secondary/40 focus:bg-white/10 focus:outline-none"
             />
+            {/* Clear button */}
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(""); setSearchResults([]); setSearchOpen(false); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-white/30 hover:text-white/60 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            {/* Loading spinner */}
+            {searching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+              </div>
+            )}
+
+            {/* Search dropdown */}
+            {searchOpen && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-xl border border-accent/30 bg-white shadow-2xl">
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-6 text-center">
+                    <svg className="mx-auto h-8 w-8 text-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p className="mt-2 text-sm text-foreground/50">No results found</p>
+                    <p className="mt-0.5 text-xs text-foreground/30">Try a different search term</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Listings */}
+                    {searchResults.filter((r) => r.type === "listing").length > 0 && (
+                      <div>
+                        <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Listings</p>
+                        {searchResults.filter((r) => r.type === "listing").map((r) => (
+                          <Link
+                            key={r.id}
+                            href={r.href}
+                            onClick={() => setSearchOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/10"
+                          >
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-primary">{r.title}</p>
+                              <p className="text-xs text-foreground/40">{r.subtitle}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    {/* Applicants */}
+                    {searchResults.filter((r) => r.type === "applicant").length > 0 && (
+                      <div className={searchResults.some((r) => r.type === "listing") ? "border-t border-accent/20" : ""}>
+                        <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Applicants</p>
+                        {searchResults.filter((r) => r.type === "applicant").map((r) => (
+                          <Link
+                            key={r.id}
+                            href={r.href}
+                            onClick={() => setSearchOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/10"
+                          >
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-highlight/10 text-highlight">
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-primary">{r.title}</p>
+                              <p className="text-xs text-foreground/40">{r.subtitle}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    {/* Resorts */}
+                    {searchResults.filter((r) => r.type === "resort").length > 0 && (
+                      <div className={searchResults.some((r) => r.type !== "resort") ? "border-t border-accent/20" : ""}>
+                        <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Resorts</p>
+                        {searchResults.filter((r) => r.type === "resort").map((r) => (
+                          <Link
+                            key={r.id}
+                            href={r.href}
+                            onClick={() => setSearchOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/10"
+                          >
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-warm/10 text-warm">
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-primary">{r.title}</p>
+                              <p className="text-xs text-foreground/40">{r.subtitle}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
