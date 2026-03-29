@@ -40,6 +40,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/access", request.url));
   }
 
+  // Redirect logged-in users away from auth pages
+  if (user && (pathname === "/login" || pathname === "/signup")) {
+    // Determine dashboard based on role
+    if (supabase) {
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const role = userData?.role;
+      const dest =
+        role === "business_owner"
+          ? "/business/dashboard"
+          : role === "admin"
+          ? "/admin/dashboard"
+          : "/dashboard";
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
+    // Fallback if no supabase client
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   // Check if this is a protected portal route
   const isWorkerRoute = WORKER_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")

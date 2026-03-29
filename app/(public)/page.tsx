@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { createClient } from "@/lib/supabase/client";
 
 /* ─── Animated Counter ───────────────────────────────────── */
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -78,6 +79,7 @@ function FeatureCard({
 export default function HomePage() {
   const [scrollY, setScrollY] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<{ role?: string } | null>(null);
 
   useScrollAnimation();
 
@@ -85,8 +87,27 @@ export default function HomePage() {
     setMounted(true);
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll, { passive: true });
+
+    // Check auth state for CTA buttons
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        supabase
+          .from("users")
+          .select("role")
+          .eq("id", data.user.id)
+          .single()
+          .then(({ data: userData }) => {
+            setUser({ role: userData?.role || undefined });
+          });
+      }
+    });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const dashboardHref =
+    user?.role === "business_owner" ? "/business/dashboard" : "/dashboard";
 
   return (
     <>
@@ -147,10 +168,10 @@ export default function HomePage() {
             className={`mt-10 flex flex-wrap items-center justify-center gap-4 transition-all duration-[1500ms] delay-600 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
           >
             <Link
-              href="/signup"
+              href={user ? dashboardHref : "/signup"}
               className="group relative overflow-hidden rounded-xl bg-white px-8 py-4 text-sm font-bold text-primary shadow-2xl shadow-white/10 transition-all hover:shadow-white/20"
             >
-              <span className="relative z-10">Get Started Free</span>
+              <span className="relative z-10">{user ? "Go to Dashboard" : "Get Started Free"}</span>
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-secondary/20 to-highlight/20 transition-transform duration-500 group-hover:translate-x-0" />
             </Link>
             <Link
@@ -503,10 +524,10 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/signup"
+                href={user ? dashboardHref : "/signup"}
                 className="group relative overflow-hidden rounded-xl bg-primary px-10 py-4 text-sm font-bold text-white shadow-xl shadow-primary/20 transition-all hover:shadow-2xl hover:shadow-primary/30"
               >
-                <span className="relative z-10">Create Free Account</span>
+                <span className="relative z-10">{user ? "Go to Dashboard" : "Create Free Account"}</span>
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-secondary/30 to-highlight/30 transition-transform duration-500 group-hover:translate-x-0" />
               </Link>
               <Link

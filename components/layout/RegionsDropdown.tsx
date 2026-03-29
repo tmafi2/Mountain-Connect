@@ -131,7 +131,7 @@ export default function RegionsDropdown({
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-64 overflow-hidden rounded-xl border border-accent bg-white shadow-lg">
+        <div className="absolute left-0 top-full z-[60] mt-1 w-64 overflow-hidden rounded-xl border border-accent bg-white shadow-lg">
           {/* Header with back button */}
           <div className="flex items-center gap-2 border-b border-accent/50 px-4 py-2.5">
             {(selectedContinent || selectedCountry) && (

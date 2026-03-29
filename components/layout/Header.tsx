@@ -27,7 +27,8 @@ export default function Header() {
     const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
-    router.push("/login");
+    // Full page reload to clear all cached auth state
+    window.location.href = "/login";
   };
 
   // Track scroll for transparent → solid header

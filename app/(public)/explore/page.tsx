@@ -308,7 +308,7 @@ export default function ExplorePage() {
           <div className="absolute -bottom-40 left-0 h-[400px] w-[400px] rounded-full bg-highlight/5 blur-[120px]" />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-20">
+        <div className="relative mx-auto max-w-7xl px-6 pb-12 pt-20">
           {/* Header text */}
           <div className="text-center">
             <span className="inline-block text-sm font-bold uppercase tracking-widest text-secondary">
@@ -420,11 +420,11 @@ export default function ExplorePage() {
         </div>
 
         {/* Fade to background */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#0a1628] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0a1628] to-transparent" />
       </section>
 
       {/* ═══ SEARCH + RESORT LIST ═════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
+      <section className="mx-auto max-w-7xl px-6 py-10">
         {/* Search bar */}
         <div className="animate-on-scroll flex flex-col items-center">
           <div className="relative w-full max-w-xl">
