@@ -46,6 +46,8 @@ export default function WorkerDashboard() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [nationality, setNationality] = useState("");
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [hasOffer, setHasOffer] = useState(false);
+  const [hasInvitedInterview, setHasInvitedInterview] = useState(false);
 
   useEffect(() => {
     if (
@@ -202,6 +204,10 @@ export default function WorkerDashboard() {
             }
           }
 
+          // Detect actionable states
+          if (recentApps.data?.some((a) => a.status === "offered")) setHasOffer(true);
+          if (recentInterviews.data?.some((iv) => iv.status === "invited")) setHasInvitedInterview(true);
+
           // Sort by date descending
           feed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           setActivities(feed);
@@ -315,42 +321,17 @@ export default function WorkerDashboard() {
         <ProfileCard completion={profileCompletion} />
       </div>
 
-      {/* ── Quick Actions ─────────────────────────────────────── */}
+      {/* ── Quick Actions (context-aware) ──────────────────────── */}
       <div className="mt-10">
         <h2 className="text-lg font-semibold text-primary">Quick Actions</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <ActionCard
-            href="/profile"
-            title="Complete Your Profile"
-            description="Add work history, skills & preferences to stand out."
-            icon={
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-            }
-            gradient="from-secondary/10 to-highlight/5"
-          />
-          <ActionCard
-            href="/jobs"
-            title="Browse Jobs"
-            description="Explore seasonal positions at resorts worldwide."
-            icon={
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-              </svg>
-            }
-            gradient="from-highlight/10 to-secondary/5"
-          />
-          <ActionCard
-            href="/explore"
-            title="Explore Resorts"
-            description="Discover mountains and plan your next season."
-            icon={
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
-              </svg>
-            }
-            gradient="from-warm/10 to-highlight/5"
+          <QuickActions
+            profileCompletion={profileCompletion}
+            hasOffer={hasOffer}
+            hasInvitedInterview={hasInvitedInterview}
+            interviewCount={interviewCount}
+            savedCount={savedCount}
+            appCount={appCount}
           />
         </div>
       </div>
@@ -563,6 +544,198 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </div>
       <span className="flex-shrink-0 text-xs text-foreground/40">{formatTimeAgo(item.date)}</span>
     </Link>
+  );
+}
+
+/* ── Context-Aware Quick Actions ──────────────────────────── */
+interface QuickAction {
+  href: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  gradient: string;
+  priority: number; // lower = higher priority
+}
+
+function QuickActions({
+  profileCompletion,
+  hasOffer,
+  hasInvitedInterview,
+  interviewCount,
+  savedCount,
+  appCount,
+}: {
+  profileCompletion: number;
+  hasOffer: boolean;
+  hasInvitedInterview: boolean;
+  interviewCount: number;
+  savedCount: number;
+  appCount: number;
+}) {
+  const actions: QuickAction[] = [];
+
+  // Priority 1: Pending offer — most time-sensitive
+  if (hasOffer) {
+    actions.push({
+      href: "/applications",
+      title: "Review Your Offer",
+      description: "You have a pending offer — review and respond before it expires.",
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+        </svg>
+      ),
+      gradient: "from-amber-100/80 to-yellow-50",
+      priority: 1,
+    });
+  }
+
+  // Priority 2: Interview invitation to book
+  if (hasInvitedInterview) {
+    actions.push({
+      href: "/interviews",
+      title: "Book Your Interview",
+      description: "You have an interview invitation waiting — pick a time slot.",
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+      ),
+      gradient: "from-purple-100/80 to-purple-50",
+      priority: 2,
+    });
+  }
+
+  // Priority 3: Upcoming interviews to prepare for
+  if (interviewCount > 0 && !hasInvitedInterview) {
+    actions.push({
+      href: "/interviews",
+      title: "Prepare for Interview",
+      description: `You have ${interviewCount} upcoming interview${interviewCount > 1 ? "s" : ""} — review details and get ready.`,
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      ),
+      gradient: "from-highlight/10 to-secondary/5",
+      priority: 3,
+    });
+  }
+
+  // Priority 4: Incomplete profile
+  if (profileCompletion < 100) {
+    actions.push({
+      href: "/profile/edit",
+      title: `Complete Your Profile (${profileCompletion}%)`,
+      description: "Add work history, skills & preferences to stand out to employers.",
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      ),
+      gradient: "from-secondary/10 to-highlight/5",
+      priority: 4,
+    });
+  }
+
+  // Priority 5: No applications yet
+  if (appCount === 0) {
+    actions.push({
+      href: "/jobs",
+      title: "Apply for Your First Job",
+      description: "Browse open positions and submit your first application.",
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+        </svg>
+      ),
+      gradient: "from-highlight/10 to-secondary/5",
+      priority: 5,
+    });
+  }
+
+  // Priority 6: No saved jobs
+  if (savedCount === 0 && appCount > 0) {
+    actions.push({
+      href: "/jobs",
+      title: "Save More Jobs",
+      description: "Bookmark positions you're interested in to apply later.",
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+        </svg>
+      ),
+      gradient: "from-warm/10 to-highlight/5",
+      priority: 6,
+    });
+  }
+
+  // Default actions (always available as fallbacks)
+  actions.push({
+    href: "/jobs",
+    title: "Browse Jobs",
+    description: "Explore seasonal positions at resorts worldwide.",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
+      </svg>
+    ),
+    gradient: "from-highlight/10 to-secondary/5",
+    priority: 10,
+  });
+
+  actions.push({
+    href: "/explore",
+    title: "Explore Resorts",
+    description: "Discover mountains and plan your next season.",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+      </svg>
+    ),
+    gradient: "from-warm/10 to-highlight/5",
+    priority: 11,
+  });
+
+  if (profileCompletion >= 100) {
+    actions.push({
+      href: "/profile",
+      title: "View Your Profile",
+      description: "Your profile is complete — review how employers see you.",
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      gradient: "from-green-100/80 to-green-50",
+      priority: 12,
+    });
+  }
+
+  // Sort by priority, deduplicate by href, take top 3
+  const seen = new Set<string>();
+  const top3 = actions
+    .sort((a, b) => a.priority - b.priority)
+    .filter((a) => {
+      if (seen.has(a.href)) return false;
+      seen.add(a.href);
+      return true;
+    })
+    .slice(0, 3);
+
+  return (
+    <>
+      {top3.map((action) => (
+        <ActionCard
+          key={action.href + action.title}
+          href={action.href}
+          title={action.title}
+          description={action.description}
+          icon={action.icon}
+          gradient={action.gradient}
+        />
+      ))}
+    </>
   );
 }
 
