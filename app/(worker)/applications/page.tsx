@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import StartConversationButton from "@/components/chat/StartConversationButton";
 
 interface Application {
   id: string;
   job_title: string;
   business_name: string;
   business_location: string;
+  business_user_id: string | null;
   resort_name: string;
   status: "applied" | "viewed" | "interview" | "offered" | "accepted" | "rejected";
   applied_at: string;
@@ -29,6 +31,7 @@ const demoApplications: Application[] = [
     job_title: "Ski Instructor — All Levels",
     business_name: "Whistler Blackcomb Ski School",
     business_location: "Whistler, BC",
+    business_user_id: null,
     resort_name: "Whistler Blackcomb",
     status: "interview",
     applied_at: "2026-03-05T11:20:00Z",
@@ -48,6 +51,7 @@ const demoApplications: Application[] = [
     job_title: "Guest Services Agent",
     business_name: "Revelstoke Mountain Resort",
     business_location: "Revelstoke, BC",
+    business_user_id: null,
     resort_name: "Revelstoke Mountain Resort",
     status: "interview",
     applied_at: "2026-03-08T09:00:00Z",
@@ -67,6 +71,7 @@ const demoApplications: Application[] = [
     job_title: "Bartender — Après Ski Lounge",
     business_name: "Whistler Village Hospitality",
     business_location: "Whistler Village, BC",
+    business_user_id: null,
     resort_name: "Whistler Blackcomb",
     status: "applied",
     applied_at: "2026-03-12T18:45:00Z",
@@ -86,6 +91,7 @@ const demoApplications: Application[] = [
     job_title: "Snowboard Instructor",
     business_name: "Big White Ski School",
     business_location: "Big White, BC",
+    business_user_id: null,
     resort_name: "Big White",
     status: "viewed",
     applied_at: "2026-03-14T06:30:00Z",
@@ -105,6 +111,7 @@ const demoApplications: Application[] = [
     job_title: "Lift Operations Crew",
     business_name: "Whistler Blackcomb Operations",
     business_location: "Whistler, BC",
+    business_user_id: null,
     resort_name: "Whistler Blackcomb",
     status: "accepted",
     applied_at: "2026-02-20T10:00:00Z",
@@ -124,6 +131,7 @@ const demoApplications: Application[] = [
     job_title: "Resort Host — Front Desk",
     business_name: "Sun Peaks Grand Hotel",
     business_location: "Sun Peaks, BC",
+    business_user_id: null,
     resort_name: "Sun Peaks",
     status: "offered",
     applied_at: "2026-02-25T08:15:00Z",
@@ -143,6 +151,7 @@ const demoApplications: Application[] = [
     job_title: "Ski Technician",
     business_name: "Whistler Ski Rentals",
     business_location: "Whistler Village, BC",
+    business_user_id: null,
     resort_name: "Whistler Blackcomb",
     status: "rejected",
     applied_at: "2026-03-01T14:00:00Z",
@@ -162,6 +171,7 @@ const demoApplications: Application[] = [
     job_title: "Housekeeping Team Lead",
     business_name: "Fairmont Chateau Whistler",
     business_location: "Whistler, BC",
+    business_user_id: null,
     resort_name: "Whistler Blackcomb",
     status: "applied",
     applied_at: "2026-03-18T07:30:00Z",
@@ -220,6 +230,7 @@ export default function ApplicationsPage() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -232,6 +243,7 @@ export default function ApplicationsPage() {
           setPageLoading(false);
           return;
         }
+        setCurrentUserId(user.id);
 
         const { data: wp } = await supabase
           .from("worker_profiles")
@@ -243,7 +255,7 @@ export default function ApplicationsPage() {
 
         const { data } = await supabase
           .from("applications")
-          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location), resorts(name)), interviews(status, scheduled_date, scheduled_start_time)")
+          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location, user_id), resorts(name)), interviews(status, scheduled_date, scheduled_start_time)")
           .eq("worker_id", wp.id)
           .order("applied_at", { ascending: false });
 
@@ -260,7 +272,7 @@ export default function ApplicationsPage() {
 
           const mapped: Application[] = data.map((a: Record<string, unknown>) => {
             const jp = a.job_posts as Record<string, unknown> | null;
-            const bp = jp?.business_profiles as { business_name: string; location: string | null } | null;
+            const bp = jp?.business_profiles as { business_name: string; location: string | null; user_id: string | null } | null;
             const resort = jp?.resorts as { name: string } | null;
             const interviews = a.interviews as { status: string; scheduled_date: string | null; scheduled_start_time: string | null }[] | null;
             const latestInterview = interviews?.[0] || null;
@@ -271,6 +283,7 @@ export default function ApplicationsPage() {
               job_title: (jp?.title as string) || "Unknown Position",
               business_name: bp?.business_name || "Unknown Business",
               business_location: bp?.location || "",
+              business_user_id: bp?.user_id || null,
               resort_name: resort?.name || "",
               status: statusMap[a.status as string] || "applied",
               applied_at: a.applied_at as string,
@@ -772,9 +785,23 @@ export default function ApplicationsPage() {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-3">
-                    <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20">
-                      Message Business
-                    </button>
+                    {currentUserId && app.business_user_id ? (
+                      <StartConversationButton
+                        currentUserId={currentUserId}
+                        targetUserId={app.business_user_id}
+                        portalType="worker"
+                        className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20"
+                      >
+                        Message Business
+                      </StartConversationButton>
+                    ) : (
+                      <button
+                        onClick={() => window.location.href = "/login?redirect=/applications"}
+                        className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20"
+                      >
+                        Message Business
+                      </button>
+                    )}
                     {app.status !== "rejected" && app.status !== "accepted" && (
                       <button className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50">
                         Withdraw Application
