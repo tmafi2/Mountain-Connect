@@ -211,6 +211,57 @@ function FindAJobContent() {
     }
   };
 
+  // Job alert state
+  const [alertSaving, setAlertSaving] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const handleCreateAlert = async () => {
+    setAlertSaving(true);
+    setAlertMessage("");
+
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/login?redirect=/jobs";
+        return;
+      }
+
+      // Build a descriptive name from active filters
+      const parts: string[] = [];
+      if (filters.category) parts.push(filters.category);
+      if (filters.country) parts.push(filters.country);
+      if (filters.resort) parts.push(filters.resort);
+      if (filters.position_type) parts.push(filters.position_type.replace("_", " "));
+      const name = parts.length > 0 ? parts.join(" · ") : "All Jobs";
+
+      // Save only non-default filters
+      const alertFilters: Record<string, unknown> = {};
+      if (filters.category) alertFilters.category = filters.category;
+      if (filters.country) alertFilters.country = filters.country;
+      if (filters.resort) alertFilters.resort = filters.resort;
+      if (filters.position_type) alertFilters.position_type = filters.position_type;
+      if (filters.accommodation !== "all") alertFilters.accommodation = filters.accommodation;
+      if (filters.ski_pass !== "all") alertFilters.ski_pass = filters.ski_pass;
+      if (filters.visa_sponsorship !== "all") alertFilters.visa_sponsorship = filters.visa_sponsorship;
+      if (filters.meal_perks !== "all") alertFilters.meal_perks = filters.meal_perks;
+      if (filters.urgently_hiring) alertFilters.urgently_hiring = true;
+
+      const res = await fetch("/api/job-alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, filters: alertFilters }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create alert");
+      setAlertMessage("Alert created! You'll be notified of matching jobs.");
+      setTimeout(() => setAlertMessage(""), 4000);
+    } catch {
+      setAlertMessage("Failed to create alert. Please try again.");
+    }
+    setAlertSaving(false);
+  };
+
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
@@ -485,6 +536,33 @@ function FindAJobContent() {
                     </span>
                   </label>
                 </FilterSection>
+
+                {/* Create Alert */}
+                <div className="border-t border-accent/40 pt-5">
+                  <button
+                    type="button"
+                    onClick={handleCreateAlert}
+                    disabled={alertSaving}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-secondary/10 px-4 py-3 text-sm font-semibold text-secondary transition-all hover:bg-secondary/20 disabled:opacity-50"
+                  >
+                    {alertSaving ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-secondary/30 border-t-secondary" />
+                    ) : (
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                      </svg>
+                    )}
+                    {alertSaving ? "Saving..." : "Create Alert from Filters"}
+                  </button>
+                  {alertMessage && (
+                    <p className={`mt-2 text-center text-xs ${alertMessage.includes("!") ? "text-green-600" : "text-red-500"}`}>
+                      {alertMessage}
+                    </p>
+                  )}
+                  <p className="mt-2 text-center text-[11px] text-foreground/40">
+                    Get notified when new jobs match these filters
+                  </p>
+                </div>
               </div>
             </aside>
           )}

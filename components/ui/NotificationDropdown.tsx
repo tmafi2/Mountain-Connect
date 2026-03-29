@@ -60,6 +60,8 @@ export default function NotificationDropdown({
         return "⏰";
       case "application_status_changed":
         return "📋";
+      case "job_alert_match":
+        return "🔔";
       default:
         return "🔔";
     }

@@ -260,6 +260,14 @@ export default function EditJobPage() {
       .update(buildJobRow("active"))
       .eq("id", jobId);
     if (updateError) { setError(updateError.message); setSaving(false); return; }
+
+    // Trigger job alert matching when publishing (non-blocking)
+    fetch("/api/job-alerts/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId }),
+    }).catch((err) => console.error("Failed to trigger job alert match:", err));
+
     router.push("/business/manage-listings");
   };
 

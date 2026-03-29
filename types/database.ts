@@ -350,6 +350,7 @@ export type NotificationType =
   | "interview_rescheduled"
   | "interview_reminder"
   | "application_status_changed"
+  | "job_alert_match"
   | "business_new_job"
   | "business_closed_job"
   | "business_update"

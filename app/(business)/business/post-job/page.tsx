@@ -257,8 +257,18 @@ export default function PostJobPage() {
     setPosting(true);
     setError(null);
     const supabase = createClient();
-    const { error: insertError } = await supabase.from("job_posts").insert(buildJobRow("active"));
+    const { data: newJob, error: insertError } = await supabase.from("job_posts").insert(buildJobRow("active")).select("id").single();
     if (insertError) { setError(insertError.message); setPosting(false); return; }
+
+    // Trigger job alert matching (non-blocking)
+    if (newJob?.id) {
+      fetch("/api/job-alerts/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: newJob.id }),
+      }).catch((err) => console.error("Failed to trigger job alert match:", err));
+    }
+
     router.push("/business/manage-listings");
   };
 
