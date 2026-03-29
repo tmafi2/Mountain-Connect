@@ -36,6 +36,7 @@ interface UpcomingInterview {
   endTime: string | null;
   videoUrl: string | null;
   urgency: "today" | "tomorrow";
+  isPast: boolean;
 }
 
 /* ─── Activity item type ──────────────────────────────────── */
@@ -246,12 +247,19 @@ export default function WorkerDashboard() {
 
               if (!isToday && !isTomorrow) continue;
 
-              // If today and has an end time, skip if the interview has already ended
+              // Check if today's interview has already ended
+              let isPast = false;
               if (isToday && iv.scheduled_end_time) {
                 const [eh, em] = iv.scheduled_end_time.split(":").map(Number);
                 const endDateTime = new Date(now);
                 endDateTime.setHours(eh, em, 0, 0);
-                if (now > endDateTime) continue; // already passed
+                if (now > endDateTime) isPast = true;
+              } else if (isToday && iv.scheduled_start_time) {
+                // No end time — check if start time + 1 hour has passed
+                const [sh, sm] = iv.scheduled_start_time.split(":").map(Number);
+                const startPlus1h = new Date(now);
+                startPlus1h.setHours(sh + 1, sm, 0, 0);
+                if (now > startPlus1h) isPast = true;
               }
 
               const ivApp = iv.applications as unknown as { job_posts: { title: string; business_profiles: { business_name: string } } } | null;
@@ -264,6 +272,7 @@ export default function WorkerDashboard() {
                 endTime: iv.scheduled_end_time || null,
                 videoUrl: iv.video_room_url || null,
                 urgency: isToday ? "today" : "tomorrow",
+                isPast,
               });
             }
 
@@ -805,6 +814,7 @@ function InterviewBanner({
   onDismiss: () => void;
 }) {
   const isToday = interview.urgency === "today";
+  const isPast = interview.isPast;
 
   // Format time display
   let timeDisplay = "";
@@ -825,13 +835,15 @@ function InterviewBanner({
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border px-5 py-4 ${
-        isToday
+        isPast
+          ? "border-accent/50 bg-gradient-to-r from-gray-50 via-white to-white"
+          : isToday
           ? "border-secondary/40 bg-gradient-to-r from-secondary/10 via-secondary/5 to-highlight/5"
           : "border-accent/60 bg-gradient-to-r from-primary/5 via-white to-white"
       }`}
     >
-      {/* Animated pulse dot for today */}
-      {isToday && (
+      {/* Accent bar for upcoming today interviews only */}
+      {isToday && !isPast && (
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary" />
       )}
 
@@ -839,10 +851,18 @@ function InterviewBanner({
         {/* Icon */}
         <div
           className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${
-            isToday ? "bg-secondary/15 text-secondary" : "bg-primary/10 text-primary/70"
+            isPast
+              ? "bg-green-100 text-green-600"
+              : isToday
+              ? "bg-secondary/15 text-secondary"
+              : "bg-primary/10 text-primary/70"
           }`}
         >
-          {isToday ? (
+          {isPast ? (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ) : isToday ? (
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -856,7 +876,15 @@ function InterviewBanner({
         {/* Content */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {isToday && (
+            {isPast && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-green-700">
+                <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Done
+              </span>
+            )}
+            {isToday && !isPast && (
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
@@ -871,10 +899,12 @@ function InterviewBanner({
               </span>
             )}
           </div>
-          <p className={`mt-1 text-sm font-semibold ${isToday ? "text-primary" : "text-primary/80"}`}>
-            {isToday ? "You have an interview" : "Upcoming interview"}
-            {timeDisplay ? ` at ${timeDisplay}` : ""}
-            {!isToday && dateLabel ? ` — ${dateLabel}` : ""}
+          <p className={`mt-1 text-sm font-semibold ${isPast ? "text-foreground/70" : isToday ? "text-primary" : "text-primary/80"}`}>
+            {isPast
+              ? `You had an interview today${timeDisplay ? ` at ${timeDisplay}` : ""}`
+              : isToday
+              ? `You have an interview${timeDisplay ? ` at ${timeDisplay}` : ""}`
+              : `Upcoming interview${timeDisplay ? ` at ${timeDisplay}` : ""}${dateLabel ? ` — ${dateLabel}` : ""}`}
           </p>
           <p className="truncate text-xs text-foreground/50">
             {interview.jobTitle} — {interview.businessName}
@@ -883,7 +913,7 @@ function InterviewBanner({
 
         {/* Actions */}
         <div className="flex flex-shrink-0 items-center gap-2">
-          {isToday && interview.videoUrl ? (
+          {isToday && !isPast && interview.videoUrl ? (
             <Link
               href={interview.videoUrl}
               className="flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-secondary-light hover:shadow-md hover:shadow-secondary/20"
@@ -897,7 +927,9 @@ function InterviewBanner({
             <Link
               href="/interviews"
               className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-                isToday
+                isPast
+                  ? "bg-accent/30 text-foreground/60 hover:bg-accent/50"
+                  : isToday
                   ? "bg-secondary/10 text-secondary hover:bg-secondary/20"
                   : "bg-primary/5 text-primary/70 hover:bg-primary/10"
               }`}
