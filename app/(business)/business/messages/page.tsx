@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import NewConversationModal from "@/components/chat/NewConversationModal";
 
 /* ─── types ───────────────────────────────────────────────── */
 interface Conversation {
@@ -65,6 +66,7 @@ function BusinessMessagesContent() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [showNewConvModal, setShowNewConvModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -308,7 +310,18 @@ function BusinessMessagesContent() {
       {/* Left: Conversation List */}
       <div className={`flex w-full flex-col border-r border-accent/30 md:w-80 md:flex-shrink-0 ${mobileShowChat ? "hidden md:flex" : "flex"}`}>
         <div className="border-b border-accent/30 px-4 py-4">
-          <h2 className="text-lg font-bold text-primary">Messages</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-primary">Messages</h2>
+            <button
+              onClick={() => setShowNewConvModal(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-white transition-all hover:bg-secondary-light hover:shadow-md"
+              title="New message"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+          </div>
           <div className="relative mt-3">
             <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -475,6 +488,21 @@ function BusinessMessagesContent() {
           </div>
         )}
       </div>
+
+      {/* New Conversation Modal */}
+      {showNewConvModal && currentUserId && (
+        <NewConversationModal
+          portalType="business"
+          currentUserId={currentUserId}
+          onClose={() => setShowNewConvModal(false)}
+          onConversationCreated={(convId) => {
+            setShowNewConvModal(false);
+            setActiveConvId(convId);
+            setMobileShowChat(true);
+            window.location.href = `/business/messages?conv=${convId}`;
+          }}
+        />
+      )}
     </div>
   );
 }
