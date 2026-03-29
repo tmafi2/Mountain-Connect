@@ -26,6 +26,16 @@ function getCountryFlag(name: string): string | null {
   return COUNTRY_FLAGS[name] || null;
 }
 
+/* ─── Activity item type ──────────────────────────────────── */
+interface ActivityItem {
+  id: string;
+  type: "applied" | "viewed" | "interview_invited" | "interview_scheduled" | "interview_completed" | "offered" | "accepted" | "rejected";
+  title: string;
+  subtitle: string;
+  date: string;
+  href: string;
+}
+
 export default function WorkerDashboard() {
   const [userName, setUserName] = useState("");
   const [profileCompletion, setProfileCompletion] = useState(0);
@@ -35,6 +45,7 @@ export default function WorkerDashboard() {
   const [savedCount, setSavedCount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [nationality, setNationality] = useState("");
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
     if (
@@ -62,14 +73,138 @@ export default function WorkerDashboard() {
         if (profile?.nationality) setNationality(profile.nationality);
 
         if (profile?.id) {
-          const [apps, interviews, saved] = await Promise.all([
+          const [apps, interviews, saved, recentApps, recentInterviews] = await Promise.all([
             supabase.from("applications").select("id", { count: "exact", head: true }).eq("worker_id", profile.id),
             supabase.from("interviews").select("id", { count: "exact", head: true }).eq("worker_id", profile.id).in("status", ["invited", "scheduled"]),
             supabase.from("saved_jobs").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+            // Fetch recent applications with job/business details
+            supabase
+              .from("applications")
+              .select("id, status, applied_at, updated_at, job_post_id, job_posts(title, business_profiles(business_name))")
+              .eq("worker_id", profile.id)
+              .order("applied_at", { ascending: false })
+              .limit(10),
+            // Fetch recent interviews with details
+            supabase
+              .from("interviews")
+              .select("id, status, invited_at, scheduled_at, scheduled_date, scheduled_start_time, completed_at, cancelled_at, application_id, applications(job_post_id, job_posts(title, business_profiles(business_name)))")
+              .eq("worker_id", profile.id)
+              .order("created_at", { ascending: false })
+              .limit(10),
           ]);
           setAppCount(apps.count ?? 0);
           setInterviewCount(interviews.count ?? 0);
           setSavedCount(saved.count ?? 0);
+
+          // Build activity feed
+          const feed: ActivityItem[] = [];
+
+          // Add application events
+          if (recentApps.data) {
+            for (const app of recentApps.data) {
+              const job = app.job_posts as unknown as { title: string; business_profiles: { business_name: string } } | null;
+              const jobTitle = job?.title || "a position";
+              const bizName = job?.business_profiles?.business_name || "a business";
+
+              // Application submitted
+              feed.push({
+                id: `app-${app.id}`,
+                type: "applied",
+                title: `You applied to ${jobTitle}`,
+                subtitle: bizName,
+                date: app.applied_at,
+                href: "/applications",
+              });
+
+              // Status change events (only if status isn't just "new")
+              if (app.status === "viewed" || app.status === "reviewed") {
+                feed.push({
+                  id: `viewed-${app.id}`,
+                  type: "viewed",
+                  title: `Your application was viewed`,
+                  subtitle: `${bizName} — ${jobTitle}`,
+                  date: app.updated_at || app.applied_at,
+                  href: "/applications",
+                });
+              }
+              if (app.status === "offered") {
+                feed.push({
+                  id: `offered-${app.id}`,
+                  type: "offered",
+                  title: `You received an offer!`,
+                  subtitle: `${bizName} — ${jobTitle}`,
+                  date: app.updated_at || app.applied_at,
+                  href: "/applications",
+                });
+              }
+              if (app.status === "accepted") {
+                feed.push({
+                  id: `accepted-${app.id}`,
+                  type: "accepted",
+                  title: `You accepted an offer`,
+                  subtitle: `${bizName} — ${jobTitle}`,
+                  date: app.updated_at || app.applied_at,
+                  href: "/applications",
+                });
+              }
+              if (app.status === "rejected") {
+                feed.push({
+                  id: `rejected-${app.id}`,
+                  type: "rejected",
+                  title: `Application not selected`,
+                  subtitle: `${bizName} — ${jobTitle}`,
+                  date: app.updated_at || app.applied_at,
+                  href: "/applications",
+                });
+              }
+            }
+          }
+
+          // Add interview events
+          if (recentInterviews.data) {
+            for (const iv of recentInterviews.data) {
+              const appData = iv.applications as unknown as { job_posts: { title: string; business_profiles: { business_name: string } } } | null;
+              const jobTitle = appData?.job_posts?.title || "a position";
+              const bizName = appData?.job_posts?.business_profiles?.business_name || "a business";
+
+              if (iv.status === "invited") {
+                feed.push({
+                  id: `iv-invite-${iv.id}`,
+                  type: "interview_invited",
+                  title: `Interview invitation from ${bizName}`,
+                  subtitle: jobTitle,
+                  date: iv.invited_at,
+                  href: "/interviews",
+                });
+              }
+              if (iv.status === "scheduled" && iv.scheduled_date) {
+                const dateStr = new Date(iv.scheduled_date).toLocaleDateString("en-AU", { month: "short", day: "numeric" });
+                const timeStr = iv.scheduled_start_time ? ` at ${iv.scheduled_start_time.slice(0, 5)}` : "";
+                feed.push({
+                  id: `iv-sched-${iv.id}`,
+                  type: "interview_scheduled",
+                  title: `Interview confirmed for ${dateStr}${timeStr}`,
+                  subtitle: `${bizName} — ${jobTitle}`,
+                  date: iv.scheduled_at || iv.invited_at,
+                  href: "/interviews",
+                });
+              }
+              if (iv.status === "completed") {
+                feed.push({
+                  id: `iv-done-${iv.id}`,
+                  type: "interview_completed",
+                  title: `Interview completed with ${bizName}`,
+                  subtitle: jobTitle,
+                  date: iv.completed_at || iv.invited_at,
+                  href: "/interviews",
+                });
+              }
+            }
+          }
+
+          // Sort by date descending
+          feed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setActivities(feed);
         }
       }
 
@@ -222,20 +357,34 @@ export default function WorkerDashboard() {
 
       {/* ── Recent Activity ───────────────────────────────────── */}
       <div className="mt-10 mb-4">
-        <h2 className="text-lg font-semibold text-primary">Recent Activity</h2>
-        <div className="mt-4 rounded-2xl border border-accent/60 bg-white/70 p-8 text-center backdrop-blur-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
-            <svg className="h-6 w-6 text-secondary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium text-foreground/70">
-            No activity yet
-          </p>
-          <p className="mt-1 text-xs text-foreground/40">
-            Start by browsing jobs or completing your profile — your journey begins here.
-          </p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-primary">Recent Activity</h2>
+          {activities.length > 5 && (
+            <Link href="/applications" className="text-xs font-medium text-secondary hover:text-secondary/80 transition-colors">
+              View all &rarr;
+            </Link>
+          )}
         </div>
+
+        {activities.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-accent/60 bg-white/70 p-8 text-center backdrop-blur-sm">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
+              <svg className="h-6 w-6 text-secondary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground/70">No activity yet</p>
+            <p className="mt-1 text-xs text-foreground/40">
+              Start by browsing jobs or completing your profile — your journey begins here.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 divide-y divide-accent/40 rounded-2xl border border-accent/60 bg-white/70 backdrop-blur-sm overflow-hidden">
+            {activities.slice(0, 5).map((item) => (
+              <ActivityRow key={item.id} item={item} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -310,6 +459,109 @@ function ProfileCard({ completion }: { completion: number }) {
       </p>
       <p className="mt-0.5 text-xs text-foreground/40">Completion</p>
       <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+    </Link>
+  );
+}
+
+/* ── Activity Row ─────────────────────────────────────────── */
+const ACTIVITY_CONFIG: Record<ActivityItem["type"], { icon: React.ReactNode; iconBg: string }> = {
+  applied: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+      </svg>
+    ),
+    iconBg: "bg-secondary/15 text-secondary",
+  },
+  viewed: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+    iconBg: "bg-blue-100 text-blue-600",
+  },
+  interview_invited: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+      </svg>
+    ),
+    iconBg: "bg-highlight/15 text-highlight",
+  },
+  interview_scheduled: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+      </svg>
+    ),
+    iconBg: "bg-purple-100 text-purple-600",
+  },
+  interview_completed: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    iconBg: "bg-green-100 text-green-600",
+  },
+  offered: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+      </svg>
+    ),
+    iconBg: "bg-amber-100 text-amber-600",
+  },
+  accepted: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+      </svg>
+    ),
+    iconBg: "bg-green-100 text-green-600",
+  },
+  rejected: {
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+      </svg>
+    ),
+    iconBg: "bg-red-100 text-red-500",
+  },
+};
+
+function formatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-AU", { month: "short", day: "numeric" });
+}
+
+function ActivityRow({ item }: { item: ActivityItem }) {
+  const config = ACTIVITY_CONFIG[item.type];
+  return (
+    <Link
+      href={item.href}
+      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-accent/20"
+    >
+      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${config.iconBg}`}>
+        {config.icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-primary">{item.title}</p>
+        <p className="truncate text-xs text-foreground/50">{item.subtitle}</p>
+      </div>
+      <span className="flex-shrink-0 text-xs text-foreground/40">{formatTimeAgo(item.date)}</span>
     </Link>
   );
 }
