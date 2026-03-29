@@ -15,6 +15,15 @@ interface SearchResult {
   href: string;
 }
 
+interface BizActivity {
+  id: string;
+  type: "new_application" | "interview_scheduled" | "interview_completed" | "offer_accepted" | "offer_declined" | "listing_published" | "verified";
+  title: string;
+  subtitle: string;
+  date: string;
+  href: string;
+}
+
 export default function BusinessDashboard() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
@@ -28,6 +37,7 @@ export default function BusinessDashboard() {
   const [interviewCount, setInterviewCount] = useState("0");
   const [showCelebration, setShowCelebration] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [activities, setActivities] = useState<BizActivity[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -117,6 +127,133 @@ export default function BusinessDashboard() {
             setApplicantCount("0");
             setInterviewCount("0");
           }
+
+          // ── Build activity feed ──────────────────────────────
+          const feed: BizActivity[] = [];
+
+          // Recent applications
+          if (allJobIds && allJobIds.length > 0) {
+            const jobIds = allJobIds.map((j) => j.id);
+            const { data: recentApps } = await supabase
+              .from("applications")
+              .select("id, status, applied_at, updated_at, worker_id, job_post_id, worker_profiles(first_name, last_name), job_posts(title)")
+              .in("job_post_id", jobIds)
+              .order("applied_at", { ascending: false })
+              .limit(10);
+
+            if (recentApps) {
+              for (const app of recentApps) {
+                const wp = app.worker_profiles as unknown as { first_name: string | null; last_name: string | null } | null;
+                const jp = app.job_posts as unknown as { title: string } | null;
+                const name = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "A worker";
+                const jobTitle = jp?.title || "a position";
+
+                feed.push({
+                  id: `app-${app.id}`,
+                  type: "new_application",
+                  title: `${name} applied`,
+                  subtitle: jobTitle,
+                  date: app.applied_at,
+                  href: "/business/applicants",
+                });
+
+                if (app.status === "accepted") {
+                  feed.push({
+                    id: `accepted-${app.id}`,
+                    type: "offer_accepted",
+                    title: `${name} accepted your offer`,
+                    subtitle: jobTitle,
+                    date: app.updated_at || app.applied_at,
+                    href: "/business/applicants",
+                  });
+                }
+                if (app.status === "rejected") {
+                  feed.push({
+                    id: `declined-${app.id}`,
+                    type: "offer_declined",
+                    title: `${name} declined your offer`,
+                    subtitle: jobTitle,
+                    date: app.updated_at || app.applied_at,
+                    href: "/business/applicants",
+                  });
+                }
+              }
+            }
+          }
+
+          // Recent interviews
+          const { data: recentInterviews } = await supabase
+            .from("interviews")
+            .select("id, status, scheduled_date, scheduled_start_time, scheduled_at, completed_at, invited_at, applications(job_post_id, job_posts(title), worker_id, worker_profiles(first_name, last_name))")
+            .eq("business_id", profile.id)
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+          if (recentInterviews) {
+            for (const iv of recentInterviews) {
+              const appData = iv.applications as unknown as { job_posts: { title: string }; worker_profiles: { first_name: string | null; last_name: string | null } } | null;
+              const name = [appData?.worker_profiles?.first_name, appData?.worker_profiles?.last_name].filter(Boolean).join(" ") || "A worker";
+              const jobTitle = appData?.job_posts?.title || "a position";
+
+              if (iv.status === "scheduled") {
+                feed.push({
+                  id: `iv-sched-${iv.id}`,
+                  type: "interview_scheduled",
+                  title: `Interview booked with ${name}`,
+                  subtitle: jobTitle,
+                  date: iv.scheduled_at || iv.invited_at,
+                  href: "/business/interviews",
+                });
+              }
+              if (iv.status === "completed") {
+                feed.push({
+                  id: `iv-done-${iv.id}`,
+                  type: "interview_completed",
+                  title: `Interview completed with ${name}`,
+                  subtitle: jobTitle,
+                  date: iv.completed_at || iv.invited_at,
+                  href: "/business/interviews",
+                });
+              }
+            }
+          }
+
+          // Recent job postings
+          const { data: recentJobs } = await supabase
+            .from("job_posts")
+            .select("id, title, status, created_at")
+            .eq("business_id", profile.id)
+            .eq("status", "active")
+            .order("created_at", { ascending: false })
+            .limit(5);
+
+          if (recentJobs) {
+            for (const job of recentJobs) {
+              feed.push({
+                id: `job-${job.id}`,
+                type: "listing_published",
+                title: `Published "${job.title}"`,
+                subtitle: "Job listing",
+                date: job.created_at,
+                href: `/business/manage-listings/${job.id}`,
+              });
+            }
+          }
+
+          // Verification event
+          if (profile.verification_status === "verified") {
+            feed.push({
+              id: "verified",
+              type: "verified",
+              title: "Business verified",
+              subtitle: "Your account is now verified",
+              date: profile.updated_at || profile.created_at,
+              href: "/business/admin",
+            });
+          }
+
+          feed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setActivities(feed);
         }
       }
 
@@ -563,20 +700,32 @@ export default function BusinessDashboard() {
 
       {/* ── Recent Activity ───────────────────────────────────── */}
       <div className="mt-10 mb-4">
-        <h2 className="text-lg font-semibold text-primary">Recent Activity</h2>
-        <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20">
-            <svg className="h-6 w-6 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium text-foreground/60">
-            No recent activity
-          </p>
-          <p className="mt-1 text-xs text-foreground/40">
-            Post your first job to start receiving applications.
-          </p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-primary">Recent Activity</h2>
+          {activities.length > 8 && (
+            <Link href="/business/applicants" className="text-xs font-medium text-secondary hover:text-secondary/80 transition-colors">
+              View all &rarr;
+            </Link>
+          )}
         </div>
+
+        {activities.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-8 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20">
+              <svg className="h-6 w-6 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground/60">No recent activity</p>
+            <p className="mt-1 text-xs text-foreground/40">Post your first job to start receiving applications.</p>
+          </div>
+        ) : (
+          <div className="mt-4 divide-y divide-accent/30 rounded-2xl border border-accent/40 bg-white overflow-hidden">
+            {activities.slice(0, 8).map((item) => (
+              <BizActivityRow key={item.id} item={item} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ═══ VERIFICATION CELEBRATION MODAL ═══════════════════ */}
@@ -790,6 +939,71 @@ function ActionCard({
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
         </svg>
       </div>
+    </Link>
+  );
+}
+
+/* ── Business Activity Row ────────────────────────────────── */
+const BIZ_ACTIVITY_CONFIG: Record<BizActivity["type"], { icon: React.ReactNode; iconBg: string }> = {
+  new_application: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
+    iconBg: "bg-secondary/15 text-secondary",
+  },
+  interview_scheduled: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>,
+    iconBg: "bg-purple-100 text-purple-600",
+  },
+  interview_completed: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+    iconBg: "bg-green-100 text-green-600",
+  },
+  offer_accepted: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" /></svg>,
+    iconBg: "bg-amber-100 text-amber-600",
+  },
+  offer_declined: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>,
+    iconBg: "bg-red-100 text-red-500",
+  },
+  listing_published: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25H5.625a2.25 2.25 0 01-2.25-2.25V8.625c0-.621.504-1.125 1.125-1.125H8.25m8.25 0v-3.375c0-.621-.504-1.125-1.125-1.125H8.625c-.621 0-1.125.504-1.125 1.125V6" /></svg>,
+    iconBg: "bg-blue-100 text-blue-600",
+  },
+  verified: {
+    icon: <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+    iconBg: "bg-green-100 text-green-600",
+  },
+};
+
+function bizFormatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-AU", { month: "short", day: "numeric" });
+}
+
+function BizActivityRow({ item }: { item: BizActivity }) {
+  const config = BIZ_ACTIVITY_CONFIG[item.type];
+  return (
+    <Link
+      href={item.href}
+      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-accent/10"
+    >
+      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${config.iconBg}`}>
+        {config.icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-primary">{item.title}</p>
+        <p className="truncate text-xs text-foreground/50">{item.subtitle}</p>
+      </div>
+      <span className="flex-shrink-0 text-xs text-foreground/40">{bizFormatTimeAgo(item.date)}</span>
     </Link>
   );
 }
