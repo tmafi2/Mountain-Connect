@@ -471,37 +471,44 @@ function ExploreContent() {
                 {showGlobeSuggestions && globeSuggestions.length > 0 && (
                   <div className="mt-1 max-h-64 overflow-y-auto rounded-lg border border-white/20 bg-white/95 shadow-xl backdrop-blur-md">
                     {globeSuggestions.map((s, i) => (
-                      <button
-                        key={`${s.type}-${s.name}-${i}`}
-                        onClick={() => {
-                          if (s.type === "town" && s.townSlug) {
-                            router.push(`/towns/${s.townSlug}`);
-                            setShowGlobeSuggestions(false);
-                            setGlobeSearch("");
-                          } else {
+                      s.type === "town" && s.townSlug ? (
+                        <a
+                          key={`${s.type}-${s.name}-${i}`}
+                          href={`/towns/${s.townSlug}`}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-secondary/10 no-underline"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-primary">{s.name}</p>
+                            <p className="text-xs text-foreground/50">{s.country}</p>
+                          </div>
+                          <span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-medium text-secondary">
+                            Town
+                          </span>
+                        </a>
+                      ) : (
+                        <button
+                          key={`${s.type}-${s.name}-${i}`}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={() => {
                             setGlobeSearchSelection(s.countrySlug);
                             setGlobeSearch(s.name);
                             setShowGlobeSuggestions(false);
-                            // Part D: also filter the resort grid below
                             setSearchQuery(s.name);
-                          }
-                        }}
-                        className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-secondary/10"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-primary">{s.name}</p>
-                          {(s.type === "resort" || s.type === "town") && (
-                            <p className="text-xs text-foreground/50">{s.country}</p>
-                          )}
-                        </div>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          s.type === "town"
-                            ? "bg-secondary/15 text-secondary"
-                            : "bg-accent/50 text-foreground/40"
-                        }`}>
-                          {s.type === "country" ? "Country" : s.type === "town" ? "Town" : "Resort"}
-                        </span>
-                      </button>
+                          }}
+                          className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-secondary/10"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-primary">{s.name}</p>
+                            {s.type === "resort" && (
+                              <p className="text-xs text-foreground/50">{s.country}</p>
+                            )}
+                          </div>
+                          <span className="rounded-full bg-accent/50 px-2 py-0.5 text-[10px] font-medium text-foreground/40">
+                            {s.type === "country" ? "Country" : "Resort"}
+                          </span>
+                        </button>
+                      )
                     ))}
                   </div>
                 )}
