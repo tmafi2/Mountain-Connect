@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
 
   const { data: town } = await supabase
     .from("nearby_towns")
-    .select("name, slug, description, country, state_region, hero_image_url, latitude, longitude")
+    .select("id, name, slug, description, country, state_region, hero_image_url, latitude, longitude")
     .eq("slug", slug)
     .single();
 
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
   const { data: links } = await supabase
     .from("resort_nearby_towns")
     .select("resorts(name)")
-    .eq("town_id", (await supabase.from("nearby_towns").select("id").eq("slug", slug).single()).data?.id || "");
+    .eq("town_id", town.id);
 
   const resortNames = (links || []).map((l) => (l.resorts as unknown as { name: string })?.name).filter(Boolean);
 
