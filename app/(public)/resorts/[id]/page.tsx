@@ -790,14 +790,22 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                       )}
                     </div>
                     {town.description && (
-                      <p className="mt-2 text-sm text-foreground/60">{town.description}</p>
+                      <p className="mt-2 text-sm text-foreground/60 line-clamp-3">{town.description}</p>
                     )}
-                    <Link
-                      href={`/jobs?town=${town.slug}`}
-                      className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-secondary transition-colors"
-                    >
-                      View jobs near {town.name} &rarr;
-                    </Link>
+                    <div className="mt-3 flex flex-wrap gap-4">
+                      <Link
+                        href={`/towns/${town.slug}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-secondary transition-colors"
+                      >
+                        View Town Guide &rarr;
+                      </Link>
+                      <Link
+                        href={`/jobs?town=${town.slug}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-secondary/80 hover:text-secondary transition-colors"
+                      >
+                        View Jobs Near {town.name} &rarr;
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -883,6 +883,46 @@ function ExploreContent() {
         </div>
       </section>
 
+      {/* ═══ Explore by Town ══════════════════════════════════ */}
+      <section className="border-t border-accent/30 bg-gradient-to-b from-white to-accent/10 px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="text-2xl font-bold text-primary">Explore by Town</h2>
+          <p className="mt-2 text-sm text-foreground/60">
+            Discover the towns where seasonal workers live, eat, and socialise.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {[
+              { name: "Whistler", slug: "whistler-village" },
+              { name: "Chamonix", slug: "chamonix" },
+              { name: "Niseko", slug: "hirafu-kutchan" },
+              { name: "Queenstown", slug: "queenstown" },
+              { name: "Aspen", slug: "aspen" },
+              { name: "Banff", slug: "banff" },
+              { name: "Jindabyne", slug: "jindabyne" },
+              { name: "Jackson", slug: "jackson" },
+              { name: "Zermatt", slug: "zermatt" },
+              { name: "Verbier", slug: "verbier" },
+              { name: "Val d'Isère", slug: "val-disere" },
+              { name: "Morzine", slug: "morzine" },
+              { name: "St. Anton", slug: "st-anton" },
+              { name: "Hakuba", slug: "hakuba" },
+              { name: "Breckenridge", slug: "breckenridge" },
+              { name: "Bariloche", slug: "bariloche" },
+              { name: "Park City", slug: "park-city" },
+              { name: "Revelstoke", slug: "revelstoke" },
+            ].map((town) => (
+              <Link
+                key={town.slug}
+                href={`/towns/${town.slug}`}
+                className="rounded-full border border-accent/50 bg-white px-4 py-2 text-sm font-medium text-primary hover:border-secondary/50 hover:bg-secondary/5 hover:text-secondary transition-all"
+              >
+                {town.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══ Floating Compare Bar ═══════════════════════════ */}
       {compareIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
