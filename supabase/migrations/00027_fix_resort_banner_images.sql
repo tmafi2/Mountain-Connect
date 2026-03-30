@@ -4,29 +4,25 @@
 
 -- ── AUSTRALIA ──────────────────────────────────────────────
 
--- Perisher (legacy_id='50') — was showing unrelated stock image
--- New: Snowy Mountains winter landscape
-UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1551524164-687a55dd1126?w=1200&q=80'
+-- Perisher (legacy_id='50') — was showing orange VW Beetle
+UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1600&q=80'
 WHERE legacy_id = '50';
--- Credit: Photo by Jez Timms on Unsplash (snow-covered mountain landscape)
+-- Credit: Unsplash (snowy mountain ski resort)
 
 -- Thredbo (legacy_id='52') — was showing surfer
--- New: Snow-covered alpine village/mountain
-UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1418985991508-e47386d96a71?w=1200&q=80'
+UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1565992441121-4367c2967103?w=1600&q=80'
 WHERE legacy_id = '52';
--- Credit: Photo by Luca Bravo on Unsplash (snowy mountain scene)
+-- Credit: Unsplash (alpine ski village)
 
--- Falls Creek (legacy_id='51') — verify/replace
--- New: Snow gum trees and alpine landscape (Australian alpine)
-UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1477601263568-180e2c6d046e?w=1200&q=80'
+-- Falls Creek (legacy_id='51') — unrelated stock image
+UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1600&q=80'
 WHERE legacy_id = '51';
--- Credit: Photo by Joshua Earle on Unsplash (snow-covered mountain with trees)
+-- Credit: Unsplash (snow-covered mountain)
 
--- Mt Hotham (legacy_id='53') — verify/replace
--- New: Snowy mountain ridge
-UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=1200&q=80'
+-- Mt Hotham (legacy_id='53') — unrelated stock image
+UPDATE resorts SET banner_image_url = 'https://images.unsplash.com/photo-1520443240718-fce21901db79?w=1600&q=80'
 WHERE legacy_id = '53';
--- Credit: Photo by Daniele Levis Pelusi on Unsplash (alpine snow ridge)
+-- Credit: Unsplash (ski lift and snowy peaks)
 
 -- ── NEW ZEALAND ────────────────────────────────────────────
 
