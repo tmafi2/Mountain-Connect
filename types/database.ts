@@ -231,6 +231,14 @@ export interface LiftTypes {
   surface_lifts: number;
 }
 
+export interface NearbyTown {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  distance_km: number;
+}
+
 export interface Resort {
   id: string;
   name: string;
@@ -296,6 +304,9 @@ export interface Resort {
   // System Metadata
   updated_at: string | null;
   is_verified: boolean;
+
+  // Nearby Towns (populated via API join)
+  nearby_towns?: NearbyTown[];
 }
 
 export interface JobPost {

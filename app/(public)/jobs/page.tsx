@@ -18,6 +18,7 @@ interface Filters {
   category: string;
   country: string;
   resort: string;
+  town: string;
   position_type: string;
   accommodation: string; // "all" | "yes" | "no"
   ski_pass: string;      // "all" | "yes" | "no"
@@ -32,6 +33,7 @@ const INITIAL_FILTERS: Filters = {
   category: "",
   country: "",
   resort: "",
+  town: "",
   position_type: "",
   accommodation: "all",
   ski_pass: "all",
@@ -85,6 +87,9 @@ function FindAJobContent() {
   const searchParams = useSearchParams();
   const [allJobs, setAllJobs] = useState<SeedJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
+  const [townResortIds, setTownResortIds] = useState<string[]>([]);
+  const [townBusinessIds, setTownBusinessIds] = useState<string[]>([]);
+  const [townDisplayName, setTownDisplayName] = useState("");
 
   // Fetch real jobs from Supabase
   useEffect(() => {
@@ -145,6 +150,54 @@ function FindAJobContent() {
     })();
   }, []);
 
+  // Fetch resort IDs and town-based business IDs when town filter is active
+  useEffect(() => {
+    const townSlug = searchParams.get("town");
+    if (!townSlug) {
+      setTownResortIds([]);
+      setTownBusinessIds([]);
+      setTownDisplayName("");
+      return;
+    }
+    (async () => {
+      try {
+        const supabase = createClient();
+        // Get town details (name + id)
+        const { data: townData } = await supabase
+          .from("nearby_towns")
+          .select("id, name")
+          .eq("slug", townSlug)
+          .single();
+        if (townData) setTownDisplayName(townData.name);
+
+        // Get resort IDs linked to this town
+        const { data: links } = await supabase
+          .from("resort_nearby_towns")
+          .select("resort_id, nearby_towns!inner(slug)")
+          .eq("nearby_towns.slug", townSlug);
+
+        if (links) {
+          setTownResortIds(links.map((l) => l.resort_id));
+        }
+
+        // Get businesses that operate in this town
+        if (townData) {
+          const { data: townBiz } = await supabase
+            .from("business_profiles")
+            .select("id")
+            .eq("operates_in_town", true)
+            .eq("nearby_town_id", townData.id);
+
+          if (townBiz) {
+            setTownBusinessIds(townBiz.map((b) => b.id));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load town resort links:", err);
+      }
+    })();
+  }, [searchParams]);
+
   // Derive filter options from real job data
   const JOB_CATEGORIES = useMemo(() => [...new Set(allJobs.map((j) => j.category).filter((c): c is string => !!c))].sort(), [allJobs]);
   const JOB_COUNTRIES = useMemo(() => [...new Set(allJobs.map((j) => j.resort_country).filter(Boolean))].sort(), [allJobs]);
@@ -156,9 +209,11 @@ function FindAJobContent() {
     const resort = searchParams.get("resort");
     const category = searchParams.get("category");
     const country = searchParams.get("country");
+    const town = searchParams.get("town");
     if (resort) initial.resort = resort;
     if (category) initial.category = category;
     if (country) initial.country = country;
+    if (town) initial.town = town;
     return initial;
   });
   const [showFilters, setShowFilters] = useState(true);
@@ -296,6 +351,11 @@ function FindAJobContent() {
     if (filters.meal_perks === "yes") jobs = jobs.filter((j) => j.meal_perks);
     if (filters.meal_perks === "no") jobs = jobs.filter((j) => !j.meal_perks);
     if (filters.urgently_hiring) jobs = jobs.filter((j) => j.urgently_hiring);
+    if (filters.town && (townResortIds.length > 0 || townBusinessIds.length > 0)) {
+      jobs = jobs.filter(
+        (j) => townResortIds.includes(j.resort_id) || townBusinessIds.includes(j.business_id)
+      );
+    }
 
     // Sort
     switch (filters.sort) {
@@ -314,7 +374,7 @@ function FindAJobContent() {
     }
 
     return jobs;
-  }, [filters, allJobs]);
+  }, [filters, allJobs, townResortIds, townBusinessIds]);
 
   const activeFilterCount = [
     filters.category,
@@ -669,6 +729,30 @@ function FindAJobContent() {
                     onRemove={() => setFilter("urgently_hiring", false)}
                   />
                 )}
+              </div>
+            )}
+
+            {/* Town filter banner */}
+            {filters.town && townDisplayName && (
+              <div className="mb-4 flex items-center justify-between rounded-xl border border-secondary/30 bg-secondary/5 px-4 py-3">
+                <p className="text-sm font-medium text-primary">
+                  Showing jobs near <span className="font-bold text-secondary">{townDisplayName}</span>
+                </p>
+                <button
+                  onClick={() => {
+                    setFilter("town", "");
+                    // Remove town from URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("town");
+                    window.history.replaceState({}, "", url.toString());
+                  }}
+                  className="rounded-lg p-1 text-foreground/40 hover:bg-accent/30 hover:text-foreground/70 transition-colors"
+                  title="Clear town filter"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             )}
 

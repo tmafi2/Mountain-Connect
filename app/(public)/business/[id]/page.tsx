@@ -72,6 +72,17 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     resortData = resorts || [];
   }
 
+  // Get nearby town name if business operates in a town
+  let nearbyTownName: string | null = null;
+  if (business.operates_in_town && business.nearby_town_id) {
+    const { data: town } = await supabase
+      .from("nearby_towns")
+      .select("name")
+      .eq("id", business.nearby_town_id)
+      .single();
+    if (town) nearbyTownName = town.name;
+  }
+
   // Also check direct resort_id on the profile
   if (business.resort_id && resortData.length === 0) {
     const { data: resort } = await supabase
@@ -530,7 +541,44 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                 </div>
               )}
 
-              {resortData.length > 0 && (
+              {business.operates_in_town && nearbyTownName ? (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
+                      <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-foreground/40">Town</p>
+                      <p className="text-sm font-medium text-primary">{nearbyTownName}</p>
+                    </div>
+                  </div>
+                  {resortData.length > 0 && (
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
+                        <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M3 7l9-4 9 4" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-foreground/40">Services</p>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {resortData.map((r) => (
+                            <Link
+                              key={r.id}
+                              href={`/resorts/${r.id}`}
+                              className="text-sm font-medium text-secondary hover:underline"
+                            >
+                              {r.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : resortData.length > 0 ? (
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
                     <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -552,7 +600,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">

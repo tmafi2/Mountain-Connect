@@ -27,6 +27,8 @@ interface ProfileFormData {
   linkedin: string;
   perks: string[];
   resort_id: string | null;
+  operates_in_town: boolean;
+  nearby_town_id: string | null;
 }
 
 /* ─── Constants ──────────────────────────────────────────── */
@@ -140,6 +142,9 @@ export default function CompanyProfilePage() {
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
   const [selectedResortName, setSelectedResortName] = useState("");
 
+  // Nearby towns
+  const [nearbyTowns, setNearbyTowns] = useState<{ id: string; name: string; slug: string }[]>([]);
+
   const [form, setForm] = useState<ProfileFormData>({
     business_name: "",
     description: "",
@@ -159,6 +164,8 @@ export default function CompanyProfilePage() {
     linkedin: "",
     perks: [],
     resort_id: null,
+    operates_in_town: false,
+    nearby_town_id: null,
   });
 
   useEffect(() => {
@@ -209,6 +216,8 @@ export default function CompanyProfilePage() {
           linkedin: social.linkedin ?? "",
           perks: Array.isArray(profile.standard_perks) ? profile.standard_perks : [],
           resort_id: typeof profile.resort_id === "string" ? profile.resort_id : null,
+          operates_in_town: profile.operates_in_town ?? false,
+          nearby_town_id: typeof profile.nearby_town_id === "string" ? profile.nearby_town_id : null,
         });
 
         setOriginalName(profile.business_name ?? "");
@@ -244,12 +253,19 @@ export default function CompanyProfilePage() {
     load();
   }, [router]);
 
-  // Load all resorts once on mount
+  // Load all resorts + nearby towns once on mount
   useEffect(() => {
     fetch("/api/search-resorts?all=1")
       .then((r) => r.json())
       .then((data) => setAllResorts(Array.isArray(data) ? data : []))
       .catch(() => setAllResorts([]));
+
+    const supabase = createClient();
+    supabase
+      .from("nearby_towns")
+      .select("id, name, slug")
+      .order("name")
+      .then(({ data }) => setNearbyTowns(data || []));
   }, []);
 
   // Filter resorts by search query
@@ -481,6 +497,8 @@ export default function CompanyProfilePage() {
     // Only save resort_id if it's a valid UUID (static resort IDs are not UUIDs)
     const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     updateData.resort_id = form.resort_id && isUuid(form.resort_id) ? form.resort_id : null;
+    updateData.operates_in_town = form.operates_in_town;
+    updateData.nearby_town_id = form.operates_in_town && form.nearby_town_id ? form.nearby_town_id : null;
 
     console.log("Saving profile:", currentProfileId, "data:", updateData);
 
@@ -973,7 +991,10 @@ export default function CompanyProfilePage() {
 
           {/* Associated Resort */}
           <div className="relative">
-            <label className="block text-sm font-medium text-foreground">Associated Resort <span className="text-foreground/40 font-normal">(or closest)</span></label>
+            <label className="block text-sm font-medium text-foreground">
+              {form.operates_in_town ? "Which resorts do you service?" : "Associated Resort"}{" "}
+              {!form.operates_in_town && <span className="text-foreground/40 font-normal">(or closest)</span>}
+            </label>
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <svg className="h-4 w-4 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1052,6 +1073,42 @@ export default function CompanyProfilePage() {
                     No resorts found for &ldquo;{resortQuery}&rdquo;
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Nearby Town Toggle */}
+          <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.operates_in_town}
+                onChange={(e) => {
+                  updateField("operates_in_town", e.target.checked);
+                  if (!e.target.checked) updateField("nearby_town_id", null);
+                }}
+                className="h-4 w-4 rounded border-accent text-secondary focus:ring-secondary/30"
+              />
+              <span className="text-sm font-medium text-primary">
+                My business is based in a nearby town, not on the mountain
+              </span>
+            </label>
+
+            {form.operates_in_town && (
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-foreground/70 mb-1.5">
+                  Town your business operates in
+                </label>
+                <select
+                  value={form.nearby_town_id || ""}
+                  onChange={(e) => updateField("nearby_town_id", e.target.value || null)}
+                  className="w-full rounded-lg border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary/30"
+                >
+                  <option value="">Select a town...</option>
+                  {nearbyTowns.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

@@ -100,6 +100,13 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
   const region = regions.find((r) => r.id === resort.region_id);
 
   // ── Query Supabase for linked businesses and real job posts ──
+  let nearbyTowns: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    distance_km: number | null;
+  }[] = [];
   let linkedBusinesses: {
     id: string;
     business_name: string;
@@ -226,6 +233,30 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
             applications_count: count ?? 0,
           });
         }
+      }
+
+      // Get nearby towns for this resort
+      const { data: townRows } = await supabase
+        .from("resort_nearby_towns")
+        .select("distance_km, nearby_towns(id, name, slug, description)")
+        .eq("resort_id", resortUuid);
+
+      if (townRows) {
+        nearbyTowns = townRows.map((row) => {
+          const t = row.nearby_towns as unknown as {
+            id: string;
+            name: string;
+            slug: string;
+            description: string | null;
+          };
+          return {
+            id: t.id,
+            name: t.name,
+            slug: t.slug,
+            description: t.description,
+            distance_km: row.distance_km,
+          };
+        });
       }
     }
   } catch (err) {
@@ -736,6 +767,39 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                     <TagList items={resort.outdoor_activities} />
                   </div>
                 )}
+              </div>
+            </section>
+          )}
+
+          {/* Nearby Towns */}
+          {nearbyTowns.length > 0 && (
+            <section>
+              <SectionHeading>Nearby Towns</SectionHeading>
+              <div className={`mt-4 grid gap-4 ${nearbyTowns.length > 1 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+                {nearbyTowns.map((town) => (
+                  <div
+                    key={town.id}
+                    className="rounded-xl border border-accent/50 bg-white/70 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-base font-bold text-primary">{town.name}</h3>
+                      {town.distance_km != null && (
+                        <span className="shrink-0 rounded-full bg-secondary/15 px-2.5 py-0.5 text-xs font-semibold text-secondary">
+                          {town.distance_km} km away
+                        </span>
+                      )}
+                    </div>
+                    {town.description && (
+                      <p className="mt-2 text-sm text-foreground/60">{town.description}</p>
+                    )}
+                    <Link
+                      href={`/jobs?town=${town.slug}`}
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-secondary transition-colors"
+                    >
+                      View jobs near {town.name} &rarr;
+                    </Link>
+                  </div>
+                ))}
               </div>
             </section>
           )}

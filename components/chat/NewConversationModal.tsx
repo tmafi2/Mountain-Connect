@@ -138,32 +138,20 @@ export default function NewConversationModal({
     setError("");
 
     try {
-      // Find or create conversation via API
+      // Find or create conversation via API (includes first message)
       const convRes = await fetch("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId: selected.userId }),
+        body: JSON.stringify({
+          targetUserId: selected.userId,
+          initialMessage: firstMessage.trim(),
+        }),
       });
 
       if (!convRes.ok) throw new Error("Failed to create conversation");
       const { conversationId } = await convRes.json();
 
-      // Send the first message
-      const supabase = createClient();
-      const { error: msgError } = await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: currentUserId,
-        content: firstMessage.trim(),
-      });
-
-      if (msgError) throw msgError;
-
-      // Update conversation timestamp
-      await supabase
-        .from("conversations")
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", conversationId);
-
+      setFirstMessage("");
       onConversationCreated(conversationId);
     } catch (err) {
       console.error("Failed to start conversation:", err);

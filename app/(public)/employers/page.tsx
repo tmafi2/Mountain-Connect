@@ -18,6 +18,8 @@ interface Business {
   resort_names: string[];
   resort_ids: string[];
   active_listings: number;
+  operates_in_town: boolean;
+  nearby_town_id: string | null;
 }
 
 const INDUSTRY_LABELS: Record<string, string> = {
@@ -112,7 +114,7 @@ export default function EmployersPage() {
         // Fetch all business profiles
         const { data: bps } = await supabase
           .from("business_profiles")
-          .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id")
+          .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id, operates_in_town, nearby_town_id")
           .order("verification_status", { ascending: true })
           .order("business_name", { ascending: true });
 
@@ -255,6 +257,8 @@ export default function EmployersPage() {
           resort_names: resortMap[b.id] || [],
           resort_ids: resortIdMap[b.id] || [],
           active_listings: jobCounts[b.id] || 0,
+          operates_in_town: b.operates_in_town ?? false,
+          nearby_town_id: b.nearby_town_id ?? null,
         }));
 
         setBusinesses(mapped);
