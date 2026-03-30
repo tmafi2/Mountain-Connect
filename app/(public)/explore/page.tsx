@@ -222,6 +222,16 @@ function ExploreContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialCompare = searchParams.get("compare");
+
+  // Scroll to #towns anchor after client-side navigation
+  useEffect(() => {
+    if (window.location.hash === "#towns") {
+      setTimeout(() => {
+        document.getElementById("towns")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, []);
+
   const [continentFilter, setContinentFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
