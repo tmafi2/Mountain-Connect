@@ -186,6 +186,23 @@ export default function RegionsDropdown({
                 </button>
               ))}
 
+            {/* Browse Towns link */}
+            {!selectedContinent && (
+              <>
+                <div className="mx-3 border-t border-accent/40" />
+                <a
+                  href="/explore#towns"
+                  onClick={() => setOpen(false)}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-secondary transition-colors hover:bg-secondary/10"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+                  </svg>
+                  Explore Towns
+                </a>
+              </>
+            )}
+
             {/* Level 2: Countries */}
             {selectedContinent &&
               !selectedCountry &&

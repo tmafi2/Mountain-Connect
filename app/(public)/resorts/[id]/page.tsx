@@ -794,7 +794,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                     )}
                     <div className="mt-3 flex flex-wrap gap-4">
                       <Link
-                        href={`/towns/${town.slug}`}
+                        href={`/towns/${town.slug}?from=${resort.id}`}
                         className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-secondary transition-colors"
                       >
                         View Town Guide &rarr;

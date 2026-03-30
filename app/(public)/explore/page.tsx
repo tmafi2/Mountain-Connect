@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
@@ -20,6 +20,62 @@ const GlobeComponent = dynamic(() => import("@/components/globe/Globe"), {
     </div>
   ),
 });
+
+/* ── Town data for search autocomplete ──────────────────── */
+const SEARCH_TOWNS = [
+  { name: "Whistler Village", slug: "whistler-village", country: "Canada" },
+  { name: "Banff", slug: "banff", country: "Canada" },
+  { name: "Revelstoke", slug: "revelstoke", country: "Canada" },
+  { name: "Chamonix", slug: "chamonix", country: "France" },
+  { name: "Val d'Isère", slug: "val-disere", country: "France" },
+  { name: "Val Thorens", slug: "val-thorens", country: "France" },
+  { name: "Méribel", slug: "meribel", country: "France" },
+  { name: "Courchevel", slug: "courchevel", country: "France" },
+  { name: "Morzine", slug: "morzine", country: "France" },
+  { name: "Bourg-Saint-Maurice", slug: "bourg-saint-maurice", country: "France" },
+  { name: "Zermatt", slug: "zermatt", country: "Switzerland" },
+  { name: "Verbier", slug: "verbier", country: "Switzerland" },
+  { name: "St. Moritz", slug: "st-moritz", country: "Switzerland" },
+  { name: "St. Anton", slug: "st-anton", country: "Austria" },
+  { name: "Kitzbühel", slug: "kitzbuhel", country: "Austria" },
+  { name: "Ischgl", slug: "ischgl", country: "Austria" },
+  { name: "Sölden", slug: "solden", country: "Austria" },
+  { name: "Mayrhofen", slug: "mayrhofen", country: "Austria" },
+  { name: "Livigno", slug: "livigno", country: "Italy" },
+  { name: "Cortina d'Ampezzo", slug: "cortina-dampezzo", country: "Italy" },
+  { name: "Breuil-Cervinia", slug: "breuil-cervinia", country: "Italy" },
+  { name: "Hirafu / Kutchan", slug: "hirafu-kutchan", country: "Japan" },
+  { name: "Hakuba", slug: "hakuba", country: "Japan" },
+  { name: "Furano", slug: "furano", country: "Japan" },
+  { name: "Nozawa Onsen Village", slug: "nozawa-onsen", country: "Japan" },
+  { name: "Myoko", slug: "myoko", country: "Japan" },
+  { name: "Rusutsu", slug: "rusutsu", country: "Japan" },
+  { name: "Yamanouchi", slug: "yamanouchi", country: "Japan" },
+  { name: "Yuzawa", slug: "yuzawa", country: "Japan" },
+  { name: "Vail Village", slug: "vail-village", country: "United States" },
+  { name: "Aspen", slug: "aspen", country: "United States" },
+  { name: "Breckenridge", slug: "breckenridge", country: "United States" },
+  { name: "Jackson", slug: "jackson", country: "United States" },
+  { name: "Park City", slug: "park-city", country: "United States" },
+  { name: "Big Sky", slug: "big-sky", country: "United States" },
+  { name: "Steamboat Springs", slug: "steamboat-springs", country: "United States" },
+  { name: "Stowe", slug: "stowe", country: "United States" },
+  { name: "Telluride", slug: "telluride", country: "United States" },
+  { name: "Ketchum", slug: "ketchum", country: "United States" },
+  { name: "Mammoth Lakes", slug: "mammoth-lakes", country: "United States" },
+  { name: "Crested Butte", slug: "crested-butte", country: "United States" },
+  { name: "Jindabyne", slug: "jindabyne", country: "Australia" },
+  { name: "Mount Beauty", slug: "mount-beauty", country: "Australia" },
+  { name: "Bright", slug: "bright", country: "Australia" },
+  { name: "Queenstown", slug: "queenstown", country: "New Zealand" },
+  { name: "Methven", slug: "methven", country: "New Zealand" },
+  { name: "Åre Village", slug: "are-village", country: "Sweden" },
+  { name: "Gudauri", slug: "gudauri", country: "Georgia" },
+  { name: "Soldeu", slug: "soldeu", country: "Andorra" },
+  { name: "San Carlos de Bariloche", slug: "bariloche", country: "Argentina" },
+  { name: "Los Andes", slug: "los-andes", country: "Chile" },
+  { name: "Santiago", slug: "santiago", country: "Chile" },
+];
 
 /* ── Continent icons for mobile explorer ─────────────────── */
 const CONTINENT_ICONS: Record<string, React.ReactNode> = {
@@ -164,6 +220,7 @@ export default function ExplorePage() {
 
 function ExploreContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialCompare = searchParams.get("compare");
   const [continentFilter, setContinentFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -198,7 +255,7 @@ function ExploreContent() {
   const globeSuggestions = useMemo(() => {
     if (!globeSearch.trim()) return [];
     const q = globeSearch.toLowerCase();
-    const results: { type: "country" | "resort"; name: string; country: string; countrySlug: string }[] = [];
+    const results: { type: "country" | "resort" | "town"; name: string; country: string; countrySlug: string; townSlug?: string }[] = [];
     regionHierarchy.forEach((continent) => {
       continent.countries.forEach((country) => {
         const slug = country.name.toLowerCase().replace(/\s+/g, "-");
@@ -212,7 +269,13 @@ function ExploreContent() {
         });
       });
     });
-    return results.slice(0, 8);
+    // Add matching towns
+    SEARCH_TOWNS.forEach((town) => {
+      if (town.name.toLowerCase().includes(q)) {
+        results.push({ type: "town", name: town.name, country: town.country, countrySlug: town.country.toLowerCase().replace(/\s+/g, "-"), townSlug: town.slug });
+      }
+    });
+    return results.slice(0, 10);
   }, [globeSearch]);
 
   // Close suggestions on outside click
@@ -411,20 +474,32 @@ function ExploreContent() {
                       <button
                         key={`${s.type}-${s.name}-${i}`}
                         onClick={() => {
-                          setGlobeSearchSelection(s.countrySlug);
-                          setGlobeSearch(s.name);
-                          setShowGlobeSuggestions(false);
+                          if (s.type === "town" && s.townSlug) {
+                            router.push(`/towns/${s.townSlug}`);
+                            setShowGlobeSuggestions(false);
+                            setGlobeSearch("");
+                          } else {
+                            setGlobeSearchSelection(s.countrySlug);
+                            setGlobeSearch(s.name);
+                            setShowGlobeSuggestions(false);
+                            // Part D: also filter the resort grid below
+                            setSearchQuery(s.name);
+                          }
                         }}
                         className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-secondary/10"
                       >
                         <div>
                           <p className="text-sm font-medium text-primary">{s.name}</p>
-                          {s.type === "resort" && (
+                          {(s.type === "resort" || s.type === "town") && (
                             <p className="text-xs text-foreground/50">{s.country}</p>
                           )}
                         </div>
-                        <span className="rounded-full bg-accent/50 px-2 py-0.5 text-[10px] font-medium text-foreground/40">
-                          {s.type === "country" ? "Country" : "Resort"}
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          s.type === "town"
+                            ? "bg-secondary/15 text-secondary"
+                            : "bg-accent/50 text-foreground/40"
+                        }`}>
+                          {s.type === "country" ? "Country" : s.type === "town" ? "Town" : "Resort"}
                         </span>
                       </button>
                     ))}
@@ -884,7 +959,7 @@ function ExploreContent() {
       </section>
 
       {/* ═══ Explore by Town ══════════════════════════════════ */}
-      <section className="border-t border-accent/30 bg-gradient-to-b from-white to-accent/10 px-6 py-12">
+      <section id="towns" className="border-t border-accent/30 bg-gradient-to-b from-white to-accent/10 px-6 py-12 scroll-mt-20">
         <div className="mx-auto max-w-7xl">
           <h2 className="text-2xl font-bold text-primary">Explore by Town</h2>
           <p className="mt-2 text-sm text-foreground/60">

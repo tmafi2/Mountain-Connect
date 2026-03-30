@@ -1,10 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ResortMap from "@/components/ui/ResortMap";
+import type { Metadata } from "next";
 
 interface TownPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
 /* ── helpers ────────────────────────────────────────────────── */
@@ -35,9 +38,76 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
-/* ── page ───────────────────────────────────────────────────── */
-export default async function TownDetailPage({ params }: TownPageProps) {
+/* ── SEO metadata ──────────────────────────────────────────── */
+const DEFAULT_OG_IMAGE = "/og-default.png";
+const BASE_URL = "https://www.mountainconnects.com";
+
+export async function generateMetadata({ params }: TownPageProps): Promise<Metadata> {
   const { slug } = await params;
+  const supabase = await createClient();
+
+  const { data: town } = await supabase
+    .from("nearby_towns")
+    .select("name, slug, description, country, state_region, hero_image_url, latitude, longitude")
+    .eq("slug", slug)
+    .single();
+
+  if (!town) return { title: "Town Not Found | Mountain Connect" };
+
+  // Fetch linked resort names
+  const { data: links } = await supabase
+    .from("resort_nearby_towns")
+    .select("resorts(name)")
+    .eq("town_id", (await supabase.from("nearby_towns").select("id").eq("slug", slug).single()).data?.id || "");
+
+  const resortNames = (links || []).map((l) => (l.resorts as unknown as { name: string })?.name).filter(Boolean);
+
+  // Build title
+  let title: string;
+  if (resortNames.length > 0 && resortNames.length <= 3) {
+    title = `${town.name} Seasonal Worker Guide — Near ${resortNames.join(" & ")} | Mountain Connect`;
+  } else {
+    title = `${town.name} Seasonal Worker Guide — Housing, Jobs & Living | Mountain Connect`;
+  }
+
+  // Build description (under 160 chars)
+  let description: string;
+  if (town.description) {
+    description = town.description.length > 155 ? town.description.slice(0, 152) + "..." : town.description;
+  } else {
+    const resortPart = resortNames.length > 0 ? `, transport to ${resortNames.slice(0, 2).join(" & ")}` : "";
+    description = `Everything seasonal workers need to know about living in ${town.name}, ${town.country || ""}. Housing costs${resortPart}, nightlife, and jobs.`;
+    if (description.length > 160) description = description.slice(0, 157) + "...";
+  }
+
+  const ogImage = town.hero_image_url || DEFAULT_OG_IMAGE;
+  const canonicalUrl = `${BASE_URL}/towns/${town.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      type: "website",
+      images: [{ url: ogImage, alt: `${town.name} town guide` }],
+      siteName: "Mountain Connect",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
+
+/* ── page ───────────────────────────────────────────────────── */
+export default async function TownDetailPage({ params, searchParams }: TownPageProps) {
+  const { slug } = await params;
+  const { from: fromResortLegacyId } = await searchParams;
   const supabase = await createClient();
 
   // Fetch town
@@ -59,6 +129,33 @@ export default async function TownDetailPage({ params }: TownPageProps) {
     const r = l.resorts as unknown as { id: string; name: string; legacy_id: string; country: string };
     return { id: r.id, name: r.name, legacyId: r.legacy_id, country: r.country, distance_km: l.distance_km };
   });
+
+  // Fetch other towns linked to the same resorts (cross-links)
+  let crossLinkedTowns: { name: string; slug: string; resortName: string; distance_km: number | null }[] = [];
+  if (resortIds.length > 0) {
+    const { data: otherLinks } = await supabase
+      .from("resort_nearby_towns")
+      .select("distance_km, resort_id, resorts(name), nearby_towns(id, name, slug)")
+      .in("resort_id", resortIds)
+      .neq("town_id", town.id);
+
+    if (otherLinks) {
+      const seen = new Set<string>();
+      for (const ol of otherLinks) {
+        const t = ol.nearby_towns as unknown as { id: string; name: string; slug: string } | null;
+        const r = ol.resorts as unknown as { name: string } | null;
+        if (t && !seen.has(t.slug)) {
+          seen.add(t.slug);
+          crossLinkedTowns.push({
+            name: t.name,
+            slug: t.slug,
+            resortName: r?.name || "",
+            distance_km: ol.distance_km,
+          });
+        }
+      }
+    }
+  }
 
   // Fetch live jobs from linked resorts
   const resortIds = linkedResorts.map((r) => r.id);
@@ -115,8 +212,41 @@ export default async function TownDetailPage({ params }: TownPageProps) {
   const hasClimate = town.avg_winter_temp || town.snowfall_in_town || town.summer_appeal;
   const hasTips = town.best_time_to_arrive || town.community_groups || town.insider_tips;
 
+  // Build resort names for JSON-LD
+  const resortNamesForLd = linkedResorts.map((r) => r.name);
+  const canonicalUrl = `${BASE_URL}/towns/${town.slug}`;
+
+  const placeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name: town.name,
+    description: town.description || `Seasonal worker town guide for ${town.name}`,
+    ...(town.latitude && town.longitude
+      ? { geo: { "@type": "GeoCoordinates", latitude: town.latitude, longitude: town.longitude } }
+      : {}),
+    ...(town.country
+      ? { containedInPlace: { "@type": "AdministrativeArea", name: [town.state_region, town.country].filter(Boolean).join(", ") } }
+      : {}),
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Explore", item: `${BASE_URL}/explore` },
+      ...(resortNamesForLd.length === 1
+        ? [{ "@type": "ListItem", position: 2, name: resortNamesForLd[0], item: `${BASE_URL}/explore` }]
+        : []),
+      { "@type": "ListItem", position: resortNamesForLd.length === 1 ? 3 : 2, name: town.name, item: canonicalUrl },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      {/* JSON-LD Structured Data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(placeJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+
       {/* ═══ HERO ═══════════════════════════════════════════════ */}
       <div className="border-b border-accent bg-gradient-to-br from-primary/5 via-white to-secondary/5">
         <div className="mx-auto max-w-7xl px-6 py-10">
@@ -124,14 +254,31 @@ export default async function TownDetailPage({ params }: TownPageProps) {
           <nav className="mb-4 flex items-center gap-2 text-sm text-foreground/50">
             <Link href="/explore" className="hover:text-primary transition-colors">Explore</Link>
             <span>/</span>
-            {linkedResorts.length > 0 && (
-              <>
-                <Link href={`/resorts/${linkedResorts[0].id}`} className="hover:text-primary transition-colors">
-                  {linkedResorts[0].name}
-                </Link>
-                <span>/</span>
-              </>
-            )}
+            {(() => {
+              // Determine which resort to show in breadcrumb
+              let breadcrumbResort: typeof linkedResorts[0] | null = null;
+
+              if (fromResortLegacyId) {
+                // User came from a specific resort page — match by legacy_id
+                breadcrumbResort = linkedResorts.find((r) => r.legacyId === fromResortLegacyId) || null;
+              } else if (linkedResorts.length === 1) {
+                // Only one linked resort — always show it
+                breadcrumbResort = linkedResorts[0];
+              }
+              // If multiple resorts and no ?from param, skip resort in breadcrumb
+
+              if (breadcrumbResort) {
+                return (
+                  <>
+                    <Link href={`/resorts/${breadcrumbResort.id}`} className="hover:text-primary transition-colors">
+                      {breadcrumbResort.name}
+                    </Link>
+                    <span>/</span>
+                  </>
+                );
+              }
+              return null;
+            })()}
             <span className="text-primary font-medium">{town.name}</span>
           </nav>
 
@@ -162,6 +309,46 @@ export default async function TownDetailPage({ params }: TownPageProps) {
               ))}
             </div>
           )}
+          {/* Cross-linked towns */}
+          {crossLinkedTowns.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-foreground/50">
+              <span>Other nearby towns:</span>
+              {crossLinkedTowns.map((ct, i) => (
+                <span key={ct.slug}>
+                  <Link href={`/towns/${ct.slug}`} className="font-medium text-primary/70 hover:text-secondary transition-colors">
+                    {ct.name}
+                  </Link>
+                  {ct.distance_km != null && <span className="text-foreground/30 ml-0.5">({ct.distance_km}km to {ct.resortName})</span>}
+                  {i < crossLinkedTowns.length - 1 && <span className="ml-1">&middot;</span>}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Hero Banner Image */}
+          <div className="mt-6 relative h-72 overflow-hidden rounded-xl">
+            {town.hero_image_url ? (
+              <>
+                <Image
+                  src={town.hero_image_url}
+                  alt={town.name}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent" />
+              </>
+            ) : (
+              <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/20 border border-accent/30 rounded-xl">
+                <div className="flex flex-col items-center gap-2 text-foreground/30">
+                  <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5zm14.25-14.25h.008v.008h-.008V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                  <span className="text-sm">Town photo coming soon</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -481,6 +668,45 @@ export default async function TownDetailPage({ params }: TownPageProps) {
           </div>
         </div>
       </div>
+
+      {/* ═══ PLANNING YOUR SEASON CTA ════════════════════════════ */}
+      <section className="border-t border-accent/30 bg-gradient-to-br from-primary/5 via-white to-secondary/5">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+          <h2 className="text-2xl font-bold text-primary md:text-3xl">
+            Planning your season in {town.name}?
+          </h2>
+          <p className="mt-3 text-foreground/60">
+            Browse open positions near {town.name} and apply with one click.
+          </p>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href={`/jobs?town=${town.slug}`}
+              className="inline-flex items-center gap-2 rounded-xl bg-secondary px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-secondary-light hover:shadow-lg transition-all"
+            >
+              Browse Jobs Near {town.name} &rarr;
+            </Link>
+            <Link
+              href="/explore"
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/30 px-6 py-3 text-sm font-semibold text-primary hover:bg-primary/5 transition-all"
+            >
+              Explore Resorts
+            </Link>
+          </div>
+          {linkedResorts.length > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-foreground/50">
+              <span>Resorts nearby:</span>
+              {linkedResorts.map((r, i) => (
+                <span key={r.id}>
+                  <Link href={`/resorts/${r.id}`} className="font-medium text-secondary hover:underline">
+                    {r.name}
+                  </Link>
+                  {i < linkedResorts.length - 1 && <span className="ml-1">&middot;</span>}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

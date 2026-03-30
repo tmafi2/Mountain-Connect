@@ -4,6 +4,7 @@ import Link from "next/link";
 const footerLinks = {
   Platform: [
     { href: "/explore", label: "Explore Resorts" },
+    { href: "/explore#towns", label: "Explore Towns" },
     { href: "/jobs", label: "Find Jobs" },
     { href: "/regions", label: "Regions" },
     { href: "/signup", label: "Sign Up" },
