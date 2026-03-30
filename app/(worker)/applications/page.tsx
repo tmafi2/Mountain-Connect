@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import StartConversationButton from "@/components/chat/StartConversationButton";
@@ -226,6 +226,8 @@ export default function ApplicationsPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [respondingAppId, setRespondingAppId] = useState<string | null>(null);
+  const [celebration, setCelebration] = useState<{ jobTitle: string; businessName: string; resortName: string } | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("Newest First");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -331,6 +333,38 @@ export default function ApplicationsPage() {
     const hour = parseInt(h);
     const ampm = hour >= 12 ? "PM" : "AM";
     return `${hour % 12 || 12}:${m} ${ampm}`;
+  };
+
+  // Handle accept/decline offer
+  const handleOfferResponse = async (app: Application, action: "accept" | "decline") => {
+    setRespondingAppId(app.id);
+    try {
+      const res = await fetch("/api/applications/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId: app.id, action }),
+      });
+      if (!res.ok) throw new Error("Failed to respond");
+      const result = await res.json();
+
+      // Update local state
+      setApplications((prev) =>
+        prev.map((a) => a.id === app.id ? { ...a, status: result.newStatus } : a)
+      );
+
+      // Show celebration for accepted offers
+      if (action === "accept") {
+        setCelebration({
+          jobTitle: app.job_title,
+          businessName: app.business_name,
+          resortName: app.resort_name,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to respond to offer:", err);
+      alert("Something went wrong. Please try again.");
+    }
+    setRespondingAppId(null);
   };
 
   if (pageLoading) {
@@ -781,7 +815,14 @@ export default function ApplicationsPage() {
                   )}
 
                   {/* Next Steps guidance */}
-                  <NextStepsGuidance status={app.status} businessName={app.business_name} interviewStatus={app.interview_status} />
+                  <NextStepsGuidance
+                    status={app.status}
+                    businessName={app.business_name}
+                    interviewStatus={app.interview_status}
+                    onAcceptOffer={() => handleOfferResponse(app, "accept")}
+                    onDeclineOffer={() => handleOfferResponse(app, "decline")}
+                    offerLoading={respondingAppId === app.id}
+                  />
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-3">
@@ -814,6 +855,122 @@ export default function ApplicationsPage() {
           );
         })}
       </div>
+
+      {/* ═══ OFFER ACCEPTED CELEBRATION MODAL ═══════════════════ */}
+      {celebration && (
+        <CelebrationModal
+          jobTitle={celebration.jobTitle}
+          businessName={celebration.businessName}
+          resortName={celebration.resortName}
+          onClose={() => setCelebration(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Celebration Modal ────────────────────────────────────── */
+function CelebrationModal({
+  jobTitle,
+  businessName,
+  resortName,
+  onClose,
+}: {
+  jobTitle: string;
+  businessName: string;
+  resortName: string;
+  onClose: () => void;
+}) {
+  const hasRun = useRef(false);
+
+  useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
+
+    // Dynamic import confetti
+    import("canvas-confetti").then(({ default: confetti }) => {
+      // Big initial burst
+      confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 }, colors: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"] });
+
+      // Side cannons
+      setTimeout(() => {
+        confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ["#10b981", "#06b6d4", "#3b82f6"] });
+        confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ["#f59e0b", "#ef4444", "#8b5cf6"] });
+      }, 400);
+
+      // Extra burst
+      setTimeout(() => {
+        confetti({ particleCount: 80, spread: 100, origin: { y: 0.4 }, colors: ["#10b981", "#3b82f6", "#f59e0b"] });
+      }, 800);
+    });
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md animate-in zoom-in-95 duration-300">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+          {/* Green gradient header */}
+          <div className="relative bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 px-8 pt-10 pb-14 text-center">
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "20px 20px" }} />
+            <div className="relative">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                <span className="text-4xl">🎉</span>
+              </div>
+              <h2 className="text-2xl font-extrabold text-white">
+                You&apos;re Hired!
+              </h2>
+              <p className="mt-2 text-sm text-white/80">
+                Season secured. Adventure awaits.
+              </p>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="px-8 pb-8 -mt-6">
+            <div className="rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-6 shadow-sm">
+              <p className="text-center text-sm leading-relaxed text-green-900">
+                Congratulations! You&apos;ve officially secured your seasonal position as
+              </p>
+              <p className="mt-2 text-center text-lg font-bold text-green-800">
+                {jobTitle}
+              </p>
+              <p className="text-center text-sm text-green-700">
+                with <span className="font-semibold">{businessName}</span>
+                {resortName ? <> at <span className="font-semibold">{resortName}</span></> : ""}
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-green-600">
+                <span>🎿</span>
+                <span>Pack your ski gear and get ready for an epic winter season!</span>
+                <span>🏔️</span>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-2 text-sm text-foreground/60">
+              <p className="font-medium text-foreground/80">What&apos;s next:</p>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-green-500">✓</span>
+                <span>Check your email for onboarding details from {businessName}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-green-500">✓</span>
+                <span>Prepare your visa and travel documents</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-green-500">✓</span>
+                <span>Sort out accommodation and transport</span>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="mt-6 w-full rounded-xl bg-green-600 py-3 text-sm font-bold text-white transition-all hover:bg-green-700 hover:shadow-lg hover:shadow-green-600/20"
+            >
+              Let&apos;s Go! 🚀
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -823,10 +980,16 @@ function NextStepsGuidance({
   status,
   businessName,
   interviewStatus,
+  onAcceptOffer,
+  onDeclineOffer,
+  offerLoading,
 }: {
   status: Application["status"];
   businessName: string;
   interviewStatus: Application["interview_status"];
+  onAcceptOffer?: () => void;
+  onDeclineOffer?: () => void;
+  offerLoading?: boolean;
 }) {
   const configs: Record<string, { border: string; bg: string; iconBg: string; iconColor: string; heading: string; icon: React.ReactNode; body: React.ReactNode }> = {
     applied: {
@@ -946,10 +1109,18 @@ function NextStepsGuidance({
             Review the offer details carefully. You can message {businessName} if you have questions before making a decision.
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <button className="rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-green-700 hover:shadow-md">
-              Accept Offer
+            <button
+              onClick={onAcceptOffer}
+              disabled={offerLoading}
+              className="rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-green-700 hover:shadow-md disabled:opacity-50"
+            >
+              {offerLoading ? "Processing..." : "Accept Offer"}
             </button>
-            <button className="rounded-lg border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50">
+            <button
+              onClick={onDeclineOffer}
+              disabled={offerLoading}
+              className="rounded-lg border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+            >
               Decline Offer
             </button>
           </div>
