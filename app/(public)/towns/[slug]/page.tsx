@@ -130,6 +130,9 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
     return { id: r.id, name: r.name, legacyId: r.legacy_id, country: r.country, distance_km: l.distance_km };
   });
 
+  // Resort IDs for queries
+  const resortIds = linkedResorts.map((r) => r.id);
+
   // Fetch other towns linked to the same resorts (cross-links)
   let crossLinkedTowns: { name: string; slug: string; resortName: string; distance_km: number | null }[] = [];
   if (resortIds.length > 0) {
@@ -158,7 +161,6 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
   }
 
   // Fetch live jobs from linked resorts
-  const resortIds = linkedResorts.map((r) => r.id);
   let jobCount = 0;
   let jobs: { id: string; title: string; business_name: string; category: string | null; resort_name: string }[] = [];
   if (resortIds.length > 0) {
