@@ -223,11 +223,15 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
     "@type": "Place",
     name: town.name,
     description: town.description || `Seasonal worker town guide for ${town.name}`,
+    url: canonicalUrl,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: town.name,
+      ...(town.state_region ? { addressRegion: town.state_region } : {}),
+      ...(town.country ? { addressCountry: town.country } : {}),
+    },
     ...(town.latitude && town.longitude
       ? { geo: { "@type": "GeoCoordinates", latitude: town.latitude, longitude: town.longitude } }
-      : {}),
-    ...(town.country
-      ? { containedInPlace: { "@type": "AdministrativeArea", name: [town.state_region, town.country].filter(Boolean).join(", ") } }
       : {}),
   };
 
