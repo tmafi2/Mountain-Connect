@@ -10,6 +10,7 @@ interface Stats {
   totalBusinesses: number;
   pendingVerification: number;
   verifiedBusinesses: number;
+  openReports: number;
   totalWorkers: number;
   activeJobs: number;
   totalApplications: number;
@@ -25,6 +26,7 @@ export default function AdminDashboardPage() {
     totalBusinesses: 0,
     pendingVerification: 0,
     verifiedBusinesses: 0,
+    openReports: 0,
     totalWorkers: 0,
     activeJobs: 0,
     totalApplications: 0,
@@ -53,6 +55,7 @@ export default function AdminDashboardPage() {
         totalBusinesses: businesses.count ?? 0,
         pendingVerification: pending.count ?? 0,
         verifiedBusinesses: verified.count ?? 0,
+        openReports: 2, // Demo data — will query reports table when it exists
         totalWorkers: workers.count ?? 0,
         activeJobs: jobs.count ?? 0,
         totalApplications: applications.count ?? 0,
@@ -230,6 +233,18 @@ export default function AdminDashboardPage() {
       ),
     },
     {
+      key: "openReports",
+      label: "Open Reports",
+      href: "/admin/reported",
+      color: "text-red-700",
+      iconBg: "bg-red-50 text-red-600",
+      icon: (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+        </svg>
+      ),
+    },
+    {
       key: "totalWorkers",
       label: "Total Workers",
       href: "/admin/workers",
@@ -256,7 +271,7 @@ export default function AdminDashboardPage() {
     {
       key: "totalApplications",
       label: "Total Applications",
-      href: "/admin/jobs",
+      href: "/admin/applications",
       color: "text-cyan-700",
       iconBg: "bg-cyan-50 text-cyan-600",
       icon: (
@@ -319,9 +334,9 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-      {/* Stats grid */}
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {STAT_CARDS.map((stat) => {
+      {/* Stats grid — Row 1: 4 cards, Row 2: 3 cards */}
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {STAT_CARDS.slice(0, 4).map((stat) => {
           const delta = deltas[stat.key];
           return (
             <Link
@@ -365,6 +380,43 @@ export default function AdminDashboardPage() {
               <p className="mt-1 text-xs text-foreground/40 group-hover:text-secondary transition-colors">
                 View details &rarr;
               </p>
+            </Link>
+          );
+        })}
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
+        {STAT_CARDS.slice(4).map((stat) => {
+          const delta = deltas[stat.key];
+          return (
+            <Link
+              key={stat.key}
+              href={stat.href}
+              className="group rounded-xl border border-accent bg-white p-5 transition-all hover:border-secondary/50 hover:shadow-md hover:-translate-y-0.5"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground/60">{stat.label}</p>
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.iconBg} transition-colors group-hover:scale-110`}>
+                  {stat.icon}
+                </div>
+              </div>
+              <div className="mt-2 flex items-end gap-2">
+                <p className="text-3xl font-bold text-primary">{stats[stat.key]}</p>
+                {delta && (
+                  <span
+                    className={`mb-1 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      delta.direction === "up" ? "bg-green-50 text-green-600" : delta.direction === "down" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {delta.direction === "up" ? (
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+                    ) : delta.direction === "down" ? (
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" /></svg>
+                    ) : <span className="text-xs">—</span>}
+                    {delta.direction === "up" ? `+${delta.value}` : delta.direction === "down" ? `-${delta.value}` : "0"}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-foreground/40 group-hover:text-secondary transition-colors">View details &rarr;</p>
             </Link>
           );
         })}

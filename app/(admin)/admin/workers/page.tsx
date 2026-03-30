@@ -17,7 +17,9 @@ interface WorkerRow {
   profile_completion_pct: number | null;
   bio: string | null;
   work_history: unknown[] | null;
-  is_suspended: boolean;
+  status: string;
+  suspension_reason: string | null;
+  suspended_at: string | null;
   created_at: string;
   user_email?: string;
 }
@@ -38,13 +40,17 @@ export default function AdminWorkersPage() {
   const [selected, setSelected] = useState<WorkerRow | null>(null);
   const [selectedApps, setSelectedApps] = useState<WorkerApplication[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [suspendReason, setSuspendReason] = useState("Fake profile");
+  const [suspendNotes, setSuspendNotes] = useState("");
+  const [suspending, setSuspending] = useState(false);
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
       const { data: profiles, error } = await supabase
         .from("worker_profiles")
-        .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, bio, work_history, created_at")
+        .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, bio, work_history, status, suspension_reason, suspended_at, created_at")
         .order("created_at", { ascending: false });
 
       if (error) { console.error("Error loading workers:", error); setLoading(false); return; }
@@ -57,7 +63,7 @@ export default function AdminWorkersPage() {
 
         setWorkers(profiles.map((p) => ({
           ...p,
-          is_suspended: false,
+          status: p.status || "active",
           user_email: emailMap[p.user_id] || "",
         })) as WorkerRow[]);
       }
@@ -96,9 +102,9 @@ export default function AdminWorkersPage() {
 
   const filtered = useMemo(() => {
     let results = [...workers];
-    if (statusFilter === "active") results = results.filter((w) => !w.is_suspended && (w.profile_completion_pct ?? 0) >= 50);
-    else if (statusFilter === "suspended") results = results.filter((w) => w.is_suspended);
-    else if (statusFilter === "incomplete") results = results.filter((w) => !w.first_name || !w.last_name || (w.profile_completion_pct ?? 0) < 50);
+    if (statusFilter === "active") results = results.filter((w) => w.status !== "suspended" && (w.profile_completion_pct ?? 0) >= 50);
+    else if (statusFilter === "suspended") results = results.filter((w) => w.status === "suspended");
+    else if (statusFilter === "incomplete") results = results.filter((w) => w.status !== "suspended" && (!w.first_name || !w.last_name || (w.profile_completion_pct ?? 0) < 50));
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -113,6 +119,39 @@ export default function AdminWorkersPage() {
     }
     return results;
   }, [workers, search, statusFilter]);
+
+  const handleSuspendAction = async (action: "suspend" | "reactivate") => {
+    if (!selected) return;
+    setSuspending(true);
+    try {
+      const res = await fetch("/api/admin/suspend-worker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workerId: selected.id,
+          action,
+          reason: action === "suspend" ? `${suspendReason}${suspendNotes ? ` — ${suspendNotes}` : ""}` : null,
+        }),
+      });
+      if (res.ok) {
+        const now = new Date().toISOString();
+        const updatedWorker = {
+          ...selected,
+          status: action === "suspend" ? "suspended" : "active",
+          suspension_reason: action === "suspend" ? `${suspendReason}${suspendNotes ? ` — ${suspendNotes}` : ""}` : null,
+          suspended_at: action === "suspend" ? now : null,
+        };
+        setSelected(updatedWorker);
+        setWorkers((prev) => prev.map((w) => w.id === selected.id ? updatedWorker : w));
+        setShowSuspendDialog(false);
+        setSuspendReason("Fake profile");
+        setSuspendNotes("");
+      }
+    } catch (err) {
+      console.error("Suspend action failed:", err);
+    }
+    setSuspending(false);
+  };
 
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" /></div>;
@@ -144,6 +183,7 @@ export default function AdminWorkersPage() {
               <th className="px-5 py-3">Location</th>
               <th className="px-5 py-3">Skills</th>
               <th className="px-5 py-3">Nationality</th>
+              <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Joined</th>
             </tr>
           </thead>
@@ -152,7 +192,7 @@ export default function AdminWorkersPage() {
               const fullName = [worker.first_name, worker.last_name].filter(Boolean).join(" ") || "No name";
               const initials = fullName !== "No name" ? fullName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?";
               return (
-                <tr key={worker.id} onClick={() => setSelected(worker)} className="border-b border-accent/30 cursor-pointer transition-colors hover:bg-accent/5">
+                <tr key={worker.id} onClick={() => setSelected(worker)} className={`border-b border-accent/30 cursor-pointer transition-colors hover:bg-accent/5 ${worker.status === "suspended" ? "opacity-60" : ""}`}>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       {worker.profile_photo_url ? (
@@ -180,6 +220,11 @@ export default function AdminWorkersPage() {
                     </div>
                   </td>
                   <td className="px-5 py-3 text-foreground/70">{worker.nationality || "—"}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${worker.status === "suspended" ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
+                      {worker.status === "suspended" ? "Suspended" : "Active"}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-foreground/50">{new Date(worker.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</td>
                 </tr>
               );
@@ -188,6 +233,49 @@ export default function AdminWorkersPage() {
         </table>
         {filtered.length === 0 && <div className="p-8 text-center text-sm text-foreground/40">No workers found.</div>}
       </div>
+
+      {/* ─── Suspend Confirmation Dialog ─── */}
+      {showSuspendDialog && selected && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSuspendDialog(false)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-primary">Suspend Worker</h3>
+            <p className="mt-2 text-center text-sm text-foreground/60">
+              Suspending {[selected.first_name, selected.last_name].filter(Boolean).join(" ")} will withdraw all active applications.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground/70 mb-1">Reason</label>
+                <select value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)}
+                  className="w-full rounded-lg border border-accent bg-white px-3 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none">
+                  <option>Fake profile</option>
+                  <option>Policy violation</option>
+                  <option>Spam</option>
+                  <option>Inappropriate content</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/70 mb-1">Notes <span className="text-foreground/40">(optional)</span></label>
+                <textarea value={suspendNotes} onChange={(e) => setSuspendNotes(e.target.value)} placeholder="Additional details..."
+                  rows={2} className="w-full rounded-lg border border-accent bg-white px-3 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none resize-none" />
+              </div>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setShowSuspendDialog(false)} className="flex-1 rounded-xl border border-accent/40 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors">Cancel</button>
+              <button onClick={() => handleSuspendAction("suspend")} disabled={suspending}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50">
+                {suspending ? "Suspending..." : "Confirm Suspend"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Worker Detail Modal ─── */}
       {selected && (() => {
@@ -296,14 +384,38 @@ export default function AdminWorkersPage() {
                   )}
                 </div>
 
+                {/* Suspension info */}
+                {selected.status === "suspended" && (
+                  <div className="mt-5 rounded-lg bg-red-50 border border-red-100 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-red-600 mb-1">Suspended</p>
+                    <p className="text-sm text-red-700">{selected.suspension_reason || "No reason provided"}</p>
+                    {selected.suspended_at && (
+                      <p className="mt-1 text-xs text-red-500">Since {new Date(selected.suspended_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="mt-5 pt-4 border-t border-accent/30 flex items-center gap-3">
                   <Link href={`/business/workers/${selected.id}`} target="_blank" className="rounded-xl border border-accent/40 px-4 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors">
                     View Public Profile
                   </Link>
-                  <button className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100">
-                    Suspend Worker
-                  </button>
+                  {selected.status === "suspended" ? (
+                    <button
+                      onClick={() => handleSuspendAction("reactivate")}
+                      disabled={suspending}
+                      className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
+                    >
+                      {suspending ? "Reactivating..." : "Reactivate Worker"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowSuspendDialog(true)}
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
+                    >
+                      Suspend Worker
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
