@@ -75,6 +75,19 @@ const SEARCH_TOWNS = [
   { name: "San Carlos de Bariloche", slug: "bariloche", country: "Argentina" },
   { name: "Los Andes", slug: "los-andes", country: "Chile" },
   { name: "Santiago", slug: "santiago", country: "Chile" },
+  // New Canadian towns
+  { name: "Sun Peaks Village", slug: "sun-peaks-village", country: "Canada" },
+  { name: "Kelowna", slug: "kelowna", country: "Canada" },
+  { name: "Vernon", slug: "vernon", country: "Canada" },
+  { name: "Lake Louise Village", slug: "lake-louise-village", country: "Canada" },
+  { name: "Canmore", slug: "canmore", country: "Canada" },
+  { name: "Jasper", slug: "jasper", country: "Canada" },
+  { name: "Mont-Tremblant Village", slug: "mont-tremblant-village", country: "Canada" },
+  { name: "Baie-Saint-Paul", slug: "baie-saint-paul", country: "Canada" },
+  { name: "Beaupré", slug: "beaupre", country: "Canada" },
+  { name: "Quebec City", slug: "quebec-city", country: "Canada" },
+  { name: "Collingwood", slug: "collingwood", country: "Canada" },
+  { name: "Russell", slug: "russell", country: "Canada" },
 ];
 
 /* ── Continent icons for mobile explorer ─────────────────── */
@@ -1002,6 +1015,12 @@ function ExploreContent() {
               { name: "Bariloche", slug: "bariloche" },
               { name: "Park City", slug: "park-city" },
               { name: "Revelstoke", slug: "revelstoke" },
+              { name: "Mont-Tremblant", slug: "mont-tremblant-village" },
+              { name: "Jasper", slug: "jasper" },
+              { name: "Kelowna", slug: "kelowna" },
+              { name: "Collingwood", slug: "collingwood" },
+              { name: "Canmore", slug: "canmore" },
+              { name: "Quebec City", slug: "quebec-city" },
             ].map((town) => (
               <Link
                 key={town.slug}
