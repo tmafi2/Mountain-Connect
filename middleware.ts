@@ -4,7 +4,6 @@ import { updateSession } from "@/lib/supabase/middleware";
 // Routes that require the "worker" role
 const WORKER_ROUTES = ["/dashboard", "/profile", "/applications", "/saved-jobs", "/messages", "/interviews", "/following", "/job-alerts"];
 // Routes that require the "business_owner" role
-// Business portal routes (not including /business/[id] which is the public profile page)
 const BUSINESS_PORTAL_ROUTES = [
   "/business/dashboard",
   "/business/manage-listings",
@@ -22,27 +21,57 @@ const BUSINESS_PORTAL_ROUTES = [
 const ADMIN_ROUTES_PREFIX = "/admin";
 
 export async function middleware(request: NextRequest) {
-  // Always refresh the Supabase session first
-  const { response, supabase, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  // ── Fast path: skip everything for API routes (they handle their own auth) ──
+  if (pathname.startsWith("/api/")) {
+    // Only the access gate API needs special handling
+    if (pathname === "/api/access" || pathname === "/api/test-portal" || pathname === "/api/search-resorts") {
+      return NextResponse.next();
+    }
+    // All other API routes: refresh session but skip role checks
+    const { response } = await updateSession(request);
+    return response;
+  }
 
   // ── Site-wide access gate ────────────────────────────────
   const isAccessPage = pathname === "/access";
-  const isAccessApi = pathname === "/api/access";
   const isComingSoon = pathname === "/coming-soon";
   const isTestPortals = pathname === "/test-portals";
-  const isTestPortalApi = pathname === "/api/test-portal";
   const isAuthRoute = pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/login" || pathname === "/signup" || pathname === "/signup-confirmation" || pathname === "/onboarding" || pathname.startsWith("/auth/");
-  const isPublicApi = pathname === "/api/search-resorts";
   const hasAccessCookie = request.cookies.get("site-access")?.value === "granted";
 
-  if (!isAccessPage && !isAccessApi && !isComingSoon && !isTestPortals && !isTestPortalApi && !isAuthRoute && !isPublicApi && !hasAccessCookie) {
+  // Access gate pages don't need session at all
+  if (isAccessPage || isComingSoon) {
+    return NextResponse.next();
+  }
+
+  // Redirect to access page if no cookie (skip session refresh for speed)
+  if (!isTestPortals && !isAuthRoute && !hasAccessCookie) {
     return NextResponse.redirect(new URL("/access", request.url));
   }
 
+  // ── Check if this is a protected route that needs auth ──
+  const isWorkerRoute = WORKER_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+  const isBusinessRoute = BUSINESS_PORTAL_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+  const isAdminRoute = pathname.startsWith(ADMIN_ROUTES_PREFIX);
+  const isProtectedRoute = isWorkerRoute || isBusinessRoute || isAdminRoute;
+
+  // ── Public pages: refresh session (fast) but skip DB queries ──
+  if (!isProtectedRoute && !isAuthRoute) {
+    const { response } = await updateSession(request);
+    return response;
+  }
+
+  // ── Auth + protected routes: need full session + role check ──
+  const { response, supabase, user } = await updateSession(request);
+
   // Redirect logged-in users away from auth pages
   if (user && (pathname === "/login" || pathname === "/signup")) {
-    // Determine dashboard based on role
     if (supabase) {
       const { data: userData } = await supabase
         .from("users")
@@ -59,36 +88,20 @@ export async function middleware(request: NextRequest) {
           : "/dashboard";
       return NextResponse.redirect(new URL(dest, request.url));
     }
-    // Fallback if no supabase client
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Check if this is a protected portal route
-  const isWorkerRoute = WORKER_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
-  const isBusinessRoute = BUSINESS_PORTAL_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
-  const isAdminRoute = pathname.startsWith(ADMIN_ROUTES_PREFIX);
+  // Auth routes that aren't login/signup: just return
+  if (isAuthRoute) return response;
 
-  if (!isWorkerRoute && !isBusinessRoute && !isAdminRoute) {
-    return response;
-  }
-
-  // Skip auth check if Supabase isn't configured
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
+  // ── Protected route auth enforcement ──
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return response;
   }
 
   // Allow test mode access
   const hasTestCookie = request.cookies.get("test-mode")?.value === "true";
-  if (hasTestCookie) {
-    return response;
-  }
+  if (hasTestCookie) return response;
 
   if (process.env.NODE_ENV === "development") {
     const isTestParam = request.nextUrl.searchParams.get("test") === "true";
@@ -103,16 +116,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check for auth session
+  // Require auth for protected routes
   if (!user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // ── Role-based enforcement ─────────────────────────────────
-  // Query the user's role from the database
-  if (supabase && (isWorkerRoute || isBusinessRoute || isAdminRoute)) {
+  // Role-based enforcement (single DB query — only for protected routes)
+  if (supabase) {
     const { data: userData } = await supabase
       .from("users")
       .select("role")
@@ -121,24 +133,17 @@ export async function middleware(request: NextRequest) {
 
     const role = userData?.role;
 
-    // Business user trying to access worker routes → redirect to business dashboard
     if (isWorkerRoute && role === "business_owner") {
       return NextResponse.redirect(new URL("/business/dashboard", request.url));
     }
-
-    // Worker trying to access business routes → redirect to worker dashboard
     if (isBusinessRoute && role === "worker") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-
-    // Admin can access everything — no redirect needed
-    // Non-admin trying to access admin routes → redirect based on role
     if (isAdminRoute && role !== "admin") {
       if (role === "business_owner") {
         return NextResponse.redirect(new URL("/business/dashboard", request.url));
-      } else {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
       }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
