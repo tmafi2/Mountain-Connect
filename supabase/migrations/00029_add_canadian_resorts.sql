@@ -184,7 +184,7 @@ INSERT INTO public.resorts (
   'CAD $300–$450/week (Canmore-based)', 'Drive required. Canmore (25km). Calgary (83km).', ARRAY['Free season pass', 'Staff discounts', 'Pro deals']::text[],
   'Minimal on-mountain. Canmore has excellent pubs and restaurants.', ARRAY['Hiking in Kananaskis', 'Cross-country skiing', 'Snowshoeing', 'Wildlife viewing']::text[], 'Canmore General Hospital (25km). Calgary hospitals (1hr).', 'Nothing on-mountain. Canmore and Calgary for all services.',
   'Small seasonal workforce. Mostly Canadian locals from Calgary and Canmore.',
-  -16, -5, 'moderate', 30
+  -16, -5, 'medium', 30
 ) ON CONFLICT DO NOTHING;
 
 -- ── MARMOT BASIN / JASPER (AB) — legacy_id='63' ────────────
@@ -246,7 +246,7 @@ INSERT INTO public.resorts (
   'CAD $350–$500/week', 'Free resort shuttle within village. Montreal (130km) accessible by car.', ARRAY['Free or discounted season pass', 'Ikon Pass access', 'Staff meal discounts', 'Pro deals', 'Casino employee perks']::text[],
   'Le P''tit Caribou (legendary Tremblant nightclub), Microbrasserie La Diable, Fairmont lobby bar. Vibrant après and nightlife.', ARRAY['Cross-country skiing', 'Snowshoeing', 'Dog sledding', 'Fat biking', 'Spa visits']::text[], 'CLSC des Laurentides health centre. Saint-Jérôme hospital (60km). Mont-Tremblant medical clinics.', 'Full pedestrian village with shops, restaurants, grocery stores. Saint-Jovite (nearby) for more options.',
   'Bilingual (French/English). International workers welcome but French is essential for front-of-house roles. European and Latin American workers.',
-  -18, -7, 'moderate', 50
+  -18, -7, 'medium', 50
 ) ON CONFLICT DO NOTHING;
 
 -- ── LE MASSIF DE CHARLEVOIX (QC) — legacy_id='65' ──────────
@@ -308,7 +308,7 @@ INSERT INTO public.resorts (
   'CAD $280–$400/week', 'Shuttle to Quebec City. Car recommended.', ARRAY['Free season pass', 'Night skiing access', 'Staff meals', 'Quebec City proximity']::text[],
   'Base lodge après. Quebec City (30min) has incredible nightlife and culture.', ARRAY['Night skiing', 'Cross-country skiing (world-class)', 'Snowshoeing', 'Fat biking', 'Quebec City sightseeing']::text[], 'Beaupré medical clinic. Quebec City hospitals (30min).', 'Beaupré has basics. Quebec City for everything else.',
   'Mostly French-Canadian. Quebec City provides cultural richness. Small international contingent.',
-  -20, -8, 'moderate', 60
+  -20, -8, 'medium', 60
 ) ON CONFLICT DO NOTHING;
 
 -- ── STONEHAM MOUNTAIN RESORT (QC) — legacy_id='67' ─────────
@@ -339,7 +339,7 @@ INSERT INTO public.resorts (
   'CAD $280–$400/week (Quebec City-based)', 'Car recommended. Quebec City bus system nearby.', ARRAY['Free season pass', 'Night skiing access', 'Staff meals']::text[],
   'Bar on base area. Quebec City has world-class nightlife — Grande Allée, Saint-Roch district.', ARRAY['Night skiing', 'Terrain parks', 'Cross-country skiing', 'Quebec City festivals']::text[], 'Quebec City hospitals (20min). Stoneham medical clinic.', 'Stoneham village has basics. Quebec City for everything.',
   'Mostly French-Canadian. Quebec City base means access to a vibrant, historic city.',
-  -20, -8, 'moderate', 65
+  -20, -8, 'medium', 65
 ) ON CONFLICT DO NOTHING;
 
 -- ── BLUE MOUNTAIN RESORT (ON) — legacy_id='68' ─────────────
@@ -401,7 +401,7 @@ INSERT INTO public.resorts (
   'CAD $200–$300/week', 'Car essential. Russell (20km). Nearest city: Brandon (150km).', ARRAY['Free season pass', 'Staff accommodation', 'Meals']::text[],
   'Lodge lounge after skiing. Very quiet — this is rural Manitoba.', ARRAY['Cross-country skiing', 'Snowshoeing', 'Snowmobiling', 'Ice fishing']::text[], 'Russell Health Centre. Brandon Regional Health Centre (150km).', 'Russell has basic services. Brandon for larger needs.',
   'Minimal international presence. Mostly local Canadian workers from Manitoba and Saskatchewan.',
-  -25, -12, 'moderate', 70
+  -25, -12, 'medium', 70
 ) ON CONFLICT DO NOTHING;
 
 -- ═══ NEARBY TOWNS ══════════════════════════════════════════

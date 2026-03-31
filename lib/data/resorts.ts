@@ -5132,7 +5132,7 @@ export const resorts: Resort[] = [
     healthcare_access: "Canmore General Hospital (25km). Calgary hospitals (1hr).",
     shops_and_services: "Nothing on-mountain. Canmore and Calgary for all services.",
     international_community_size: "Small seasonal workforce. Mostly Canadian locals.",
-    avg_winter_temp_min_c: -16, avg_winter_temp_max_c: -5, snow_reliability: "moderate", artificial_snow_coverage_pct: 30,
+    avg_winter_temp_min_c: -16, avg_winter_temp_max_c: -5, snow_reliability: "medium", artificial_snow_coverage_pct: 30,
     is_verified: true,
   }),
 
@@ -5200,7 +5200,7 @@ export const resorts: Resort[] = [
     healthcare_access: "CLSC des Laurentides. Saint-Jérôme hospital (60km).",
     shops_and_services: "Full pedestrian village with shops, restaurants, grocery stores.",
     international_community_size: "Bilingual (French/English). European and Latin American workers.",
-    avg_winter_temp_min_c: -18, avg_winter_temp_max_c: -7, snow_reliability: "moderate", artificial_snow_coverage_pct: 50,
+    avg_winter_temp_min_c: -18, avg_winter_temp_max_c: -7, snow_reliability: "medium", artificial_snow_coverage_pct: 50,
     is_verified: true,
   }),
 
@@ -5268,7 +5268,7 @@ export const resorts: Resort[] = [
     healthcare_access: "Beaupré medical clinic. Quebec City hospitals (30min).",
     shops_and_services: "Beaupré has basics. Quebec City for everything else.",
     international_community_size: "Mostly French-Canadian with some international contingent.",
-    avg_winter_temp_min_c: -20, avg_winter_temp_max_c: -8, snow_reliability: "moderate", artificial_snow_coverage_pct: 60,
+    avg_winter_temp_min_c: -20, avg_winter_temp_max_c: -8, snow_reliability: "medium", artificial_snow_coverage_pct: 60,
     is_verified: true,
   }),
 
@@ -5302,7 +5302,7 @@ export const resorts: Resort[] = [
     healthcare_access: "Quebec City hospitals (20min).",
     shops_and_services: "Stoneham village has basics. Quebec City for everything.",
     international_community_size: "Mostly French-Canadian. Quebec City base means cultural richness.",
-    avg_winter_temp_min_c: -20, avg_winter_temp_max_c: -8, snow_reliability: "moderate", artificial_snow_coverage_pct: 65,
+    avg_winter_temp_min_c: -20, avg_winter_temp_max_c: -8, snow_reliability: "medium", artificial_snow_coverage_pct: 65,
     is_verified: true,
   }),
 
@@ -5370,7 +5370,7 @@ export const resorts: Resort[] = [
     healthcare_access: "Russell Health Centre. Brandon Regional (150km).",
     shops_and_services: "Russell has basic services. Brandon for larger needs.",
     international_community_size: "Minimal international presence. Mostly local Canadian workers.",
-    avg_winter_temp_min_c: -25, avg_winter_temp_max_c: -12, snow_reliability: "moderate", artificial_snow_coverage_pct: 70,
+    avg_winter_temp_min_c: -25, avg_winter_temp_max_c: -12, snow_reliability: "medium", artificial_snow_coverage_pct: 70,
     is_verified: true,
   }),
 ];
