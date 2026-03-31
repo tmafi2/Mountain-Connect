@@ -25,6 +25,8 @@ interface Interview {
   timezone: string | null;
   worker_resume_url: string | null;
   worker_avatar_url: string | null;
+  worker_user_id: string | null;
+  worker_profile_id: string | null;
 }
 
 const demoInterviews: Interview[] = [
@@ -382,6 +384,7 @@ function InterviewCard({
           )}
           <button
             title="Message"
+            onClick={(e) => { e.stopPropagation(); setShowMsgToast(true); setTimeout(() => setShowMsgToast(false), 3000); }}
             className="rounded-xl p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -407,6 +410,8 @@ function ApplicantPanel({
   onReschedule,
   onCancel,
   actionLoading,
+  actionFeedback,
+  onMessageClick,
 }: {
   interview: Interview;
   onClose: () => void;
@@ -414,6 +419,8 @@ function ApplicantPanel({
   onReschedule: () => void;
   onCancel: () => void;
   actionLoading: string | null;
+  actionFeedback: { type: "success" | "error"; message: string } | null;
+  onMessageClick: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end">
@@ -467,12 +474,26 @@ function ApplicantPanel({
 
           {/* Quick action bar — Profile, Resume, Message */}
           <div className="flex gap-2">
-            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20 py-2.5 text-sm font-semibold text-primary hover:bg-accent/40 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Profile
-            </button>
+            {interview.worker_profile_id ? (
+              <a
+                href={`/workers/${interview.worker_profile_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20 py-2.5 text-sm font-semibold text-primary hover:bg-accent/40 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Profile
+              </a>
+            ) : (
+              <button disabled className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 py-2.5 text-sm font-semibold text-foreground/30 cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Profile
+              </button>
+            )}
             {interview.worker_resume_url ? (
               <a
                 href={interview.worker_resume_url}
@@ -493,7 +514,10 @@ function ApplicantPanel({
                 No Resume
               </span>
             )}
-            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors">
+            <button
+              onClick={onMessageClick}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
@@ -602,6 +626,15 @@ function ApplicantPanel({
               {interview.cover_letter}
             </p>
           </div>
+
+          {/* Action feedback */}
+          {actionFeedback && (
+            <div className={`rounded-xl px-4 py-3 text-sm font-medium ${
+              actionFeedback.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+            }`}>
+              {actionFeedback.message}
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="space-y-2 pt-2">
@@ -840,9 +873,9 @@ export default function BusinessInterviewsPage() {
         const { data } = await supabase
           .from("interviews")
           .select(`
-            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes,
+            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes, worker_id,
             applications(cover_letter, job_posts(title)),
-            worker_profiles(first_name, last_name, location_current, skills, years_seasonal_experience, languages, cv_url, profile_photo_url, users(email))
+            worker_profiles(id, user_id, first_name, last_name, location_current, skills, years_seasonal_experience, languages, cv_url, profile_photo_url, users(email))
           `)
           .eq("business_id", profile.id)
           .order("created_at", { ascending: false });
@@ -855,7 +888,7 @@ export default function BusinessInterviewsPage() {
             const wpUser = wp?.users as { email: string } | null;
             const langs = (wp?.languages as { language: string }[] | null) || [];
             const statusVal = iv.status as string;
-            const validStatuses = ["scheduled", "invited", "completed", "cancelled"];
+            const validStatuses = ["scheduled", "invited", "completed", "cancelled", "missed", "reschedule_requested", "rescheduled"];
             return {
               id: iv.id as string,
               job_title: jp?.title || "Unknown Position",
@@ -873,6 +906,8 @@ export default function BusinessInterviewsPage() {
               timezone: iv.timezone as string | null,
               worker_resume_url: (wp?.cv_url as string) || null,
               worker_avatar_url: (wp?.profile_photo_url as string) || null,
+              worker_user_id: (wp?.user_id as string) || null,
+              worker_profile_id: (wp?.id as string) || null,
             };
           });
           setInterviews(mapped);
@@ -914,11 +949,14 @@ export default function BusinessInterviewsPage() {
 
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [panelActionLoading, setPanelActionLoading] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [showMsgToast, setShowMsgToast] = useState(false);
 
   // Panel action handlers
   const handleSendOffer = async () => {
     if (!selectedInterview) return;
     setPanelActionLoading("offer");
+    setActionFeedback(null);
     try {
       const res = await fetch("/api/applications/send-offer", {
         method: "POST",
@@ -927,15 +965,23 @@ export default function BusinessInterviewsPage() {
       });
       if (res.ok) {
         setInterviews((prev) => prev.map((i) => i.id === selectedInterview.id ? { ...i, status: "completed" as const } : i));
-        setSelectedInterview(null);
+        setActionFeedback({ type: "success", message: "Offer sent successfully!" });
+        setTimeout(() => { setSelectedInterview(null); setActionFeedback(null); }, 1500);
+      } else {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        setActionFeedback({ type: "error", message: err.error || "Failed to send offer" });
       }
-    } catch (err) { console.error("Send offer failed:", err); }
+    } catch (err) {
+      console.error("Send offer failed:", err);
+      setActionFeedback({ type: "error", message: "Failed to send offer. Please try again." });
+    }
     setPanelActionLoading(null);
   };
 
   const handlePanelReschedule = async () => {
     if (!selectedInterview) return;
     setPanelActionLoading("reschedule");
+    setActionFeedback(null);
     try {
       const res = await fetch("/api/interviews/reschedule", {
         method: "POST",
@@ -944,9 +990,16 @@ export default function BusinessInterviewsPage() {
       });
       if (res.ok) {
         setInterviews((prev) => prev.map((i) => i.id === selectedInterview.id ? { ...i, status: "rescheduled" as const } : i));
-        setSelectedInterview(null);
+        setActionFeedback({ type: "success", message: "Interview rescheduled. Worker will be notified." });
+        setTimeout(() => { setSelectedInterview(null); setActionFeedback(null); }, 1500);
+      } else {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        setActionFeedback({ type: "error", message: err.error || "Failed to reschedule" });
       }
-    } catch (err) { console.error("Reschedule failed:", err); }
+    } catch (err) {
+      console.error("Reschedule failed:", err);
+      setActionFeedback({ type: "error", message: "Failed to reschedule. Please try again." });
+    }
     setPanelActionLoading(null);
   };
 
@@ -954,6 +1007,7 @@ export default function BusinessInterviewsPage() {
     if (!selectedInterview) return;
     if (!confirm("Are you sure you want to cancel this interview? The worker will be notified.")) return;
     setPanelActionLoading("cancel");
+    setActionFeedback(null);
     try {
       const res = await fetch("/api/interviews/cancel", {
         method: "POST",
@@ -962,9 +1016,16 @@ export default function BusinessInterviewsPage() {
       });
       if (res.ok) {
         setInterviews((prev) => prev.map((i) => i.id === selectedInterview.id ? { ...i, status: "cancelled" as const } : i));
-        setSelectedInterview(null);
+        setActionFeedback({ type: "success", message: "Interview cancelled. Worker notified." });
+        setTimeout(() => { setSelectedInterview(null); setActionFeedback(null); }, 1500);
+      } else {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        setActionFeedback({ type: "error", message: err.error || "Failed to cancel" });
       }
-    } catch (err) { console.error("Cancel failed:", err); }
+    } catch (err) {
+      console.error("Cancel failed:", err);
+      setActionFeedback({ type: "error", message: "Failed to cancel. Please try again." });
+    }
     setPanelActionLoading(null);
   };
 
@@ -1444,12 +1505,28 @@ export default function BusinessInterviewsPage() {
       {selectedInterview && (
         <ApplicantPanel
           interview={selectedInterview}
-          onClose={() => setSelectedInterview(null)}
+          onClose={() => { setSelectedInterview(null); setActionFeedback(null); }}
           onSendOffer={handleSendOffer}
           onReschedule={handlePanelReschedule}
           onCancel={handlePanelCancel}
           actionLoading={panelActionLoading}
+          actionFeedback={actionFeedback}
+          onMessageClick={() => { setShowMsgToast(true); setTimeout(() => setShowMsgToast(false), 3000); }}
         />
+      )}
+
+      {/* Messaging coming soon toast */}
+      {showMsgToast && (
+        <div className="fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-3 rounded-xl border border-accent/40 bg-white px-5 py-3 shadow-2xl">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
+              <svg className="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-primary">Messaging coming soon!</p>
+          </div>
+        </div>
       )}
     </div>
   );
