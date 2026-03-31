@@ -64,6 +64,10 @@ export default function NotificationDropdown({
         return "🔔";
       case "new_message":
         return "💬";
+      case "reschedule_approved":
+        return "✅";
+      case "reschedule_declined":
+        return "⛔";
       default:
         return "🔔";
     }

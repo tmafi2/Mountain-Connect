@@ -867,8 +867,10 @@ export default function BusinessInterviewsPage() {
   const interviewsByDate = buildInterviewMap(interviews);
 
   /* ---- list sections ---- */
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const scheduled = interviews
-    .filter((i) => i.status === "scheduled")
+    .filter((i) => i.status === "scheduled" && (!i.scheduled_date || i.scheduled_date >= todayStr))
     .sort((a, b) => {
       if (!a.scheduled_date || !b.scheduled_date) return 0;
       return a.scheduled_date.localeCompare(b.scheduled_date);
@@ -876,9 +878,21 @@ export default function BusinessInterviewsPage() {
 
   const awaiting = interviews.filter((i) => i.status === "invited");
 
+  // Reschedule requests — needs business action
+  const rescheduleRequests = interviews.filter(
+    (i) => i.status === "reschedule_requested" || (i.status === "missed" && i.scheduled_date && i.scheduled_date < todayStr)
+  );
+
+  // Missed/past-date scheduled interviews
+  const missedScheduled = interviews.filter(
+    (i) => i.status === "scheduled" && i.scheduled_date && i.scheduled_date < todayStr
+  );
+
   const past = interviews.filter(
     (i) => i.status === "completed" || i.status === "cancelled"
   );
+
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   /* ---- calendar nav ---- */
   const monthLabel = new Date(calYear, calMonth).toLocaleDateString("en-US", {
@@ -1067,6 +1081,84 @@ export default function BusinessInterviewsPage() {
               )}
             </div>
           </section>
+
+          {/* Reschedule Requests */}
+          {rescheduleRequests.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/15">
+                  <span className="block h-2.5 w-2.5 rounded-full bg-amber-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-primary">
+                  Reschedule Requests
+                  <span className="ml-2 text-sm font-normal text-foreground/40">({rescheduleRequests.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {rescheduleRequests.map((iv) => (
+                  <div key={iv.id} className="rounded-xl border border-amber-200 bg-amber-50/30 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-primary">{iv.worker_name}</p>
+                        <p className="text-xs text-foreground/60">{iv.job_title}</p>
+                        {iv.scheduled_date && (
+                          <p className="mt-1 text-xs text-foreground/40">
+                            Original date: {new Date(iv.scheduled_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {respondingId === iv.id ? (
+                          <span className="h-5 w-5 animate-spin rounded-full border-2 border-secondary/30 border-t-secondary" />
+                        ) : (
+                          <>
+                            <button
+                              onClick={async () => {
+                                setRespondingId(iv.id);
+                                try {
+                                  const res = await fetch("/api/interviews/reschedule-respond", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ interviewId: iv.id, action: "approve" }),
+                                  });
+                                  if (res.ok) {
+                                    setInterviews((prev) => prev.map((i) => i.id === iv.id ? { ...i, status: "invited" as const } : i));
+                                  }
+                                } catch { /* ignore */ }
+                                setRespondingId(null);
+                              }}
+                              className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 transition-colors"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={async () => {
+                                setRespondingId(iv.id);
+                                try {
+                                  const res = await fetch("/api/interviews/reschedule-respond", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ interviewId: iv.id, action: "decline", declineReason: "Unable to reschedule at this time." }),
+                                  });
+                                  if (res.ok) {
+                                    setInterviews((prev) => prev.map((i) => i.id === iv.id ? { ...i, status: "missed" as const } : i));
+                                  }
+                                } catch { /* ignore */ }
+                                setRespondingId(null);
+                              }}
+                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Past */}
           {past.length > 0 && (

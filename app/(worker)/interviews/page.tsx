@@ -802,14 +802,24 @@ export default function WorkerInterviewsPage() {
   const interviewsByDate = buildInterviewMap(interviews);
 
   /* ---- list sections ---- */
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const upcoming = interviews
-    .filter((i) => i.status === "scheduled")
+    .filter((i) => i.status === "scheduled" && (!i.scheduled_date || i.scheduled_date >= todayStr))
     .sort((a, b) => {
       if (!a.scheduled_date || !b.scheduled_date) return 0;
       return a.scheduled_date.localeCompare(b.scheduled_date);
     });
 
   const awaiting = interviews.filter((i) => i.status === "invited");
+
+  // Missed: scheduled interviews where the date has passed (auto-detected)
+  const missed = interviews
+    .filter((i) => (i.status === "scheduled" || i.status === "missed" || i.status === "reschedule_requested") && i.scheduled_date && i.scheduled_date < todayStr)
+    .sort((a, b) => {
+      if (!a.scheduled_date || !b.scheduled_date) return 0;
+      return b.scheduled_date.localeCompare(a.scheduled_date);
+    });
 
   const past = interviews.filter(
     (i) => i.status === "completed" || i.status === "cancelled"
@@ -1040,6 +1050,55 @@ export default function WorkerInterviewsPage() {
               )}
             </div>
           </section>
+
+          {/* Missed */}
+          {missed.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-400/15">
+                  <span className="block h-2.5 w-2.5 rounded-full bg-red-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-primary">
+                  Missed
+                  <span className="ml-2 text-sm font-normal text-foreground/40">({missed.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {missed.map((iv) => (
+                  <div key={iv.id} className="relative">
+                    <InterviewCard
+                      interview={iv}
+                      onSelect={setSelectedInterview}
+                      faded
+                    />
+                    {/* Missed overlay with actions */}
+                    <div className="absolute inset-0 flex items-center justify-end pr-5 pointer-events-none">
+                      <div className="pointer-events-auto flex items-center gap-2">
+                        {iv.status === "reschedule_requested" ? (
+                          <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700">
+                            Reschedule Requested
+                          </span>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRescheduleInterview(iv);
+                              setRescheduleReason("");
+                              setRescheduleSuccess(false);
+                              setRescheduleError("");
+                            }}
+                            className="rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-white hover:bg-secondary-light transition-colors shadow-sm"
+                          >
+                            Request Reschedule
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Past */}
           {past.length > 0 && (

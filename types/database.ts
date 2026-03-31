@@ -366,6 +366,8 @@ export type NotificationType =
   | "business_closed_job"
   | "business_update"
   | "new_message"
+  | "reschedule_approved"
+  | "reschedule_declined"
   | "general";
 
 export interface InterviewAvailability {
