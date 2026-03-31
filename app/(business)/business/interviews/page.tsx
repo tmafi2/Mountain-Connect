@@ -403,9 +403,17 @@ function InterviewCard({
 function ApplicantPanel({
   interview,
   onClose,
+  onSendOffer,
+  onReschedule,
+  onCancel,
+  actionLoading,
 }: {
   interview: Interview;
   onClose: () => void;
+  onSendOffer: () => void;
+  onReschedule: () => void;
+  onCancel: () => void;
+  actionLoading: string | null;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end">
@@ -597,15 +605,27 @@ function ApplicantPanel({
 
           {/* Action buttons */}
           <div className="space-y-2 pt-2">
-            <button className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white hover:bg-secondary/90 transition-all hover:-translate-y-0.5">
-              Send Offer
+            <button
+              onClick={onSendOffer}
+              disabled={actionLoading === "offer"}
+              className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white hover:bg-secondary/90 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+            >
+              {actionLoading === "offer" ? "Sending Offer..." : "Send Offer"}
             </button>
             <div className="flex gap-2">
-              <button className="flex-1 rounded-xl border border-accent/50 py-2.5 text-sm font-semibold text-primary hover:bg-accent/30 transition-colors">
-                Reschedule
+              <button
+                onClick={onReschedule}
+                disabled={!!actionLoading}
+                className="flex-1 rounded-xl border border-accent/50 py-2.5 text-sm font-semibold text-primary hover:bg-accent/30 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === "reschedule" ? "Rescheduling..." : "Reschedule"}
               </button>
-              <button className="flex-1 rounded-xl border border-red-200 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors">
-                Cancel Interview
+              <button
+                onClick={onCancel}
+                disabled={!!actionLoading}
+                className="flex-1 rounded-xl border border-red-200 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === "cancel" ? "Cancelling..." : "Cancel Interview"}
               </button>
             </div>
           </div>
@@ -893,6 +913,60 @@ export default function BusinessInterviewsPage() {
   );
 
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [panelActionLoading, setPanelActionLoading] = useState<string | null>(null);
+
+  // Panel action handlers
+  const handleSendOffer = async () => {
+    if (!selectedInterview) return;
+    setPanelActionLoading("offer");
+    try {
+      const res = await fetch("/api/applications/send-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interviewId: selectedInterview.id }),
+      });
+      if (res.ok) {
+        setInterviews((prev) => prev.map((i) => i.id === selectedInterview.id ? { ...i, status: "completed" as const } : i));
+        setSelectedInterview(null);
+      }
+    } catch (err) { console.error("Send offer failed:", err); }
+    setPanelActionLoading(null);
+  };
+
+  const handlePanelReschedule = async () => {
+    if (!selectedInterview) return;
+    setPanelActionLoading("reschedule");
+    try {
+      const res = await fetch("/api/interviews/reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interview_id: selectedInterview.id }),
+      });
+      if (res.ok) {
+        setInterviews((prev) => prev.map((i) => i.id === selectedInterview.id ? { ...i, status: "rescheduled" as const } : i));
+        setSelectedInterview(null);
+      }
+    } catch (err) { console.error("Reschedule failed:", err); }
+    setPanelActionLoading(null);
+  };
+
+  const handlePanelCancel = async () => {
+    if (!selectedInterview) return;
+    if (!confirm("Are you sure you want to cancel this interview? The worker will be notified.")) return;
+    setPanelActionLoading("cancel");
+    try {
+      const res = await fetch("/api/interviews/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interview_id: selectedInterview.id }),
+      });
+      if (res.ok) {
+        setInterviews((prev) => prev.map((i) => i.id === selectedInterview.id ? { ...i, status: "cancelled" as const } : i));
+        setSelectedInterview(null);
+      }
+    } catch (err) { console.error("Cancel failed:", err); }
+    setPanelActionLoading(null);
+  };
 
   /* ---- calendar nav ---- */
   const monthLabel = new Date(calYear, calMonth).toLocaleDateString("en-US", {
@@ -1371,6 +1445,10 @@ export default function BusinessInterviewsPage() {
         <ApplicantPanel
           interview={selectedInterview}
           onClose={() => setSelectedInterview(null)}
+          onSendOffer={handleSendOffer}
+          onReschedule={handlePanelReschedule}
+          onCancel={handlePanelCancel}
+          actionLoading={panelActionLoading}
         />
       )}
     </div>
