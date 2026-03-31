@@ -609,33 +609,10 @@ function WorkerMessagesContent() {
           onClose={() => setShowNewConvModal(false)}
           onConversationCreated={(data: ConversationCreatedData) => {
             setShowNewConvModal(false);
-
-            // Add the conversation to local state immediately (no reload needed)
-            const newConv: Conversation = {
-              id: data.conversationId,
-              otherName: data.otherName,
-              otherRole: "Employer",
-              otherUserId: data.otherUserId,
-              lastMessage: data.initialMessage || "",
-              lastMessageAt: new Date().toISOString(),
-              unreadCount: 0,
-            };
-
-            setConversations((prev) => {
-              // If conversation already exists (existing conversation), update it
-              const exists = prev.find((c) => c.id === data.conversationId);
-              if (exists) {
-                return prev.map((c) =>
-                  c.id === data.conversationId
-                    ? { ...c, lastMessage: data.initialMessage || c.lastMessage, lastMessageAt: new Date().toISOString() }
-                    : c
-                ).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
-              }
-              return [newConv, ...prev];
-            });
-
-            setActiveConvId(data.conversationId);
-            setMobileShowChat(true);
+            // Small delay to let admin writes propagate, then reload
+            setTimeout(() => {
+              window.location.href = `/messages?conv=${data.conversationId}`;
+            }, 500);
           }}
         />
       )}

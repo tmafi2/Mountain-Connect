@@ -558,32 +558,9 @@ function BusinessMessagesContent() {
           onClose={() => setShowNewConvModal(false)}
           onConversationCreated={(data: ConversationCreatedData) => {
             setShowNewConvModal(false);
-
-            // Add the conversation to local state immediately (no reload needed)
-            const newConv: Conversation = {
-              id: data.conversationId,
-              otherName: data.otherName,
-              otherRole: "Applicant",
-              otherUserId: data.otherUserId,
-              lastMessage: data.initialMessage || "",
-              lastMessageAt: new Date().toISOString(),
-              unreadCount: 0,
-            };
-
-            setConversations((prev) => {
-              const exists = prev.find((c) => c.id === data.conversationId);
-              if (exists) {
-                return prev.map((c) =>
-                  c.id === data.conversationId
-                    ? { ...c, lastMessage: data.initialMessage || c.lastMessage, lastMessageAt: new Date().toISOString() }
-                    : c
-                ).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
-              }
-              return [newConv, ...prev];
-            });
-
-            setActiveConvId(data.conversationId);
-            setMobileShowChat(true);
+            setTimeout(() => {
+              window.location.href = `/business/messages?conv=${data.conversationId}`;
+            }, 500);
           }}
         />
       )}
