@@ -201,6 +201,15 @@ function WorkerMessagesContent() {
         .eq("read", false)
         .neq("sender_id", currentUserId);
 
+      // Mark message notifications as read for this conversation
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", currentUserId)
+        .eq("type", "new_message")
+        .eq("is_read", false)
+        .filter("metadata->>conversation_id", "eq", activeConvId);
+
       // Update local unread count
       setConversations((prev) =>
         prev.map((c) => (c.id === activeConvId ? { ...c, unreadCount: 0 } : c))
@@ -293,6 +302,13 @@ function WorkerMessagesContent() {
         .from("conversations")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", activeConvId);
+
+      // Trigger email notification (non-blocking)
+      fetch("/api/emails/new-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: activeConvId, senderId: currentUserId, messageContent: content }),
+      }).catch(() => {});
     } catch (err) {
       console.error("Failed to send message:", err);
       setNewMessage(content); // restore on failure

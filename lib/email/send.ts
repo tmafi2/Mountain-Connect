@@ -11,6 +11,7 @@ import { newApplicantEmail } from "./templates/new-applicant";
 import { businessVerifiedEmail } from "./templates/business-verified";
 import { welcomeWorkerEmail } from "./templates/welcome-worker";
 import { welcomeBusinessEmail } from "./templates/welcome-business";
+import { newMessageEmail } from "./templates/new-message";
 
 const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
 
@@ -203,5 +204,18 @@ export async function sendWelcomeBusinessEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = welcomeBusinessEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendNewMessageEmail(params: {
+  to: string;
+  recipientName: string;
+  senderName: string;
+  messagePreview: string;
+  conversationUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = newMessageEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }

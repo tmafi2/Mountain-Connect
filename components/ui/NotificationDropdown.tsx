@@ -62,6 +62,8 @@ export default function NotificationDropdown({
         return "📋";
       case "job_alert_match":
         return "🔔";
+      case "new_message":
+        return "💬";
       default:
         return "🔔";
     }
