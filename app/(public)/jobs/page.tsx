@@ -89,6 +89,7 @@ function FindAJobContent() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [townResortIds, setTownResortIds] = useState<string[]>([]);
   const [townBusinessIds, setTownBusinessIds] = useState<string[]>([]);
+  const [townUuid, setTownUuid] = useState<string | null>(null);
   const [townDisplayName, setTownDisplayName] = useState("");
 
   // Fetch real jobs from Supabase
@@ -98,13 +99,14 @@ function FindAJobContent() {
         const supabase = createClient();
         const { data } = await supabase
           .from("job_posts")
-          .select("*, business_profiles(business_name, verification_status, logo_url), resorts(name, country)")
+          .select("*, business_profiles(business_name, verification_status, logo_url), resorts(name, country), nearby_towns(name, slug)")
           .eq("status", "active");
 
         if (data && data.length > 0) {
           const mapped: SeedJob[] = data.map((j: Record<string, unknown>) => {
             const bp = j.business_profiles as { business_name: string; verification_status: string; logo_url: string | null } | null;
             const resort = j.resorts as { name: string; country: string } | null;
+            const nearbyTown = j.nearby_towns as { name: string; slug: string } | null;
             const posType = (j.position_type as string) || "full_time";
             return {
               id: j.id as string,
@@ -124,6 +126,8 @@ function FindAJobContent() {
               business_logo_url: bp?.logo_url || null,
               resort_name: resort?.name || "",
               resort_country: resort?.country || "",
+              nearby_town_id: (j.nearby_town_id as string) || null,
+              nearby_town_name: nearbyTown?.name || null,
               category: (j.category as string) || "Other",
               position_type: posType as "full_time" | "part_time" | "casual",
               pay_amount: (j.pay_amount as string) || (j.salary_range as string) || "",
@@ -156,6 +160,7 @@ function FindAJobContent() {
     if (!townSlug) {
       setTownResortIds([]);
       setTownBusinessIds([]);
+      setTownUuid(null);
       setTownDisplayName("");
       return;
     }
@@ -168,7 +173,10 @@ function FindAJobContent() {
           .select("id, name")
           .eq("slug", townSlug)
           .single();
-        if (townData) setTownDisplayName(townData.name);
+        if (townData) {
+          setTownDisplayName(townData.name);
+          setTownUuid(townData.id);
+        }
 
         // Get resort IDs linked to this town
         const { data: links } = await supabase
@@ -351,9 +359,12 @@ function FindAJobContent() {
     if (filters.meal_perks === "yes") jobs = jobs.filter((j) => j.meal_perks);
     if (filters.meal_perks === "no") jobs = jobs.filter((j) => !j.meal_perks);
     if (filters.urgently_hiring) jobs = jobs.filter((j) => j.urgently_hiring);
-    if (filters.town && (townResortIds.length > 0 || townBusinessIds.length > 0)) {
+    if (filters.town && (townResortIds.length > 0 || townBusinessIds.length > 0 || townUuid)) {
       jobs = jobs.filter(
-        (j) => townResortIds.includes(j.resort_id) || townBusinessIds.includes(j.business_id)
+        (j) =>
+          townResortIds.includes(j.resort_id) ||
+          townBusinessIds.includes(j.business_id) ||
+          (townUuid && j.nearby_town_id === townUuid)
       );
     }
 
@@ -374,7 +385,7 @@ function FindAJobContent() {
     }
 
     return jobs;
-  }, [filters, allJobs, townResortIds, townBusinessIds]);
+  }, [filters, allJobs, townResortIds, townBusinessIds, townUuid]);
 
   const activeFilterCount = [
     filters.category,
@@ -933,7 +944,7 @@ function JobCard({
                     </span>
                   )}
                   <span className="text-foreground/30">|</span>
-                  <span>{job.resort_name}</span>
+                  <span>{job.nearby_town_name ? `${job.nearby_town_name} (near ${job.resort_name})` : job.resort_name}</span>
                   <span className="text-foreground/30">|</span>
                   <span>{job.resort_country}</span>
                 </div>
@@ -1119,7 +1130,7 @@ function JobDetailPanel({
           <div className="space-y-6">
             {/* Quick info grid */}
             <div className="grid grid-cols-2 gap-3">
-              <InfoBox label="Location" value={`${job.resort_name}, ${job.resort_country}`} />
+              <InfoBox label="Location" value={job.nearby_town_name ? `${job.nearby_town_name} (near ${job.resort_name}), ${job.resort_country}` : `${job.resort_name}, ${job.resort_country}`} />
               <InfoBox label="Pay" value={formatPay(job.pay_amount, job.pay_currency, job.salary_range)} />
               <InfoBox
                 label="Position"

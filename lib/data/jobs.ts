@@ -7,6 +7,8 @@ export interface SeedJob extends JobPost {
   business_logo_url: string | null;
   resort_name: string;
   resort_country: string;
+  nearby_town_id: string | null;
+  nearby_town_name: string | null;
   applications_count: number;
 }
 
