@@ -15,7 +15,7 @@ interface Interview {
   job_title: string;
   business_name: string;
   business_location: string;
-  status: "scheduled" | "invited" | "completed" | "cancelled";
+  status: "scheduled" | "invited" | "completed" | "cancelled" | "missed" | "reschedule_requested" | "rescheduled";
   scheduled_date: string | null;
   scheduled_start_time: string | null;
   scheduled_end_time: string | null;
@@ -871,32 +871,20 @@ export default function WorkerInterviewsPage() {
     if (!rescheduleInterview) return;
     setRescheduleSending(true);
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Update interview status to indicate reschedule requested
-        const { error: updateError } = await supabase
-          .from("interviews")
-          .update({ status: "reschedule_requested", worker_notes: rescheduleReason })
-          .eq("id", rescheduleInterview.id);
+      const res = await fetch("/api/interviews/request-reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interviewId: rescheduleInterview.id, reason: rescheduleReason }),
+      });
 
-        if (updateError) throw updateError;
-
-        // Create a notification for the business
-        if (rescheduleInterview.business_id) {
-          try {
-            await supabase.from("notifications").insert({
-              user_id: rescheduleInterview.business_id,
-              type: "interview_rescheduled",
-              title: "Interview Reschedule Requested",
-              message: `A worker has requested to reschedule their interview for ${rescheduleInterview.job_title}. Reason: ${rescheduleReason || "No reason provided"}`,
-              metadata: { interview_id: rescheduleInterview.id },
-            });
-          } catch {
-            // notification insert failed — non-critical, continue
-          }
-        }
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
       }
+      // Update local state to show "Reschedule Requested" badge
+      setInterviews((prev) => prev.map((i) =>
+        i.id === rescheduleInterview.id ? { ...i, status: "reschedule_requested" as Interview["status"] } : i
+      ));
       setRescheduleSuccess(true);
       // Auto-close modal after showing success
       setTimeout(() => setRescheduleInterview(null), 2500);

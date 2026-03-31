@@ -18,7 +18,7 @@ interface Interview {
   years_experience: number;
   languages: string[];
   cover_letter: string;
-  status: "scheduled" | "invited" | "completed" | "cancelled";
+  status: "scheduled" | "invited" | "completed" | "cancelled" | "missed" | "reschedule_requested" | "rescheduled";
   scheduled_date: string | null;
   scheduled_start_time: string | null;
   scheduled_end_time: string | null;
