@@ -53,7 +53,16 @@ export async function POST(request: Request) {
             .eq("id", existingConvId);
         }
 
-        return NextResponse.json({ conversationId: existingConvId });
+        // Get other participant name for client
+        const otherName = await getOtherParticipantName(admin, targetUserId);
+
+        return NextResponse.json({
+          conversationId: existingConvId,
+          isNew: false,
+          otherName,
+          otherUserId: targetUserId,
+          initialMessage: initialMessage?.trim() || null,
+        });
       }
     }
 
@@ -103,9 +112,42 @@ export async function POST(request: Request) {
         .eq("id", conv.id);
     }
 
-    return NextResponse.json({ conversationId: conv.id });
+    // Get other participant name for client
+    const otherName = await getOtherParticipantName(admin, targetUserId);
+
+    return NextResponse.json({
+      conversationId: conv.id,
+      isNew: true,
+      otherName,
+      otherUserId: targetUserId,
+      initialMessage: initialMessage?.trim() || null,
+    });
   } catch (error) {
     console.error("Error finding/creating conversation:", error);
     return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
   }
+}
+
+/** Look up a user's display name (business name or worker name) */
+async function getOtherParticipantName(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string
+): Promise<string> {
+  const { data: biz } = await admin
+    .from("business_profiles")
+    .select("business_name")
+    .eq("user_id", userId)
+    .single();
+  if (biz?.business_name) return biz.business_name;
+
+  const { data: worker } = await admin
+    .from("worker_profiles")
+    .select("first_name, last_name")
+    .eq("user_id", userId)
+    .single();
+  if (worker) {
+    return [worker.first_name, worker.last_name].filter(Boolean).join(" ") || "User";
+  }
+
+  return "User";
 }

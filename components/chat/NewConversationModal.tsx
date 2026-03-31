@@ -10,11 +10,19 @@ interface ContactOption {
   avatarInitial: string;
 }
 
+export interface ConversationCreatedData {
+  conversationId: string;
+  otherName: string;
+  otherUserId: string;
+  initialMessage: string | null;
+  isNew: boolean;
+}
+
 interface NewConversationModalProps {
   portalType: "worker" | "business";
   currentUserId: string;
   onClose: () => void;
-  onConversationCreated: (conversationId: string) => void;
+  onConversationCreated: (data: ConversationCreatedData) => void;
 }
 
 export default function NewConversationModal({
@@ -149,10 +157,16 @@ export default function NewConversationModal({
       });
 
       if (!convRes.ok) throw new Error("Failed to create conversation");
-      const { conversationId } = await convRes.json();
+      const result = await convRes.json();
 
       setFirstMessage("");
-      onConversationCreated(conversationId);
+      onConversationCreated({
+        conversationId: result.conversationId,
+        otherName: result.otherName || selected.name,
+        otherUserId: result.otherUserId || selected.userId,
+        initialMessage: result.initialMessage || null,
+        isNew: result.isNew ?? true,
+      });
     } catch (err) {
       console.error("Failed to start conversation:", err);
       setError("Failed to start conversation. Please try again.");

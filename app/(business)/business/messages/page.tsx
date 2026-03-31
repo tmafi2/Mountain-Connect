@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import NewConversationModal from "@/components/chat/NewConversationModal";
+import NewConversationModal, { type ConversationCreatedData } from "@/components/chat/NewConversationModal";
 
 /* ─── types ───────────────────────────────────────────────── */
 interface Conversation {
@@ -185,9 +185,54 @@ function BusinessMessagesContent() {
       convList.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
       setConversations(convList);
 
-      if (convFromUrl && convList.some((c) => c.id === convFromUrl)) {
-        setActiveConvId(convFromUrl);
-        setMobileShowChat(true);
+      if (convFromUrl) {
+        if (convList.some((c) => c.id === convFromUrl)) {
+          setActiveConvId(convFromUrl);
+          setMobileShowChat(true);
+        } else {
+          // Conversation not found — retry after a short delay (race condition with admin writes)
+          await new Promise((r) => setTimeout(r, 800));
+          const { data: retryPart } = await supabase
+            .from("conversation_participants")
+            .select("conversation_id")
+            .eq("conversation_id", convFromUrl)
+            .eq("user_id", user.id)
+            .single();
+
+          if (retryPart) {
+            const { data: otherP } = await supabase
+              .from("conversation_participants")
+              .select("user_id")
+              .eq("conversation_id", convFromUrl)
+              .neq("user_id", user.id)
+              .single();
+
+            let otherName = "Unknown";
+            if (otherP) {
+              const { data: wp } = await supabase.from("worker_profiles").select("first_name, last_name").eq("user_id", otherP.user_id).single();
+              if (wp) otherName = [wp.first_name, wp.last_name].filter(Boolean).join(" ") || "User";
+              else {
+                const { data: bp } = await supabase.from("business_profiles").select("business_name").eq("user_id", otherP.user_id).single();
+                if (bp?.business_name) otherName = bp.business_name;
+              }
+            }
+
+            const { data: latestMsg } = await supabase.from("messages").select("content, created_at").eq("conversation_id", convFromUrl).order("created_at", { ascending: false }).limit(1).single();
+
+            const retryConv: Conversation = {
+              id: convFromUrl,
+              otherName,
+              otherRole: "Applicant",
+              otherUserId: otherP?.user_id || "",
+              lastMessage: latestMsg?.content || "",
+              lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
+              unreadCount: 0,
+            };
+            setConversations((prev) => [retryConv, ...prev]);
+            setActiveConvId(convFromUrl);
+            setMobileShowChat(true);
+          }
+        }
       }
 
       setLoading(false);
@@ -511,11 +556,34 @@ function BusinessMessagesContent() {
           portalType="business"
           currentUserId={currentUserId}
           onClose={() => setShowNewConvModal(false)}
-          onConversationCreated={(convId) => {
+          onConversationCreated={(data: ConversationCreatedData) => {
             setShowNewConvModal(false);
-            setActiveConvId(convId);
+
+            // Add the conversation to local state immediately (no reload needed)
+            const newConv: Conversation = {
+              id: data.conversationId,
+              otherName: data.otherName,
+              otherRole: "Applicant",
+              otherUserId: data.otherUserId,
+              lastMessage: data.initialMessage || "",
+              lastMessageAt: new Date().toISOString(),
+              unreadCount: 0,
+            };
+
+            setConversations((prev) => {
+              const exists = prev.find((c) => c.id === data.conversationId);
+              if (exists) {
+                return prev.map((c) =>
+                  c.id === data.conversationId
+                    ? { ...c, lastMessage: data.initialMessage || c.lastMessage, lastMessageAt: new Date().toISOString() }
+                    : c
+                ).sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+              }
+              return [newConv, ...prev];
+            });
+
+            setActiveConvId(data.conversationId);
             setMobileShowChat(true);
-            window.location.href = `/business/messages?conv=${convId}`;
           }}
         />
       )}
