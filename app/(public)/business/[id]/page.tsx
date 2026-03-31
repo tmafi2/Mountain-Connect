@@ -96,7 +96,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
   // Get active job listings
   const { data: jobs } = await supabase
     .from("job_posts")
-    .select("id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, meal_perks, start_date, end_date, status, description")
+    .select("id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, meal_perks, start_date, end_date, status, description, nearby_towns(name)")
     .eq("business_id", id)
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -436,6 +436,12 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                               <span>
                                 {job.position_type === "full_time" ? "Full Time" : job.position_type === "part_time" ? "Part Time" : "Casual"}
                               </span>
+                            </>
+                          )}
+                          {(job as any).nearby_towns?.name && (
+                            <>
+                              <span className="h-3 w-px bg-foreground/20" />
+                              <span>Based in {(job as any).nearby_towns.name}</span>
                             </>
                           )}
                         </div>

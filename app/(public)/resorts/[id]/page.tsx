@@ -129,6 +129,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     ski_pass_included: boolean;
     start_date: string | null;
     applications_count: number;
+    nearby_town_name: string | null;
   }[] = [];
 
   try {
@@ -202,7 +203,8 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
           id, title, category, position_type, pay_amount, pay_currency,
           accommodation_included, ski_pass_included, start_date,
           status, business_id,
-          business_profiles(business_name, verification_status, logo_url)
+          business_profiles(business_name, verification_status, logo_url),
+          nearby_towns(name)
         `)
         .eq("resort_id", resortUuid)
         .eq("status", "active")
@@ -217,6 +219,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
             .eq("job_id", job.id);
 
           const biz = job.business_profiles as any;
+          const nearbyTown = (job as any).nearby_towns as { name: string } | null;
           realJobs.push({
             id: job.id,
             title: job.title,
@@ -231,6 +234,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
             ski_pass_included: job.ski_pass_included || false,
             start_date: job.start_date,
             applications_count: count ?? 0,
+            nearby_town_name: nearbyTown?.name || null,
           });
         }
       }
@@ -861,6 +865,9 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                             </span>
                           )}
                         </p>
+                        {job.nearby_town_name && (
+                          <p className="text-xs text-foreground/40">Based in {job.nearby_town_name}</p>
+                        )}
                       </div>
                       {job.pay_amount && (
                         <div className="text-right">

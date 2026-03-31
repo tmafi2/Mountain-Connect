@@ -99,6 +99,11 @@ export default function EditJobPage() {
   const [showResortDropdown, setShowResortDropdown] = useState(false);
   const resortRef = useRef<HTMLDivElement>(null);
 
+  // Nearby town state
+  const [nearbyTowns, setNearbyTowns] = useState<{ id: string; name: string; slug: string; country: string; state_region: string | null }[]>([]);
+  const [selectedTownId, setSelectedTownId] = useState<string | null>(null);
+  const [selectedTownName, setSelectedTownName] = useState("");
+
   // Custom perks state
   const [showCustomPerks, setShowCustomPerks] = useState(false);
   const [newPerk, setNewPerk] = useState("");
@@ -171,6 +176,17 @@ export default function EditJobPage() {
           customPerks: job.custom_perks || [],
         });
         if (job.custom_perks && job.custom_perks.length > 0) setShowCustomPerks(true);
+
+        // Load existing town selection
+        if (job.nearby_town_id) {
+          setSelectedTownId(job.nearby_town_id);
+          const { data: townData } = await supabase
+            .from("nearby_towns")
+            .select("name")
+            .eq("id", job.nearby_town_id)
+            .single();
+          if (townData) setSelectedTownName(townData.name);
+        }
       }
       setLoading(false);
     })();
@@ -179,6 +195,25 @@ export default function EditJobPage() {
       .then((data) => setAllResorts(data || []))
       .catch(() => {});
   }, [jobId]);
+
+  // Load nearby towns when resort is selected
+  useEffect(() => {
+    if (!selectedResortId) { setNearbyTowns([]); return; }
+    const supabase = createClient();
+    supabase
+      .from("resort_nearby_towns")
+      .select("nearby_towns(id, name, slug, country, state_region)")
+      .eq("resort_id", selectedResortId)
+      .then(({ data }) => {
+        if (data) {
+          const towns = data.map((r) => {
+            const t = r.nearby_towns as unknown as { id: string; name: string; slug: string; country: string; state_region: string | null };
+            return t;
+          }).filter(Boolean);
+          setNearbyTowns(towns);
+        }
+      });
+  }, [selectedResortId]);
 
   // Close resort dropdown on outside click
   useEffect(() => {
@@ -226,6 +261,7 @@ export default function EditJobPage() {
       accommodation_cost: form.accommodationCost.trim() || null,
       custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
       show_positions: form.showPositions,
+      nearby_town_id: selectedTownId || null,
       status,
     };
   };
@@ -372,6 +408,39 @@ export default function EditJobPage() {
                 </>
               )}
             </div>
+            {/* Town Location (optional) */}
+            {selectedResortId && nearbyTowns.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-foreground">
+                  Town Location <span className="text-foreground/40 font-normal">(optional)</span>
+                </label>
+                <p className="text-xs text-foreground/40 mb-1.5">
+                  If your business operates in a nearby town, select it so workers searching by town can find your listing.
+                </p>
+                <select
+                  value={selectedTownId || ""}
+                  onChange={(e) => {
+                    const townId = e.target.value || null;
+                    setSelectedTownId(townId);
+                    const town = nearbyTowns.find((t) => t.id === townId);
+                    setSelectedTownName(town?.name || "");
+                    if (town) {
+                      setForm((prev) => ({ ...prev, location: `${town.name}, ${town.state_region || town.country}` }));
+                    } else if (selectedResortName) {
+                      const resort = allResorts.find((r) => r.id === selectedResortId);
+                      setForm((prev) => ({ ...prev, location: resort ? `${resort.name}, ${resort.country}` : prev.location }));
+                    }
+                    setSaved(false);
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">None — resort only</option>
+                  {nearbyTowns.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-foreground">Location</label>
               <input value={form.location} onChange={(e) => updateField("location", e.target.value)} placeholder="e.g. Whistler, Canada" className={inputClass} />

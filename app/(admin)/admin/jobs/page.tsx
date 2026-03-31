@@ -22,6 +22,7 @@ interface JobRow {
   start_date: string | null;
   end_date: string | null;
   resort_name: string | null;
+  nearby_town_name: string | null;
   created_at: string;
   business_id: string;
   business_name?: string;
@@ -50,7 +51,7 @@ export default function AdminJobsPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("job_posts")
-        .select("id, title, description, requirements, position_type, status, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, created_at, business_id, resorts(name)")
+        .select("id, title, description, requirements, position_type, status, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, created_at, business_id, resorts(name), nearby_towns(name)")
         .order("created_at", { ascending: false });
 
       if (error) { console.error("Error loading jobs:", error); setLoading(false); return; }
@@ -64,6 +65,7 @@ export default function AdminJobsPage() {
         setJobs(data.map((j) => ({
           ...j,
           resort_name: (j.resorts as unknown as { name: string } | null)?.name || null,
+          nearby_town_name: ((j as any).nearby_towns as { name: string } | null)?.name || null,
           business_name: bizMap[j.business_id] || "Unknown",
         })));
       }
@@ -221,6 +223,7 @@ export default function AdminJobsPage() {
                 <InfoItem label="Job Type" value={selected.position_type?.replace("_", " ")} />
                 <InfoItem label="Pay" value={selected.salary_range || (selected.pay_amount ? `${selected.pay_currency || "AUD"} $${selected.pay_amount}` : null)} />
                 <InfoItem label="Resort" value={selected.resort_name} />
+                <InfoItem label="Town" value={selected.nearby_town_name} />
                 <InfoItem label="Positions" value={String(selected.positions_available || 1)} />
                 <InfoItem label="Start Date" value={selected.start_date ? new Date(selected.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null} />
                 <InfoItem label="End Date" value={selected.end_date ? new Date(selected.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null} />

@@ -993,7 +993,8 @@ function ExploreContent() {
         <div className="mx-auto max-w-7xl">
           <h2 className="text-2xl font-bold text-primary">Explore by Town</h2>
           <p className="mt-2 text-sm text-foreground/60">
-            Discover the towns where seasonal workers live, eat, and socialise.
+            Discover the towns where seasonal workers live, eat, and socialise.{" "}
+            <Link href="/towns" className="text-secondary hover:underline font-medium">View all towns &rarr;</Link>
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             {[
