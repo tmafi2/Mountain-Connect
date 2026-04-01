@@ -5,80 +5,46 @@ interface InterviewInviteEmailProps {
   bookingUrl: string;
 }
 
-export function interviewInviteEmail({
-  workerName,
-  businessName,
-  jobTitle,
-  bookingUrl,
-}: InterviewInviteEmailProps) {
+export function interviewInviteEmail({ workerName, businessName, jobTitle, bookingUrl }: InterviewInviteEmailProps) {
   return {
     subject: `Interview Invitation — ${jobTitle} at ${businessName}`,
     html: `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body style="margin:0;padding:0;background-color:#f7f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f9fb;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;">
-          <!-- Header -->
-          <tr>
-            <td style="background-color:#0e2439;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;">Mountain Connect</span>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
-              <h1 style="margin:0 0 16px;color:#0e2439;font-size:22px;">You're Invited to Interview!</h1>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Hi ${workerName},
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:40px 20px;">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+          <tr><td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+              <p style="margin:0 0 10px;font-size:44px;">📅</p>
+              <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">Interview Invitation</h1>
+              <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">You've been shortlisted!</p>
+          </td></tr>
+          <tr><td style="padding:36px 32px 24px;">
+              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">Hi ${workerName},</p>
+              <p style="margin:0 0 20px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+                Great news! <strong style="color:#0a1e33;">${businessName}</strong> would like to interview you for the <strong style="color:#0a1e33;">${jobTitle}</strong> position.
               </p>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Great news! <strong>${businessName}</strong> would like to schedule a video interview with you for the <strong>${jobTitle}</strong> position.
-              </p>
-              <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Click the button below to choose a time that works for you:
-              </p>
-              <!-- CTA Button -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="background-color:#0e2439;border-radius:8px;padding:14px 28px;">
-                    <a href="${bookingUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
-                      Book Your Interview
-                    </a>
-                  </td>
-                </tr>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr><td style="padding:20px;background-color:#fffbeb;border-radius:12px;border-left:4px solid #f59e0b;text-align:center;">
+                    <p style="margin:0 0 4px;color:#92400e;font-size:14px;font-weight:700;">Action Required</p>
+                    <p style="margin:0;color:#4e5d6c;font-size:14px;">Book a time that works for you using the link below.</p>
+                </td></tr>
               </table>
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:13px;line-height:1.5;">
-                Or copy this link into your browser:
-              </p>
-              <p style="margin:0 0 24px;color:#a9cbe3;font-size:13px;word-break:break-all;">
-                ${bookingUrl}
-              </p>
-              <hr style="border:none;border-top:1px solid #ced7dd;margin:24px 0;" />
-              <p style="margin:0;color:#4e5d6c;font-size:13px;">
-                If you have any questions, log in to Mountain Connect and check your notifications.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color:#f7f9fb;padding:20px 32px;text-align:center;">
-              <p style="margin:0;color:#4e5d6c;font-size:12px;">
-                Mountain Connect — Connecting seasonal workers with ski resort businesses worldwide.
-              </p>
-            </td>
-          </tr>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
+                <tr><td style="background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:10px;padding:15px 36px;text-align:center;">
+                    <a href="${bookingUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Book Your Interview →</a>
+                </td></tr>
+              </table>
+              <p style="margin:0;color:#8899a6;font-size:12px;text-align:center;">Or copy: <a href="${bookingUrl}" style="color:#3b82f6;">${bookingUrl}</a></p>
+          </td></tr>
+          <tr><td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect.</p>
+          </td></tr>
         </table>
-      </td>
-    </tr>
+    </td></tr>
   </table>
-</body>
-</html>`,
+</body></html>`,
   };
 }

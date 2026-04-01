@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
     if (workerUser?.email) {
       sendInterviewCancelledEmail({
         to: workerUser.email,
-        workerName,
-        businessName: business.business_name,
+        recipientName: workerName,
+        otherPartyName: business.business_name,
         jobTitle,
         date: scheduledDate,
         dashboardUrl: `${origin}/dashboard`,

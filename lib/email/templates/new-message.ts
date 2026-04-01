@@ -5,90 +5,43 @@ interface NewMessageEmailProps {
   conversationUrl: string;
 }
 
-export function newMessageEmail({
-  recipientName,
-  senderName,
-  messagePreview,
-  conversationUrl,
-}: NewMessageEmailProps) {
+export function newMessageEmail({ recipientName, senderName, messagePreview, conversationUrl }: NewMessageEmailProps) {
   return {
     subject: `New message from ${senderName} — Mountain Connect`,
     html: `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body style="margin:0;padding:0;background-color:#f7f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f9fb;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;">
-          <!-- Header -->
-          <tr>
-            <td style="background-color:#0e2439;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;">Mountain Connect</span>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
-              <h1 style="margin:0 0 16px;color:#0e2439;font-size:22px;">New Message</h1>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Hi ${recipientName},
-              </p>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                <strong>${senderName}</strong> sent you a message:
-              </p>
-              <!-- Message preview box -->
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:40px 20px;">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+          <tr><td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+              <p style="margin:0 0 10px;font-size:44px;">💬</p>
+              <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">New Message</h1>
+              <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">From ${senderName}</p>
+          </td></tr>
+          <tr><td style="padding:36px 32px 24px;">
+              <p style="margin:0 0 20px;color:#4e5d6c;font-size:15px;line-height:1.7;">Hi ${recipientName},</p>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="background-color:#f0f4f8;border-left:4px solid #0e2439;border-radius:0 8px 8px 0;padding:16px 20px;">
-                    <p style="margin:0;color:#4e5d6c;font-size:14px;line-height:1.6;font-style:italic;">
-                      &ldquo;${messagePreview}&rdquo;
-                    </p>
-                  </td>
-                </tr>
+                <tr><td style="padding:20px;background-color:#f8fafc;border-radius:12px;border-left:4px solid #0a1e33;">
+                    <p style="margin:0 0 8px;color:#0a1e33;font-size:13px;font-weight:700;">${senderName} says:</p>
+                    <p style="margin:0;color:#4e5d6c;font-size:15px;line-height:1.7;font-style:italic;">&ldquo;${messagePreview}&rdquo;</p>
+                </td></tr>
               </table>
-              <!-- CTA Button -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="background-color:#0e2439;border-radius:8px;padding:14px 28px;">
-                    <a href="${conversationUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
-                      Reply to Message
-                    </a>
-                  </td>
-                </tr>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
+                <tr><td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:15px 36px;text-align:center;">
+                    <a href="${conversationUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Reply to Message →</a>
+                </td></tr>
               </table>
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:13px;line-height:1.5;">
-                Or copy this link into your browser:
-              </p>
-              <p style="margin:0 0 24px;color:#a9cbe3;font-size:13px;word-break:break-all;">
-                ${conversationUrl}
-              </p>
-              <hr style="border:none;border-top:1px solid #ced7dd;margin:24px 0;" />
-              <p style="margin:0;color:#4e5d6c;font-size:13px;">
-                You are receiving this because someone messaged you on Mountain Connect.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color:#f7f9fb;padding:20px 32px;text-align:center;">
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:12px;">
-                &copy; 2026 Mountain Connect. All rights reserved.
-              </p>
-              <p style="margin:0;color:#999999;font-size:11px;">
-                You are receiving this email because you have an active account on Mountain Connect.
-              </p>
-            </td>
-          </tr>
+              <p style="margin:0;color:#8899a6;font-size:12px;text-align:center;">Or copy: <a href="${conversationUrl}" style="color:#3b82f6;">${conversationUrl}</a></p>
+          </td></tr>
+          <tr><td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect.</p>
+          </td></tr>
         </table>
-      </td>
-    </tr>
+    </td></tr>
   </table>
-</body>
-</html>`,
+</body></html>`,
   };
 }

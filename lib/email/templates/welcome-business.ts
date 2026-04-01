@@ -16,61 +16,49 @@ export function welcomeBusinessEmail({
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
-<body style="margin:0;padding:0;background-color:#f7f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f9fb;padding:40px 20px;">
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:40px 20px;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;">
-          <!-- Header -->
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
           <tr>
-            <td style="background-color:#0e2439;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;">Mountain Connect</span>
+            <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+              <p style="margin:0 0 10px;font-size:44px;">⛷️</p>
+              <h1 style="margin:0 0 6px;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Welcome, ${businessName}!</h1>
+              <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Start Hiring Seasonal Talent</p>
             </td>
           </tr>
-          <!-- Body -->
           <tr>
-            <td style="padding:32px;">
-              <h1 style="margin:0 0 16px;color:#0e2439;font-size:22px;">Welcome to Mountain Connect!</h1>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Hi ${businessName},
+            <td style="padding:36px 32px 24px;">
+              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+                Your business account is ready. Post jobs, browse applicants, and connect with seasonal workers worldwide.
               </p>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Welcome aboard! Your business account has been created and you're ready to start connecting with talented seasonal workers from around the world.
-              </p>
-              <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                To get started, complete your company profile so workers can learn about your business. Once your profile is set up, you can start posting jobs and finding the right candidates for your team.
-              </p>
-              <!-- CTA Button -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
-                  <td style="background-color:#0e2439;border-radius:8px;padding:14px 28px;">
-                    <a href="${profileUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
-                      Complete Your Profile
-                    </a>
+                  <td style="padding:20px;background-color:#eff6ff;border-radius:12px;border-left:4px solid #3b82f6;">
+                    <p style="margin:0 0 14px;color:#0a1e33;font-size:14px;font-weight:700;">Next steps:</p>
+                    <table cellpadding="0" cellspacing="0">
+                      <tr><td style="padding:5px 0;color:#4e5d6c;font-size:14px;line-height:1.6;">1️⃣ &nbsp;Complete your company profile with logo &amp; description</td></tr>
+                      <tr><td style="padding:5px 0;color:#4e5d6c;font-size:14px;line-height:1.6;">2️⃣ &nbsp;Post your first job listing — it takes 2 minutes</td></tr>
+                      <tr><td style="padding:5px 0;color:#4e5d6c;font-size:14px;line-height:1.6;">3️⃣ &nbsp;Get verified to stand out to top candidates</td></tr>
+                    </table>
                   </td>
                 </tr>
               </table>
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:13px;line-height:1.5;">
-                Or copy this link into your browser:
-              </p>
-              <p style="margin:0 0 24px;color:#a9cbe3;font-size:13px;word-break:break-all;">
-                ${profileUrl}
-              </p>
-              <hr style="border:none;border-top:1px solid #ced7dd;margin:24px 0;" />
-              <p style="margin:0;color:#4e5d6c;font-size:13px;">
-                If you have any questions, log in to Mountain Connect and check your notifications.
-              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:10px;padding:15px 36px;text-align:center;">
+                    <a href="${profileUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Set Up Your Profile →</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;color:#8899a6;font-size:12px;text-align:center;">Or copy: <a href="${profileUrl}" style="color:#3b82f6;">${profileUrl}</a></p>
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
-            <td style="background-color:#f7f9fb;padding:20px 32px;text-align:center;">
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:12px;">
-                &copy; 2026 Mountain Connect. All rights reserved.
-              </p>
-              <p style="margin:0;color:#999999;font-size:11px;">
-                You are receiving this email because you registered your business on Mountain Connect. If you believe this was sent in error, please contact support.
-              </p>
+            <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;line-height:1.5;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect. All rights reserved.</p>
             </td>
           </tr>
         </table>

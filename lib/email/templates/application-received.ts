@@ -2,86 +2,66 @@ interface ApplicationReceivedEmailProps {
   workerName: string;
   jobTitle: string;
   businessName: string;
-  jobUrl: string;
+  applicationsUrl: string;
 }
 
 export function applicationReceivedEmail({
   workerName,
   jobTitle,
   businessName,
-  jobUrl,
+  applicationsUrl,
 }: ApplicationReceivedEmailProps) {
   return {
     subject: `Application Submitted — ${jobTitle} at ${businessName}`,
     html: `
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-</head>
-<body style="margin:0;padding:0;background-color:#f7f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f9fb;padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;">
-          <!-- Header -->
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f8;padding:40px 20px;">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
           <tr>
-            <td style="background-color:#0e2439;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:20px;font-weight:700;">Mountain Connect</span>
+            <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+              <p style="margin:0 0 10px;font-size:44px;">📨</p>
+              <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">Application Submitted!</h1>
+              <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Good luck, ${workerName}</p>
             </td>
           </tr>
-          <!-- Body -->
           <tr>
-            <td style="padding:32px;">
-              <h1 style="margin:0 0 16px;color:#0e2439;font-size:22px;">Application Submitted!</h1>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Hi ${workerName},
+            <td style="padding:36px 32px 24px;">
+              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+                Your application for <strong style="color:#0a1e33;">${jobTitle}</strong> at <strong style="color:#0a1e33;">${businessName}</strong> has been received.
               </p>
-              <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                Your application for the <strong>${jobTitle}</strong> position at <strong>${businessName}</strong> has been successfully submitted.
-              </p>
-              <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.6;">
-                The team at ${businessName} will review your application and get back to you. You can track the status of your application at any time by clicking the button below.
-              </p>
-              <!-- CTA Button -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
-                  <td style="background-color:#0e2439;border-radius:8px;padding:14px 28px;">
-                    <a href="${jobUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
-                      View Your Application
-                    </a>
+                  <td style="padding:20px;background-color:#f0fdf4;border-radius:12px;border-left:4px solid #22c55e;">
+                    <p style="margin:0 0 10px;color:#0a1e33;font-size:14px;font-weight:700;">What happens next:</p>
+                    <table cellpadding="0" cellspacing="0">
+                      <tr><td style="padding:4px 0;color:#4e5d6c;font-size:14px;line-height:1.6;">✅ &nbsp;Your application is now visible to the employer</td></tr>
+                      <tr><td style="padding:4px 0;color:#4e5d6c;font-size:14px;line-height:1.6;">📋 &nbsp;They'll review your profile, skills &amp; experience</td></tr>
+                      <tr><td style="padding:4px 0;color:#4e5d6c;font-size:14px;line-height:1.6;">📩 &nbsp;You'll be notified when there's an update</td></tr>
+                    </table>
                   </td>
                 </tr>
               </table>
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:13px;line-height:1.5;">
-                Or copy this link into your browser:
-              </p>
-              <p style="margin:0 0 24px;color:#a9cbe3;font-size:13px;word-break:break-all;">
-                ${jobUrl}
-              </p>
-              <hr style="border:none;border-top:1px solid #ced7dd;margin:24px 0;" />
-              <p style="margin:0;color:#4e5d6c;font-size:13px;">
-                If you have any questions, log in to Mountain Connect and check your notifications.
-              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:15px 36px;text-align:center;">
+                    <a href="${applicationsUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">View Your Applications →</a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
-            <td style="background-color:#f7f9fb;padding:20px 32px;text-align:center;">
-              <p style="margin:0 0 8px;color:#4e5d6c;font-size:12px;">
-                &copy; 2026 Mountain Connect. All rights reserved.
-              </p>
-              <p style="margin:0;color:#999999;font-size:11px;">
-                You are receiving this email because you applied for a job on Mountain Connect. If you believe this was sent in error, please contact support.
-              </p>
+            <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;line-height:1.5;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect. All rights reserved.</p>
             </td>
           </tr>
         </table>
-      </td>
-    </tr>
+    </td></tr>
   </table>
-</body>
-</html>`,
+</body></html>`,
   };
 }

@@ -59,10 +59,11 @@ export async function sendInterviewConfirmationEmail(params: {
 
 export async function sendInterviewCancelledEmail(params: {
   to: string;
-  workerName: string;
-  businessName: string;
+  recipientName: string;
+  otherPartyName: string;
   jobTitle: string;
   date?: string;
+  startTime?: string;
   dashboardUrl: string;
 }) {
   const resend = getResendClient();
