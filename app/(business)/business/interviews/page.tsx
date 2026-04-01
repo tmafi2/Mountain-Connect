@@ -476,7 +476,7 @@ function ApplicantPanel({
           <div className="flex gap-2">
             {interview.worker_profile_id ? (
               <a
-                href={`/workers/${interview.worker_profile_id}`}
+                href={`/business/workers/${interview.worker_profile_id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20 py-2.5 text-sm font-semibold text-primary hover:bg-accent/40 transition-colors"
