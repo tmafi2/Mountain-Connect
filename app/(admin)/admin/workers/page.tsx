@@ -48,24 +48,56 @@ export default function AdminWorkersPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient();
-      const { data: profiles, error } = await supabase
+      // Try with suspension columns first, fall back without them if migration 00022 hasn't been run
+      let profiles: Record<string, unknown>[] | null = null;
+      let error: { message: string } | null = null;
+
+      const fullResult = await supabase
         .from("worker_profiles")
         .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, bio, work_history, status, suspension_reason, suspended_at, created_at")
         .order("created_at", { ascending: false });
 
+      if (fullResult.error) {
+        // Fallback: query without suspension columns
+        console.warn("Falling back to basic worker query:", fullResult.error.message);
+        const basicResult = await supabase
+          .from("worker_profiles")
+          .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, bio, work_history, created_at")
+          .order("created_at", { ascending: false });
+        profiles = basicResult.data as Record<string, unknown>[] | null;
+        error = basicResult.error;
+      } else {
+        profiles = fullResult.data as Record<string, unknown>[] | null;
+        error = fullResult.error;
+      }
+
       if (error) { console.error("Error loading workers:", error); setLoading(false); return; }
 
       if (profiles && profiles.length > 0) {
-        const userIds = profiles.map((p) => p.user_id);
+        const userIds = profiles.map((p) => p.user_id as string);
         const { data: users } = await supabase.from("users").select("id, email").in("id", userIds);
         const emailMap: Record<string, string> = {};
         if (users) users.forEach((u) => { emailMap[u.id] = u.email; });
 
         setWorkers(profiles.map((p) => ({
-          ...p,
-          status: p.status || "active",
-          user_email: emailMap[p.user_id] || "",
-        })) as WorkerRow[]);
+          id: p.id as string,
+          user_id: p.user_id as string,
+          first_name: (p.first_name as string) || null,
+          last_name: (p.last_name as string) || null,
+          location_current: (p.location_current as string) || null,
+          country_of_residence: (p.country_of_residence as string) || null,
+          nationality: (p.nationality as string) || null,
+          skills: (p.skills as string[]) || null,
+          profile_photo_url: (p.profile_photo_url as string) || null,
+          profile_completion_pct: (p.profile_completion_pct as number) || null,
+          bio: (p.bio as string) || null,
+          work_history: (p.work_history as unknown[]) || null,
+          status: (p.status as string) || "active",
+          suspension_reason: (p.suspension_reason as string) || null,
+          suspended_at: (p.suspended_at as string) || null,
+          created_at: p.created_at as string,
+          user_email: emailMap[p.user_id as string] || "",
+        })));
       }
       setLoading(false);
     }
