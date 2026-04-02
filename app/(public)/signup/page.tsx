@@ -19,6 +19,20 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
+  // Business resort selection
+  const [allResorts, setAllResorts] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [selectedResortId, setSelectedResortId] = useState<string>("");
+  const [resortSearch, setResortSearch] = useState("");
+  const [showResortDropdown, setShowResortDropdown] = useState(false);
+
+  // Load resorts on mount
+  useState(() => {
+    fetch("/api/search-resorts?all=1")
+      .then((r) => r.json())
+      .then((data) => setAllResorts(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  });
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -35,6 +49,7 @@ export default function SignupPage() {
             full_name: fullName,
             business_name: accountType === "business" ? firstName.trim() : undefined,
             account_type: accountType,
+            signup_resort_id: accountType === "business" && selectedResortId ? selectedResortId : undefined,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback?type=${accountType}`,
         },
@@ -269,6 +284,64 @@ export default function SignupPage() {
               </div>
             )}
 
+            {/* Resort selector — business only */}
+            {accountType === "business" && (
+              <div>
+                <label className="block text-sm font-medium text-foreground/70">
+                  Associated Ski Resort <span className="text-red-400">*</span>
+                </label>
+                <div className="relative mt-1.5">
+                  <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/30 pointer-events-none z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21h18M3 10h18M3 7l9-4 9 4" />
+                  </svg>
+                  {selectedResortId ? (
+                    <div className="flex items-center rounded-xl border border-green-400 bg-green-50/30 py-3 pl-11 pr-3">
+                      <span className="flex-1 text-sm font-medium text-primary">
+                        {allResorts.find((r) => r.id === selectedResortId)?.name || "Selected"}
+                      </span>
+                      <button type="button" onClick={() => { setSelectedResortId(""); setResortSearch(""); }} className="text-foreground/40 hover:text-red-500">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={resortSearch}
+                        onChange={(e) => { setResortSearch(e.target.value); setShowResortDropdown(true); }}
+                        onFocus={() => setShowResortDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowResortDropdown(false), 200)}
+                        className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-4 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
+                        placeholder="Search for your closest ski resort..."
+                      />
+                      {showResortDropdown && (
+                        <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-accent bg-white shadow-lg">
+                          {allResorts
+                            .filter((r) => !resortSearch.trim() || r.name.toLowerCase().includes(resortSearch.toLowerCase()) || r.country.toLowerCase().includes(resortSearch.toLowerCase()))
+                            .slice(0, 8)
+                            .map((r) => (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => { setSelectedResortId(r.id); setResortSearch(""); setShowResortDropdown(false); }}
+                                className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-accent/20 transition-colors"
+                              >
+                                <span className="font-medium text-primary">{r.name}</span>
+                                <span className="text-xs text-foreground/40">{r.country}</span>
+                              </button>
+                            ))}
+                          {allResorts.filter((r) => !resortSearch.trim() || r.name.toLowerCase().includes(resortSearch.toLowerCase())).length === 0 && (
+                            <p className="px-4 py-3 text-sm text-foreground/40">No resorts found</p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-foreground/70">
                 Email address
@@ -284,7 +357,7 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-4 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
-                  placeholder="you@example.com"
+                  placeholder={accountType === "business" ? "Work email required" : "you@example.com"}
                 />
               </div>
             </div>
