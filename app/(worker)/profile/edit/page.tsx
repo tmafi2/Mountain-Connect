@@ -33,6 +33,7 @@ interface FormState {
   first_name: string;
   last_name: string;
   date_of_birth: string;
+  email: string;
   phone: string;
   location_current: string;
   country_of_residence: string;
@@ -86,6 +87,7 @@ const INITIAL: FormState = {
   first_name: "",
   last_name: "",
   date_of_birth: "",
+  email: "",
   phone: "",
   location_current: "",
   country_of_residence: "",
@@ -289,6 +291,7 @@ function getStepMissingFields(f: FormState, stepIndex: number): string[] {
       { label: "First Name", value: f.first_name },
       { label: "Last Name", value: f.last_name },
       { label: "Date of Birth", value: f.date_of_birth },
+      { label: "Email", value: f.email },
       { label: "Phone", value: f.phone },
       { label: "Current Location", value: f.location_current },
       { label: "Country of Residence", value: f.country_of_residence },
@@ -743,6 +746,7 @@ export default function ProfileEditPage() {
           first_name: profile.first_name || "",
           last_name: profile.last_name || "",
           date_of_birth: profile.date_of_birth || "",
+          email: profile.contact_email || user.email || "",
           phone: profile.phone || "",
           location_current: profile.location_current || "",
           country_of_residence: profile.country_of_residence || "",
@@ -817,6 +821,7 @@ export default function ProfileEditPage() {
         first_name: form.first_name || null,
         last_name: form.last_name || null,
         date_of_birth: form.date_of_birth || null,
+        contact_email: form.email || null,
         phone: form.phone || null,
         location_current: form.location_current || null,
         country_of_residence: form.country_of_residence || null,
@@ -1028,6 +1033,11 @@ export default function ProfileEditPage() {
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input id="phone" type="tel" value={form.phone} onChange={(v) => set("phone", v)} placeholder="+1 555 123 4567" />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="contact_email">Contact Email</Label>
+              <p className="text-xs text-foreground/40 mb-1">This email is visible to businesses you apply to.</p>
+              <Input id="contact_email" type="email" value={form.email} onChange={(v) => set("email", v)} placeholder="your@email.com" />
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
