@@ -27,6 +27,9 @@ interface SavedJob {
   visa_sponsorship: boolean;
   start_date: string | null;
   end_date: string | null;
+  how_to_apply: string | null;
+  application_email: string | null;
+  application_url: string | null;
   saved_at: string;
 }
 
@@ -50,7 +53,7 @@ export default function SavedJobsPage() {
           .select(`id, job_post_id, created_at, job_posts(
             title, description, requirements, salary_range, pay_amount, pay_currency,
             position_type, category, accommodation_included, ski_pass_included, meal_perks,
-            visa_sponsorship, start_date, end_date,
+            visa_sponsorship, start_date, end_date, how_to_apply, application_email, application_url,
             business_profiles(business_name, logo_url, verification_status),
             resorts(name, country)
           )`)
@@ -84,6 +87,9 @@ export default function SavedJobsPage() {
               visa_sponsorship: (jp?.visa_sponsorship as boolean) || false,
               start_date: (jp?.start_date as string) || null,
               end_date: (jp?.end_date as string) || null,
+              how_to_apply: (jp?.how_to_apply as string) || null,
+              application_email: (jp?.application_email as string) || null,
+              application_url: (jp?.application_url as string) || null,
               saved_at: s.created_at as string,
             };
           });
@@ -299,6 +305,33 @@ export default function SavedJobsPage() {
                   <div className="mt-5">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/40">Requirements</h3>
                     <p className="mt-2 text-sm leading-relaxed text-foreground/70 whitespace-pre-line">{selectedJob.requirements}</p>
+                  </div>
+                )}
+
+                {/* How to Apply */}
+                {(selectedJob.how_to_apply || selectedJob.application_email || selectedJob.application_url) && (
+                  <div className="mt-5 rounded-xl border border-secondary/20 bg-secondary/5 p-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/40 flex items-center gap-2">
+                      <svg className="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      How to Apply
+                    </h3>
+                    {selectedJob.how_to_apply && (
+                      <p className="mt-2 text-sm leading-relaxed text-foreground/70 whitespace-pre-line">{selectedJob.how_to_apply}</p>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedJob.application_email && (
+                        <a href={`mailto:${selectedJob.application_email}`} className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary-light transition-colors">
+                          Email Application
+                        </a>
+                      )}
+                      {selectedJob.application_url && (
+                        <a href={selectedJob.application_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-secondary/30 px-4 py-2 text-sm font-semibold text-secondary hover:bg-secondary/5 transition-colors">
+                          Apply on Website
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
 

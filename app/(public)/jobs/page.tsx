@@ -142,6 +142,9 @@ function FindAJobContent() {
               accommodation_type: (j.accommodation_type as string) || null,
               accommodation_cost: (j.accommodation_cost as string) || null,
               status: ((j.status as string) || "active") as "active" | "paused" | "closed" | "draft",
+              how_to_apply: (j.how_to_apply as string) || null,
+              application_email: (j.application_email as string) || null,
+              application_url: (j.application_url as string) || null,
               applications_count: 0,
             };
           });
@@ -1193,6 +1196,47 @@ function JobDetailPanel({
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground">
                   {job.requirements}
                 </p>
+              </div>
+            )}
+
+            {/* How to Apply */}
+            {(job.how_to_apply || job.application_email || job.application_url) && (
+              <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-5">
+                <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <svg className="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  How to Apply
+                </h3>
+                {job.how_to_apply && (
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground/70">{job.how_to_apply}</p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {job.application_email && (
+                    <a
+                      href={`mailto:${job.application_email}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary-light transition-colors"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                      </svg>
+                      Email Application
+                    </a>
+                  )}
+                  {job.application_url && (
+                    <a
+                      href={job.application_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-secondary/30 px-4 py-2 text-sm font-semibold text-secondary hover:bg-secondary/5 transition-colors"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                      Apply on Website
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 

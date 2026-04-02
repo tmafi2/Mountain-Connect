@@ -30,6 +30,9 @@ interface JobFormData {
   positions: number;
   showPositions: boolean;
   customPerks: string[];
+  how_to_apply: string;
+  application_email: string;
+  application_url: string;
 }
 
 /* ─── Constants ──────────────────────────────────────────── */
@@ -116,6 +119,9 @@ export default function EditJobPage() {
     visaSponsorshipAvailable: false, housingDetails: "", accommodationType: "",
     accommodationCost: "", urgentlyHiring: false, positions: 1, showPositions: true,
     customPerks: [],
+    how_to_apply: "",
+    application_email: "",
+    application_url: "",
   });
 
   // Load job data + resorts
@@ -174,6 +180,9 @@ export default function EditJobPage() {
           positions: job.positions_available || 1,
           showPositions: job.show_positions !== false,
           customPerks: job.custom_perks || [],
+          how_to_apply: job.how_to_apply || "",
+          application_email: job.application_email || "",
+          application_url: job.application_url || "",
         });
         if (job.custom_perks && job.custom_perks.length > 0) setShowCustomPerks(true);
 
@@ -262,6 +271,9 @@ export default function EditJobPage() {
       custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
       show_positions: form.showPositions,
       nearby_town_id: selectedTownId || null,
+      how_to_apply: form.how_to_apply.trim() || null,
+      application_email: form.application_email.trim() || null,
+      application_url: form.application_url.trim() || null,
       status,
     };
   };

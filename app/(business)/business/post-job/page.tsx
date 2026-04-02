@@ -30,6 +30,9 @@ interface JobFormData {
   positions: number;
   showPositions: boolean;
   customPerks: string[];
+  how_to_apply: string;
+  application_email: string;
+  application_url: string;
 }
 
 /* ─── Constants ──────────────────────────────────────────── */
@@ -157,6 +160,9 @@ export default function PostJobPage() {
     positions: 1,
     showPositions: true,
     customPerks: [],
+    how_to_apply: "",
+    application_email: "",
+    application_url: "",
   });
 
   // Fetch business profile + all resorts on mount
@@ -274,6 +280,9 @@ export default function PostJobPage() {
       custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
       show_positions: form.showPositions,
       nearby_town_id: selectedTownId || null,
+      how_to_apply: form.how_to_apply.trim() || null,
+      application_email: form.application_email.trim() || null,
+      application_url: form.application_url.trim() || null,
       status,
     };
   };
@@ -857,6 +866,63 @@ export default function PostJobPage() {
             value={form.showPositions}
             onChange={(v) => updateField("showPositions", v)}
           />
+        </div>
+      </div>
+
+      {/* ── Section 6: How to Apply ─────────────────────────── */}
+      <div className="mt-4 rounded-2xl border border-accent/40 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-xs font-bold text-primary">6</span>
+          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+            How to Apply
+          </h2>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-foreground">
+              Application Instructions <span className="text-foreground/40 font-normal">(optional)</span>
+            </label>
+            <p className="text-xs text-foreground/40 mb-1.5">Tell applicants how you&apos;d like them to apply — e.g. &quot;Email your CV and cover letter&quot; or &quot;Apply through our website&quot;.</p>
+            <textarea
+              value={form.how_to_apply}
+              onChange={(e) => updateField("how_to_apply", e.target.value)}
+              placeholder="e.g. Please send your CV and a brief cover letter to our hiring manager. Include your availability dates and any relevant certifications."
+              rows={3}
+              className={inputClass + " resize-none"}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-foreground">
+                Application Email <span className="text-foreground/40 font-normal">(optional)</span>
+              </label>
+              <p className="text-xs text-foreground/40 mb-1.5">If you prefer applicants email you directly.</p>
+              <input
+                type="email"
+                value={form.application_email}
+                onChange={(e) => updateField("application_email", e.target.value)}
+                placeholder="hiring@yourbusiness.com"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground">
+                Application URL <span className="text-foreground/40 font-normal">(optional)</span>
+              </label>
+              <p className="text-xs text-foreground/40 mb-1.5">Link to your external application form.</p>
+              <input
+                type="url"
+                value={form.application_url}
+                onChange={(e) => updateField("application_url", e.target.value)}
+                placeholder="https://yourbusiness.com/careers/apply"
+                className={inputClass}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
