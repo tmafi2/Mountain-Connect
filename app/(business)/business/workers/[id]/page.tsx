@@ -66,6 +66,7 @@ export default function BusinessWorkerProfilePage() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [endorsements, setEndorsements] = useState<Record<string, { count: number; names: string[] }>>({});
 
   useEffect(() => {
     async function load() {
@@ -81,6 +82,22 @@ export default function BusinessWorkerProfilePage() {
         const p = data as any;
         if (p.avatar_url) setAvatarUrl(p.avatar_url);
         else if (p.profile_photo_url) setAvatarUrl(p.profile_photo_url);
+
+        // Fetch skill endorsements
+        const { data: endData } = await supabase
+          .from("skill_endorsements")
+          .select("skill, endorsed_by_name")
+          .eq("worker_id", workerId);
+
+        if (endData && endData.length > 0) {
+          const map: Record<string, { count: number; names: string[] }> = {};
+          for (const e of endData) {
+            if (!map[e.skill]) map[e.skill] = { count: 0, names: [] };
+            map[e.skill].count++;
+            if (e.endorsed_by_name) map[e.skill].names.push(e.endorsed_by_name);
+          }
+          setEndorsements(map);
+        }
       }
       setLoading(false);
     }
@@ -298,7 +315,7 @@ export default function BusinessWorkerProfilePage() {
           )}
         </Section>
 
-        {/* ── Skills ─────────────────────────────────────── */}
+        {/* ── Skills & Endorsements ──────────────────────── */}
         {profile.skills && profile.skills.length > 0 && (
           <Section
             icon={<svg className="h-5 w-5 text-highlight" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>}
@@ -306,12 +323,37 @@ export default function BusinessWorkerProfilePage() {
             title="Skills"
           >
             <div className="flex flex-wrap gap-2">
-              {profile.skills.map((s) => (
-                <span key={s} className="rounded-full bg-secondary/15 px-3 py-1.5 text-sm font-medium text-primary">
-                  {s}
-                </span>
-              ))}
+              {profile.skills.map((s) => {
+                const end = endorsements[s];
+                return (
+                  <span
+                    key={s}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                      end ? "bg-green-100 text-green-800 border border-green-200" : "bg-secondary/15 text-primary"
+                    }`}
+                    title={end ? `Endorsed by ${end.names.slice(0, 3).join(", ")}${end.names.length > 3 ? ` +${end.names.length - 3} more` : ""}` : undefined}
+                  >
+                    {s}
+                    {end && (
+                      <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-green-600">
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {end.count}
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
             </div>
+            {Object.keys(endorsements).length > 0 && (
+              <p className="mt-3 text-xs text-foreground/40">
+                <svg className="mr-1 inline h-3 w-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Green badges indicate skills endorsed by previous employers
+              </p>
+            )}
           </Section>
         )}
 
