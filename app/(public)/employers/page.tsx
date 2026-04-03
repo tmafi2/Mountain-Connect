@@ -20,6 +20,8 @@ interface Business {
   active_listings: number;
   operates_in_town: boolean;
   nearby_town_id: string | null;
+  avg_rating: number;
+  review_count: number;
 }
 
 const INDUSTRY_LABELS: Record<string, string> = {
@@ -245,6 +247,21 @@ export default function EmployersPage() {
           setLegacyResortMap(legacyMap);
         }
 
+        // Fetch review stats per business
+        const { data: reviewData } = await supabase
+          .from("business_reviews")
+          .select("business_id, rating")
+          .in("business_id", bizIds);
+
+        const reviewStats: Record<string, { total: number; sum: number }> = {};
+        if (reviewData) {
+          for (const r of reviewData) {
+            if (!reviewStats[r.business_id]) reviewStats[r.business_id] = { total: 0, sum: 0 };
+            reviewStats[r.business_id].total++;
+            reviewStats[r.business_id].sum += r.rating;
+          }
+        }
+
         const mapped: Business[] = bps.map((b) => ({
           id: b.id,
           business_name: b.business_name,
@@ -259,6 +276,8 @@ export default function EmployersPage() {
           active_listings: jobCounts[b.id] || 0,
           operates_in_town: b.operates_in_town ?? false,
           nearby_town_id: b.nearby_town_id ?? null,
+          avg_rating: reviewStats[b.id] ? reviewStats[b.id].sum / reviewStats[b.id].total : 0,
+          review_count: reviewStats[b.id]?.total || 0,
         }));
 
         setBusinesses(mapped);
@@ -536,6 +555,14 @@ export default function EmployersPage() {
                         </svg>
                         Verified
                       </span>
+                      {biz.review_count > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600">
+                          <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {biz.avg_rating.toFixed(1)} ({biz.review_count})
+                        </span>
+                      )}
                       {biz.active_listings > 0 && (
                         <span className="flex items-center gap-1 text-[10px] font-medium text-foreground/40">
                           <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -752,19 +779,29 @@ export default function EmployersPage() {
                         </div>
                       )}
 
-                      {/* Resort names + active listings */}
+                      {/* Resort names + rating + active listings */}
                       <div className="mt-3 flex items-center justify-between border-t border-accent/30 pt-3">
-                        <div className="flex items-center gap-1 text-[11px] text-foreground/40 min-w-0">
-                          {biz.resort_names.length > 0 ? (
-                            <>
-                              <svg className="h-3 w-3 shrink-0 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center gap-1 text-[11px] text-foreground/40 min-w-0">
+                            {biz.resort_names.length > 0 ? (
+                              <>
+                                <svg className="h-3 w-3 shrink-0 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+                                </svg>
+                                <span className="truncate">{biz.resort_names.slice(0, 2).join(", ")}</span>
+                                {biz.resort_names.length > 2 && <span>+{biz.resort_names.length - 2}</span>}
+                              </>
+                            ) : (
+                              <span className="text-foreground/30">No resort linked</span>
+                            )}
+                          </div>
+                          {biz.review_count > 0 && (
+                            <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600">
+                              <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                               </svg>
-                              <span className="truncate">{biz.resort_names.slice(0, 2).join(", ")}</span>
-                              {biz.resort_names.length > 2 && <span>+{biz.resort_names.length - 2}</span>}
-                            </>
-                          ) : (
-                            <span className="text-foreground/30">No resort linked</span>
+                              {biz.avg_rating.toFixed(1)} ({biz.review_count})
+                            </span>
                           )}
                         </div>
                         {biz.active_listings > 0 && (
