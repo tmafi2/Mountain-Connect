@@ -1,3 +1,19 @@
+export type BlogPostStatus = "draft" | "published";
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string | null;
+  hero_image_url: string | null;
+  status: BlogPostStatus;
+  published_at: string | null;
+  author_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export type UserRole = "worker" | "business_owner" | "admin";
 export type ApplicationStatus = "new" | "viewed" | "interview_pending" | "interview" | "offered" | "accepted" | "rejected";
 export type VisaStatus = "citizen" | "permanent_resident" | "working_holiday" | "work_visa" | "student_visa" | "no_visa" | "other";
