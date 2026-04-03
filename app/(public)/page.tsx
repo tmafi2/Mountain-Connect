@@ -509,6 +509,72 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══ Testimonials ════════════════════════════���══════ */}
+      <section className="relative py-24 bg-white">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center animate-on-scroll">
+            <span className="text-sm font-bold uppercase tracking-widest text-secondary">What People Say</span>
+            <h2 className="mt-3 text-4xl font-extrabold text-primary md:text-5xl">
+              Trusted by the mountain community
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/60">
+              Hear from workers and businesses who found their perfect match
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {[
+              {
+                quote: "Mountain Connect made finding a season job so much easier. I landed a ski instructor role in Whistler within two weeks of signing up.",
+                name: "Sarah K.",
+                role: "Ski Instructor",
+                location: "Whistler, Canada",
+                rating: 5,
+              },
+              {
+                quote: "We posted our first listing and had quality applicants within days. The platform attracts exactly the kind of workers we need for the season.",
+                name: "Alpine Lodge Co.",
+                role: "Accommodation Business",
+                location: "Niseko, Japan",
+                rating: 5,
+              },
+              {
+                quote: "The job alerts feature is a game-changer. I got notified the moment a bartending job opened at my dream resort and applied straight away.",
+                name: "Marcus T.",
+                role: "Bartender",
+                location: "Chamonix, France",
+                rating: 5,
+              },
+            ].map((testimonial, i) => (
+              <div
+                key={i}
+                className="animate-on-scroll rounded-2xl border border-accent/30 bg-gradient-to-b from-white to-background/50 p-6 shadow-sm"
+              >
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg
+                      key={star}
+                      className={`h-4 w-4 ${star <= testimonial.rating ? "text-amber-400" : "text-gray-200"}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-foreground/70">
+                  &ldquo;{testimonial.quote}&rdquo;
+                </p>
+                <div className="mt-5 border-t border-accent/30 pt-4">
+                  <p className="text-sm font-semibold text-primary">{testimonial.name}</p>
+                  <p className="text-xs text-foreground/50">{testimonial.role} &middot; {testimonial.location}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══ CTA — Final section ═══════════════════════════ */}
       <section className="relative overflow-hidden py-28">
         <div className="mx-auto max-w-4xl px-6 text-center">
