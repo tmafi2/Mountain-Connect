@@ -110,6 +110,23 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     .order("created_at", { ascending: false })
     .limit(12);
 
+  // Get business reviews from workers
+  const { data: reviews } = await supabase
+    .from("business_reviews")
+    .select("id, rating, title, review_text, season, position, would_recommend, created_at, worker_profiles!worker_id(users!user_id(full_name))")
+    .eq("business_id", id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  // Calculate review stats
+  const reviewCount = reviews?.length || 0;
+  const avgRating = reviewCount > 0
+    ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+    : 0;
+  const recommendPct = reviewCount > 0
+    ? Math.round((reviews!.filter((r) => r.would_recommend).length / reviewCount) * 100)
+    : 0;
+
   // Parse perks and social links
   const perks: string[] = Array.isArray(business.standard_perks) ? business.standard_perks : [];
   const socialLinks = business.social_links as Record<string, string> | null;
@@ -478,6 +495,113 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
               </div>
             )}
           </section>
+
+          {/* Reviews */}
+          <section className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
+              <svg className="h-5 w-5 text-secondary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              </svg>
+              Worker Reviews
+              {reviewCount > 0 && (
+                <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                  {reviewCount}
+                </span>
+              )}
+            </h2>
+
+            {reviewCount === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-accent/50 bg-accent/5 p-8 text-center">
+                <svg className="mx-auto h-10 w-10 text-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+                <p className="mt-3 text-sm font-medium text-foreground/50">No reviews yet</p>
+                <p className="mt-1 text-xs text-foreground/35">Workers who have worked here can leave a review</p>
+              </div>
+            ) : (
+              <>
+                {/* Review Summary */}
+                <div className="mt-4 flex items-center gap-6 rounded-xl bg-amber-50/60 p-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-primary">{avgRating.toFixed(1)}</p>
+                    <div className="mt-1 flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`h-4 w-4 ${star <= Math.round(avgRating) ? "text-amber-400" : "text-gray-200"}`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-foreground/50">{reviewCount} review{reviewCount !== 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="h-12 w-px bg-amber-200" />
+                  <div>
+                    <p className="text-sm font-semibold text-primary">{recommendPct}% recommend</p>
+                    <p className="text-xs text-foreground/50">of workers would work here again</p>
+                  </div>
+                </div>
+
+                {/* Individual Reviews */}
+                <div className="mt-4 space-y-4">
+                  {reviews!.map((review) => {
+                    const reviewerName = (review.worker_profiles as unknown as { users: { full_name: string } | null })?.users?.full_name || "Anonymous Worker";
+                    return (
+                      <div key={review.id} className="rounded-xl border border-accent/20 bg-white p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <svg
+                                    key={star}
+                                    className={`h-3.5 w-3.5 ${star <= review.rating ? "text-amber-400" : "text-gray-200"}`}
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                ))}
+                              </div>
+                              {review.title && (
+                                <span className="text-sm font-semibold text-primary">{review.title}</span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-foreground/40">
+                              <span>{reviewerName}</span>
+                              {review.position && (
+                                <>
+                                  <span>&middot;</span>
+                                  <span>{review.position}</span>
+                                </>
+                              )}
+                              {review.season && (
+                                <>
+                                  <span>&middot;</span>
+                                  <span>{review.season}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {review.would_recommend && (
+                            <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                              Recommends
+                            </span>
+                          )}
+                        </div>
+                        {review.review_text && (
+                          <p className="mt-3 text-sm leading-relaxed text-foreground/70">{review.review_text}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </section>
         </div>
 
         {/* ═══ SIDEBAR ═══════════════════════════════════ */}
@@ -487,6 +611,19 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
           <div className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/40">Quick Info</h3>
             <div className="mt-4 space-y-4">
+              {reviewCount > 0 && (
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+                    <svg className="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-foreground/40">Rating</p>
+                    <p className="text-sm font-medium text-primary">{avgRating.toFixed(1)} / 5 <span className="text-foreground/40 font-normal">({reviewCount} review{reviewCount !== 1 ? "s" : ""})</span></p>
+                  </div>
+                </div>
+              )}
               {(business.location || business.country) && (
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">

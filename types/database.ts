@@ -157,6 +157,20 @@ export interface EmployerReview {
   created_at: string;
 }
 
+export interface BusinessReview {
+  id: string;
+  worker_id: string;
+  business_id: string;
+  rating: number;
+  title: string | null;
+  review_text: string | null;
+  season: string | null;
+  position: string | null;
+  would_recommend: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SkillEndorsement {
   id: string;
   worker_id: string;
