@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
+import { sendJobAlertMatchEmail } from "@/lib/email/send";
+import { formatPay } from "@/lib/utils/format-pay";
 
 /**
  * POST /api/job-alerts/match
@@ -17,7 +19,7 @@ export async function POST(request: Request) {
     // Fetch the new job details
     const { data: job } = await supabase
       .from("job_posts")
-      .select("id, title, category, position_type, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, urgently_hiring, business_profiles(business_name, location, country), resorts(name)")
+      .select("id, title, category, position_type, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, urgently_hiring, pay_amount, pay_currency, salary_range, business_profiles(business_name, location, country), resorts(name)")
       .eq("id", jobId)
       .single();
 
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
       if (matches) {
         matched++;
         try {
+          // In-app notification
           await createNotification({
             userId: alert.user_id,
             type: "job_alert_match",
@@ -86,6 +89,30 @@ export async function POST(request: Request) {
             link: `/jobs/${job.id}`,
             metadata: { job_id: job.id, alert_id: alert.id },
           });
+
+          // Email notification
+          const { data: workerUser } = await supabase.auth.admin.getUserById(alert.user_id);
+          if (workerUser?.user?.email) {
+            const { data: workerProfile } = await supabase
+              .from("worker_profiles")
+              .select("first_name")
+              .eq("user_id", alert.user_id)
+              .single();
+
+            const payDisplay = formatPay((job as any).pay_amount, (job as any).pay_currency, (job as any).salary_range);
+
+            sendJobAlertMatchEmail({
+              to: workerUser.user.email,
+              workerName: workerProfile?.first_name || "there",
+              alertName: alert.name,
+              jobTitle: job.title,
+              businessName: business?.business_name || "a resort business",
+              location: business?.location || "",
+              pay: payDisplay,
+              jobUrl: `https://www.mountainconnects.com/jobs/${job.id}`,
+              alertsUrl: "https://www.mountainconnects.com/job-alerts",
+            }).catch((err) => console.error(`Failed to email user ${alert.user_id}:`, err));
+          }
         } catch (err) {
           console.error(`Failed to notify user ${alert.user_id}:`, err);
         }

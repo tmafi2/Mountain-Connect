@@ -12,6 +12,7 @@ import { businessVerifiedEmail } from "./templates/business-verified";
 import { welcomeWorkerEmail } from "./templates/welcome-worker";
 import { welcomeBusinessEmail } from "./templates/welcome-business";
 import { newMessageEmail } from "./templates/new-message";
+import { jobAlertMatchEmail } from "./templates/job-alert-match";
 
 const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
 
@@ -218,5 +219,22 @@ export async function sendNewMessageEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = newMessageEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendJobAlertMatchEmail(params: {
+  to: string;
+  workerName: string;
+  alertName: string;
+  jobTitle: string;
+  businessName: string;
+  location: string;
+  pay: string;
+  jobUrl: string;
+  alertsUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = jobAlertMatchEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }

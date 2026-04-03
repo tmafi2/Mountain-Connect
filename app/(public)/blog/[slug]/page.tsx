@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
 import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
+import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
 
 interface BlogPostPageProps {
@@ -154,6 +155,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {/* Content */}
         <MarkdownRenderer content={post.content} />
+
+        {/* Share */}
+        <div className="mt-12 border-t border-accent/30 pt-6">
+          <p className="mb-3 text-sm font-medium text-primary/70">Share this article</p>
+          <ShareButtons
+            url={`https://www.mountainconnects.com/blog/${slug}`}
+            title={post.title}
+            description={post.excerpt || undefined}
+          />
+        </div>
       </article>
     </>
   );

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobApplyButton from "./JobApplyButton";
+import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
 
 interface JobPageProps {
@@ -417,10 +418,14 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               </Link>
             )}
 
-            {/* Quick share / save hint */}
-            <div className="rounded-2xl border border-dashed border-accent/60 bg-accent/5 p-4 text-center">
-              <p className="text-xs text-foreground/40">Know someone who'd be perfect?</p>
-              <p className="text-xs font-medium text-primary/70 mt-1">Share this job listing</p>
+            {/* Share this job */}
+            <div className="rounded-2xl border border-accent/30 bg-white p-4">
+              <p className="text-xs font-medium text-primary/70 mb-3">Know someone who'd be perfect? Share this job:</p>
+              <ShareButtons
+                url={`https://www.mountainconnects.com/jobs/${id}`}
+                title={`${job.title} at ${biz?.business_name || "Mountain Connect"}`}
+                description={`Check out this ${positionLabel.toLowerCase()} position at ${biz?.business_name}${resort?.name ? ` — ${resort.name}` : ""}. Apply on Mountain Connect.`}
+              />
             </div>
           </div>
         </div>
