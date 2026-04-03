@@ -8,9 +8,44 @@ import { formatPay } from "@/lib/utils/format-pay";
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
 
 interface ResortPageProps {
   params: Promise<{ id: string }>;
+}
+
+const BASE_URL = "https://www.mountainconnects.com";
+
+export async function generateMetadata({ params }: ResortPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const resort = resorts.find((r) => r.id === id);
+
+  if (!resort) return { title: "Resort Not Found | Mountain Connect" };
+
+  const region = regions.find((r) => r.id === resort.region_id);
+  const title = `${resort.name} — Seasonal Jobs & Resort Guide | Mountain Connect`;
+  const description = resort.description
+    ? resort.description.slice(0, 155) + (resort.description.length > 155 ? "..." : "")
+    : `Find seasonal work at ${resort.name}, ${resort.country}. Jobs, housing, and resort info for seasonal workers.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `${BASE_URL}/resorts/${id}` },
+    openGraph: {
+      title: `${resort.name} — Seasonal Jobs & Resort Guide`,
+      description,
+      url: `${BASE_URL}/resorts/${id}`,
+      siteName: "Mountain Connect",
+      type: "website",
+      ...(resort.banner_image_url && { images: [{ url: resort.banner_image_url, width: 1200, height: 630 }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${resort.name} — Seasonal Jobs & Resort Guide`,
+      description,
+    },
+  };
 }
 
 function StatCard({

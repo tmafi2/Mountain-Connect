@@ -3,9 +3,55 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobApplyButton from "./JobApplyButton";
+import type { Metadata } from "next";
 
 interface JobPageProps {
   params: Promise<{ id: string }>;
+}
+
+const BASE_URL = "https://www.mountainconnects.com";
+
+export async function generateMetadata({ params }: JobPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: job } = await supabase
+    .from("job_posts")
+    .select(`
+      title, description, pay_amount, pay_currency, salary_range, position_type, category,
+      start_date, end_date, accommodation_included, created_at,
+      business_profiles!inner(business_name, location),
+      resorts(name, country)
+    `)
+    .eq("id", id)
+    .single();
+
+  if (!job) return { title: "Job Not Found | Mountain Connect" };
+
+  const biz = job.business_profiles as any;
+  const resort = job.resorts as any;
+  const title = `${job.title} at ${biz?.business_name || "Mountain Connect"}${resort?.name ? ` — ${resort.name}` : ""}`;
+  const description = job.description
+    ? job.description.slice(0, 155) + (job.description.length > 155 ? "..." : "")
+    : `${job.title} position at ${biz?.business_name}. Apply now on Mountain Connect.`;
+
+  return {
+    title: `${title} | Mountain Connect`,
+    description,
+    alternates: { canonical: `${BASE_URL}/jobs/${id}` },
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}/jobs/${id}`,
+      siteName: "Mountain Connect",
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
 }
 
 export default async function JobDetailPage({ params }: JobPageProps) {
@@ -39,7 +85,40 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
   const payDisplay = formatPay(job.pay_amount, job.pay_currency, job.salary_range);
 
+  // JobPosting JSON-LD structured data
+  const employmentType = job.position_type === "full_time" ? "FULL_TIME" : job.position_type === "part_time" ? "PART_TIME" : "TEMPORARY";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description || "",
+    datePosted: job.created_at,
+    employmentType,
+    hiringOrganization: {
+      "@type": "Organization",
+      name: biz?.business_name || "Mountain Connect",
+      sameAs: `${BASE_URL}/business/${biz?.id}`,
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: biz?.location || resort?.name || "",
+        addressCountry: resort?.country || "",
+      },
+    },
+    ...(job.start_date && { validThrough: job.end_date || job.start_date }),
+    ...(job.accommodation_included && {
+      jobBenefits: "Staff accommodation included",
+    }),
+  };
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="min-h-screen bg-background">
       {/* ── Hero Header ───────────────────────────────────────── */}
       <div className="relative overflow-hidden">
@@ -347,6 +426,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
