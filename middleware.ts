@@ -46,8 +46,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Let crawlers access sitemap and robots without the access cookie
+  const isCrawlerFile = pathname === "/sitemap.xml" || pathname === "/robots.txt";
+
   // Redirect to access page if no cookie (skip session refresh for speed)
-  if (!isTestPortals && !isAuthRoute && !hasAccessCookie) {
+  if (!isTestPortals && !isAuthRoute && !isCrawlerFile && !hasAccessCookie) {
     return NextResponse.redirect(new URL("/access", request.url));
   }
 
