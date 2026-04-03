@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
     if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { title, content, excerpt, hero_image_url, status } = await request.json();
+    const { title, content, excerpt, hero_image_url, status, author_name } = await request.json();
     if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
     // Generate unique slug
@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       hero_image_url: hero_image_url || null,
       status: status || "draft",
       author_id: user.id,
+      author_name: author_name || null,
     };
 
     if (postData.status === "published") {

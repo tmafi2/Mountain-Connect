@@ -29,7 +29,7 @@ export default async function BlogListingPage() {
 
   const { data: posts } = await supabase
     .from("blog_posts")
-    .select("id, title, slug, excerpt, hero_image_url, published_at, users!author_id(full_name)")
+    .select("id, title, slug, excerpt, hero_image_url, published_at, author_name, users!author_id(full_name)")
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
@@ -86,9 +86,9 @@ export default async function BlogListingPage() {
                   </p>
                 )}
                 <div className="flex items-center gap-2 text-xs text-foreground/40">
-                  {(post.users as unknown as { full_name: string })?.full_name && (
+                  {(post.author_name || (post.users as unknown as { full_name: string })?.full_name) && (
                     <>
-                      <span>{(post.users as unknown as { full_name: string }).full_name}</span>
+                      <span>{post.author_name || (post.users as unknown as { full_name: string }).full_name}</span>
                       <span>&middot;</span>
                     </>
                   )}

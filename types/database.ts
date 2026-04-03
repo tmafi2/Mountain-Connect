@@ -10,6 +10,7 @@ export interface BlogPost {
   status: BlogPostStatus;
   published_at: string | null;
   author_id: string;
+  author_name: string | null;
   created_at: string;
   updated_at: string;
 }

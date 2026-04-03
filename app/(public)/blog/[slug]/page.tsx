@@ -66,6 +66,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) notFound();
 
   const author = post.users as unknown as { full_name: string; avatar_url: string | null } | null;
+  const authorName = post.author_name || author?.full_name || "Mountain Connect";
 
   // JSON-LD structured data
   const jsonLd = {
@@ -78,7 +79,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     dateModified: post.updated_at,
     author: {
       "@type": "Person",
-      name: author?.full_name || "Mountain Connect",
+      name: authorName,
     },
     publisher: {
       "@type": "Organization",
@@ -128,10 +129,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {/* Author + Date */}
         <div className="mb-8 flex items-center gap-3 border-b border-accent/30 pb-6">
-          {author?.avatar_url && (
+          {!post.author_name && author?.avatar_url && (
             <Image
               src={author.avatar_url}
-              alt={author.full_name}
+              alt={authorName}
               width={40}
               height={40}
               className="rounded-full"
@@ -139,8 +140,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             />
           )}
           <div>
-            {author?.full_name && (
-              <p className="text-sm font-medium text-primary">{author.full_name}</p>
+            {authorName && (
+              <p className="text-sm font-medium text-primary">{authorName}</p>
             )}
             {post.published_at && (
               <time

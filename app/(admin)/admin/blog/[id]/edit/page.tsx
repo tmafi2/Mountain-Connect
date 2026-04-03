@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import BlogEditor from "@/components/admin/BlogEditor";
 import type { BlogPost } from "@/types/database";
 
@@ -11,6 +12,16 @@ export default function EditBlogPostPage() {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState("");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setCurrentUserName(data.user.user_metadata?.full_name || data.user.email || "");
+      }
+    });
+  }, []);
 
   useEffect(() => {
     async function loadPost() {
@@ -37,6 +48,7 @@ export default function EditBlogPostPage() {
     excerpt: string;
     hero_image_url: string;
     status: string;
+    author_name: string;
   }) => {
     setSaving(true);
     try {
@@ -123,6 +135,7 @@ export default function EditBlogPostPage() {
           postId={post.id}
           onSave={handleSave}
           saving={saving}
+          currentUserName={currentUserName}
         />
       </div>
     </div>

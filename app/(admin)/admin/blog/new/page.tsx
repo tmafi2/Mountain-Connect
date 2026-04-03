@@ -1,13 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import BlogEditor from "@/components/admin/BlogEditor";
 
 export default function NewBlogPostPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [postId, setPostId] = useState<string | undefined>();
+  const [currentUserName, setCurrentUserName] = useState("");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setCurrentUserName(data.user.user_metadata?.full_name || data.user.email || "");
+      }
+    });
+  }, []);
 
   const handleSave = async (data: {
     title: string;
@@ -16,6 +27,7 @@ export default function NewBlogPostPage() {
     excerpt: string;
     hero_image_url: string;
     status: string;
+    author_name: string;
   }) => {
     setSaving(true);
     try {
@@ -79,6 +91,7 @@ export default function NewBlogPostPage() {
           onSave={handleSave}
           saving={saving}
           postId={postId}
+          currentUserName={currentUserName}
         />
       </div>
     </div>

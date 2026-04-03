@@ -5,11 +5,13 @@ import Image from "next/image";
 import { slugify } from "@/lib/utils/slugify";
 import { uploadBlogImage, deleteBlogImage } from "@/lib/supabase/blog-storage";
 import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
+import ImageCropper from "@/components/admin/ImageCropper";
 import type { BlogPost } from "@/types/database";
 
 interface BlogEditorProps {
   initialData?: Partial<BlogPost>;
   postId?: string; // Needed for image uploads
+  currentUserName?: string; // Logged-in user's full name
   onSave: (data: {
     title: string;
     slug: string;
@@ -17,11 +19,12 @@ interface BlogEditorProps {
     excerpt: string;
     hero_image_url: string;
     status: string;
+    author_name: string;
   }) => Promise<void>;
   saving: boolean;
 }
 
-export default function BlogEditor({ initialData, postId, onSave, saving }: BlogEditorProps) {
+export default function BlogEditor({ initialData, postId, currentUserName, onSave, saving }: BlogEditorProps) {
   const [title, setTitle] = useState(initialData?.title || "");
   const [slug, setSlug] = useState(initialData?.slug || "");
   const [slugEdited, setSlugEdited] = useState(false);
@@ -31,6 +34,15 @@ export default function BlogEditor({ initialData, postId, onSave, saving }: Blog
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [uploadingHero, setUploadingHero] = useState(false);
   const [uploadingInline, setUploadingInline] = useState(false);
+
+  // Author state
+  const hasCustomAuthor = !!initialData?.author_name;
+  const [authorMode, setAuthorMode] = useState<"account" | "custom">(hasCustomAuthor ? "custom" : "account");
+  const [customAuthorName, setCustomAuthorName] = useState(initialData?.author_name || "");
+
+  // Image cropper state
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const heroInputRef = useRef<HTMLInputElement>(null);
@@ -43,22 +55,56 @@ export default function BlogEditor({ initialData, postId, onSave, saving }: Blog
     }
   };
 
-  const handleHeroUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // When a hero image file is selected, open the cropper instead of uploading directly
+  const handleHeroFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !postId) return;
+    if (!file) return;
 
+    setCropFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so the same file can be re-selected
+    if (heroInputRef.current) heroInputRef.current.value = "";
+  }, []);
+
+  // After cropping, upload the cropped blob
+  const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
+    if (!postId || !cropFile) return;
+
+    setCropImageSrc(null);
     setUploadingHero(true);
+
     try {
-      const url = await uploadBlogImage(postId, file, "hero");
+      // Create a File from the blob using the original filename
+      const croppedFile = new File([croppedBlob], cropFile.name, { type: "image/jpeg" });
+      const url = await uploadBlogImage(postId, croppedFile, "hero");
       setHeroImageUrl(url);
     } catch (err) {
       console.error("Hero upload failed:", err);
       alert("Failed to upload hero image. Please try again.");
     } finally {
       setUploadingHero(false);
-      if (heroInputRef.current) heroInputRef.current.value = "";
+      setCropFile(null);
     }
-  }, [postId]);
+  }, [postId, cropFile]);
+
+  const handleCropCancel = useCallback(() => {
+    setCropImageSrc(null);
+    setCropFile(null);
+  }, []);
+
+  // Re-crop: open cropper with the existing hero image
+  const handleRecrop = useCallback(() => {
+    if (heroImageUrl) {
+      setCropImageSrc(heroImageUrl);
+      // No file needed for re-crop since we'll upload from blob
+      setCropFile(new File([], "hero-recrop.jpg", { type: "image/jpeg" }));
+    }
+  }, [heroImageUrl]);
 
   const handleRemoveHero = useCallback(async () => {
     if (heroImageUrl) {
@@ -126,11 +172,22 @@ export default function BlogEditor({ initialData, postId, onSave, saving }: Blog
       excerpt,
       hero_image_url: heroImageUrl,
       status,
+      author_name: authorMode === "custom" ? customAuthorName : "",
     });
   };
 
   return (
     <div className="space-y-6">
+      {/* Image Cropper Modal */}
+      {cropImageSrc && (
+        <ImageCropper
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspect={16 / 9}
+        />
+      )}
+
       {/* Title */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-primary">Title</label>
@@ -171,6 +228,48 @@ export default function BlogEditor({ initialData, postId, onSave, saving }: Blog
         </div>
       </div>
 
+      {/* Author */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-primary">Author</label>
+        <div className="flex items-center gap-3 mb-2">
+          <button
+            type="button"
+            onClick={() => setAuthorMode("account")}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              authorMode === "account"
+                ? "bg-secondary/15 text-secondary"
+                : "bg-background text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            My Account
+          </button>
+          <button
+            type="button"
+            onClick={() => setAuthorMode("custom")}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              authorMode === "custom"
+                ? "bg-secondary/15 text-secondary"
+                : "bg-background text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            Custom Name
+          </button>
+        </div>
+        {authorMode === "account" ? (
+          <p className="text-sm text-foreground/60">
+            Will be published as <span className="font-medium text-primary">{currentUserName || "your account name"}</span>
+          </p>
+        ) : (
+          <input
+            type="text"
+            value={customAuthorName}
+            onChange={(e) => setCustomAuthorName(e.target.value)}
+            placeholder="Enter author name..."
+            className="w-full rounded-lg border border-accent/50 bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/30 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+          />
+        )}
+      </div>
+
       {/* Excerpt */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-primary">
@@ -202,15 +301,46 @@ export default function BlogEditor({ initialData, postId, onSave, saving }: Blog
                 unoptimized
               />
             </div>
-            <button
-              type="button"
-              onClick={handleRemoveHero}
-              className="absolute top-2 right-2 rounded-full bg-red-500 p-1.5 text-white shadow hover:bg-red-600"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="absolute top-2 right-2 flex gap-1.5">
+              <button
+                type="button"
+                onClick={handleRecrop}
+                className="rounded-full bg-white/90 p-1.5 text-foreground/70 shadow hover:bg-white hover:text-primary"
+                title="Crop & zoom"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => heroInputRef.current?.click()}
+                className="rounded-full bg-white/90 p-1.5 text-foreground/70 shadow hover:bg-white hover:text-primary"
+                title="Replace image"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveHero}
+                className="rounded-full bg-red-500 p-1.5 text-white shadow hover:bg-red-600"
+                title="Remove image"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <input
+              ref={heroInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleHeroFileSelect}
+              disabled={uploadingHero || !postId}
+              className="hidden"
+            />
           </div>
         ) : (
           <div>
@@ -218,7 +348,7 @@ export default function BlogEditor({ initialData, postId, onSave, saving }: Blog
               ref={heroInputRef}
               type="file"
               accept="image/*"
-              onChange={handleHeroUpload}
+              onChange={handleHeroFileSelect}
               disabled={uploadingHero || !postId}
               className="hidden"
               id="hero-upload"

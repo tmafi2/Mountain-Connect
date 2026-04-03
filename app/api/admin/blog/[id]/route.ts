@@ -61,6 +61,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (body.content !== undefined) updates.content = body.content;
     if (body.excerpt !== undefined) updates.excerpt = body.excerpt || null;
     if (body.hero_image_url !== undefined) updates.hero_image_url = body.hero_image_url || null;
+    if (body.author_name !== undefined) updates.author_name = body.author_name || null;
 
     // Handle slug update if title changed
     if (body.slug !== undefined) {
