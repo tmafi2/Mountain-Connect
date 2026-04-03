@@ -738,7 +738,7 @@ function BusinessSetup({
         logo_url: logoUrl,
         email: user.email ?? null,
         is_verified: false,
-        verification_status: "unverified",
+        verification_status: "pending_review",
       });
 
       if (profileError) {

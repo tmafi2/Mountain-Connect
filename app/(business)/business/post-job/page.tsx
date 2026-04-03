@@ -117,6 +117,7 @@ export default function PostJobPage() {
   const [error, setError] = useState<string | null>(null);
   const [existingDrafts, setExistingDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [businessVerified, setBusinessVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Resort search state
@@ -173,11 +174,12 @@ export default function PostJobPage() {
       if (!user) { setLoading(false); return; }
       const { data: bp } = await supabase
         .from("business_profiles")
-        .select("id")
+        .select("id, verification_status")
         .eq("user_id", user.id)
         .single();
       if (bp) {
         setBusinessId(bp.id);
+        setBusinessVerified(bp.verification_status === "verified");
         // Load existing drafts
         const { data: drafts } = await supabase
           .from("job_posts")
@@ -926,6 +928,16 @@ export default function PostJobPage() {
         </div>
       </div>
 
+      {/* Pending approval banner */}
+      {!businessVerified && businessId && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          Your account is pending approval. Job listings will be saved as drafts and can be published once your registration is confirmed.
+        </div>
+      )}
+
       {/* Error display */}
       {error && (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -949,20 +961,30 @@ export default function PostJobPage() {
         >
           {savingDraft ? "Saving..." : "Save as Draft"}
         </button>
-        <button
-          onClick={handlePost}
-          disabled={posting || !form.title.trim()}
-          className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
-        >
-          {posting ? (
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              Posting...
-            </span>
-          ) : (
-            "Post Job"
-          )}
-        </button>
+        {businessVerified ? (
+          <button
+            onClick={handlePost}
+            disabled={posting || !form.title.trim()}
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
+          >
+            {posting ? (
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Posting...
+              </span>
+            ) : (
+              "Post Job"
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={handleSaveDraft}
+            disabled={savingDraft || !form.title.trim()}
+            className="rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-amber-600 hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {savingDraft ? "Saving..." : "Save as Draft (Pending Approval)"}
+          </button>
+        )}
       </div>
     </div>
   );

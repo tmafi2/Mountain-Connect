@@ -210,8 +210,8 @@ export default function AdminDashboardPage() {
     },
     {
       key: "pendingVerification",
-      label: "Pending Verification",
-      href: "/admin/verification",
+      label: "Pending Registrations",
+      href: "/admin/registrations",
       color: "text-yellow-700",
       iconBg: "bg-yellow-50 text-yellow-600",
       icon: (

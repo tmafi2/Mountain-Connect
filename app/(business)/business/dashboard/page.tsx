@@ -633,6 +633,49 @@ export default function BusinessDashboard() {
         </div>
       </div>
 
+      {/* ── Pending Registration Banner ─────────────────────────── */}
+      {(verificationStatus === "pending_review" || verificationStatus === "unverified") && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+              <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-900">Registration Under Review</h3>
+              <p className="mt-1 text-sm text-amber-800/70">
+                Your business registration has been submitted and is being reviewed by our team. This usually takes 1–2 business days.
+              </p>
+              <p className="mt-2 text-sm text-amber-800/70">
+                While you wait, you can <strong>set up your company profile</strong> and <strong>create draft job listings</strong>. Your profile and listings will go live once your registration is confirmed.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verificationStatus === "rejected" && (
+        <div className="rounded-2xl border border-red-200 bg-red-50/50 p-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100">
+              <svg className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-red-900">Registration Not Approved</h3>
+              <p className="mt-1 text-sm text-red-800/70">
+                Your registration was not approved. Please update your company profile and it will be re-reviewed automatically.
+              </p>
+              <Link href="/business/company-profile" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-red-700 hover:underline">
+                Update Profile →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Stats row — clean glass cards ──────────────────────── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
