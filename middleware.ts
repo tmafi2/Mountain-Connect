@@ -34,25 +34,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // ── Site-wide access gate ────────────────────────────────
-  const isAccessPage = pathname === "/access";
-  const isComingSoon = pathname === "/coming-soon";
-  const isTestPortals = pathname === "/test-portals";
   const isAuthRoute = pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/login" || pathname === "/signup" || pathname === "/signup-confirmation" || pathname === "/onboarding" || pathname.startsWith("/auth/");
-  const hasAccessCookie = request.cookies.get("site-access")?.value === "granted";
-
-  // Access gate pages don't need session at all
-  if (isAccessPage || isComingSoon) {
-    return NextResponse.next();
-  }
-
-  // Let crawlers access sitemap and robots without the access cookie
-  const isCrawlerFile = pathname === "/sitemap.xml" || pathname === "/robots.txt";
-
-  // Redirect to access page if no cookie (skip session refresh for speed)
-  if (!isTestPortals && !isAuthRoute && !isCrawlerFile && !hasAccessCookie) {
-    return NextResponse.redirect(new URL("/access", request.url));
-  }
 
   // ── Check if this is a protected route that needs auth ──
   const isWorkerRoute = WORKER_ROUTES.some(
