@@ -49,6 +49,7 @@ export default function EditBlogPostPage() {
     hero_image_url: string;
     status: string;
     author_name: string;
+    scheduled_at?: string | null;
   }) => {
     setSaving(true);
     try {
@@ -63,7 +64,8 @@ export default function EditBlogPostPage() {
       const { post: updated } = await res.json();
       setPost(updated);
 
-      if (data.status === "published" && post?.status !== "published") {
+      if ((data.status === "published" && post?.status !== "published") ||
+          (data.status === "scheduled" && post?.status !== "scheduled")) {
         router.push("/admin/blog");
       }
     } catch (err) {
@@ -119,6 +121,11 @@ export default function EditBlogPostPage() {
             >
               View live post &rarr;
             </a>
+          )}
+          {post.status === "scheduled" && post.scheduled_at && (
+            <p className="mt-1 text-sm text-blue-600">
+              Scheduled for {new Date(post.scheduled_at).toLocaleString()}
+            </p>
           )}
         </div>
         <button

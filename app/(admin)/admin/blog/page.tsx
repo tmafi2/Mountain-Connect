@@ -9,13 +9,14 @@ import type { BlogPost } from "@/types/database";
 const STATUS_STYLES = {
   draft: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Draft" },
   published: { bg: "bg-green-50", text: "text-green-700", label: "Published" },
+  scheduled: { bg: "bg-blue-50", text: "text-blue-700", label: "Scheduled" },
 };
 
 export default function AdminBlogPage() {
   const [posts, setPosts] = useState<(BlogPost & { users?: { full_name: string } })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published" | "scheduled">("all");
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,7 +54,8 @@ export default function AdminBlogPage() {
   }
 
   async function handleToggleStatus(post: BlogPost) {
-    const newStatus = post.status === "published" ? "draft" : "published";
+    // Scheduled/published → draft, draft → published
+    const newStatus = post.status === "draft" ? "published" : "draft";
     try {
       const res = await fetch(`/api/admin/blog/${post.id}`, {
         method: "PATCH",
@@ -114,12 +116,13 @@ export default function AdminBlogPage() {
         />
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "all" | "draft" | "published")}
+          onChange={(e) => setStatusFilter(e.target.value as "all" | "draft" | "published" | "scheduled")}
           className="rounded-lg border border-accent/50 bg-white px-3 py-2 text-sm text-foreground focus:border-secondary focus:outline-none"
         >
           <option value="all">All Status</option>
           <option value="draft">Draft</option>
           <option value="published">Published</option>
+          <option value="scheduled">Scheduled</option>
         </select>
       </div>
 
@@ -162,7 +165,18 @@ export default function AdminBlogPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground/60">
-                      {post.published_at ? format(new Date(post.published_at), "MMM d, yyyy") : "—"}
+                      {post.status === "scheduled" && post.scheduled_at ? (
+                        <span className="flex items-center gap-1 text-blue-600">
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {format(new Date(post.scheduled_at), "MMM d, yyyy h:mm a")}
+                        </span>
+                      ) : post.published_at ? (
+                        format(new Date(post.published_at), "MMM d, yyyy")
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground/60">
                       {format(new Date(post.created_at), "MMM d, yyyy")}
@@ -173,7 +187,7 @@ export default function AdminBlogPage() {
                           onClick={() => handleToggleStatus(post)}
                           className="rounded px-2 py-1 text-xs text-foreground/50 hover:bg-accent/20 hover:text-foreground"
                         >
-                          {post.status === "published" ? "Unpublish" : "Publish"}
+                          {post.status === "draft" ? "Publish" : post.status === "scheduled" ? "Unschedule" : "Unpublish"}
                         </button>
                         <Link
                           href={`/admin/blog/${post.id}/edit`}

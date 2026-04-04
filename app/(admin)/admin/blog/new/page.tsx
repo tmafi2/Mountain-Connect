@@ -28,6 +28,7 @@ export default function NewBlogPostPage() {
     hero_image_url: string;
     status: string;
     author_name: string;
+    scheduled_at?: string | null;
   }) => {
     setSaving(true);
     try {
@@ -41,7 +42,7 @@ export default function NewBlogPostPage() {
 
         if (!res.ok) throw new Error("Failed to update post");
 
-        if (data.status === "published") {
+        if (data.status === "published" || data.status === "scheduled") {
           router.push("/admin/blog");
         }
       } else {
@@ -57,7 +58,7 @@ export default function NewBlogPostPage() {
         const { post } = await res.json();
         setPostId(post.id);
 
-        if (data.status === "published") {
+        if (data.status === "published" || data.status === "scheduled") {
           router.push("/admin/blog");
         }
       }

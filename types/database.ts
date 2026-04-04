@@ -1,4 +1,4 @@
-export type BlogPostStatus = "draft" | "published";
+export type BlogPostStatus = "draft" | "published" | "scheduled";
 
 export interface BlogPost {
   id: string;
@@ -9,6 +9,7 @@ export interface BlogPost {
   hero_image_url: string | null;
   status: BlogPostStatus;
   published_at: string | null;
+  scheduled_at: string | null;
   author_id: string;
   author_name: string | null;
   created_at: string;

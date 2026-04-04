@@ -101,6 +101,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         if (!current?.published_at) {
           updates.published_at = new Date().toISOString();
         }
+        updates.scheduled_at = null;
+      } else if (body.status === "scheduled") {
+        if (!body.scheduled_at || new Date(body.scheduled_at) <= new Date()) {
+          return NextResponse.json({ error: "Scheduled time must be in the future" }, { status: 400 });
+        }
+        updates.scheduled_at = body.scheduled_at;
+        updates.published_at = null;
+      } else if (body.status === "draft") {
+        updates.scheduled_at = null;
       }
     }
 

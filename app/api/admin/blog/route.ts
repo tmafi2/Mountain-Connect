@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
     if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { title, content, excerpt, hero_image_url, status, author_name } = await request.json();
+    const { title, content, excerpt, hero_image_url, status, author_name, scheduled_at } = await request.json();
     if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
     // Generate unique slug
@@ -79,6 +79,11 @@ export async function POST(request: Request) {
 
     if (postData.status === "published") {
       postData.published_at = new Date().toISOString();
+    } else if (postData.status === "scheduled") {
+      if (!scheduled_at || new Date(scheduled_at) <= new Date()) {
+        return NextResponse.json({ error: "Scheduled time must be in the future" }, { status: 400 });
+      }
+      postData.scheduled_at = scheduled_at;
     }
 
     const { data: post, error } = await admin

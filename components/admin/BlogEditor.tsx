@@ -20,6 +20,7 @@ interface BlogEditorProps {
     hero_image_url: string;
     status: string;
     author_name: string;
+    scheduled_at?: string | null;
   }) => Promise<void>;
   saving: boolean;
 }
@@ -39,6 +40,21 @@ export default function BlogEditor({ initialData, postId, currentUserName, onSav
   const hasCustomAuthor = !!initialData?.author_name;
   const [authorMode, setAuthorMode] = useState<"account" | "custom">(hasCustomAuthor ? "custom" : "account");
   const [customAuthorName, setCustomAuthorName] = useState(initialData?.author_name || "");
+
+  // Schedule state
+  const [showSchedule, setShowSchedule] = useState(initialData?.status === "scheduled");
+  const [scheduledAt, setScheduledAt] = useState(() => {
+    if (initialData?.scheduled_at) {
+      // Convert UTC to local datetime-local format
+      const d = new Date(initialData.scheduled_at);
+      return d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0") + "T" +
+        String(d.getHours()).padStart(2, "0") + ":" +
+        String(d.getMinutes()).padStart(2, "0");
+    }
+    return "";
+  });
 
   // Image cropper state
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -165,7 +181,7 @@ export default function BlogEditor({ initialData, postId, currentUserName, onSav
   };
 
   const handleSave = (status: string) => {
-    onSave({
+    const data: Parameters<typeof onSave>[0] = {
       title,
       slug,
       content,
@@ -173,7 +189,16 @@ export default function BlogEditor({ initialData, postId, currentUserName, onSav
       hero_image_url: heroImageUrl,
       status,
       author_name: authorMode === "custom" ? customAuthorName : "",
-    });
+    };
+
+    if (status === "scheduled") {
+      if (!scheduledAt) return;
+      data.scheduled_at = new Date(scheduledAt).toISOString();
+    } else {
+      data.scheduled_at = null;
+    }
+
+    onSave(data);
   };
 
   return (
@@ -519,6 +544,50 @@ export default function BlogEditor({ initialData, postId, currentUserName, onSav
         )}
       </div>
 
+      {/* Schedule Section */}
+      <div className="rounded-lg border border-accent/30 bg-background/50 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm font-medium text-primary">Schedule Publication</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowSchedule(!showSchedule);
+              if (showSchedule) setScheduledAt("");
+            }}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              showSchedule
+                ? "bg-blue-100 text-blue-700"
+                : "bg-background text-foreground/50 hover:text-foreground"
+            }`}
+          >
+            {showSchedule ? "Cancel Schedule" : "Set Schedule"}
+          </button>
+        </div>
+
+        {showSchedule && (
+          <div className="mt-3">
+            <label className="mb-1 block text-xs text-foreground/50">Publish Date & Time (your local timezone)</label>
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              className="w-full rounded-lg border border-accent/50 bg-white px-3 py-2 text-sm text-foreground focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+            />
+            {initialData?.status === "scheduled" && initialData?.scheduled_at && (
+              <p className="mt-1.5 text-xs text-blue-600">
+                Currently scheduled for {new Date(initialData.scheduled_at).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Action Buttons */}
       <div className="flex items-center gap-3 border-t border-accent/30 pt-4">
         <button
@@ -529,22 +598,33 @@ export default function BlogEditor({ initialData, postId, currentUserName, onSav
         >
           {saving ? "Saving..." : "Save Draft"}
         </button>
-        <button
-          type="button"
-          onClick={() => handleSave("published")}
-          disabled={saving || !title}
-          className="rounded-lg bg-secondary px-5 py-2.5 text-sm font-medium text-white hover:bg-secondary/90 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : initialData?.status === "published" ? "Update" : "Publish"}
-        </button>
-        {initialData?.status === "published" && (
+        {showSchedule && scheduledAt ? (
           <button
             type="button"
-            onClick={() => handleSave("draft")}
+            onClick={() => handleSave("scheduled")}
+            disabled={saving || !title || !scheduledAt}
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Schedule"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleSave("published")}
+            disabled={saving || !title}
+            className="rounded-lg bg-secondary px-5 py-2.5 text-sm font-medium text-white hover:bg-secondary/90 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : initialData?.status === "published" ? "Update" : "Publish Now"}
+          </button>
+        )}
+        {(initialData?.status === "published" || initialData?.status === "scheduled") && (
+          <button
+            type="button"
+            onClick={() => { setShowSchedule(false); setScheduledAt(""); handleSave("draft"); }}
             disabled={saving}
             className="rounded-lg border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
           >
-            Unpublish
+            {initialData?.status === "scheduled" ? "Unschedule" : "Unpublish"}
           </button>
         )}
       </div>
