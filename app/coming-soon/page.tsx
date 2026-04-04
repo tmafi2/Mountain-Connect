@@ -671,11 +671,18 @@ export default function ComingSoonPage() {
             }`}
           >
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-            Join{" "}
-            <span className="font-semibold text-white/50">
-              {waitlistCount.toLocaleString()}+
-            </span>{" "}
-            workers &amp; resorts already on the waitlist. No spam, ever.
+            {waitlistCount > 0 ? (
+              <>
+                Join{" "}
+                <span className="font-semibold text-white/50">
+                  {waitlistCount.toLocaleString()}
+                </span>{" "}
+                others on the waitlist.
+              </>
+            ) : (
+              <>Be the first to join the waitlist.</>
+            )}{" "}
+            No spam, ever.
           </p>
         </div>
 
@@ -752,13 +759,13 @@ export default function ComingSoonPage() {
 
         <div className="relative mx-auto flex max-w-5xl flex-col items-center justify-evenly gap-12 px-6 md:flex-row">
           <div className="flex-1 text-center">
-            <AnimatedStat value="200+" label="Resorts" />
+            <AnimatedStat value="69" label="Ski Resorts" />
           </div>
           <div className="flex-1 text-center">
-            <TickerStat startValue={1232} label="Verified Businesses" />
+            <AnimatedStat value="12" label="Countries" />
           </div>
           <div className="flex-1 text-center">
-            <AnimatedStat value="Worldwide" label="Reach" />
+            <AnimatedStat value="Free" label="To Join" />
           </div>
         </div>
       </section>
