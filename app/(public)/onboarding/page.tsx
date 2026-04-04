@@ -149,6 +149,8 @@ function WorkerSetup({
     });
 
     // Create worker profile with onboarding answers
+    const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
+
     await supabase.from("worker_profiles").insert({
       user_id: user.id,
       bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
@@ -157,6 +159,7 @@ function WorkerSetup({
       housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
       work_history: [],
       contact_email: user.email || null,
+      timezone: detectedTimezone,
     });
 
     // Send welcome email (non-blocking)
@@ -727,6 +730,8 @@ function BusinessSetup({
         return;
       }
     } else {
+      const bizTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
+
       const { error: profileError } = await supabase.from("business_profiles").insert({
         user_id: user.id,
         business_name: businessName,
@@ -740,6 +745,7 @@ function BusinessSetup({
         email: user.email ?? null,
         is_verified: false,
         verification_status: "pending_review",
+        timezone: bizTimezone,
       });
 
       if (profileError) {
