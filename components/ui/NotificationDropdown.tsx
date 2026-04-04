@@ -21,7 +21,15 @@ export default function NotificationDropdown({
         const res = await fetch("/api/notifications");
         if (res.ok) {
           const data = await res.json();
-          setNotifications(data.notifications ?? []);
+          const items: Notification[] = data.notifications ?? [];
+          setNotifications(items);
+
+          // Auto-mark all as read when dropdown opens
+          const unread = items.filter((n) => !n.is_read);
+          if (unread.length > 0) {
+            onMarkAllRead();
+            setNotifications(items.map((n) => ({ ...n, is_read: true })));
+          }
         }
       } catch {
         // ignore
@@ -30,7 +38,7 @@ export default function NotificationDropdown({
       }
     }
     load();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
