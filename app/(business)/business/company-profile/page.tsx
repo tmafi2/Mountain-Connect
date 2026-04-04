@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PhotoUpload, { type UploadedPhoto } from "@/components/ui/PhotoUpload";
 import type { BusinessVerificationStatus } from "@/types/database";
+import { isInLaunchLocation, LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -138,12 +139,15 @@ export default function CompanyProfilePage() {
 
   // Resort search
   const [resortQuery, setResortQuery] = useState("");
-  const [allResorts, setAllResorts] = useState<{ id: string; name: string; country: string }[]>([]);
+  const [allResorts, setAllResorts] = useState<{ id: string; legacy_id?: string; name: string; country: string }[]>([]);
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
   const [selectedResortName, setSelectedResortName] = useState("");
 
   // Nearby towns
   const [nearbyTowns, setNearbyTowns] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  // Launch location tracking
+  const [selectedResortLegacyId, setSelectedResortLegacyId] = useState<string | null>(null);
 
   const [form, setForm] = useState<ProfileFormData>({
     business_name: "",
@@ -233,15 +237,16 @@ export default function CompanyProfilePage() {
           setCoverUrl(profile.cover_photo_url);
         }
 
-        // Set resort name if resort_id exists
+        // Set resort name and legacy_id if resort_id exists
         if (profile.resort_id) {
           const { data: resort } = await supabase
             .from("resorts")
-            .select("name")
+            .select("name, legacy_id")
             .eq("id", profile.resort_id)
             .single();
           if (resort) {
             setSelectedResortName(resort.name);
+            setSelectedResortLegacyId(resort.legacy_id ?? null);
           }
         }
       } else {
@@ -295,6 +300,10 @@ export default function CompanyProfilePage() {
   const filledCount = profileFields.filter((f) => f.filled).length;
   const completionPct = Math.round((filledCount / profileFields.length) * 100);
   const missingFields = profileFields.filter((f) => !f.filled).map((f) => f.label);
+
+  // Launch location check
+  const selectedTownSlug = nearbyTowns.find((t) => t.id === form.nearby_town_id)?.slug ?? null;
+  const inLaunchLocation = isInLaunchLocation(selectedResortLegacyId, selectedTownSlug);
 
   const updateField = (field: keyof ProfileFormData, value: string | string[] | null) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -678,7 +687,7 @@ export default function CompanyProfilePage() {
             <p className="text-sm text-foreground/70 pt-0.5">{statusInfo.description}</p>
           </div>
         </div>
-        {(verificationStatus === "unverified" || verificationStatus === "rejected") && completionPct >= 70 && (
+        {(verificationStatus === "unverified" || verificationStatus === "rejected") && completionPct >= 70 && inLaunchLocation && (
           <button
             onClick={handleSubmitForVerification}
             disabled={submitting}
@@ -693,6 +702,28 @@ export default function CompanyProfilePage() {
           </p>
         )}
       </div>
+
+      {/* Launching soon banner for non-launch locations */}
+      {(verificationStatus === "unverified" || verificationStatus === "rejected") && !inLaunchLocation && form.resort_id && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 mb-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
+              <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-blue-900">Launching Soon in Your Area</h3>
+              <p className="mt-1 text-sm text-blue-800/70">
+                Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. We&apos;re expanding to more locations soon!
+              </p>
+              <p className="mt-2 text-sm text-blue-800/70">
+                In the meantime, keep building your profile and creating draft job listings — you&apos;ll be ready to go live as soon as we launch in your area.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Email verification status */}
       <div className={`rounded-2xl border p-5 mb-4 ${emailVerified ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}`}>
@@ -1029,6 +1060,7 @@ export default function CompanyProfilePage() {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setSelectedResortName("");
+                      setSelectedResortLegacyId(null);
                       updateField("resort_id", null);
                       setResortQuery("");
                       setResortSearchOpen(false);
@@ -1050,6 +1082,7 @@ export default function CompanyProfilePage() {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setSelectedResortName(r.name);
+                      setSelectedResortLegacyId(r.legacy_id ?? null);
                       updateField("resort_id", r.id);
                       setResortQuery("");
                       setResortSearchOpen(false);

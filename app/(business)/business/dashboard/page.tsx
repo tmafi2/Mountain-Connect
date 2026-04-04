@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import confetti from "canvas-confetti";
+import { isInLaunchLocation, LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 
 /* ─── search result types ─────────────────────────────────── */
 interface SearchResult {
@@ -41,6 +42,7 @@ export default function BusinessDashboard() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [inLaunchLocation, setInLaunchLocation] = useState(true);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -90,6 +92,27 @@ export default function BusinessDashboard() {
           ];
           const filled = fields.filter((f) => f && String(f).length > 0).length;
           setProfileCompletion(Math.round((filled / fields.length) * 100));
+
+          // Check if business is in a launch location
+          let resortLegacyId: string | null = null;
+          let townSlug: string | null = null;
+          if (profile.resort_id) {
+            const { data: resort } = await supabase
+              .from("resorts")
+              .select("legacy_id")
+              .eq("id", profile.resort_id)
+              .single();
+            resortLegacyId = resort?.legacy_id ?? null;
+          }
+          if (profile.nearby_town_id) {
+            const { data: town } = await supabase
+              .from("nearby_towns")
+              .select("slug")
+              .eq("id", profile.nearby_town_id)
+              .single();
+            townSlug = town?.slug ?? null;
+          }
+          setInLaunchLocation(isInLaunchLocation(resortLegacyId, townSlug));
 
           // Fetch active listings
           const { count: activeListingCount } = await supabase
@@ -634,7 +657,7 @@ export default function BusinessDashboard() {
       </div>
 
       {/* ── Pending Registration Banner ─────────────────────────── */}
-      {(verificationStatus === "pending_review" || verificationStatus === "unverified") && (
+      {(verificationStatus === "pending_review" || verificationStatus === "unverified") && inLaunchLocation && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 backdrop-blur-sm">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
@@ -649,6 +672,28 @@ export default function BusinessDashboard() {
               </p>
               <p className="mt-2 text-sm text-amber-800/70">
                 While you wait, you can <strong>set up your company profile</strong> and <strong>create draft job listings</strong>. Your profile and listings will go live once your registration is confirmed.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Launching Soon Banner (non-launch locations) ─────────── */}
+      {(verificationStatus === "pending_review" || verificationStatus === "unverified") && !inLaunchLocation && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+              <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-blue-900">Launching Soon in Your Area</h3>
+              <p className="mt-1 text-sm text-blue-800/70">
+                Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. We&apos;re expanding to more locations soon!
+              </p>
+              <p className="mt-2 text-sm text-blue-800/70">
+                While you wait, you can <strong>set up your company profile</strong> and <strong>create draft job listings</strong>. You&apos;ll be ready to go live as soon as we launch in your area.
               </p>
             </div>
           </div>

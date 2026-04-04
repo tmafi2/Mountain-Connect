@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 
 type AccountType = "worker" | "business";
 
@@ -362,6 +363,9 @@ function SignupContent() {
                     </>
                   )}
                 </div>
+                <p className="mt-2 text-xs text-foreground/40">
+                  Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. Businesses in other locations can still sign up and prepare their profiles — we&apos;ll be launching in more areas soon!
+                </p>
               </div>
             )}
 

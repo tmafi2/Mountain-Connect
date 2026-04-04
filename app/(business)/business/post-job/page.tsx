@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { isInLaunchLocation, LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -118,6 +119,7 @@ export default function PostJobPage() {
   const [existingDrafts, setExistingDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [businessVerified, setBusinessVerified] = useState(false);
+  const [inLaunchLoc, setInLaunchLoc] = useState(true);
   const [loading, setLoading] = useState(true);
 
   // Resort search state
@@ -180,6 +182,27 @@ export default function PostJobPage() {
       if (bp) {
         setBusinessId(bp.id);
         setBusinessVerified(bp.verification_status === "verified");
+
+        // Check launch location
+        const { data: bpFull } = await supabase
+          .from("business_profiles")
+          .select("resort_id, nearby_town_id")
+          .eq("id", bp.id)
+          .single();
+        if (bpFull) {
+          let legacyId: string | null = null;
+          let townSlug: string | null = null;
+          if (bpFull.resort_id) {
+            const { data: resort } = await supabase.from("resorts").select("legacy_id").eq("id", bpFull.resort_id).single();
+            legacyId = resort?.legacy_id ?? null;
+          }
+          if (bpFull.nearby_town_id) {
+            const { data: town } = await supabase.from("nearby_towns").select("slug").eq("id", bpFull.nearby_town_id).single();
+            townSlug = town?.slug ?? null;
+          }
+          setInLaunchLoc(isInLaunchLocation(legacyId, townSlug));
+        }
+
         // Load existing drafts
         const { data: drafts } = await supabase
           .from("job_posts")
@@ -929,12 +952,22 @@ export default function PostJobPage() {
       </div>
 
       {/* Pending approval banner */}
-      {!businessVerified && businessId && (
+      {!businessVerified && businessId && inLaunchLoc && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
           <svg className="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
           Your account is pending approval. Job listings will be saved as drafts and can be published once your registration is confirmed.
+        </div>
+      )}
+
+      {/* Launching soon banner for non-launch locations */}
+      {!businessVerified && businessId && !inLaunchLoc && (
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. You can create draft listings now — they&apos;ll be ready to publish when we launch in your area.
         </div>
       )}
 
