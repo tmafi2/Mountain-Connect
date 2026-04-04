@@ -4,25 +4,16 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import Image from "next/image";
 
 /* ── Waitlist Counter Hook — fetches real count from API ───── */
-function useWaitlistCounter(start = 1247) {
-  const [count, setCount] = useState(start);
+function useWaitlistCounter() {
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    // Fetch real count on load
     fetch("/api/waitlist")
       .then((r) => r.json())
       .then((data) => {
-        if (data.count && data.count > 0) setCount(data.count + start);
+        if (data.count && data.count > 0) setCount(data.count);
       })
       .catch(() => {});
-  }, [start]);
-
-  // Simulate slow growth for social proof
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   return count;

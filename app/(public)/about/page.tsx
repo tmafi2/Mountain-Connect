@@ -100,8 +100,8 @@ export default function AboutPage() {
             </div>
             {/* Floating stat */}
             <div className="absolute -bottom-6 -right-6 rounded-xl bg-white p-5 shadow-xl animate-float">
-              <p className="text-3xl font-extrabold text-primary">2,000+</p>
-              <p className="text-sm text-foreground/50">Workers connected</p>
+              <p className="text-3xl font-extrabold text-primary">69</p>
+              <p className="text-sm text-foreground/50">Ski Resorts</p>
             </div>
           </div>
 
@@ -210,8 +210,8 @@ export default function AboutPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-primary">500+ Jobs</p>
-                  <p className="text-xs text-foreground/50">Available now</p>
+                  <p className="text-sm font-bold text-primary">50+ Towns</p>
+                  <p className="text-xs text-foreground/50">Mountain communities</p>
                 </div>
               </div>
             </div>
@@ -279,10 +279,10 @@ export default function AboutPage() {
         <div className="mx-auto max-w-5xl px-6">
           <div className="animate-on-scroll-scale grid grid-cols-2 gap-8 md:grid-cols-4">
             {[
-              { value: "50+", label: "Ski Resorts" },
+              { value: "69", label: "Ski Resorts" },
               { value: "12", label: "Countries" },
-              { value: "500+", label: "Active Jobs" },
-              { value: "2,000+", label: "Workers" },
+              { value: "50+", label: "Mountain Towns" },
+              { value: "Free", label: "To Join" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <p className="text-4xl font-extrabold text-primary">{s.value}</p>

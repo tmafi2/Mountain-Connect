@@ -220,16 +220,16 @@ function LoginContent() {
             {/* Stats */}
             <div className="mt-8 flex gap-8">
               <div>
-                <p className="text-2xl font-bold text-white">56+</p>
+                <p className="text-2xl font-bold text-white">69</p>
                 <p className="text-sm text-white/50">Resorts</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">14</p>
+                <p className="text-2xl font-bold text-white">12</p>
                 <p className="text-sm text-white/50">Countries</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">1000+</p>
-                <p className="text-sm text-white/50">Seasonal Jobs</p>
+                <p className="text-2xl font-bold text-white">50+</p>
+                <p className="text-sm text-white/50">Mountain Towns</p>
               </div>
             </div>
           </div>
