@@ -150,8 +150,8 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Mountain Connect. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <Link href="/about" className="text-xs text-white/25 transition-colors hover:text-white/50">Privacy</Link>
-            <Link href="/about" className="text-xs text-white/25 transition-colors hover:text-white/50">Terms</Link>
+            <Link href="/privacy" className="text-xs text-white/25 transition-colors hover:text-white/50">Privacy</Link>
+            <Link href="/terms" className="text-xs text-white/25 transition-colors hover:text-white/50">Terms</Link>
           </div>
         </div>
       </div>
