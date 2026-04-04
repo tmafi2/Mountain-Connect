@@ -27,6 +27,21 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://unpkg.com",
+              "media-src 'self' https://cdn.coverr.co",
+              "connect-src 'self' https://kafekhemktqoczxclthy.supabase.co wss://kafekhemktqoczxclthy.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://*.ingest.sentry.io",
+              "frame-src 'self' https://*.daily.co https://kafekhemktqoczxclthy.supabase.co",
+              "worker-src blob:",
+              "frame-ancestors 'none'",
+            ].join("; "),
+          },
         ],
       },
     ];
