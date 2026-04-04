@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const rateLimited = await rateLimit(request);
+    if (rateLimited) return rateLimited;
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/newsletter
@@ -7,6 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 export async function POST(request: Request) {
   try {
+    const rateLimited = await rateLimit(request);
+    if (rateLimited) return rateLimited;
     const { email } = await request.json();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -97,6 +98,9 @@ export async function GET() {
 // POST: Record a referral (called during signup)
 export async function POST(request: Request) {
   try {
+    const rateLimited = await rateLimit(request);
+    if (rateLimited) return rateLimited;
+
     const { referralCode, referredUserId, referralType } = await request.json();
     if (!referralCode || !referredUserId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
