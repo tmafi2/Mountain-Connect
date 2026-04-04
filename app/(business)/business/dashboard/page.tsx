@@ -510,6 +510,20 @@ export default function BusinessDashboard() {
                       </svg>
                       Pending Review
                     </span>
+                  ) : verificationStatus === "accepted" ? (
+                    <Link href="/business/company-profile" className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 px-2.5 py-0.5 text-xs font-semibold text-blue-300 backdrop-blur-sm transition-colors hover:bg-blue-500/30">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Accepted
+                    </Link>
+                  ) : verificationStatus === "pending_verification" ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-semibold text-purple-300 backdrop-blur-sm">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      </svg>
+                      Pending Verification
+                    </span>
                   ) : verificationStatus === "rejected" ? (
                     <Link href="/business/company-profile" className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2.5 py-0.5 text-xs font-semibold text-red-300 backdrop-blur-sm transition-colors hover:bg-red-500/30">
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -694,6 +708,47 @@ export default function BusinessDashboard() {
               </p>
               <p className="mt-2 text-sm text-blue-800/70">
                 While you wait, you can <strong>set up your company profile</strong> and <strong>create draft job listings</strong>. You&apos;ll be ready to go live as soon as we launch in your area.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Accepted Banner ─────────────────────────────────── */}
+      {verificationStatus === "accepted" && inLaunchLocation && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+              <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-blue-900">Registration Accepted!</h3>
+              <p className="mt-1 text-sm text-blue-800/70">
+                Your business registration has been accepted. Apply for verification to make your business publicly visible with a verified badge.
+              </p>
+              <Link href="/business/company-profile" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline">
+                Apply for Verification →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Pending Verification Banner ────────────────────── */}
+      {verificationStatus === "pending_verification" && (
+        <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-100">
+              <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-purple-900">Verification Under Review</h3>
+              <p className="mt-1 text-sm text-purple-800/70">
+                Your verification application is being reviewed by our team. This usually takes 1–2 business days. Once verified, your business and job listings will be publicly visible.
               </p>
             </div>
           </div>

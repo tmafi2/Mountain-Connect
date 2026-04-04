@@ -180,7 +180,7 @@ export interface SkillEndorsement {
   created_at: string;
 }
 
-export type BusinessVerificationStatus = "unverified" | "pending_review" | "verified" | "rejected";
+export type BusinessVerificationStatus = "unverified" | "pending_review" | "accepted" | "pending_verification" | "verified" | "rejected";
 
 export type BusinessCategory =
   | "ski_school"

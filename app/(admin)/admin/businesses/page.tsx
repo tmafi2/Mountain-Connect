@@ -6,7 +6,9 @@ import type { BusinessVerificationStatus } from "@/types/database";
 
 const STATUS_STYLES: Record<BusinessVerificationStatus, { bg: string; text: string; label: string }> = {
   unverified: { bg: "bg-gray-50", text: "text-gray-600", label: "Unverified" },
-  pending_review: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending" },
+  pending_review: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending Review" },
+  accepted: { bg: "bg-blue-50", text: "text-blue-700", label: "Accepted" },
+  pending_verification: { bg: "bg-purple-50", text: "text-purple-700", label: "Pending Verification" },
   verified: { bg: "bg-green-50", text: "text-green-700", label: "Verified" },
   rejected: { bg: "bg-red-50", text: "text-red-600", label: "Rejected" },
 };
@@ -209,6 +211,8 @@ export default function AdminBusinessesPage() {
         >
           <option value="all">All Statuses</option>
           <option value="verified">Verified</option>
+          <option value="pending_verification">Pending Verification</option>
+          <option value="accepted">Accepted</option>
           <option value="pending_review">Pending Review</option>
           <option value="unverified">Unverified</option>
           <option value="rejected">Rejected</option>

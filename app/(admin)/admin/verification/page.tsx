@@ -7,6 +7,8 @@ import type { BusinessVerificationStatus } from "@/types/database";
 const STATUS_STYLES: Record<BusinessVerificationStatus, { bg: string; text: string; label: string }> = {
   unverified: { bg: "bg-gray-50", text: "text-gray-600", label: "Unverified" },
   pending_review: { bg: "bg-yellow-50", text: "text-yellow-700", label: "Pending Review" },
+  accepted: { bg: "bg-blue-50", text: "text-blue-700", label: "Accepted" },
+  pending_verification: { bg: "bg-purple-50", text: "text-purple-700", label: "Pending Verification" },
   verified: { bg: "bg-green-50", text: "text-green-700", label: "Verified" },
   rejected: { bg: "bg-red-50", text: "text-red-600", label: "Rejected" },
 };
@@ -58,68 +60,55 @@ export default function AdminVerificationPage() {
   }
 
   const filtered = filter === "pending"
-    ? businesses.filter((b) => b.verification_status === "pending_review")
+    ? businesses.filter((b) => b.verification_status === "pending_verification")
     : businesses;
 
-  const pendingCount = businesses.filter((b) => b.verification_status === "pending_review").length;
+  const pendingCount = businesses.filter((b) => b.verification_status === "pending_verification").length;
   const verifiedCount = businesses.filter((b) => b.verification_status === "verified").length;
   const selected = selectedId ? businesses.find((b) => b.id === selectedId) : null;
 
   const handleApprove = async (id: string) => {
     setProcessing(true);
-    const supabase = createClient();
-    const business = businesses.find((b) => b.id === id);
-
-    const { error } = await supabase
-      .from("business_profiles")
-      .update({ verification_status: "verified", is_verified: true })
-      .eq("id", id);
-
-    if (error) {
-      alert("Error approving business: " + error.message);
-    } else {
-      // Send verification notification + set celebration flag
-      if (business) {
-        try {
-          await fetch("/api/notifications/verify-business", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: business.user_id,
-              businessName: business.business_name,
-              businessId: business.id,
-            }),
-          });
-        } catch (err) {
-          console.error("Failed to send verification notification:", err);
-        }
+    try {
+      const res = await fetch("/api/admin/confirm-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: id, action: "verify" }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert("Error verifying business: " + (data.error || "Unknown error"));
+      } else {
+        setBusinesses((prev) =>
+          prev.map((b) => b.id === id ? { ...b, verification_status: "verified" as const } : b)
+        );
+        setSelectedId(null);
       }
-
-      // Update local state
-      setBusinesses((prev) =>
-        prev.map((b) => b.id === id ? { ...b, verification_status: "verified" as const } : b)
-      );
-      setSelectedId(null);
+    } catch (err) {
+      alert("Network error verifying business");
     }
     setProcessing(false);
   };
 
   const handleReject = async (id: string) => {
     setProcessing(true);
-    const supabase = createClient();
-
-    const { error } = await supabase
-      .from("business_profiles")
-      .update({ verification_status: "rejected", is_verified: false })
-      .eq("id", id);
-
-    if (error) {
-      alert("Error rejecting business: " + error.message);
-    } else {
-      setBusinesses((prev) =>
-        prev.map((b) => b.id === id ? { ...b, verification_status: "rejected" as const } : b)
-      );
-      setSelectedId(null);
+    try {
+      const res = await fetch("/api/admin/confirm-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: id, action: "reject_verification", message: rejectReason }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert("Error denying verification: " + (data.error || "Unknown error"));
+      } else {
+        setBusinesses((prev) =>
+          prev.map((b) => b.id === id ? { ...b, verification_status: "accepted" as const } : b)
+        );
+        setSelectedId(null);
+      }
+    } catch (err) {
+      alert("Network error denying verification");
     }
     setRejectingId(null);
     setRejectReason("");
@@ -148,9 +137,9 @@ export default function AdminVerificationPage() {
     <div className="mx-auto max-w-6xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-primary">Business Verification</h1>
+          <h1 className="text-2xl font-bold text-primary">Verification Requests</h1>
           <p className="mt-1 text-sm text-foreground/60">
-            Review and approve business verification requests.
+            Review and approve business verification applications.
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
@@ -200,7 +189,7 @@ export default function AdminVerificationPage() {
                 {filter === "pending" ? "All caught up!" : "No businesses yet."}
               </p>
               <p className="mt-1 text-xs text-foreground/40">
-                {filter === "pending" ? "No pending verification requests." : "Businesses will appear here as they register."}
+                {filter === "pending" ? "No pending verification applications." : "Businesses will appear here as they apply for verification."}
               </p>
             </div>
           ) : (
@@ -322,16 +311,16 @@ export default function AdminVerificationPage() {
               </div>
 
               {/* Action buttons */}
-              {selected.verification_status === "pending_review" && (
+              {selected.verification_status === "pending_verification" && (
                 <div className="mt-6 border-t border-accent pt-5">
                   {rejectingId === selected.id ? (
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-foreground">Reason for rejection:</p>
+                      <p className="text-sm font-medium text-foreground">Reason for denying verification:</p>
                       <textarea
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
                         rows={3}
-                        placeholder="Explain why this business is being rejected..."
+                        placeholder="Explain why verification is being denied..."
                         className="w-full rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
                       />
                       <div className="flex gap-2">
@@ -340,7 +329,7 @@ export default function AdminVerificationPage() {
                           disabled={processing}
                           className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                         >
-                          {processing ? "Processing..." : "Confirm Reject"}
+                          {processing ? "Processing..." : "Confirm Deny"}
                         </button>
                         <button
                           onClick={() => { setRejectingId(null); setRejectReason(""); }}
@@ -363,7 +352,7 @@ export default function AdminVerificationPage() {
                         onClick={() => setRejectingId(selected.id)}
                         className="rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
                       >
-                        Reject
+                        Deny Verification
                       </button>
                     </div>
                   )}
@@ -376,22 +365,21 @@ export default function AdminVerificationPage() {
                 </div>
               )}
 
-              {selected.verification_status === "rejected" && (
+              {selected.verification_status === "accepted" && (
                 <div className="mt-6 border-t border-accent pt-5">
-                  <p className="text-sm text-red-600 font-medium">This business has been rejected.</p>
-                  <button
-                    onClick={() => handleApprove(selected.id)}
-                    disabled={processing}
-                    className="mt-3 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-                  >
-                    Override — Approve & Verify
-                  </button>
+                  <p className="text-sm text-blue-600 font-medium">This business is accepted but has not applied for verification yet.</p>
                 </div>
               )}
 
-              {selected.verification_status === "unverified" && (
+              {selected.verification_status === "rejected" && (
                 <div className="mt-6 border-t border-accent pt-5">
-                  <p className="text-sm text-foreground/50">This business has not yet submitted for verification.</p>
+                  <p className="text-sm text-red-600 font-medium">This business registration was rejected.</p>
+                </div>
+              )}
+
+              {(selected.verification_status === "unverified" || selected.verification_status === "pending_review") && (
+                <div className="mt-6 border-t border-accent pt-5">
+                  <p className="text-sm text-foreground/50">This business has not yet been accepted. Review at Registrations.</p>
                 </div>
               )}
             </div>

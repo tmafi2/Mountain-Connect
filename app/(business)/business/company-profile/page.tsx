@@ -79,13 +79,25 @@ const VERIFICATION_STATUS_INFO: Record<
     bg: "bg-gray-50 border-gray-200",
     text: "text-gray-600",
     label: "Unverified",
-    description: "Complete your profile and submit for verification to appear on resort pages.",
+    description: "Complete your profile and submit for review to get started.",
   },
   pending_review: {
     bg: "bg-yellow-50 border-yellow-200",
     text: "text-yellow-700",
     label: "Pending Review",
-    description: "Your profile is being reviewed by our team. This usually takes 1-2 business days.",
+    description: "Your registration is being reviewed by our team. This usually takes 1-2 business days.",
+  },
+  accepted: {
+    bg: "bg-blue-50 border-blue-200",
+    text: "text-blue-700",
+    label: "Accepted",
+    description: "Your registration has been accepted! Apply for verification to make your business publicly visible with a verified badge.",
+  },
+  pending_verification: {
+    bg: "bg-purple-50 border-purple-200",
+    text: "text-purple-700",
+    label: "Pending Verification",
+    description: "Your verification application is being reviewed. This usually takes 1-2 business days.",
   },
   verified: {
     bg: "bg-green-50 border-green-200",
@@ -97,7 +109,7 @@ const VERIFICATION_STATUS_INFO: Record<
     bg: "bg-red-50 border-red-200",
     text: "text-red-600",
     label: "Rejected",
-    description: "Your verification was not approved. Please update your profile and resubmit.",
+    description: "Your registration was not approved. Please update your profile and resubmit.",
   },
 };
 
@@ -574,6 +586,26 @@ export default function CompanyProfilePage() {
     setSubmitting(false);
   };
 
+  const handleApplyForVerification = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/business/apply-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert("Error applying for verification: " + (data.error || "Unknown error"));
+        setSubmitting(false);
+        return;
+      }
+      setVerificationStatus("pending_verification");
+    } catch {
+      alert("Network error. Please try again.");
+    }
+    setSubmitting(false);
+  };
+
   const handleResendVerification = async () => {
     setSendingVerification(true);
     try {
@@ -693,13 +725,22 @@ export default function CompanyProfilePage() {
             disabled={submitting}
             className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 disabled:opacity-50"
           >
-            {submitting ? "Submitting..." : "Submit for Verification"}
+            {submitting ? "Submitting..." : "Submit for Review"}
           </button>
         )}
         {(verificationStatus === "unverified" || verificationStatus === "rejected") && completionPct < 70 && (
           <p className="mt-2 text-xs text-foreground/50">
-            Complete at least 70% of your profile to submit for verification. Currently at {completionPct}%.
+            Complete at least 70% of your profile to submit for review. Currently at {completionPct}%.
           </p>
+        )}
+        {verificationStatus === "accepted" && inLaunchLocation && (
+          <button
+            onClick={handleApplyForVerification}
+            disabled={submitting}
+            className="mt-3 rounded-xl bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary/90 hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {submitting ? "Applying..." : "Apply for Verification"}
+          </button>
         )}
       </div>
 

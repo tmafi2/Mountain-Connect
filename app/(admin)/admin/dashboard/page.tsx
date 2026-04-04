@@ -9,6 +9,7 @@ const STORAGE_KEY = "admin_dashboard_last_stats";
 interface Stats {
   totalBusinesses: number;
   pendingVerification: number;
+  pendingRegistrations: number;
   verifiedBusinesses: number;
   openReports: number;
   totalWorkers: number;
@@ -25,6 +26,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats>({
     totalBusinesses: 0,
     pendingVerification: 0,
+    pendingRegistrations: 0,
     verifiedBusinesses: 0,
     openReports: 0,
     totalWorkers: 0,
@@ -42,9 +44,10 @@ export default function AdminDashboardPage() {
     async function load() {
       const supabase = createClient();
 
-      const [businesses, pending, verified, workers, jobs, applications] = await Promise.all([
+      const [businesses, pendingRegs, pendingVerif, verified, workers, jobs, applications] = await Promise.all([
         supabase.from("business_profiles").select("id", { count: "exact", head: true }),
         supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending_review"),
+        supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending_verification"),
         supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "verified"),
         supabase.from("worker_profiles").select("id", { count: "exact", head: true }),
         supabase.from("job_posts").select("id", { count: "exact", head: true }).eq("status", "active"),
@@ -53,7 +56,8 @@ export default function AdminDashboardPage() {
 
       const currentStats: Stats = {
         totalBusinesses: businesses.count ?? 0,
-        pendingVerification: pending.count ?? 0,
+        pendingRegistrations: pendingRegs.count ?? 0,
+        pendingVerification: pendingVerif.count ?? 0,
         verifiedBusinesses: verified.count ?? 0,
         openReports: 2, // Demo data — will query reports table when it exists
         totalWorkers: workers.count ?? 0,
@@ -209,7 +213,7 @@ export default function AdminDashboardPage() {
       ),
     },
     {
-      key: "pendingVerification",
+      key: "pendingRegistrations",
       label: "Pending Registrations",
       href: "/admin/registrations",
       color: "text-yellow-700",
@@ -217,6 +221,18 @@ export default function AdminDashboardPage() {
       icon: (
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      key: "pendingVerification",
+      label: "Pending Verification",
+      href: "/admin/verification",
+      color: "text-purple-700",
+      iconBg: "bg-purple-50 text-purple-600",
+      icon: (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
         </svg>
       ),
     },

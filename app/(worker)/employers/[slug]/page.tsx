@@ -12,8 +12,10 @@ import ResortMap from "@/components/ui/ResortMap";
 
 /* ─── Style helpers ──────────────────────────────────────── */
 
-const VERIFICATION_BADGE = {
+const VERIFICATION_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   verified: { bg: "bg-green-50 border-green-200", text: "text-green-700", label: "Verified Employer" },
+  pending_verification: { bg: "bg-purple-50 border-purple-200", text: "text-purple-700", label: "Pending Verification" },
+  accepted: { bg: "bg-blue-50 border-blue-200", text: "text-blue-700", label: "Accepted" },
   pending_review: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", label: "Pending Verification" },
   unverified: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", label: "Unverified" },
   rejected: { bg: "bg-red-50 border-red-200", text: "text-red-500", label: "Unsuccessful" },

@@ -62,7 +62,7 @@ export default function AdminRegistrationsPage() {
     })();
   }, [filter, feedback]);
 
-  const handleAction = async (action: "approve" | "reject" | "request_info", message?: string) => {
+  const handleAction = async (action: "accept" | "reject" | "request_info", message?: string) => {
     if (!selected) return;
     setActionLoading(action);
     try {
@@ -72,7 +72,7 @@ export default function AdminRegistrationsPage() {
         body: JSON.stringify({ businessId: selected.id, action, message }),
       });
       if (res.ok) {
-        const label = action === "approve" ? "approved" : action === "reject" ? "rejected" : "info requested";
+        const label = action === "accept" ? "accepted" : action === "reject" ? "rejected" : "info requested";
         setFeedback({ type: "success", message: `${selected.business_name} ${label} successfully.` });
         setSelected(null);
         setShowRejectModal(false);
@@ -91,6 +91,8 @@ export default function AdminRegistrationsPage() {
   const statusBadge = (status: string) => {
     switch (status) {
       case "pending_review": return <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">Pending</span>;
+      case "accepted": return <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">Accepted</span>;
+      case "pending_verification": return <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">Pending Verification</span>;
       case "verified": return <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Verified</span>;
       case "rejected": return <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">Rejected</span>;
       default: return <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">Unverified</span>;
@@ -110,7 +112,7 @@ export default function AdminRegistrationsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">Business Registrations</h1>
-          <p className="mt-1 text-sm text-foreground/60">Review and approve new business accounts.</p>
+          <p className="mt-1 text-sm text-foreground/60">Review and accept new business registrations.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -187,13 +189,13 @@ export default function AdminRegistrationsPage() {
 
                   {/* Action buttons */}
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {biz.verification_status !== "verified" && (
+                    {(biz.verification_status === "pending_review" || biz.verification_status === "unverified") && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleAction("approve"); }}
+                        onClick={(e) => { e.stopPropagation(); handleAction("accept"); }}
                         disabled={!!actionLoading}
                         className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors disabled:opacity-50"
                       >
-                        {actionLoading === "approve" ? "Approving..." : "✓ Approve"}
+                        {actionLoading === "accept" ? "Accepting..." : "✓ Accept Registration"}
                       </button>
                     )}
                     <button

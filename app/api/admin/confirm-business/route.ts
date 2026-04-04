@@ -31,7 +31,37 @@ export async function POST(request: Request) {
 
     if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
-    if (action === "approve") {
+    if (action === "accept") {
+      const { error: updateError } = await admin.from("business_profiles").update({
+        verification_status: "accepted",
+        is_verified: false,
+      }).eq("id", businessId);
+
+      if (updateError) {
+        console.error("Error accepting business:", updateError);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      await createNotification({
+        userId: business.user_id,
+        type: "general",
+        title: "Registration Accepted!",
+        message: "Your business registration has been accepted! You can now set up your profile and create job listings. Apply for verification to make your business publicly visible.",
+        link: "/business/company-profile",
+      });
+
+      const { data: bizUser } = await admin.auth.admin.getUserById(business.user_id);
+      if (bizUser?.user?.email) {
+        sendNewMessageEmail({
+          to: bizUser.user.email,
+          recipientName: business.business_name,
+          senderName: "Mountain Connect Admin",
+          messagePreview: "Your business registration has been accepted! Set up your profile and apply for verification to go public on Mountain Connect.",
+          conversationUrl: "https://www.mountainconnects.com/business/company-profile",
+        }).catch(() => {});
+      }
+
+    } else if (action === "verify") {
       const { error: updateError } = await admin.from("business_profiles").update({
         verification_status: "verified",
         is_verified: true,
@@ -39,27 +69,56 @@ export async function POST(request: Request) {
       }).eq("id", businessId);
 
       if (updateError) {
-        console.error("Error approving business:", updateError);
+        console.error("Error verifying business:", updateError);
         return NextResponse.json({ error: updateError.message }, { status: 500 });
       }
 
       await createNotification({
         userId: business.user_id,
         type: "general",
-        title: "Registration Approved!",
+        title: "Business Verified!",
         message: "Congratulations! Your business has been verified. Your profile and job listings are now live. Welcome to Mountain Connect!",
         link: "/business/dashboard",
       });
 
-      // Send email
       const { data: bizUser } = await admin.auth.admin.getUserById(business.user_id);
       if (bizUser?.user?.email) {
         sendNewMessageEmail({
           to: bizUser.user.email,
           recipientName: business.business_name,
           senderName: "Mountain Connect Admin",
-          messagePreview: "Your business registration has been approved! Your profile and job listings are now live on Mountain Connect.",
+          messagePreview: "Your business has been verified! Your profile and job listings are now live on Mountain Connect.",
           conversationUrl: "https://www.mountainconnects.com/business/dashboard",
+        }).catch(() => {});
+      }
+
+    } else if (action === "reject_verification") {
+      const { error: updateError } = await admin.from("business_profiles").update({
+        verification_status: "accepted",
+        is_verified: false,
+      }).eq("id", businessId);
+
+      if (updateError) {
+        console.error("Error rejecting verification:", updateError);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      await createNotification({
+        userId: business.user_id,
+        type: "general",
+        title: "Verification Not Approved",
+        message: message || "Your verification application was not approved at this time. You can continue using the platform and reapply when ready.",
+        link: "/business/company-profile",
+      });
+
+      const { data: bizUser } = await admin.auth.admin.getUserById(business.user_id);
+      if (bizUser?.user?.email) {
+        sendNewMessageEmail({
+          to: bizUser.user.email,
+          recipientName: business.business_name,
+          senderName: "Mountain Connect Admin",
+          messagePreview: message || "Your verification application was not approved at this time. You can continue using the platform and reapply when ready.",
+          conversationUrl: "https://www.mountainconnects.com/business/company-profile",
         }).catch(() => {});
       }
 
