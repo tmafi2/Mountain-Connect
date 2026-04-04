@@ -3803,7 +3803,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "50",
     name: "Perisher",
-    banner_image_url: "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=1200&q=80",
+    banner_image_url: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=1200&q=80",
     region_id: "9",
     country: "Australia",
     description:
@@ -3988,7 +3988,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "52",
     name: "Thredbo",
-    banner_image_url: "https://images.unsplash.com/photo-1520443240718-fce21901db79?w=1200&q=80",
+    banner_image_url: "https://images.unsplash.com/photo-1565992441121-4367c2967103?w=1200&q=80",
     region_id: "9",
     country: "Australia",
     description:
