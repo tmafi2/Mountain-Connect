@@ -32,12 +32,16 @@ export async function POST(request: Request) {
     if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
     if (action === "approve") {
-      await admin.from("business_profiles").update({
+      const { error: updateError } = await admin.from("business_profiles").update({
         verification_status: "verified",
         is_verified: true,
         show_verified_celebration: true,
-        updated_at: new Date().toISOString(),
       }).eq("id", businessId);
+
+      if (updateError) {
+        console.error("Error approving business:", updateError);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
 
       await createNotification({
         userId: business.user_id,
@@ -60,11 +64,15 @@ export async function POST(request: Request) {
       }
 
     } else if (action === "reject") {
-      await admin.from("business_profiles").update({
+      const { error: rejectError } = await admin.from("business_profiles").update({
         verification_status: "rejected",
         is_verified: false,
-        updated_at: new Date().toISOString(),
       }).eq("id", businessId);
+
+      if (rejectError) {
+        console.error("Error rejecting business:", rejectError);
+        return NextResponse.json({ error: rejectError.message }, { status: 500 });
+      }
 
       await createNotification({
         userId: business.user_id,
