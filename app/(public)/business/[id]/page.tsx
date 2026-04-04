@@ -177,6 +177,11 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
             <div className="flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold text-white sm:text-3xl" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.5), 0 0 12px rgba(0,0,0,0.3)" }}>{business.business_name}</h1>
+                {(business as Record<string, unknown>).tier === "premium" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                    👑 Premium Employer
+                  </span>
+                )}
                 {isVerified ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

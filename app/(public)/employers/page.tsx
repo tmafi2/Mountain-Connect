@@ -20,6 +20,7 @@ interface Business {
   active_listings: number;
   operates_in_town: boolean;
   nearby_town_id: string | null;
+  tier: "free" | "premium";
   avg_rating: number;
   review_count: number;
 }
@@ -116,7 +117,7 @@ export default function EmployersPage() {
         // Fetch all business profiles
         const { data: bps } = await supabase
           .from("business_profiles")
-          .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id, operates_in_town, nearby_town_id")
+          .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id, operates_in_town, nearby_town_id, tier")
           .order("verification_status", { ascending: true })
           .order("business_name", { ascending: true });
 
@@ -276,6 +277,7 @@ export default function EmployersPage() {
           active_listings: jobCounts[b.id] || 0,
           operates_in_town: b.operates_in_town ?? false,
           nearby_town_id: b.nearby_town_id ?? null,
+          tier: ((b as Record<string, unknown>).tier as "free" | "premium") || "free",
           avg_rating: reviewStats[b.id] ? reviewStats[b.id].sum / reviewStats[b.id].total : 0,
           review_count: reviewStats[b.id]?.total || 0,
         }));
@@ -325,6 +327,11 @@ export default function EmployersPage() {
     }
 
     return results.sort((a, b) => {
+      // Premium first
+      const aP = a.tier === "premium" ? 0 : 1;
+      const bP = b.tier === "premium" ? 0 : 1;
+      if (aP !== bP) return aP - bP;
+      // Then verified
       const aV = a.verification_status === "verified" ? 0 : 1;
       const bV = b.verification_status === "verified" ? 0 : 1;
       if (aV !== bV) return aV - bV;
@@ -334,7 +341,10 @@ export default function EmployersPage() {
 
   const verifiedCount = businesses.filter((b) => b.verification_status === "verified").length;
   const featuredEmployers = useMemo(
-    () => businesses.filter((b) => b.verification_status === "verified").slice(0, 4),
+    () => businesses
+      .filter((b) => b.verification_status === "verified")
+      .sort((a, b) => (a.tier === "premium" ? 0 : 1) - (b.tier === "premium" ? 0 : 1))
+      .slice(0, 4),
     [businesses]
   );
 
@@ -549,12 +559,18 @@ export default function EmployersPage() {
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between">
+                      {biz.tier === "premium" ? (
+                        <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          👑 Premium
+                        </span>
+                      ) : (
                       <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Verified
                       </span>
+                      )}
                       {biz.review_count > 0 && (
                         <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600">
                           <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
@@ -728,7 +744,12 @@ export default function EmployersPage() {
                             }`}>
                               {biz.business_name}
                             </h3>
-                            {isVerified && (
+                            {biz.tier === "premium" && (
+                              <span className="shrink-0 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                                👑 Premium
+                              </span>
+                            )}
+                            {isVerified && biz.tier !== "premium" && (
                               <span className="shrink-0 flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
                                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

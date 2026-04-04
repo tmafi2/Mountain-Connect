@@ -23,6 +23,7 @@ interface JobRow {
   end_date: string | null;
   resort_name: string | null;
   nearby_town_name: string | null;
+  featured_until: string | null;
   created_at: string;
   business_id: string;
   business_name?: string;
@@ -45,13 +46,14 @@ export default function AdminJobsPage() {
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [featuring, setFeaturing] = useState(false);
 
   useEffect(() => {
     async function load() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("job_posts")
-        .select("id, title, description, requirements, position_type, status, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, created_at, business_id, resorts(name), nearby_towns(name)")
+        .select("id, title, description, requirements, position_type, status, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, featured_until, created_at, business_id, resorts(name), nearby_towns(name)")
         .order("created_at", { ascending: false });
 
       if (error) { console.error("Error loading jobs:", error); setLoading(false); return; }
@@ -116,6 +118,28 @@ export default function AdminJobsPage() {
     setDeleting(false);
   };
 
+  const handleToggleFeature = async () => {
+    if (!selected) return;
+    setFeaturing(true);
+    const isFeatured = selected.featured_until && new Date(selected.featured_until) > new Date();
+    try {
+      const res = await fetch("/api/admin/feature-job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: selected.id, featured: !isFeatured, days: 30 }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updatedJob = { ...selected, featured_until: data.featured_until };
+        setSelected(updatedJob);
+        setJobs((prev) => prev.map((j) => j.id === selected.id ? updatedJob : j));
+      }
+    } catch (err) {
+      console.error("Feature toggle error:", err);
+    }
+    setFeaturing(false);
+  };
+
   const filtered = useMemo(() => {
     let results = [...jobs];
     if (statusFilter === "active") results = results.filter((j) => j.status === "active");
@@ -168,7 +192,12 @@ export default function AdminJobsPage() {
           <tbody>
             {filtered.map((job) => (
               <tr key={job.id} onClick={() => setSelected(job)} className="border-b border-accent/30 cursor-pointer transition-colors hover:bg-accent/5">
-                <td className="px-5 py-3 font-medium text-primary">{job.title}</td>
+                <td className="px-5 py-3 font-medium text-primary">
+                  {job.featured_until && new Date(job.featured_until) > new Date() && (
+                    <span className="mr-1.5 inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600" title="Featured">★</span>
+                  )}
+                  {job.title}
+                </td>
                 <td className="px-5 py-3 text-foreground/70">{job.business_name}</td>
                 <td className="px-5 py-3 text-foreground/70 capitalize">{job.position_type?.replace("_", " ") || "—"}</td>
                 <td className="px-5 py-3 text-foreground/70">{job.pay_amount ? `${job.pay_currency || "AUD"} $${job.pay_amount}` : "—"}</td>
@@ -289,7 +318,18 @@ export default function AdminJobsPage() {
               </div>
 
               {/* Actions */}
-              <div className="mt-5 pt-4 border-t border-accent/30 flex items-center gap-3">
+              <div className="mt-5 pt-4 border-t border-accent/30 flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleToggleFeature}
+                  disabled={featuring}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                    selected.featured_until && new Date(selected.featured_until) > new Date()
+                      ? "border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      : "border border-amber-300 bg-white text-amber-600 hover:bg-amber-50"
+                  }`}
+                >
+                  {featuring ? "Updating..." : selected.featured_until && new Date(selected.featured_until) > new Date() ? "★ Unfeature Job" : "☆ Feature Job (30 days)"}
+                </button>
                 <Link href={`/jobs/${selected.id}`} target="_blank" className="rounded-xl border border-accent/40 px-4 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors">
                   View Public Listing
                 </Link>

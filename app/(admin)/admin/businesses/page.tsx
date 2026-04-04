@@ -51,6 +51,7 @@ interface BusinessRow {
   social_links: Record<string, string> | null;
   standard_perks: string[] | null;
   resort_id: string | null;
+  tier: "free" | "premium";
   created_at: string;
 }
 
@@ -64,6 +65,7 @@ export default function AdminBusinessesPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [resortName, setResortName] = useState<string | null>(null);
+  const [togglingPremium, setTogglingPremium] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -155,6 +157,28 @@ export default function AdminBusinessesPage() {
     setDeleting(false);
   };
 
+  const handleTogglePremium = async () => {
+    if (!selected) return;
+    setTogglingPremium(true);
+    const newTier = selected.tier === "premium" ? "free" : "premium";
+    try {
+      const res = await fetch("/api/admin/toggle-premium", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: selected.id, tier: newTier }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updated = { ...selected, tier: newTier as "free" | "premium" };
+        setSelected(updated);
+        setBusinesses((prev) => prev.map((b) => b.id === selected.id ? updated : b));
+      }
+    } catch (err) {
+      console.error("Premium toggle error:", err);
+    }
+    setTogglingPremium(false);
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -223,7 +247,10 @@ export default function AdminBusinessesPage() {
                         </div>
                       )}
                       <div>
-                        <p className="font-medium text-primary">{biz.business_name}</p>
+                        <p className="font-medium text-primary">
+                          {biz.tier === "premium" && <span className="mr-1 text-amber-500" title="Premium">👑</span>}
+                          {biz.business_name}
+                        </p>
                         {biz.email && <p className="text-xs text-foreground/40">{biz.email}</p>}
                       </div>
                     </div>
@@ -374,7 +401,18 @@ export default function AdminBusinessesPage() {
               </div>
 
               {/* Actions */}
-              <div className="mt-5 flex items-center gap-3">
+              <div className="mt-5 flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleTogglePremium}
+                  disabled={togglingPremium}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                    selected.tier === "premium"
+                      ? "border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      : "border border-amber-300 bg-white text-amber-600 hover:bg-amber-50"
+                  }`}
+                >
+                  {togglingPremium ? "Updating..." : selected.tier === "premium" ? "👑 Remove Premium" : "☆ Set as Premium"}
+                </button>
                 <a
                   href={`/business/${selected.id}`}
                   target="_blank"

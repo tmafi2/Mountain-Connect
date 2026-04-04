@@ -146,6 +146,7 @@ function FindAJobContent() {
               how_to_apply: (j.how_to_apply as string) || null,
               application_email: (j.application_email as string) || null,
               application_url: (j.application_url as string) || null,
+              featured_until: (j.featured_until as string) || null,
               applications_count: 0,
             };
           });
@@ -387,6 +388,14 @@ function FindAJobContent() {
         jobs.sort((a, b) => a.applications_count - b.applications_count);
         break;
     }
+
+    // Featured jobs always float to the top
+    const now = new Date();
+    jobs.sort((a, b) => {
+      const aFeatured = a.featured_until && new Date(a.featured_until) > now ? 1 : 0;
+      const bFeatured = b.featured_until && new Date(b.featured_until) > now ? 1 : 0;
+      return bFeatured - aFeatured;
+    });
 
     return jobs;
   }, [filters, allJobs, townResortIds, townBusinessIds, townUuid]);
@@ -905,10 +914,12 @@ function JobCard({
 }) {
   return (
     <div
-      className={`w-full rounded-xl border bg-white p-5 text-left transition-all hover:shadow-md ${
+      className={`w-full rounded-xl border p-5 text-left transition-all hover:shadow-md ${
         isSelected
-          ? "border-primary ring-2 ring-primary/20"
-          : "border-accent hover:border-secondary"
+          ? "border-primary ring-2 ring-primary/20 bg-white"
+          : job.featured_until && new Date(job.featured_until) > new Date()
+            ? "border-amber-200 bg-amber-50/30 hover:border-amber-300"
+            : "border-accent bg-white hover:border-secondary"
       }`}
     >
       <button type="button" onClick={onClick} className="w-full text-left">
@@ -933,6 +944,11 @@ function JobCard({
                   <h3 className="text-base font-semibold text-primary">
                     {job.title}
                   </h3>
+                  {job.featured_until && new Date(job.featured_until) > new Date() && (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-600">
+                      ★ Featured
+                    </span>
+                  )}
                   {job.urgently_hiring && (
                     <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                       Urgently Hiring
@@ -1093,6 +1109,11 @@ function JobDetailPanel({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-bold text-primary">{job.title}</h2>
+              {job.featured_until && new Date(job.featured_until) > new Date() && (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-600">
+                  ★ Featured
+                </span>
+              )}
               {job.urgently_hiring && (
                 <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                   Urgently Hiring

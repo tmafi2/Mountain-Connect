@@ -220,6 +220,18 @@ export interface BusinessProfile {
   phone: string | null;
   email: string | null;
   timezone: string | null;
+  tier: "free" | "premium";
+  created_at: string;
+}
+
+export type BusinessTier = "free" | "premium";
+
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  referred_user_id: string;
+  referral_type: "worker" | "business" | null;
+  status: "pending" | "completed";
   created_at: string;
 }
 
@@ -368,6 +380,7 @@ export interface JobPost {
   accommodation_type: string | null;
   accommodation_cost: string | null;
   status: "active" | "paused" | "closed" | "draft";
+  featured_until: string | null;
 }
 
 export interface Application {

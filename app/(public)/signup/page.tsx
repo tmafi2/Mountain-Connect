@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type AccountType = "worker" | "business";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-secondary border-t-transparent" /></div>}>
+      <SignupContent />
+    </Suspense>
+  );
+}
+
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref");
   const [accountType, setAccountType] = useState<AccountType>("worker");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,6 +83,19 @@ export default function SignupPage() {
           },
           { onConflict: "id" }
         );
+      }
+
+      // Record referral if applicable
+      if (refCode && signUpData.user) {
+        fetch("/api/referrals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            referralCode: refCode,
+            referredUserId: signUpData.user.id,
+            referralType: accountType === "business" ? "business" : "worker",
+          }),
+        }).catch(() => {});
       }
 
       // Sign out immediately — user must verify email before logging in
