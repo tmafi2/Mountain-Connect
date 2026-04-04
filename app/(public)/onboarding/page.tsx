@@ -156,6 +156,7 @@ function WorkerSetup({
       preferred_job_types: lookingForJob ? ["full_time"] : [],
       housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
       work_history: [],
+      contact_email: user.email || null,
     });
 
     // Send welcome email (non-blocking)
