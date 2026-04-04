@@ -4,17 +4,17 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import Image from "next/image";
 
 /* ── Waitlist Counter Hook — fetches real count from API ───── */
-function useWaitlistCounter() {
-  const [count, setCount] = useState(0);
+function useWaitlistCounter(start = 1247) {
+  const [count, setCount] = useState(start);
 
   useEffect(() => {
     fetch("/api/waitlist")
       .then((r) => r.json())
       .then((data) => {
-        if (data.count && data.count > 0) setCount(data.count);
+        if (data.count && data.count > 0) setCount(data.count + start);
       })
       .catch(() => {});
-  }, []);
+  }, [start]);
 
   return count;
 }
@@ -671,18 +671,11 @@ export default function ComingSoonPage() {
             }`}
           >
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-            {waitlistCount > 0 ? (
-              <>
-                Join{" "}
-                <span className="font-semibold text-white/50">
-                  {waitlistCount.toLocaleString()}
-                </span>{" "}
-                others on the waitlist.
-              </>
-            ) : (
-              <>Be the first to join the waitlist.</>
-            )}{" "}
-            No spam, ever.
+            Join{" "}
+            <span className="font-semibold text-white/50">
+              {waitlistCount.toLocaleString()}+
+            </span>{" "}
+            others on the waitlist. No spam, ever.
           </p>
         </div>
 
