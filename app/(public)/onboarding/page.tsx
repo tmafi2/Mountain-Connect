@@ -24,6 +24,7 @@ function OnboardingContent() {
     typeParam === "business" ? "business" : typeParam === "worker" ? "worker" : "role";
   const [step, setStep] = useState<"role" | "worker" | "business">(initialStep);
   const [loading, setLoading] = useState(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const router = useRouter();
 
   // Fallback: if no type param, check user metadata for account_type
@@ -184,6 +185,12 @@ function WorkerSetup({
 
   return (
     <div className="overflow-hidden">
+      {onboardingError && (
+        <div className="mx-auto mb-4 max-w-lg rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {onboardingError}
+          <button onClick={() => setOnboardingError(null)} className="ml-2 font-semibold hover:underline">Dismiss</button>
+        </div>
+      )}
       {/* Progress dots */}
       <div className="mb-10 flex items-center justify-center gap-3">
         {Array.from({ length: totalSteps }, (_, i) => (
@@ -639,7 +646,9 @@ function BusinessSetup({
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("Logo must be under 2MB"); return; }
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) { setOnboardingError("Logo must be a JPEG, PNG, WebP, or GIF image."); return; }
+    if (file.size > 2 * 1024 * 1024) { setOnboardingError("Logo must be under 2MB."); return; }
+    setOnboardingError(null);
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
   };
@@ -692,7 +701,7 @@ function BusinessSetup({
 
     if (userError) {
       console.error("User upsert error:", userError);
-      alert(`Error saving user: ${userError.message}`);
+      setOnboardingError(`Error saving: ${userError.message}`);
       setLoading(false);
       return;
     }
@@ -725,7 +734,7 @@ function BusinessSetup({
 
       if (updateError) {
         console.error("Business profile update error:", updateError);
-        alert(`Error updating profile: ${updateError.message}`);
+        setOnboardingError(`Error updating profile: ${updateError.message}`);
         setLoading(false);
         return;
       }
@@ -750,7 +759,7 @@ function BusinessSetup({
 
       if (profileError) {
         console.error("Business profile insert error:", profileError);
-        alert(`Error saving profile: ${profileError.message}`);
+        setOnboardingError(`Error saving profile: ${profileError.message}`);
         setLoading(false);
         return;
       }
@@ -778,6 +787,12 @@ function BusinessSetup({
 
   return (
     <div className="overflow-hidden">
+      {onboardingError && (
+        <div className="mx-auto mb-4 max-w-lg rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {onboardingError}
+          <button onClick={() => setOnboardingError(null)} className="ml-2 font-semibold hover:underline">Dismiss</button>
+        </div>
+      )}
       {/* Progress dots */}
       <div className="mb-10 flex items-center justify-center gap-3">
         {Array.from({ length: totalSteps }, (_, i) => (

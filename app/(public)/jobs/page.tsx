@@ -87,6 +87,7 @@ function FindAJobContent() {
   const searchParams = useSearchParams();
   const [allJobs, setAllJobs] = useState<SeedJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [townResortIds, setTownResortIds] = useState<string[]>([]);
   const [townBusinessIds, setTownBusinessIds] = useState<string[]>([]);
   const [townUuid, setTownUuid] = useState<string | null>(null);
@@ -153,7 +154,7 @@ function FindAJobContent() {
           setAllJobs(mapped);
         }
       } catch {
-        // No fallback — only show real jobs
+        setLoadError(true);
       }
       setJobsLoading(false);
     })();
@@ -781,7 +782,19 @@ function FindAJobContent() {
             )}
 
             {/* Job listings */}
-            {filteredJobs.length === 0 ? (
+            {loadError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-16 text-center">
+                <p className="text-lg font-semibold text-red-800">Failed to load jobs</p>
+                <p className="mt-1 text-sm text-red-600/70">Please try refreshing the page.</p>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="mt-4 rounded-lg bg-red-600 px-6 py-2 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Refresh
+                </button>
+              </div>
+            ) : filteredJobs.length === 0 ? (
               <div className="rounded-xl border border-accent bg-white p-16 text-center">
                 <div className="text-5xl text-foreground/20">&#9968;</div>
                 <p className="mt-4 text-lg font-semibold text-primary">

@@ -124,6 +124,7 @@ export default function CompanyProfilePage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [newPerk, setNewPerk] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -350,10 +351,14 @@ export default function CompanyProfilePage() {
     }
   };
 
+  const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("Logo must be under 2MB"); return; }
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) { setFormError("Logo must be a JPEG, PNG, WebP, or GIF image."); return; }
+    if (file.size > 2 * 1024 * 1024) { setFormError("Logo must be under 2MB."); return; }
+    setFormError(null);
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
     setSaved(false);
@@ -362,7 +367,9 @@ export default function CompanyProfilePage() {
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert("Cover photo must be under 5MB"); return; }
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) { setFormError("Cover photo must be a JPEG, PNG, WebP, or GIF image."); return; }
+    if (file.size > 5 * 1024 * 1024) { setFormError("Cover photo must be under 5MB."); return; }
+    setFormError(null);
     setCoverFile(file);
     setCoverPreview(URL.createObjectURL(file));
     setSaved(false);
@@ -384,7 +391,7 @@ export default function CompanyProfilePage() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("You must be logged in to save. Please refresh and log in again.");
+      setFormError("You must be logged in to save. Please refresh and log in again.");
       setSaving(false);
       return;
     }
@@ -406,7 +413,7 @@ export default function CompanyProfilePage() {
 
       if (createError) {
         console.error("Error creating profile:", createError);
-        alert("Error creating profile: " + createError.message);
+        setFormError("Error creating profile: " + createError.message);
         setSaving(false);
         return;
       }
@@ -433,7 +440,7 @@ export default function CompanyProfilePage() {
 
       if (verError) {
         console.error("Error resetting verification:", verError);
-        alert("Profile saved, but failed to reset verification status: " + verError.message);
+        setFormError("Profile saved, but failed to reset verification status: " + verError.message);
       } else {
         setVerificationStatus("unverified");
       }
@@ -546,23 +553,25 @@ export default function CompanyProfilePage() {
           .eq("id", currentProfileId);
 
         if (retryError) {
-          alert("Error saving profile: " + retryError.message + "\n\nPlease check the browser console for details.");
+          setFormError("Error saving profile: " + retryError.message);
         } else {
-          alert("Profile saved! Note: Some fields (industries, address, country, resort) could not be saved. Please run the database migration in Supabase SQL Editor.");
+          setFormError("Profile saved! Note: Some fields could not be saved. Please contact support if this persists.");
           // Update logo_url in form state
           if (logoUrl !== form.logo_url) {
             setForm((prev) => ({ ...prev, logo_url: logoUrl }));
           }
+          setFormError(null);
           setSaved(true);
         }
       } else {
-        alert("Error saving profile: " + error.message + "\n\nPlease check the browser console for details.");
+        setFormError("Error saving profile: " + error.message);
       }
     } else {
       // Update logo_url in form state
       if (logoUrl !== form.logo_url) {
         setForm((prev) => ({ ...prev, logo_url: logoUrl }));
       }
+      setFormError(null);
       setSaved(true);
     }
   };
@@ -577,7 +586,7 @@ export default function CompanyProfilePage() {
         verification_status: "pending_review",
       }).eq("id", profileId);
       if (error) {
-        alert("Error submitting for verification: " + error.message);
+        setFormError("Error submitting for verification: " + error.message);
         setSubmitting(false);
         return;
       }
@@ -595,13 +604,13 @@ export default function CompanyProfilePage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert("Error applying for verification: " + (data.error || "Unknown error"));
+        setFormError("Error applying for verification: " + (data.error || "Unknown error"));
         setSubmitting(false);
         return;
       }
       setVerificationStatus("pending_verification");
     } catch {
-      alert("Network error. Please try again.");
+      setFormError("Network error. Please try again.");
     }
     setSubmitting(false);
   };
@@ -615,13 +624,13 @@ export default function CompanyProfilePage() {
         email: userEmail,
       });
       if (error) {
-        alert("Error sending verification email: " + error.message);
+        setFormError("Error sending verification email: " + error.message);
       } else {
         setVerificationSent(true);
         setTimeout(() => setVerificationSent(false), 10000);
       }
     } catch {
-      alert("Failed to send verification email. Please try again.");
+      setFormError("Failed to send verification email. Please try again.");
     }
     setSendingVerification(false);
   };
@@ -695,7 +704,10 @@ export default function CompanyProfilePage() {
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            {saved && (
+            {formError && (
+              <span className="text-sm text-red-400 font-medium max-w-xs truncate">{formError}</span>
+            )}
+            {saved && !formError && (
               <span className="text-sm text-green-400 font-medium">Saved!</span>
             )}
             <button

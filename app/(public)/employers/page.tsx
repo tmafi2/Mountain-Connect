@@ -100,6 +100,7 @@ export default function EmployersPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [allResorts, setAllResorts] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -285,6 +286,7 @@ export default function EmployersPage() {
         setBusinesses(mapped);
       } catch (err) {
         console.error("Failed to load employers:", err);
+        setLoadError(true);
       }
       setLoading(false);
     })();
@@ -690,7 +692,18 @@ export default function EmployersPage() {
           </p>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.length === 0 ? (
+            {loadError ? (
+              <div className="col-span-full rounded-2xl border border-red-200 bg-red-50 p-12 text-center shadow-sm">
+                <p className="text-sm font-medium text-red-800">Failed to load employers</p>
+                <p className="mt-1 text-xs text-red-600/70">Please try refreshing the page.</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                >
+                  Refresh
+                </button>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="col-span-full rounded-2xl border border-accent/40 bg-white p-12 text-center shadow-sm">
                 <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent/20">
                   <svg className="h-7 w-7 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>

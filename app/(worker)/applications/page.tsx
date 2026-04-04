@@ -1121,7 +1121,7 @@ function NextStepsGuidance({
               disabled={offerLoading}
               className="rounded-lg border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
             >
-              Decline Offer
+              {offerLoading ? "Processing..." : "Decline Offer"}
             </button>
           </div>
           <ul className="mt-3 space-y-1">
