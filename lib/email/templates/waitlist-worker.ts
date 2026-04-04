@@ -73,11 +73,11 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
                     <p style="margin:0 0 12px;color:#0a1e33;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Follow the journey</p>
                     <table cellpadding="0" cellspacing="0" align="center">
                       <tr>
-                        <td style="padding:0 8px;"><a href="#" style="color:#3b9ede;text-decoration:none;font-size:14px;font-weight:600;">Instagram</a></td>
+                        <td style="padding:0 8px;"><a href="https://www.instagram.com/mountain.connects" style="color:#3b9ede;text-decoration:none;font-size:14px;font-weight:600;">Instagram</a></td>
                         <td style="color:#c8d5e0;">|</td>
-                        <td style="padding:0 8px;"><a href="#" style="color:#3b9ede;text-decoration:none;font-size:14px;font-weight:600;">TikTok</a></td>
+                        <td style="padding:0 8px;"><a href="https://www.tiktok.com/@mountain.connects" style="color:#3b9ede;text-decoration:none;font-size:14px;font-weight:600;">TikTok</a></td>
                         <td style="color:#c8d5e0;">|</td>
-                        <td style="padding:0 8px;"><a href="#" style="color:#3b9ede;text-decoration:none;font-size:14px;font-weight:600;">Facebook</a></td>
+                        <td style="padding:0 8px;"><a href="https://www.facebook.com/MountainConnects" style="color:#3b9ede;text-decoration:none;font-size:14px;font-weight:600;">Facebook</a></td>
                       </tr>
                     </table>
                   </td>
