@@ -87,6 +87,7 @@ export default function WorkerLayout({
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (
@@ -128,10 +129,18 @@ export default function WorkerLayout({
     <ChatUnreadProvider>
       <div className="flex h-screen flex-col">
         {showPasswordReset && <PasswordResetModal onClose={() => setShowPasswordReset(false)} />}
-        <PortalHeader portalType="worker" userName={userName} avatarUrl={avatarUrl} />
+        <PortalHeader
+          portalType="worker"
+          userName={userName}
+          avatarUrl={avatarUrl}
+          onMobileMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
         <div className="flex flex-1 overflow-hidden">
-          <WorkerSidebar />
-          <main className="flex-1 overflow-y-auto bg-background p-6">
+          <WorkerSidebar
+            mobileOpen={sidebarOpen}
+            onMobileClose={() => setSidebarOpen(false)}
+          />
+          <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-6">
             {children}
           </main>
         </div>

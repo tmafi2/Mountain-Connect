@@ -12,6 +12,7 @@ export default function BusinessLayout({
   children: React.ReactNode;
 }) {
   const [userName, setUserName] = useState<string>("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (
@@ -28,10 +29,17 @@ export default function BusinessLayout({
   return (
     <ChatUnreadProvider>
       <div className="flex h-screen flex-col">
-        <PortalHeader portalType="business" userName={userName} />
+        <PortalHeader
+          portalType="business"
+          userName={userName}
+          onMobileMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
         <div className="flex flex-1 overflow-hidden">
-          <BusinessSidebar />
-          <main className="flex-1 overflow-y-auto bg-background p-6">
+          <BusinessSidebar
+            mobileOpen={sidebarOpen}
+            onMobileClose={() => setSidebarOpen(false)}
+          />
+          <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-6">
             {children}
           </main>
         </div>

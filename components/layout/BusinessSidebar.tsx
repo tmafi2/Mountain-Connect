@@ -117,54 +117,75 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function BusinessSidebar() {
+interface BusinessSidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export default function BusinessSidebar({ mobileOpen, onMobileClose }: BusinessSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const unreadMessages = useUnreadMessages();
 
-  return (
-    <aside
-      className={`flex shrink-0 flex-col border-r border-accent bg-white transition-all duration-200 ${
-        collapsed ? "w-16" : "w-56"
-      }`}
-    >
-      {/* Collapse toggle */}
-      <div className="flex justify-end p-2">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="rounded-md p-1.5 text-foreground/40 hover:bg-accent/20 hover:text-foreground"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <svg
-            className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+  const navContent = (isOverlay: boolean) => (
+    <>
+      {/* Collapse toggle — desktop only */}
+      {!isOverlay && (
+        <div className="flex justify-end p-2">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="rounded-md p-1.5 text-foreground/40 hover:bg-accent/20 hover:text-foreground"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-          </svg>
-        </button>
-      </div>
+            <svg
+              className={`h-4 w-4 transition-transform ${collapsed ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Close button — mobile only */}
+      {isOverlay && (
+        <div className="flex items-center justify-between p-4 border-b border-accent">
+          <span className="text-sm font-semibold text-primary">Menu</span>
+          <button
+            onClick={onMobileClose}
+            className="rounded-md p-1.5 text-foreground/40 hover:bg-accent/20 hover:text-foreground"
+            aria-label="Close menu"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Nav items */}
-      <nav className="flex flex-1 flex-col gap-1 px-2">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-1">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
+          const showLabel = isOverlay || !collapsed;
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={isOverlay ? onMobileClose : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-secondary/20 text-primary"
                   : "text-foreground/70 hover:bg-accent/20 hover:text-foreground"
               }`}
-              title={collapsed ? item.label : undefined}
+              title={!showLabel ? item.label : undefined}
             >
               <span className="shrink-0">{item.icon}</span>
-              {!collapsed && <span className="flex-1">{item.label}</span>}
+              {showLabel && <span className="flex-1">{item.label}</span>}
               {item.href === "/business/messages" && unreadMessages > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-white">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-xs font-bold text-white">
                   {unreadMessages > 99 ? "99+" : unreadMessages}
                 </span>
               )}
@@ -177,15 +198,42 @@ export default function BusinessSidebar() {
       <div className="border-t border-accent p-2">
         <Link
           href="/explore"
+          onClick={isOverlay ? onMobileClose : undefined}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground/50 transition-colors hover:bg-accent/20 hover:text-foreground"
-          title={collapsed ? "Explore Resorts" : undefined}
+          title={!isOverlay && collapsed ? "Explore Resorts" : undefined}
         >
           <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          {!collapsed && <span>Explore Resorts</span>}
+          {(isOverlay || !collapsed) && <span>Explore Resorts</span>}
         </Link>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className={`hidden lg:flex shrink-0 flex-col border-r border-accent bg-white transition-all duration-200 ${
+          collapsed ? "w-16" : "w-56"
+        }`}
+      >
+        {navContent(false)}
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={onMobileClose}
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-xl lg:hidden">
+            {navContent(true)}
+          </aside>
+        </>
+      )}
+    </>
   );
 }

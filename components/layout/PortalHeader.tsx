@@ -10,12 +10,14 @@ interface PortalHeaderProps {
   portalType: "worker" | "business" | "admin";
   userName?: string;
   avatarUrl?: string | null;
+  onMobileMenuToggle?: () => void;
 }
 
 export default function PortalHeader({
   portalType,
   userName,
   avatarUrl,
+  onMobileMenuToggle,
 }: PortalHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -44,8 +46,19 @@ export default function PortalHeader({
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-accent bg-white/80 px-6 backdrop-blur-md">
-      {/* Left — Logo + Home */}
+      {/* Left — Menu toggle + Logo + Home */}
       <div className="flex items-center gap-3">
+        {onMobileMenuToggle && (
+          <button
+            onClick={onMobileMenuToggle}
+            className="rounded-md p-1.5 text-foreground/60 hover:bg-accent/20 hover:text-foreground lg:hidden"
+            aria-label="Toggle menu"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
         <Link
           href={dashboardHref}
           className="flex items-center gap-2 text-lg font-bold text-primary"

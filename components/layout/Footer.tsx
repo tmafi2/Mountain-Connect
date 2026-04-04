@@ -55,9 +55,9 @@ export default function Footer() {
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-64 w-96 rounded-full bg-secondary/5 blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl px-6 py-16">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand + Newsletter */}
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2 lg:col-span-2">
             <div className="flex items-center gap-3">
               <Image
                 src="/images/Logo.jpeg"
