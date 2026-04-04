@@ -3803,7 +3803,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "50",
     name: "Perisher",
-    banner_image_url: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=1200&q=80",
+    banner_image_url: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=1200&q=80",
     region_id: "9",
     country: "Australia",
     description:
