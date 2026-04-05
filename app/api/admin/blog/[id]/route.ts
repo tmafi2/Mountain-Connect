@@ -42,10 +42,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
  * PATCH /api/admin/blog/[id]
  * Update a blog post (admin only).
  */
-export async function PATCH(request: Request, {
+export async function PATCH(request: Request, { params }: RouteContext) {
   const rateLimited = await rateLimit(request, { identifier: "admin" });
   if (rateLimited) return rateLimited;
- params }: RouteContext) {
+
   try {
     const { id } = await params;
     const supabase = await createClient();

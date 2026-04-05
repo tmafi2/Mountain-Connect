@@ -38,11 +38,11 @@ export async function PUT(
 // DELETE — remove an availability window
 export async function DELETE(
   _request: NextRequest,
-  {
-  const rateLimited = await rateLimit(request, { identifier: "availability" });
-  if (rateLimited) return rateLimited;
- params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimited = await rateLimit(_request, { identifier: "availability" });
+  if (rateLimited) return rateLimited;
+
   const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
