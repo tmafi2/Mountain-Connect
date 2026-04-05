@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 
 interface WorkerRow {
   id: string;
@@ -58,6 +57,7 @@ export default function AdminWorkersPage() {
         }
         const data = await res.json();
         profiles = data.workers;
+        var emailMap: Record<string, string> = data.emailMap || {};
       } catch (err) {
         console.error("Error loading workers:", err);
         setLoading(false);
@@ -67,10 +67,6 @@ export default function AdminWorkersPage() {
       if (!profiles) { setLoading(false); return; }
 
       if (profiles && profiles.length > 0) {
-        const userIds = profiles.map((p) => p.user_id as string);
-        const { data: users } = await supabase.from("users").select("id, email").in("id", userIds);
-        const emailMap: Record<string, string> = {};
-        if (users) users.forEach((u) => { emailMap[u.id] = u.email; });
 
         setWorkers(profiles.map((p) => ({
           id: p.id as string,
@@ -102,24 +98,16 @@ export default function AdminWorkersPage() {
     if (!selected) { setSelectedApps([]); return; }
     setLoadingApps(true);
     (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("applications")
-        .select("id, status, applied_at, job_posts(title, business_profiles(business_name))")
-        .eq("worker_id", selected.id)
-        .order("applied_at", { ascending: false });
-
-      if (data) {
-        setSelectedApps(data.map((a) => {
-          const jp = a.job_posts as unknown as { title: string; business_profiles: { business_name: string } } | null;
-          return {
-            id: a.id,
-            job_title: jp?.title || "Unknown",
-            business_name: jp?.business_profiles?.business_name || "Unknown",
-            status: a.status as string,
-            applied_at: a.applied_at as string,
-          };
-        }));
+      try {
+        const res = await fetch(`/api/admin/workers?workerId=${selected.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.applications) {
+            setSelectedApps(data.applications);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading worker applications:", err);
       }
       setLoadingApps(false);
     })();
