@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWaitlistWorkerEmail, sendWaitlistBusinessEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request, req: NextRequest) {
+  const rateLimited = await rateLimit(request, { identifier: "waitlist" });
+  if (rateLimited) return rateLimited;
+
   try {
     const body = await req.json();
     const { type, email, business_name, country, resort } = body;

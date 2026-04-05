@@ -3,12 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
 import { sendNewMessageEmail } from "@/lib/email/send";
+import { logAdminAction } from "@/lib/audit/log";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/admin/confirm-business
  * Admin approves, rejects, or requests info from a business registration.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "admin" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -172,6 +177,20 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }
     }
+
+    // Audit log
+    const actionMap: Record<string, "business_approved" | "business_rejected" | "business_info_requested"> = {
+      approve: "business_approved",
+      reject: "business_rejected",
+      request_info: "business_info_requested",
+    };
+    await logAdminAction({
+      adminId: user.id,
+      action: actionMap[action] || "business_approved",
+      targetType: "business",
+      targetId: businessId,
+      details: { business_name: business?.business_name, message },
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 // GET — fetch all availability windows for the logged-in business
 export async function GET() {
@@ -30,6 +31,9 @@ export async function GET() {
 
 // POST — create a new availability window
 export async function POST(request: NextRequest) {
+  const rateLimited = await rateLimit(request, { identifier: "availability" });
+  if (rateLimited) return rateLimited;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

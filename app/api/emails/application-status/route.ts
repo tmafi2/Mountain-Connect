@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendApplicationStatusChangedEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/emails/application-status
@@ -8,6 +9,9 @@ import { sendApplicationStatusChangedEmail } from "@/lib/email/send";
  * Sends a notification email to the worker.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "email" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { applicationId, newStatus } = await request.json();
 

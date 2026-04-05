@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendNewMessageEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/emails/new-message
@@ -8,6 +9,9 @@ import { sendNewMessageEmail } from "@/lib/email/send";
  * Deduplicates: only sends if no email was sent for this conversation in the last 5 minutes.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "email" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { conversationId, senderId, messageContent } = await request.json();
 

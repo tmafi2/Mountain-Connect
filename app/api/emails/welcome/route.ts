@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendWelcomeWorkerEmail } from "@/lib/email/send";
 import { sendWelcomeBusinessEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/emails/welcome
@@ -8,6 +9,9 @@ import { sendWelcomeBusinessEmail } from "@/lib/email/send";
  * Sends the appropriate welcome email based on account type.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "email" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { type, email, name, profileUrl } = await request.json();
 

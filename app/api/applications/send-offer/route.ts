@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/applications/send-offer
  * Business sends a job offer to a worker via their interview.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "send-offer" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

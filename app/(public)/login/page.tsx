@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 type LoginType = "worker" | "business";
 
@@ -33,6 +34,7 @@ function LoginContent() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -125,7 +127,7 @@ function LoginContent() {
       const checkRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken }),
       });
 
       const checkData = await checkRes.json();
@@ -420,6 +422,16 @@ function LoginContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
                 {error}
+              </div>
+            )}
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
               </div>
             )}
 

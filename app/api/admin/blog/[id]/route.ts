@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/slugify";
+import { rateLimit } from "@/lib/rate-limit";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -41,7 +42,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
  * PATCH /api/admin/blog/[id]
  * Update a blog post (admin only).
  */
-export async function PATCH(request: Request, { params }: RouteContext) {
+export async function PATCH(request: Request, {
+  const rateLimited = await rateLimit(request, { identifier: "admin" });
+  if (rateLimited) return rateLimited;
+ params }: RouteContext) {
   try {
     const { id } = await params;
     const supabase = await createClient();

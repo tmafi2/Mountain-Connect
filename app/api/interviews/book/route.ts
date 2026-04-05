@@ -3,8 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications/create";
 import { sendInterviewConfirmationEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const rateLimited = await rateLimit(request, { identifier: "interview" });
+  if (rateLimited) return rateLimited;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

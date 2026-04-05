@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStreamServerClient } from "@/lib/stream/server";
+import { rateLimit } from "@/lib/rate-limit";
 
-export async function POST() {
+export async function POST(request: Request, ) {
+  const rateLimited = await rateLimit(request, { identifier: "chat-token" });
+  if (rateLimited) return rateLimited;
+
   const streamClient = getStreamServerClient();
   if (!streamClient) {
     return NextResponse.json(

@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,6 +98,17 @@ export default function ForgotPasswordPage() {
                     className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
                   />
                 </div>
+
+                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                      onSuccess={setTurnstileToken}
+                      onExpire={() => setTurnstileToken("")}
+                      options={{ theme: "dark" }}
+                    />
+                  </div>
+                )}
 
                 <button
                   type="submit"

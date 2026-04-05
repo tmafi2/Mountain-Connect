@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications/create";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendBusinessVerifiedEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/notifications/verify-business
@@ -9,6 +10,9 @@ import { sendBusinessVerifiedEmail } from "@/lib/email/send";
  * and sets the celebration flag for the confetti popup.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "notif-verify" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { userId, businessName, businessId } = await request.json();
 

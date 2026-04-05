@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const ACCESS_CODE = process.env.SITE_ACCESS_CODE || "mountainconnectaccess";
 
 export async function POST(request: NextRequest) {
+  const rateLimited = await rateLimit(request, { identifier: "access" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { code } = await request.json();
 

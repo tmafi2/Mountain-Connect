@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
 import { sendJobAlertMatchEmail } from "@/lib/email/send";
 import { formatPay } from "@/lib/utils/format-pay";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/job-alerts/match
@@ -10,6 +11,9 @@ import { formatPay } from "@/lib/utils/format-pay";
  * and sends notifications to matching workers.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "job-alerts" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { jobId } = await request.json();
     if (!jobId) return NextResponse.json({ error: "Missing jobId" }, { status: 400 });

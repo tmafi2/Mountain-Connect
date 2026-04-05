@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * GET /api/job-alerts — list current user's alerts
@@ -27,6 +28,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "job-alerts" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/conversations
@@ -9,6 +10,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Returns the conversation_id.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "conversations" });
+  if (rateLimited) return rateLimited;
+
   try {
     // Auth check via user-scoped client
     const supabase = await createClient();

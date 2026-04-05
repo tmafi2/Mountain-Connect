@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendApplicationReceivedEmail } from "@/lib/email/send";
 import { sendNewApplicantEmail } from "@/lib/email/send";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/emails/application-submitted
@@ -9,6 +10,9 @@ import { sendNewApplicantEmail } from "@/lib/email/send";
  * Sends confirmation to the worker + notification to the business.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "email" });
+  if (rateLimited) return rateLimited;
+
   try {
     const { jobId, workerId } = await request.json();
 

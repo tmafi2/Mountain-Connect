@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications/create";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * POST /api/applications/respond
@@ -9,6 +10,9 @@ import { createNotification } from "@/lib/notifications/create";
  * and sends notifications to both worker and business.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "app-respond" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

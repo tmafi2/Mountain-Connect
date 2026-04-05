@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendLoginOtpEmail } from "@/lib/email/send";
 import { rateLimit } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import crypto from "crypto";
 
 function generateOtp(): string {
@@ -24,10 +25,18 @@ export async function POST(request: Request) {
   const rateLimited = await rateLimit(request, { identifier: "auth-login" });
   if (rateLimited) return rateLimited;
 
-  const { email, password } = await request.json();
+  const { email, password, turnstileToken } = await request.json();
 
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+  }
+
+  // Verify CAPTCHA
+  if (turnstileToken) {
+    const captchaValid = await verifyTurnstileToken(turnstileToken);
+    if (!captchaValid) {
+      return NextResponse.json({ error: "Security check failed. Please try again." }, { status: 400 });
+    }
   }
 
   const admin = createAdminClient();
@@ -49,6 +58,9 @@ export async function POST(request: Request) {
     .select("two_factor_enabled, full_name, email, role")
     .eq("id", userId)
     .single();
+
+  // Update last login timestamp
+  await admin.from("users").update({ last_login_at: new Date().toISOString() }).eq("id", userId).then(() => {}).catch(() => {});
 
   if (!userData?.two_factor_enabled) {
     // No 2FA — return success, let client do normal signInWithPassword

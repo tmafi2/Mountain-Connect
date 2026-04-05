@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
+import { logAdminAction } from "@/lib/audit/log";
 
 /**
  * POST /api/admin/suspend-worker
  * Suspend or reactivate a worker. Admin only.
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "admin" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -44,6 +49,7 @@ export async function POST(request: Request) {
           .in("id", workerApps.map((a) => a.id));
       }
 
+      await logAdminAction({ adminId: user.id, action: "worker_suspended", targetType: "worker", targetId: workerId, details: { reason } }).catch(() => {});
       return NextResponse.json({ success: true, action: "suspended" });
     } else if (action === "reactivate") {
       await admin.from("worker_profiles").update({
@@ -53,6 +59,7 @@ export async function POST(request: Request) {
         suspended_by: null,
       }).eq("id", workerId);
 
+      await logAdminAction({ adminId: user.id, action: "worker_reactivated", targetType: "worker", targetId: workerId }).catch(() => {});
       return NextResponse.json({ success: true, action: "reactivated" });
     }
 

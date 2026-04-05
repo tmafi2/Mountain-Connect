@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 import { validatePassword } from "@/lib/utils/password";
 import PasswordStrength from "@/components/ui/PasswordStrength";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 type AccountType = "worker" | "business";
 
@@ -30,6 +31,7 @@ function SignupContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
   const router = useRouter();
 
   // Business resort selection
@@ -49,6 +51,12 @@ function SignupContent() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Verify CAPTCHA
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the security check.");
+      return;
+    }
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.isValid) {
@@ -468,6 +476,16 @@ function SignupContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
                 {error}
+              </div>
+            )}
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center">
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
               </div>
             )}
 

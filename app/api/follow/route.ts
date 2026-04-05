@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications/create";
+import { rateLimit } from "@/lib/rate-limit";
 
 // GET — check if current worker follows a business, or list all followed businesses
 export async function GET(request: NextRequest) {
@@ -55,6 +56,9 @@ export async function GET(request: NextRequest) {
 
 // POST — follow a business
 export async function POST(request: NextRequest) {
+  const rateLimited = await rateLimit(request, { identifier: "follow" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

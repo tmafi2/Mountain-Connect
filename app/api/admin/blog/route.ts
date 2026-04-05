@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils/slugify";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * GET /api/admin/blog
@@ -36,6 +37,9 @@ export async function GET() {
  * Create a new blog post (admin only).
  */
 export async function POST(request: Request) {
+  const rateLimited = await rateLimit(request, { identifier: "admin" });
+  if (rateLimited) return rateLimited;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

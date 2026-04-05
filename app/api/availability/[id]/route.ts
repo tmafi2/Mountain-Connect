@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 // PUT — update an availability window
 export async function PUT(
@@ -37,7 +38,10 @@ export async function PUT(
 // DELETE — remove an availability window
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  {
+  const rateLimited = await rateLimit(request, { identifier: "availability" });
+  if (rateLimited) return rateLimited;
+ params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const supabase = await createClient();
