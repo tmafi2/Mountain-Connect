@@ -86,9 +86,28 @@ export async function GET(request: Request) {
           );
         }
 
-        // Route to the correct dashboard based on actual role
+        // Check if user has completed onboarding (has a profile)
         if (role === "business_owner") {
+          const { data: bizProfile } = await supabase
+            .from("business_profiles")
+            .select("id, business_name")
+            .eq("user_id", user.id)
+            .single();
+          // If no profile or profile has no business_name (auto-created stub), redirect to onboarding
+          if (!bizProfile || !bizProfile.business_name) {
+            return NextResponse.redirect(`${origin}/onboarding?type=business`);
+          }
           return NextResponse.redirect(`${origin}/business/dashboard`);
+        }
+
+        // Worker
+        const { data: workerProfile } = await supabase
+          .from("worker_profiles")
+          .select("id, bio")
+          .eq("user_id", user.id)
+          .single();
+        if (!workerProfile || !workerProfile.bio) {
+          return NextResponse.redirect(`${origin}/onboarding?type=worker`);
         }
         return NextResponse.redirect(`${origin}/dashboard`);
       }

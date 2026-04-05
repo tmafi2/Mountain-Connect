@@ -98,6 +98,25 @@ function SignupContent() {
           },
           { onConflict: "id" }
         );
+
+        // Auto-create a basic profile so the user appears in admin immediately
+        if (accountType === "worker") {
+          await supabase.from("worker_profiles").upsert(
+            { user_id: signUpData.user.id, contact_email: email },
+            { onConflict: "user_id" }
+          ).then(() => {}).catch(() => {});
+        } else {
+          await supabase.from("business_profiles").upsert(
+            {
+              user_id: signUpData.user.id,
+              business_name: firstName.trim(),
+              email: email,
+              resort_id: selectedResortId || null,
+              verification_status: "pending_review",
+            },
+            { onConflict: "user_id" }
+          ).then(() => {}).catch(() => {});
+        }
       }
 
       // Record referral if applicable

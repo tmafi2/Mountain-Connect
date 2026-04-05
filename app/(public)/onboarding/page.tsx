@@ -152,16 +152,19 @@ function WorkerSetup({
     // Create worker profile with onboarding answers
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
 
-    await supabase.from("worker_profiles").insert({
-      user_id: user.id,
-      bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
-      years_seasonal_experience: experience === "first_season" ? 0 : 1,
-      preferred_job_types: lookingForJob ? ["full_time"] : [],
-      housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
-      work_history: [],
-      contact_email: user.email || null,
-      timezone: detectedTimezone,
-    });
+    await supabase.from("worker_profiles").upsert(
+      {
+        user_id: user.id,
+        bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
+        years_seasonal_experience: experience === "first_season" ? 0 : 1,
+        preferred_job_types: lookingForJob ? ["full_time"] : [],
+        housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
+        work_history: [],
+        contact_email: user.email || null,
+        timezone: detectedTimezone,
+      },
+      { onConflict: "user_id" }
+    );
 
     // Send welcome email (non-blocking)
     fetch("/api/emails/welcome", {

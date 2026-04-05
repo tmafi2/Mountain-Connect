@@ -16,6 +16,7 @@ import { jobAlertMatchEmail } from "./templates/job-alert-match";
 import { supportReportReceivedEmail } from "./templates/support-report-received";
 import { supportReportAdminAlertEmail } from "./templates/support-report-admin-alert";
 import { loginOtpEmail } from "./templates/login-otp";
+import { onboardingReminderEmail } from "./templates/onboarding-reminder";
 
 const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
 
@@ -279,5 +280,17 @@ export async function sendLoginOtpEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = loginOtpEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendOnboardingReminderEmail(params: {
+  to: string;
+  userName: string;
+  accountType: "worker" | "business";
+  loginUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = onboardingReminderEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }
