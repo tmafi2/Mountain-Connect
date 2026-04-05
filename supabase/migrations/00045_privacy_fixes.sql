@@ -16,7 +16,7 @@ CREATE POLICY "Businesses can view applicant profiles"
     user_id = auth.uid()
     OR EXISTS (
       SELECT 1 FROM public.applications a
-      JOIN public.job_posts jp ON jp.id = a.job_id
+      JOIN public.job_posts jp ON jp.id = a.job_post_id
       JOIN public.business_profiles bp ON bp.id = jp.business_id
       WHERE a.worker_id = worker_profiles.id
       AND bp.user_id = auth.uid()
