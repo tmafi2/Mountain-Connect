@@ -47,31 +47,24 @@ export default function AdminWorkersPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      // Try with suspension columns first, fall back without them if migration 00022 hasn't been run
       let profiles: Record<string, unknown>[] | null = null;
-      let error: { message: string } | null = null;
 
-      const fullResult = await supabase
-        .from("worker_profiles")
-        .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, bio, work_history, status, suspension_reason, suspended_at, created_at")
-        .order("created_at", { ascending: false });
-
-      if (fullResult.error) {
-        // Fallback: query without suspension columns
-        console.warn("Falling back to basic worker query:", fullResult.error.message);
-        const basicResult = await supabase
-          .from("worker_profiles")
-          .select("id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, profile_photo_url, profile_completion_pct, bio, work_history, created_at")
-          .order("created_at", { ascending: false });
-        profiles = basicResult.data as Record<string, unknown>[] | null;
-        error = basicResult.error;
-      } else {
-        profiles = fullResult.data as Record<string, unknown>[] | null;
-        error = fullResult.error;
+      try {
+        const res = await fetch("/api/admin/workers");
+        if (!res.ok) {
+          console.error("Error loading workers:", res.statusText);
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        profiles = data.workers;
+      } catch (err) {
+        console.error("Error loading workers:", err);
+        setLoading(false);
+        return;
       }
 
-      if (error) { console.error("Error loading workers:", error); setLoading(false); return; }
+      if (!profiles) { setLoading(false); return; }
 
       if (profiles && profiles.length > 0) {
         const userIds = profiles.map((p) => p.user_id as string);
