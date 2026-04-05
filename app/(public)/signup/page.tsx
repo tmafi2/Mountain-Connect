@@ -6,6 +6,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
+import { validatePassword } from "@/lib/utils/password";
+import PasswordStrength from "@/components/ui/PasswordStrength";
 
 type AccountType = "worker" | "business";
 
@@ -47,6 +49,12 @@ function SignupContent() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.isValid) {
+      setError("Password must meet all requirements: " + passwordCheck.errors.join(", "));
+      return;
+    }
 
     if (accountType === "business" && !selectedResortId) {
       setError("Please select a resort for your business.");
@@ -409,11 +417,11 @@ function SignupContent() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-11 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
-                  placeholder="At least 6 characters"
+                  placeholder="Create a strong password"
                 />
                 <button
                   type="button"
@@ -432,7 +440,7 @@ function SignupContent() {
                   )}
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-foreground/30">Must be at least 6 characters</p>
+              <PasswordStrength password={password} />
             </div>
 
             {error && (

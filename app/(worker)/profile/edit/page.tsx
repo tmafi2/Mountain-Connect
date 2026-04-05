@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { validatePassword } from "@/lib/utils/password";
 import type {
   VisaStatus,
   SeasonPreference,
@@ -669,8 +670,9 @@ export default function ProfileEditPage() {
   async function handleChangePassword() {
     setPasswordMessage(null);
 
-    if (newPassword.length < 6) {
-      setPasswordMessage({ type: "error", text: "New password must be at least 6 characters." });
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.isValid) {
+      setPasswordMessage({ type: "error", text: "Password must include: " + pwCheck.errors.join(", ") });
       return;
     }
     if (newPassword !== confirmPassword) {

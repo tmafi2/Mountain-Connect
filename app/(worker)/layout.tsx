@@ -6,6 +6,8 @@ import PortalHeader from "@/components/layout/PortalHeader";
 import WorkerSidebar from "@/components/layout/WorkerSidebar";
 import ChatUnreadProvider from "@/components/chat/ChatUnreadProvider";
 import BugReportWidget from "@/components/ui/BugReportWidget";
+import { validatePassword } from "@/lib/utils/password";
+import PasswordStrength from "@/components/ui/PasswordStrength";
 
 function PasswordResetModal({ onClose }: { onClose: () => void }) {
   const [newPassword, setNewPassword] = useState("");
@@ -17,7 +19,8 @@ function PasswordResetModal({ onClose }: { onClose: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (newPassword.length < 6) { setError("Password must be at least 6 characters."); return; }
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.isValid) { setError("Password must meet all requirements: " + pwCheck.errors.join(", ")); return; }
     if (newPassword !== confirmPassword) { setError("Passwords do not match."); return; }
 
     setSaving(true);

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { validatePassword } from "@/lib/utils/password";
+import PasswordStrength from "@/components/ui/PasswordStrength";
 
 function ResetPasswordContent() {
   const [password, setPassword] = useState("");
@@ -32,8 +34,9 @@ function ResetPasswordContent() {
     e.preventDefault();
     setError("");
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.isValid) {
+      setError("Password must meet all requirements: " + passwordCheck.errors.join(", "));
       return;
     }
     if (password !== confirmPassword) {
@@ -151,11 +154,11 @@ function ResetPasswordContent() {
               id="password"
               type={showPassword ? "text" : "password"}
               required
-              minLength={6}
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl border border-accent bg-white py-3 pl-11 pr-11 text-sm text-primary placeholder-foreground/30 transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
-              placeholder="At least 6 characters"
+              placeholder="Create a strong password"
             />
             <button
               type="button"
@@ -174,6 +177,7 @@ function ResetPasswordContent() {
               )}
             </button>
           </div>
+          <PasswordStrength password={password} />
         </div>
 
         <div>
