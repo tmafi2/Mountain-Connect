@@ -13,6 +13,8 @@ import { welcomeWorkerEmail } from "./templates/welcome-worker";
 import { welcomeBusinessEmail } from "./templates/welcome-business";
 import { newMessageEmail } from "./templates/new-message";
 import { jobAlertMatchEmail } from "./templates/job-alert-match";
+import { supportReportReceivedEmail } from "./templates/support-report-received";
+import { supportReportAdminAlertEmail } from "./templates/support-report-admin-alert";
 
 const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
 
@@ -237,4 +239,33 @@ export async function sendJobAlertMatchEmail(params: {
   if (!resend) return null;
   const { subject, html } = jobAlertMatchEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendSupportReportConfirmationEmail(params: {
+  to: string;
+  userName: string;
+  category: string;
+  subject: string;
+  reportId: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject: emailSubject, html } = supportReportReceivedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
+}
+
+export async function sendSupportReportAdminAlertEmail(params: {
+  to: string;
+  category: string;
+  subject: string;
+  userName: string;
+  userEmail: string;
+  message: string;
+  pageUrl: string | null;
+  reportUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject: emailSubject, html } = supportReportAdminAlertEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
 }

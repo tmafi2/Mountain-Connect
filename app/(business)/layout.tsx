@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import PortalHeader from "@/components/layout/PortalHeader";
 import BusinessSidebar from "@/components/layout/BusinessSidebar";
 import ChatUnreadProvider from "@/components/chat/ChatUnreadProvider";
+import BugReportWidget from "@/components/ui/BugReportWidget";
 
 export default function BusinessLayout({
   children,
@@ -44,6 +45,7 @@ export default function BusinessLayout({
           </main>
         </div>
       </div>
+      <BugReportWidget />
     </ChatUnreadProvider>
   );
 }

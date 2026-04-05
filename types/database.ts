@@ -472,3 +472,31 @@ export interface Notification {
   metadata: Record<string, unknown> | null;
   created_at: string;
 }
+
+// Support Reports
+export type SupportReportCategory =
+  | "bug"
+  | "feature_request"
+  | "content_issue"
+  | "account_issue"
+  | "other";
+
+export type SupportReportStatus = "open" | "resolved" | "dismissed";
+
+export interface SupportReport {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  category: SupportReportCategory;
+  subject: string;
+  message: string;
+  page_url: string | null;
+  user_agent: string | null;
+  status: SupportReportStatus;
+  admin_note: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+}

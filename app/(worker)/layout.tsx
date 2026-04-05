@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import PortalHeader from "@/components/layout/PortalHeader";
 import WorkerSidebar from "@/components/layout/WorkerSidebar";
 import ChatUnreadProvider from "@/components/chat/ChatUnreadProvider";
+import BugReportWidget from "@/components/ui/BugReportWidget";
 
 function PasswordResetModal({ onClose }: { onClose: () => void }) {
   const [newPassword, setNewPassword] = useState("");
@@ -145,6 +146,7 @@ export default function WorkerLayout({
           </main>
         </div>
       </div>
+      <BugReportWidget />
     </ChatUnreadProvider>
   );
 }
