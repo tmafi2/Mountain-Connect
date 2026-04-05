@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold text-primary">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-foreground/50">Last updated: 4 April 2026</p>
+      <p className="mt-2 text-sm text-foreground/50">Last updated: 5 April 2026</p>
 
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-foreground/70">
         <section>
@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
           <p className="mt-2">We collect information that you provide directly to us, including:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Account information:</strong> Name, email address, password, and account type (worker or business)</li>
-            <li><strong>Worker profile data:</strong> Bio, skills, work experience, availability, preferred job types, contact email, profile photos</li>
+            <li><strong>Worker profile data:</strong> Bio, skills, work experience, availability, preferred job types, contact email, phone number, date of birth, nationality, visa status, profile photos, and uploaded resumes</li>
             <li><strong>Business profile data:</strong> Business name, description, industry, location, contact details, logo, cover photos, associated resort</li>
             <li><strong>Job listings:</strong> Job titles, descriptions, requirements, and application details</li>
             <li><strong>Applications:</strong> Application messages and status</li>
@@ -59,7 +59,8 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-lg font-semibold text-primary">4. How We Share Your Information</h2>
           <p className="mt-2">We may share your information with:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
-            <li><strong>Other users:</strong> Worker profiles are visible to businesses. Business profiles and job listings are publicly visible when verified.</li>
+            <li><strong>Businesses (upon application):</strong> When you apply for a job, the hiring business can view your worker profile including your name, skills, experience, phone number, date of birth, nationality, visa status, cover letter, and uploaded resume. Businesses can only see profiles of workers who have applied to their job listings.</li>
+            <li><strong>Public visibility:</strong> Verified business profiles and active job listings are publicly visible. Worker profiles are never publicly visible — they are only shared with businesses you apply to.</li>
             <li><strong>Service providers:</strong> We use third-party services to operate the platform:
               <ul className="mt-1 list-disc space-y-1 pl-6">
                 <li>Supabase (database hosting and authentication)</li>
@@ -88,7 +89,7 @@ export default function PrivacyPolicyPage() {
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
             <li><strong>Correction:</strong> Request that we correct any inaccurate or incomplete information</li>
-            <li><strong>Deletion:</strong> Request that we delete your personal information and account</li>
+            <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes all profile data, applications, job listings, notifications, newsletter subscriptions, and authentication credentials</li>
             <li><strong>Complaint:</strong> Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) if you believe we have breached the APPs</li>
           </ul>
           <p className="mt-2">To exercise any of these rights, contact us at hello@mountainconnects.com.</p>

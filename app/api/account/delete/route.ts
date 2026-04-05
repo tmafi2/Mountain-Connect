@@ -47,6 +47,16 @@ export async function POST(request: Request) {
     // Delete notifications
     await admin.from("notifications").delete().eq("user_id", user.id);
 
+    // Delete newsletter and waitlist subscriptions by email
+    const userEmail = user.email;
+    if (userEmail) {
+      await admin.from("newsletter_subscribers").delete().eq("email", userEmail);
+      await admin.from("waitlist_signups").delete().eq("email", userEmail);
+    }
+
+    // Delete support reports
+    await admin.from("support_reports").delete().eq("user_id", user.id);
+
     // Delete the user record
     await admin.from("users").delete().eq("id", user.id);
 
