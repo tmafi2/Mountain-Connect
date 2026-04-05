@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isInLaunchLocation, LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
+import { canPostJob } from "@/lib/tier";
+import type { BusinessTier } from "@/lib/tier";
+import UpgradePrompt from "@/components/ui/UpgradePrompt";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -121,6 +124,9 @@ export default function PostJobPage() {
   const [businessVerified, setBusinessVerified] = useState(false);
   const [inLaunchLoc, setInLaunchLoc] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [businessTier, setBusinessTier] = useState<BusinessTier>("free");
+  const [activeJobCount, setActiveJobCount] = useState(0);
+  const [canPost, setCanPost] = useState(true);
 
   // Resort search state
   const [allResorts, setAllResorts] = useState<{ id: string; legacy_id: string; name: string; country: string }[]>([]);
@@ -176,12 +182,24 @@ export default function PostJobPage() {
       if (!user) { setLoading(false); return; }
       const { data: bp } = await supabase
         .from("business_profiles")
-        .select("id, verification_status")
+        .select("id, verification_status, tier")
         .eq("user_id", user.id)
         .single();
       if (bp) {
         setBusinessId(bp.id);
         setBusinessVerified(bp.verification_status === "verified");
+        const tier = (bp.tier || "free") as BusinessTier;
+        setBusinessTier(tier);
+
+        // Check active job count for tier gating
+        const { count } = await supabase
+          .from("job_posts")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", bp.id)
+          .eq("status", "active");
+        const jobCount = count || 0;
+        setActiveJobCount(jobCount);
+        setCanPost(canPostJob(tier, jobCount));
 
         // Check launch location
         const { data: bpFull } = await supabase
@@ -355,6 +373,18 @@ export default function PostJobPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" />
+      </div>
+    );
+  }
+
+  // Show upgrade prompt if free tier and at job limit
+  if (!canPost) {
+    return (
+      <div className="mx-auto max-w-2xl py-12">
+        <UpgradePrompt
+          feature="Unlimited Job Listings"
+          description={`You've reached the limit of ${activeJobCount} active job listing on the Free plan. Upgrade to Premium to post unlimited jobs and access more features.`}
+        />
       </div>
     );
   }
