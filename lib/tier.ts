@@ -24,7 +24,7 @@ export const TIER_FEATURES = {
     applicantInsights: true,
     premiumBadge: true,
     prioritySupport: true,
-    price: "$49",
+    price: "$29",
     priceNote: "per month",
   },
 } as const;
