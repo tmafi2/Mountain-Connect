@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
     async function load() {
       const supabase = createClient();
 
-      const [businesses, pendingRegs, pendingVerif, verified, workers, jobs, applications] = await Promise.all([
+      const [businesses, pendingRegs, pendingVerif, verified, workers, jobs, applications, openReports] = await Promise.all([
         supabase.from("business_profiles").select("id", { count: "exact", head: true }),
         supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending_review"),
         supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending_verification"),
@@ -52,6 +52,7 @@ export default function AdminDashboardPage() {
         supabase.from("worker_profiles").select("id", { count: "exact", head: true }),
         supabase.from("job_posts").select("id", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("applications").select("id", { count: "exact", head: true }),
+        supabase.from("support_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
       ]);
 
       const currentStats: Stats = {
@@ -59,7 +60,7 @@ export default function AdminDashboardPage() {
         pendingRegistrations: pendingRegs.count ?? 0,
         pendingVerification: pendingVerif.count ?? 0,
         verifiedBusinesses: verified.count ?? 0,
-        openReports: 2, // Demo data — will query reports table when it exists
+        openReports: openReports.count ?? 0,
         totalWorkers: workers.count ?? 0,
         activeJobs: jobs.count ?? 0,
         totalApplications: applications.count ?? 0,
@@ -88,14 +89,39 @@ export default function AdminDashboardPage() {
         // No saved stats or parse error — just show totals without deltas
       }
 
-      // Save current stats for next visit
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          stats: currentStats,
-          date: new Date().toISOString(),
-        })
-      );
+      // Only save a new baseline snapshot every 24 hours
+      // This keeps deltas visible throughout the day instead of resetting on each page load
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        let shouldSave = true;
+
+        if (saved) {
+          const parsed = JSON.parse(saved) as { stats: Stats; date: string };
+          const savedTime = new Date(parsed.date).getTime();
+          const elapsed = Date.now() - savedTime;
+          shouldSave = elapsed >= TWENTY_FOUR_HOURS;
+        }
+
+        if (shouldSave) {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              stats: currentStats,
+              date: new Date().toISOString(),
+            })
+          );
+        }
+      } catch {
+        // First visit or corrupted data — save fresh baseline
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            stats: currentStats,
+            date: new Date().toISOString(),
+          })
+        );
+      }
 
       // Recent business registrations as activity
       const { data: recentBusinesses } = await supabase
