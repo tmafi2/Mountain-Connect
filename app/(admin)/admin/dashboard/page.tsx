@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-
 const STORAGE_KEY = "admin_dashboard_last_stats";
 
 interface Stats {
@@ -42,29 +40,23 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
+      let currentStats: Stats;
+      let recentBusinesses: any[] = [];
+      let recentWorkers: any[] = [];
+      let recentApps: any[] = [];
 
-      const [businesses, pendingRegs, pendingVerif, verified, workers, jobs, applications, openReports] = await Promise.all([
-        supabase.from("business_profiles").select("id", { count: "exact", head: true }),
-        supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending_review"),
-        supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "pending_verification"),
-        supabase.from("business_profiles").select("id", { count: "exact", head: true }).eq("verification_status", "verified"),
-        supabase.from("worker_profiles").select("id", { count: "exact", head: true }),
-        supabase.from("job_posts").select("id", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("applications").select("id", { count: "exact", head: true }),
-        supabase.from("support_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
-      ]);
-
-      const currentStats: Stats = {
-        totalBusinesses: businesses.count ?? 0,
-        pendingRegistrations: pendingRegs.count ?? 0,
-        pendingVerification: pendingVerif.count ?? 0,
-        verifiedBusinesses: verified.count ?? 0,
-        openReports: openReports.count ?? 0,
-        totalWorkers: workers.count ?? 0,
-        activeJobs: jobs.count ?? 0,
-        totalApplications: applications.count ?? 0,
-      };
+      try {
+        const res = await fetch("/api/admin/dashboard");
+        if (!res.ok) { setLoading(false); return; }
+        const data = await res.json();
+        currentStats = data.stats;
+        recentBusinesses = data.recentBusinesses;
+        recentWorkers = data.recentWorkers;
+        recentApps = data.recentApps;
+      } catch {
+        setLoading(false);
+        return;
+      }
 
       setStats(currentStats);
 
@@ -123,26 +115,7 @@ export default function AdminDashboardPage() {
         );
       }
 
-      // Recent business registrations as activity
-      const { data: recentBusinesses } = await supabase
-        .from("business_profiles")
-        .select("id, business_name, verification_status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      // Recent worker registrations
-      const { data: recentWorkers } = await supabase
-        .from("worker_profiles")
-        .select("id, first_name, last_name, created_at")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      // Recent applications
-      const { data: recentApps } = await supabase
-        .from("applications")
-        .select("id, applied_at, job_posts(title), worker_profiles(first_name, last_name)")
-        .order("applied_at", { ascending: false })
-        .limit(5);
+      // Recent activity — already fetched from API above
 
       const activity: typeof recentActivity = [];
 
