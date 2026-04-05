@@ -62,6 +62,27 @@ function LoginContent() {
     setAdminLoading(true);
 
     try {
+      // Check 2FA via server-side API
+      const checkRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      });
+
+      const checkData = await checkRes.json();
+
+      if (!checkRes.ok) {
+        setAdminError(checkData.error || "Invalid credentials");
+        return;
+      }
+
+      if (checkData.requires2fa) {
+        sessionStorage.setItem("2fa_password", adminPassword);
+        router.push(`/login/verify?email=${encodeURIComponent(adminEmail)}&type=admin`);
+        return;
+      }
+
+      // No 2FA — proceed normally
       const supabase = createClient();
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: adminEmail,
@@ -74,7 +95,7 @@ function LoginContent() {
       }
 
       // Verify user has admin role
-      const { data: userData, error: roleError } = await supabase
+      const { data: userData } = await supabase
         .from("users")
         .select("role")
         .eq("id", signInData.user.id)
@@ -100,6 +121,29 @@ function LoginContent() {
     setLoading(true);
 
     try {
+      // First check if user has 2FA enabled via server-side API
+      const checkRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const checkData = await checkRes.json();
+
+      if (!checkRes.ok) {
+        setError(checkData.error || "Invalid email or password");
+        return;
+      }
+
+      // If 2FA required, redirect to verification page
+      if (checkData.requires2fa) {
+        // Store password temporarily for post-2FA sign-in (cleared after use)
+        sessionStorage.setItem("2fa_password", password);
+        router.push(`/login/verify?email=${encodeURIComponent(email)}&type=${loginType}`);
+        return;
+      }
+
+      // No 2FA — proceed with normal client-side sign in
       const supabase = createClient();
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import TwoFactorSettings from "@/components/ui/TwoFactorSettings";
 
 export default function BusinessSettingsPage() {
   const router = useRouter();
@@ -32,6 +33,11 @@ export default function BusinessSettingsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold text-primary">Settings</h1>
       <p className="mt-1 text-sm text-foreground/50">Manage your account settings</p>
+
+      {/* Two-Factor Authentication */}
+      <div className="mt-8">
+        <TwoFactorSettings />
+      </div>
 
       {/* Delete Account */}
       <div className="mt-10 rounded-xl border border-red-200 bg-red-50/30 p-6">

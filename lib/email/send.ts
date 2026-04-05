@@ -15,6 +15,7 @@ import { newMessageEmail } from "./templates/new-message";
 import { jobAlertMatchEmail } from "./templates/job-alert-match";
 import { supportReportReceivedEmail } from "./templates/support-report-received";
 import { supportReportAdminAlertEmail } from "./templates/support-report-admin-alert";
+import { loginOtpEmail } from "./templates/login-otp";
 
 const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
 
@@ -268,4 +269,15 @@ export async function sendSupportReportAdminAlertEmail(params: {
   if (!resend) return null;
   const { subject: emailSubject, html } = supportReportAdminAlertEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
+}
+
+export async function sendLoginOtpEmail(params: {
+  to: string;
+  userName: string;
+  code: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = loginOtpEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }
