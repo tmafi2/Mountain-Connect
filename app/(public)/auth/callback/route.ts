@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     if (!error) {
       // Redirect to dashboard with reset modal for password recovery flows
       if (type === "recovery" || next === "/reset-password") {
-        return NextResponse.redirect(`${origin}/dashboard?reset_password=true`);
+        return NextResponse.redirect(`${origin}/reset-password`);
       }
 
       const { data: { user } } = await supabase.auth.getUser();
