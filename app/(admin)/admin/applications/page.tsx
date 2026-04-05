@@ -43,44 +43,35 @@ export default function AdminApplicationsPage() {
 
   useEffect(() => {
     (async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("applications")
-        .select("id, status, applied_at, updated_at, worker_id, job_post_id, worker_profiles(first_name, last_name, user_id, location_current, skills), job_posts(id, title, salary_range, business_id, business_profiles(id, business_name))")
-        .order("applied_at", { ascending: false });
+      try {
+        const res = await fetch("/api/admin/applications");
+        if (!res.ok) { console.error("Error loading applications:", res.statusText); setLoading(false); return; }
+        const { applications: data, emailMap } = await res.json();
 
-      if (error) { console.error(error); setLoading(false); return; }
-
-      if (data) {
-        const userIds = data.map((a) => {
-          const wp = a.worker_profiles as unknown as { user_id: string } | null;
-          return wp?.user_id;
-        }).filter(Boolean) as string[];
-
-        const { data: users } = await supabase.from("users").select("id, email").in("id", userIds);
-        const emailMap: Record<string, string> = {};
-        users?.forEach((u) => { emailMap[u.id] = u.email; });
-
-        setApps(data.map((a) => {
-          const wp = a.worker_profiles as unknown as { first_name: string | null; last_name: string | null; user_id: string; location_current: string | null; skills: string[] | null } | null;
-          const jp = a.job_posts as unknown as { id: string; title: string; salary_range: string | null; business_profiles: { id: string; business_name: string } } | null;
-          return {
-            id: a.id as string,
-            status: a.status as string,
-            applied_at: a.applied_at as string,
-            updated_at: a.updated_at as string | null,
-            worker_name: [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown",
-            worker_email: emailMap[wp?.user_id || ""] || "",
-            worker_location: wp?.location_current || null,
-            worker_skills: wp?.skills || null,
-            worker_id: a.worker_id as string,
-            job_title: jp?.title || "Unknown",
-            job_id: (jp?.id || a.job_post_id) as string,
-            business_name: jp?.business_profiles?.business_name || "Unknown",
-            business_id: jp?.business_profiles?.id || "",
-            pay: jp?.salary_range || null,
-          };
-        }));
+        if (data) {
+          setApps(data.map((a: any) => {
+            const wp = a.worker_profiles as { first_name: string | null; last_name: string | null; user_id: string; location_current: string | null; skills: string[] | null } | null;
+            const jp = a.job_posts as { id: string; title: string; salary_range: string | null; business_profiles: { id: string; business_name: string } } | null;
+            return {
+              id: a.id as string,
+              status: a.status as string,
+              applied_at: a.applied_at as string,
+              updated_at: a.updated_at as string | null,
+              worker_name: [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown",
+              worker_email: emailMap[wp?.user_id || ""] || "",
+              worker_location: wp?.location_current || null,
+              worker_skills: wp?.skills || null,
+              worker_id: a.worker_id as string,
+              job_title: jp?.title || "Unknown",
+              job_id: (jp?.id || a.job_post_id) as string,
+              business_name: jp?.business_profiles?.business_name || "Unknown",
+              business_id: jp?.business_profiles?.id || "",
+              pay: jp?.salary_range || null,
+            };
+          }));
+      }
+      } catch (err) {
+        console.error("Error loading applications:", err);
       }
       setLoading(false);
     })();
