@@ -50,10 +50,10 @@ function OnboardingContent() {
       <div className="w-full max-w-lg">
         {step === "role" && <RoleSelection onSelect={selectRole} />}
         {step === "worker" && (
-          <WorkerSetup loading={loading} setLoading={setLoading} router={router} />
+          <WorkerSetup loading={loading} setLoading={setLoading} router={router} onboardingError={onboardingError} setOnboardingError={setOnboardingError} />
         )}
         {step === "business" && (
-          <BusinessSetup loading={loading} setLoading={setLoading} router={router} />
+          <BusinessSetup loading={loading} setLoading={setLoading} router={router} onboardingError={onboardingError} setOnboardingError={setOnboardingError} />
         )}
       </div>
     </div>
@@ -105,10 +105,14 @@ function WorkerSetup({
   loading,
   setLoading,
   router,
+  onboardingError,
+  setOnboardingError,
 }: {
   loading: boolean;
   setLoading: (v: boolean) => void;
   router: ReturnType<typeof useRouter>;
+  onboardingError: string | null;
+  setOnboardingError: (v: string | null) => void;
 }) {
   const [workerStep, setWorkerStep] = useState(1);
   const [discipline, setDiscipline] = useState<"snowboarder" | "skier" | "not_sure" | null>(null);
@@ -573,10 +577,14 @@ function BusinessSetup({
   loading,
   setLoading,
   router,
+  onboardingError,
+  setOnboardingError,
 }: {
   loading: boolean;
   setLoading: (v: boolean) => void;
   router: ReturnType<typeof useRouter>;
+  onboardingError: string | null;
+  setOnboardingError: (v: string | null) => void;
 }) {
   const [bizStep, setBizStep] = useState(1);
   const [slideDirection, setSlideDirection] = useState<"forward" | "back">("forward");
