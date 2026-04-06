@@ -93,20 +93,20 @@ export async function GET(request: Request) {
             .select("id, business_name")
             .eq("user_id", user.id)
             .single();
-          // If no profile or profile has no business_name (auto-created stub), redirect to onboarding
-          if (!bizProfile || !bizProfile.business_name) {
+          // Only redirect to onboarding if NO profile exists at all
+          if (!bizProfile) {
             return NextResponse.redirect(`${origin}/onboarding?type=business`);
           }
           return NextResponse.redirect(`${origin}/business/dashboard`);
         }
 
-        // Worker
+        // Worker — only redirect to onboarding if NO profile exists at all
         const { data: workerProfile } = await supabase
           .from("worker_profiles")
-          .select("id, bio")
+          .select("id")
           .eq("user_id", user.id)
           .single();
-        if (!workerProfile || !workerProfile.bio) {
+        if (!workerProfile) {
           return NextResponse.redirect(`${origin}/onboarding?type=worker`);
         }
         return NextResponse.redirect(`${origin}/dashboard`);

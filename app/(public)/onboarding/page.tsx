@@ -153,22 +153,39 @@ function WorkerSetup({
       role: "worker",
     });
 
-    // Create worker profile with onboarding answers
+    // Create or update worker profile with onboarding answers
+    // Only set fields if the profile doesn't already have meaningful data
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
 
-    await supabase.from("worker_profiles").upsert(
-      {
-        user_id: user.id,
-        bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
-        years_seasonal_experience: experience === "first_season" ? 0 : 1,
-        preferred_job_types: lookingForJob ? ["full_time"] : [],
-        housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
-        work_history: [],
-        contact_email: user.email || null,
-        timezone: detectedTimezone,
-      },
-      { onConflict: "user_id" }
-    );
+    const { data: existingProfile } = await supabase
+      .from("worker_profiles")
+      .select("id, bio, skills")
+      .eq("user_id", user.id)
+      .single();
+
+    const hasExistingData = existingProfile?.bio && existingProfile.bio !== "" && existingProfile.bio !== "Snowboarder" && existingProfile.bio !== "Skier";
+
+    if (hasExistingData) {
+      // Profile already has real data — just update timezone, don't overwrite
+      await supabase.from("worker_profiles")
+        .update({ timezone: detectedTimezone })
+        .eq("user_id", user.id);
+    } else {
+      // New or minimal profile — set onboarding defaults
+      await supabase.from("worker_profiles").upsert(
+        {
+          user_id: user.id,
+          bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
+          years_seasonal_experience: experience === "first_season" ? 0 : 1,
+          preferred_job_types: lookingForJob ? ["full_time"] : [],
+          housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
+          work_history: [],
+          contact_email: user.email || null,
+          timezone: detectedTimezone,
+        },
+        { onConflict: "user_id" }
+      );
+    }
 
     // Send welcome email (non-blocking)
     fetch("/api/emails/welcome", {
