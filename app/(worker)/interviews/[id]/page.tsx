@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
-import VideoRoom from "@/components/ui/VideoRoom";
 
 // Demo data — in production this would be fetched from the API
 const demoInterviewDetail = {
@@ -101,15 +100,22 @@ export default function WorkerInterviewDetailPage() {
         </div>
       )}
 
-      {/* Video room */}
+      {/* Video interview — coming soon */}
       {isUpcoming && (
-        <div className="mt-6">
-          <h2 className="mb-4 text-lg font-semibold text-primary">Video Call</h2>
-          <VideoRoom
-            interviewId={interviewId}
-            roomUrl={interview.video_room_url || undefined}
-            isDemo
-          />
+        <div className="mt-6 rounded-xl border border-highlight/30 bg-highlight/5 p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10">
+              <svg className="h-5 w-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-primary">Video Interviews Coming Soon</h3>
+              <p className="mt-1 text-sm text-foreground/60">
+                Built-in video calls are on the way! In the meantime, please contact the business directly to organise how your interview will be conducted (phone call, Zoom, Google Meet, in-person, etc.).
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
