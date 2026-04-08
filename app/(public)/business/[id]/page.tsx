@@ -177,9 +177,19 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
             <div className="flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold text-white sm:text-3xl" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.5), 0 0 12px rgba(0,0,0,0.3)" }}>{business.business_name}</h1>
+                {(business as Record<string, unknown>).tier === "enterprise" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                    ⭐ Enterprise Partner
+                  </span>
+                )}
                 {(business as Record<string, unknown>).tier === "premium" && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
                     👑 Premium Employer
+                  </span>
+                )}
+                {(business as Record<string, unknown>).tier === "standard" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                    ✓ Verified Employer
                   </span>
                 )}
                 {isVerified ? (

@@ -53,7 +53,7 @@ interface BusinessRow {
   social_links: Record<string, string> | null;
   standard_perks: string[] | null;
   resort_id: string | null;
-  tier: "free" | "premium";
+  tier: "free" | "standard" | "premium" | "enterprise";
   created_at: string;
 }
 
@@ -159,10 +159,9 @@ export default function AdminBusinessesPage() {
     setDeleting(false);
   };
 
-  const handleTogglePremium = async () => {
+  const handleSetTier = async (newTier: string) => {
     if (!selected) return;
     setTogglingPremium(true);
-    const newTier = selected.tier === "premium" ? "free" : "premium";
     try {
       const res = await fetch("/api/admin/toggle-premium", {
         method: "POST",
@@ -171,12 +170,12 @@ export default function AdminBusinessesPage() {
       });
       const data = await res.json();
       if (data.success) {
-        const updated = { ...selected, tier: newTier as "free" | "premium" };
+        const updated = { ...selected, tier: newTier as BusinessRow["tier"] };
         setSelected(updated);
         setBusinesses((prev) => prev.map((b) => b.id === selected.id ? updated : b));
       }
     } catch (err) {
-      console.error("Premium toggle error:", err);
+      console.error("Tier update error:", err);
     }
     setTogglingPremium(false);
   };
@@ -252,7 +251,9 @@ export default function AdminBusinessesPage() {
                       )}
                       <div>
                         <p className="font-medium text-primary">
+                          {biz.tier === "enterprise" && <span className="mr-1 text-purple-500" title="Enterprise">⭐</span>}
                           {biz.tier === "premium" && <span className="mr-1 text-amber-500" title="Premium">👑</span>}
+                          {biz.tier === "standard" && <span className="mr-1 text-blue-500" title="Standard">✓</span>}
                           {biz.business_name}
                         </p>
                         {biz.email && <p className="text-xs text-foreground/40">{biz.email}</p>}
@@ -406,17 +407,21 @@ export default function AdminBusinessesPage() {
 
               {/* Actions */}
               <div className="mt-5 flex items-center gap-3 flex-wrap">
-                <button
-                  onClick={handleTogglePremium}
-                  disabled={togglingPremium}
-                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
-                    selected.tier === "premium"
-                      ? "border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      : "border border-amber-300 bg-white text-amber-600 hover:bg-amber-50"
-                  }`}
-                >
-                  {togglingPremium ? "Updating..." : selected.tier === "premium" ? "👑 Remove Premium" : "☆ Set as Premium"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-foreground/40">Tier</label>
+                  <select
+                    value={selected.tier}
+                    onChange={(e) => handleSetTier(e.target.value)}
+                    disabled={togglingPremium}
+                    className="rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-secondary focus:outline-none disabled:opacity-50"
+                  >
+                    <option value="free">Free</option>
+                    <option value="standard">Standard</option>
+                    <option value="premium">Premium</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                  {togglingPremium && <span className="text-xs text-foreground/40">Saving...</span>}
+                </div>
                 <a
                   href={`/business/${selected.id}`}
                   target="_blank"

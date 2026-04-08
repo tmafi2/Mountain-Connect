@@ -1,20 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { isGracePeriod } from "@/lib/tier";
+import { isGracePeriod, TIER_FEATURES } from "@/lib/tier";
+import type { BusinessTier } from "@/lib/tier";
 
 interface UpgradePromptProps {
   feature: string;
   description?: string;
   variant?: "banner" | "card" | "inline";
+  suggestedTier?: BusinessTier;
 }
 
 export default function UpgradePrompt({
   feature,
   description,
   variant = "card",
+  suggestedTier = "standard",
 }: UpgradePromptProps) {
   const gracePeriod = isGracePeriod();
+  const tierName = TIER_FEATURES[suggestedTier].name;
 
   if (gracePeriod) {
     return (
@@ -25,7 +29,7 @@ export default function UpgradePrompt({
             <h3 className="text-sm font-semibold text-primary">Launch Bonus — {feature}</h3>
           </div>
           <p className="mt-1 text-sm text-foreground/60">
-            {description || `You're enjoying ${feature} for free during our launch period. This will be a Premium feature in the future.`}
+            {description || `You're enjoying ${feature} for free during our launch period. This will be a ${tierName} feature in the future.`}
           </p>
         </div>
         {variant === "banner" && (
@@ -47,9 +51,9 @@ export default function UpgradePrompt({
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
         </svg>
       </div>
-      <h3 className="text-lg font-bold text-primary">Upgrade to Premium</h3>
+      <h3 className="text-lg font-bold text-primary">Upgrade to {tierName}</h3>
       <p className="mt-2 text-sm text-foreground/60">
-        {description || `${feature} is available on the Premium plan. Upgrade to unlock this and more.`}
+        {description || `${feature} is available on the ${tierName} plan. Upgrade to unlock this and more.`}
       </p>
       <Link
         href="/business/upgrade"

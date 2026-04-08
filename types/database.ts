@@ -225,7 +225,7 @@ export interface BusinessProfile {
   created_at: string;
 }
 
-export type BusinessTier = "free" | "premium";
+export type BusinessTier = "free" | "standard" | "premium" | "enterprise";
 
 export interface Referral {
   id: string;

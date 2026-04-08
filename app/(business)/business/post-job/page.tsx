@@ -199,7 +199,19 @@ export default function PostJobPage() {
           .eq("status", "active");
         const jobCount = count || 0;
         setActiveJobCount(jobCount);
-        setCanPost(canPostJob(tier, jobCount));
+
+        // For free tier, also check yearly job count
+        let yearlyCount: number | undefined;
+        if (tier === "free") {
+          const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+          const { count: yc } = await supabase
+            .from("job_posts")
+            .select("id", { count: "exact", head: true })
+            .eq("business_id", bp.id)
+            .gte("created_at", yearStart);
+          yearlyCount = yc || 0;
+        }
+        setCanPost(canPostJob(tier, jobCount, yearlyCount));
 
         // Check launch location
         const { data: bpFull } = await supabase
@@ -377,13 +389,27 @@ export default function PostJobPage() {
     );
   }
 
-  // Show upgrade prompt if free tier and at job limit
+  // Show upgrade prompt if at job limit for current tier
   if (!canPost) {
+    const tierMessages: Record<string, { feature: string; description: string; suggested: BusinessTier }> = {
+      free: {
+        feature: "More Job Listings",
+        description: "You've used your 2 free job listings for this year. Upgrade to Standard for 5 active listings, or Premium for unlimited.",
+        suggested: "standard",
+      },
+      standard: {
+        feature: "Unlimited Job Listings",
+        description: `You've reached the limit of ${activeJobCount} active job listings on the Standard plan. Upgrade to Premium for unlimited jobs and featured placement.`,
+        suggested: "premium",
+      },
+    };
+    const msg = tierMessages[businessTier] || tierMessages.free;
     return (
       <div className="mx-auto max-w-2xl py-12">
         <UpgradePrompt
-          feature="Unlimited Job Listings"
-          description={`You've reached the limit of ${activeJobCount} active job listing on the Free plan. Upgrade to Premium to post unlimited jobs and access more features.`}
+          feature={msg.feature}
+          description={msg.description}
+          suggestedTier={msg.suggested}
         />
       </div>
     );

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
+import { getTierOrder } from "@/lib/tier";
 
 /* ─── Types ────────────────────────────────────────────── */
 interface Business {
@@ -20,7 +21,7 @@ interface Business {
   active_listings: number;
   operates_in_town: boolean;
   nearby_town_id: string | null;
-  tier: "free" | "premium";
+  tier: "free" | "standard" | "premium" | "enterprise";
   avg_rating: number;
   review_count: number;
 }
@@ -278,7 +279,7 @@ export default function EmployersPage() {
           active_listings: jobCounts[b.id] || 0,
           operates_in_town: b.operates_in_town ?? false,
           nearby_town_id: b.nearby_town_id ?? null,
-          tier: ((b as Record<string, unknown>).tier as "free" | "premium") || "free",
+          tier: ((b as Record<string, unknown>).tier as Business["tier"]) || "free",
           avg_rating: reviewStats[b.id] ? reviewStats[b.id].sum / reviewStats[b.id].total : 0,
           review_count: reviewStats[b.id]?.total || 0,
         }));
@@ -329,10 +330,9 @@ export default function EmployersPage() {
     }
 
     return results.sort((a, b) => {
-      // Premium first
-      const aP = a.tier === "premium" ? 0 : 1;
-      const bP = b.tier === "premium" ? 0 : 1;
-      if (aP !== bP) return aP - bP;
+      // Higher tiers first (enterprise > premium > standard > free)
+      const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
+      if (tierDiff !== 0) return tierDiff;
       // Then verified
       const aV = a.verification_status === "verified" ? 0 : 1;
       const bV = b.verification_status === "verified" ? 0 : 1;
@@ -345,7 +345,7 @@ export default function EmployersPage() {
   const featuredEmployers = useMemo(
     () => businesses
       .filter((b) => b.verification_status === "verified")
-      .sort((a, b) => (a.tier === "premium" ? 0 : 1) - (b.tier === "premium" ? 0 : 1))
+      .sort((a, b) => getTierOrder(a.tier) - getTierOrder(b.tier))
       .slice(0, 4),
     [businesses]
   );
@@ -561,9 +561,17 @@ export default function EmployersPage() {
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      {biz.tier === "premium" ? (
+                      {biz.tier === "enterprise" ? (
+                        <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                          ⭐ Enterprise
+                        </span>
+                      ) : biz.tier === "premium" ? (
                         <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                           👑 Premium
+                        </span>
+                      ) : biz.tier === "standard" ? (
+                        <span className="flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                          ✓ Verified Employer
                         </span>
                       ) : (
                       <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
@@ -757,12 +765,22 @@ export default function EmployersPage() {
                             }`}>
                               {biz.business_name}
                             </h3>
+                            {biz.tier === "enterprise" && (
+                              <span className="shrink-0 rounded-full bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                                ⭐ Enterprise
+                              </span>
+                            )}
                             {biz.tier === "premium" && (
                               <span className="shrink-0 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                                 👑 Premium
                               </span>
                             )}
-                            {isVerified && biz.tier !== "premium" && (
+                            {biz.tier === "standard" && (
+                              <span className="shrink-0 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                ✓ Verified Employer
+                              </span>
+                            )}
+                            {isVerified && biz.tier === "free" && (
                               <span className="shrink-0 flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
                                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

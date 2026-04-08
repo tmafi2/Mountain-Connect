@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { businessId, tier } = await request.json();
-    if (!businessId || !["free", "premium"].includes(tier)) {
+    if (!businessId || !["free", "standard", "premium", "enterprise"].includes(tier)) {
       return NextResponse.json({ error: "Missing businessId or invalid tier" }, { status: 400 });
     }
 
