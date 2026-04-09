@@ -53,12 +53,8 @@ function SignupContent() {
     e.preventDefault();
     setError(null);
 
-    // Verify CAPTCHA (skip if widget failed to load — server-side will still verify if token exists)
-    const captchaRequired = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileError;
-    if (captchaRequired && !turnstileToken) {
-      setError("Please complete the security check.");
-      return;
-    }
+    // CAPTCHA is best-effort — never block signup if widget didn't render.
+    // If a token was obtained, it will be verified server-side below.
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.isValid) {
