@@ -38,17 +38,25 @@ export async function GET() {
       .in("conversation_id", convIds)
       .neq("user_id", user.id);
 
-    // Look up display names
+    // Look up display names (parallel queries)
     const otherUserIds = [
       ...new Set((otherParticipants || []).map((p) => p.user_id)),
     ];
     const names: Record<string, { name: string; role: string }> = {};
 
     if (otherUserIds.length > 0) {
-      const { data: workerProfiles } = await admin
-        .from("worker_profiles")
-        .select("user_id, first_name, last_name")
-        .in("user_id", otherUserIds);
+      const [{ data: workerProfiles }, { data: bizProfiles }] =
+        await Promise.all([
+          admin
+            .from("worker_profiles")
+            .select("user_id, first_name, last_name")
+            .in("user_id", otherUserIds),
+          admin
+            .from("business_profiles")
+            .select("user_id, business_name")
+            .in("user_id", otherUserIds),
+        ]);
+
       workerProfiles?.forEach((wp) => {
         names[wp.user_id] = {
           name:
@@ -57,11 +65,6 @@ export async function GET() {
           role: "Worker",
         };
       });
-
-      const { data: bizProfiles } = await admin
-        .from("business_profiles")
-        .select("user_id, business_name")
-        .in("user_id", otherUserIds);
       bizProfiles?.forEach((bp) => {
         names[bp.user_id] = {
           name: bp.business_name || "Business",
@@ -70,40 +73,45 @@ export async function GET() {
       });
     }
 
-    // Build conversation list with last message + unread count
-    const conversations = [];
-    for (const convId of convIds) {
-      const otherP = otherParticipants?.find(
-        (p) => p.conversation_id === convId
-      );
-      const otherUserId = otherP?.user_id || "";
-      const otherInfo = names[otherUserId] || { name: "Unknown", role: "User" };
+    // Build conversation list — all per-conversation queries in parallel
+    const conversations = await Promise.all(
+      convIds.map(async (convId) => {
+        const otherP = otherParticipants?.find(
+          (p) => p.conversation_id === convId
+        );
+        const otherUserId = otherP?.user_id || "";
+        const otherInfo = names[otherUserId] || {
+          name: "Unknown",
+          role: "User",
+        };
 
-      const { data: latestMsg } = await admin
-        .from("messages")
-        .select("content, created_at")
-        .eq("conversation_id", convId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+        const [{ data: latestMsg }, { count: unread }] = await Promise.all([
+          admin
+            .from("messages")
+            .select("content, created_at")
+            .eq("conversation_id", convId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single(),
+          admin
+            .from("messages")
+            .select("id", { count: "exact", head: true })
+            .eq("conversation_id", convId)
+            .eq("read", false)
+            .neq("sender_id", user.id),
+        ]);
 
-      const { count: unread } = await admin
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("conversation_id", convId)
-        .eq("read", false)
-        .neq("sender_id", user.id);
-
-      conversations.push({
-        id: convId,
-        otherName: otherInfo.name,
-        otherRole: otherInfo.role,
-        otherUserId,
-        lastMessage: latestMsg?.content || "",
-        lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
-        unreadCount: unread ?? 0,
-      });
-    }
+        return {
+          id: convId,
+          otherName: otherInfo.name,
+          otherRole: otherInfo.role,
+          otherUserId,
+          lastMessage: latestMsg?.content || "",
+          lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
+          unreadCount: unread ?? 0,
+        };
+      })
+    );
 
     conversations.sort(
       (a, b) =>
