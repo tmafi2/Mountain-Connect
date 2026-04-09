@@ -301,9 +301,19 @@ function BusinessMessagesContent() {
     setNewMessage("");
     setSending(true);
     try {
-      const supabase = createClient();
-      await supabase.from("messages").insert({ conversation_id: activeConvId, sender_id: currentUserId, content });
-      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", activeConvId);
+      const res = await fetch("/api/messages/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: activeConvId, content }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Failed to send message:", err);
+        setNewMessage(content); // restore on failure
+        setSending(false);
+        return;
+      }
 
       // Trigger email notification (non-blocking)
       fetch("/api/emails/new-message", {

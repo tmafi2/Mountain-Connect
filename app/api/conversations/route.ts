@@ -10,7 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
  * Returns the conversation_id.
  */
 export async function POST(request: Request) {
-  const rateLimited = await rateLimit(request, { identifier: "conversations" });
+  const rateLimited = await rateLimit(request);
   if (rateLimited) return rateLimited;
 
   try {
