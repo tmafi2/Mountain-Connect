@@ -46,14 +46,21 @@ export async function POST(
       .eq("read", false)
       .neq("sender_id", user.id);
 
-    // Mark related notifications as read
-    await admin
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", user.id)
-      .eq("type", "new_message")
-      .eq("is_read", false)
-      .filter("metadata->>conversation_id", "eq", conversationId);
+    // Mark related notifications as read + update last_read_at for email throttling
+    await Promise.all([
+      admin
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("type", "new_message")
+        .eq("is_read", false)
+        .filter("metadata->>conversation_id", "eq", conversationId),
+      admin
+        .from("conversation_participants")
+        .update({ last_read_at: new Date().toISOString() })
+        .eq("conversation_id", conversationId)
+        .eq("user_id", user.id),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {
