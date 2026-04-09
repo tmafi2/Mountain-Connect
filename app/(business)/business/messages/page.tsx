@@ -164,7 +164,7 @@ function BusinessMessagesContent() {
         });
       } catch {}
     };
-    const interval = setInterval(poll, 3000);
+    const interval = setInterval(poll, 10000);
     return () => clearInterval(interval);
   }, [activeConvId, currentUserId, scrollToBottom]);
 
