@@ -76,156 +76,60 @@ function WorkerMessagesContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  // Reusable conversation loader
-  const loadConversations = useCallback(async (selectConvId?: string) => {
+  // Get current user ID on mount
+  useEffect(() => {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-    setCurrentUserId(user.id);
-
-    const { data: participations } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id, role")
-      .eq("user_id", user.id);
-
-    if (!participations || participations.length === 0) {
-      // If we expect a specific conversation, retry after delay
-      if (selectConvId) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const { data: retry } = await supabase
-          .from("conversation_participants")
-          .select("conversation_id, role")
-          .eq("user_id", user.id);
-        if (!retry || retry.length === 0) { setLoading(false); return; }
-        // Continue with retry data
-        return loadConversationsFromParticipations(supabase, user.id, retry, selectConvId);
-      }
-      setLoading(false);
-      return;
-    }
-
-    return loadConversationsFromParticipations(supabase, user.id, participations, selectConvId);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
   }, []);
 
-  const loadConversationsFromParticipations = async (
-    supabase: ReturnType<typeof createClient>,
-    userId: string,
-    participations: { conversation_id: string; role: string }[],
-    selectConvId?: string,
-  ) => {
-    const convIds = participations.map((p) => p.conversation_id);
+  // Load conversations via API
+  const loadConversations = useCallback(async (selectConvId?: string) => {
+    try {
+      const res = await fetch("/api/conversations");
+      if (!res.ok) {
+        console.error("Failed to load conversations:", await res.text());
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      const convList: Conversation[] = data.conversations || [];
+      setConversations(convList);
 
-    const { data: allParticipants } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id, user_id, role")
-      .in("conversation_id", convIds)
-      .neq("user_id", userId);
-
-    const otherUserIds = [...new Set((allParticipants || []).map((p) => p.user_id))];
-    const names: Record<string, { name: string; role: string }> = {};
-
-    if (otherUserIds.length > 0) {
-      const { data: workerProfiles } = await supabase
-        .from("worker_profiles")
-        .select("user_id, first_name, last_name")
-        .in("user_id", otherUserIds);
-      workerProfiles?.forEach((wp) => {
-        names[wp.user_id] = {
-          name: [wp.first_name, wp.last_name].filter(Boolean).join(" ") || "Worker",
-          role: "Worker",
-        };
-      });
-
-      const { data: bizProfiles } = await supabase
-        .from("business_profiles")
-        .select("user_id, business_name")
-        .in("user_id", otherUserIds);
-      bizProfiles?.forEach((bp) => {
-        names[bp.user_id] = {
-          name: bp.business_name || "Business",
-          role: "Employer",
-        };
-      });
+      const targetConv = selectConvId || convFromUrl;
+      if (targetConv && convList.some((c) => c.id === targetConv)) {
+        setActiveConvId(targetConv);
+        setMobileShowChat(true);
+      }
+    } catch (err) {
+      console.error("Error loading conversations:", err);
     }
-
-    const convList: Conversation[] = [];
-    for (const convId of convIds) {
-      const otherP = allParticipants?.find((p) => p.conversation_id === convId);
-      const otherUserId = otherP?.user_id || "";
-      const otherInfo = names[otherUserId] || { name: "Unknown", role: "User" };
-
-      const { data: latestMsg } = await supabase
-        .from("messages")
-        .select("content, created_at")
-        .eq("conversation_id", convId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      const { count: unread } = await supabase
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("conversation_id", convId)
-        .eq("read", false)
-        .neq("sender_id", userId);
-
-      convList.push({
-        id: convId,
-        otherName: otherInfo.name,
-        otherRole: otherInfo.role,
-        otherUserId,
-        lastMessage: latestMsg?.content || "",
-        lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
-        unreadCount: unread ?? 0,
-      });
-    }
-
-    convList.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
-    setConversations(convList);
-
-    const targetConv = selectConvId || convFromUrl;
-    if (targetConv && convList.some((c) => c.id === targetConv)) {
-      setActiveConvId(targetConv);
-      setMobileShowChat(true);
-    }
-
     setLoading(false);
-  };
+  }, [convFromUrl]);
 
   // Initial load
   useEffect(() => {
     loadConversations(convFromUrl || undefined);
   }, [loadConversations, convFromUrl]);
 
-  // Load messages when conversation changes
+  // Load messages via API when conversation changes
   useEffect(() => {
     if (!activeConvId || !currentUserId) return;
-    const supabase = createClient();
 
     (async () => {
-      const { data } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", activeConvId)
-        .order("created_at", { ascending: true });
-      setMessages(data || []);
+      try {
+        const res = await fetch(`/api/conversations/${activeConvId}/messages`);
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data.messages || []);
+        }
+      } catch (err) {
+        console.error("Error loading messages:", err);
+      }
 
-      // Mark unread messages as read
-      await supabase
-        .from("messages")
-        .update({ read: true })
-        .eq("conversation_id", activeConvId)
-        .eq("read", false)
-        .neq("sender_id", currentUserId);
-
-      // Mark message notifications as read for this conversation
-      await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("user_id", currentUserId)
-        .eq("type", "new_message")
-        .eq("is_read", false)
-        .filter("metadata->>conversation_id", "eq", activeConvId);
+      // Mark as read via API
+      fetch(`/api/conversations/${activeConvId}/read`, { method: "POST" }).catch(() => {});
 
       // Update local unread count
       setConversations((prev) =>
@@ -246,14 +150,9 @@ function WorkerMessagesContent() {
       .channel("messages-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
+        { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Only process messages for conversations we're part of
           if (!convIds.includes(newMsg.conversation_id)) return;
 
           // Append to active conversation
@@ -264,13 +163,9 @@ function WorkerMessagesContent() {
             });
             setTimeout(scrollToBottom, 50);
 
-            // Auto-mark as read if from the other person
+            // Auto-mark as read
             if (newMsg.sender_id !== currentUserId) {
-              supabase
-                .from("messages")
-                .update({ read: true })
-                .eq("id", newMsg.id)
-                .then(() => {});
+              fetch(`/api/conversations/${activeConvId}/read`, { method: "POST" }).catch(() => {});
             }
           }
 
@@ -300,7 +195,7 @@ function WorkerMessagesContent() {
     };
   }, [currentUserId, conversations.length, activeConvId, scrollToBottom]);
 
-  // Send message
+  // Send message via API
   const handleSend = async () => {
     if (!newMessage.trim() || !activeConvId || !currentUserId || sending) return;
     const content = newMessage.trim();
@@ -317,7 +212,7 @@ function WorkerMessagesContent() {
       if (!res.ok) {
         const err = await res.json();
         console.error("Failed to send message:", err);
-        setNewMessage(content); // restore on failure
+        setNewMessage(content);
         setSending(false);
         return;
       }
@@ -330,7 +225,7 @@ function WorkerMessagesContent() {
       }).catch(() => {});
     } catch (err) {
       console.error("Failed to send message:", err);
-      setNewMessage(content); // restore on failure
+      setNewMessage(content);
     }
     setSending(false);
     inputRef.current?.focus();
@@ -481,7 +376,6 @@ function WorkerMessagesContent() {
                 <div className="space-y-3">
                   {messages.map((msg, i) => {
                     const isMe = msg.sender_id === currentUserId;
-                    // Show date separator
                     const prevMsg = i > 0 ? messages[i - 1] : null;
                     const msgDate = new Date(msg.created_at).toDateString();
                     const prevDate = prevMsg ? new Date(prevMsg.created_at).toDateString() : null;
@@ -583,8 +477,6 @@ function WorkerMessagesContent() {
           onConversationCreated={async (data: ConversationCreatedData) => {
             setShowNewConvModal(false);
             setLoading(true);
-            // Wait for admin writes to propagate, then reload conversation list
-            await new Promise((r) => setTimeout(r, 600));
             await loadConversations(data.conversationId);
           }}
         />

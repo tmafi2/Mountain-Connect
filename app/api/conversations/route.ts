@@ -4,6 +4,124 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
+ * GET /api/conversations
+ * List all conversations for the authenticated user,
+ * including other participant info, last message, and unread count.
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const admin = createAdminClient();
+
+    // Get conversations the user is in
+    const { data: participations } = await admin
+      .from("conversation_participants")
+      .select("conversation_id")
+      .eq("user_id", user.id);
+
+    if (!participations || participations.length === 0) {
+      return NextResponse.json({ conversations: [] });
+    }
+
+    const convIds = participations.map((p) => p.conversation_id);
+
+    // Get other participants in those conversations
+    const { data: otherParticipants } = await admin
+      .from("conversation_participants")
+      .select("conversation_id, user_id, role")
+      .in("conversation_id", convIds)
+      .neq("user_id", user.id);
+
+    // Look up display names
+    const otherUserIds = [
+      ...new Set((otherParticipants || []).map((p) => p.user_id)),
+    ];
+    const names: Record<string, { name: string; role: string }> = {};
+
+    if (otherUserIds.length > 0) {
+      const { data: workerProfiles } = await admin
+        .from("worker_profiles")
+        .select("user_id, first_name, last_name")
+        .in("user_id", otherUserIds);
+      workerProfiles?.forEach((wp) => {
+        names[wp.user_id] = {
+          name:
+            [wp.first_name, wp.last_name].filter(Boolean).join(" ") ||
+            "Worker",
+          role: "Worker",
+        };
+      });
+
+      const { data: bizProfiles } = await admin
+        .from("business_profiles")
+        .select("user_id, business_name")
+        .in("user_id", otherUserIds);
+      bizProfiles?.forEach((bp) => {
+        names[bp.user_id] = {
+          name: bp.business_name || "Business",
+          role: "Employer",
+        };
+      });
+    }
+
+    // Build conversation list with last message + unread count
+    const conversations = [];
+    for (const convId of convIds) {
+      const otherP = otherParticipants?.find(
+        (p) => p.conversation_id === convId
+      );
+      const otherUserId = otherP?.user_id || "";
+      const otherInfo = names[otherUserId] || { name: "Unknown", role: "User" };
+
+      const { data: latestMsg } = await admin
+        .from("messages")
+        .select("content, created_at")
+        .eq("conversation_id", convId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      const { count: unread } = await admin
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", convId)
+        .eq("read", false)
+        .neq("sender_id", user.id);
+
+      conversations.push({
+        id: convId,
+        otherName: otherInfo.name,
+        otherRole: otherInfo.role,
+        otherUserId,
+        lastMessage: latestMsg?.content || "",
+        lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
+        unreadCount: unread ?? 0,
+      });
+    }
+
+    conversations.sort(
+      (a, b) =>
+        new Date(b.lastMessageAt).getTime() -
+        new Date(a.lastMessageAt).getTime()
+    );
+
+    return NextResponse.json({ conversations });
+  } catch (error) {
+    console.error("Error loading conversations:", error);
+    return NextResponse.json(
+      { error: "Failed to load conversations" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * POST /api/conversations
  * Find or create a conversation between two users.
  * Inserts the initial message if provided.
