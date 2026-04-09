@@ -35,6 +35,7 @@ function LoginContent() {
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const [turnstileError, setTurnstileError] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -425,12 +426,13 @@ function LoginContent() {
               </div>
             )}
 
-            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileError && (
               <div className="flex justify-center">
                 <Turnstile
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                   onSuccess={setTurnstileToken}
                   onExpire={() => setTurnstileToken("")}
+                  onError={() => setTurnstileError(true)}
                 />
               </div>
             )}

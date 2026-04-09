@@ -11,6 +11,7 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -99,12 +100,13 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileError && (
                   <div className="flex justify-center">
                     <Turnstile
                       siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                       onSuccess={setTurnstileToken}
                       onExpire={() => setTurnstileToken("")}
+                      onError={() => setTurnstileError(true)}
                       options={{ theme: "dark" }}
                     />
                   </div>

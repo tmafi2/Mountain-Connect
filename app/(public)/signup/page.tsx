@@ -32,6 +32,7 @@ function SignupContent() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const [turnstileError, setTurnstileError] = useState(false);
   const router = useRouter();
 
   // Business resort selection
@@ -52,8 +53,9 @@ function SignupContent() {
     e.preventDefault();
     setError(null);
 
-    // Verify CAPTCHA
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+    // Verify CAPTCHA (skip if widget failed to load — server-side will still verify if token exists)
+    const captchaRequired = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileError;
+    if (captchaRequired && !turnstileToken) {
       setError("Please complete the security check.");
       return;
     }
@@ -72,6 +74,19 @@ function SignupContent() {
     setLoading(true);
 
     try {
+      // Server-side CAPTCHA verification (if token was obtained)
+      if (turnstileToken) {
+        const captchaRes = await fetch("/api/auth/verify-captcha", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: turnstileToken }),
+        });
+        if (!captchaRes.ok) {
+          setError("Security check failed. Please try again.");
+          setLoading(false);
+          return;
+        }
+      }
       const supabase = createClient();
       const fullName = accountType === "business" ? firstName.trim() : `${firstName.trim()} ${lastName.trim()}`;
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -479,12 +494,13 @@ function SignupContent() {
               </div>
             )}
 
-            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileError && (
               <div className="flex justify-center">
                 <Turnstile
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                   onSuccess={setTurnstileToken}
                   onExpire={() => setTurnstileToken("")}
+                  onError={() => setTurnstileError(true)}
                 />
               </div>
             )}
