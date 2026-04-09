@@ -70,8 +70,6 @@ export default function NotificationDropdown({
         return "📋";
       case "job_alert_match":
         return "🔔";
-      case "new_message":
-        return "💬";
       case "reschedule_approved":
         return "✅";
       case "reschedule_declined":
