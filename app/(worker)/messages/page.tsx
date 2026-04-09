@@ -454,7 +454,7 @@ function WorkerMessagesContent() {
                                 isMe
                                   ? "bg-secondary text-white rounded-br-md"
                                   : "bg-accent/30 text-foreground rounded-bl-md"
-                              }`}
+                              } whitespace-pre-wrap`}
                             >
                               {msg.content}
                             </div>

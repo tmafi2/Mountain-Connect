@@ -431,7 +431,7 @@ function BusinessMessagesContent() {
                         )}
                         <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                           <div className="max-w-[75%]">
-                            <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${isMe ? "bg-secondary text-white rounded-br-md" : "bg-accent/30 text-foreground rounded-bl-md"}`}>
+                            <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${isMe ? "bg-secondary text-white rounded-br-md" : "bg-accent/30 text-foreground rounded-bl-md"}`}>
                               {msg.content}
                             </div>
                             <div className={`mt-1 flex items-center gap-1.5 ${isMe ? "justify-end" : "justify-start"}`}>
