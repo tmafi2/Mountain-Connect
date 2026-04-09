@@ -140,7 +140,33 @@ function WorkerMessagesContent() {
     })();
   }, [activeConvId, currentUserId, scrollToBottom]);
 
-  // Supabase Realtime subscription for new messages
+  // Poll for new messages every 3s (reliable fallback for Realtime)
+  useEffect(() => {
+    if (!activeConvId || !currentUserId) return;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/conversations/${activeConvId}/messages`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const serverMsgs: Message[] = data.messages || [];
+        setMessages((prev) => {
+          const serverIds = new Set(serverMsgs.map((m) => m.id));
+          const optimistic = prev.filter((m) => m.id.startsWith("temp-") && !serverIds.has(m.id));
+          const lastPrevReal = prev.filter((m) => !m.id.startsWith("temp-"));
+          if (serverMsgs.length !== lastPrevReal.length || serverMsgs[serverMsgs.length - 1]?.id !== lastPrevReal[lastPrevReal.length - 1]?.id) {
+            const merged = [...serverMsgs, ...optimistic];
+            if (merged.length > prev.length) setTimeout(scrollToBottom, 50);
+            return merged;
+          }
+          return prev;
+        });
+      } catch {}
+    };
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [activeConvId, currentUserId, scrollToBottom]);
+
+  // Also try Realtime as a faster channel (best-effort)
   useEffect(() => {
     if (!currentUserId || conversations.length === 0) return;
     const supabase = createClient();
@@ -155,21 +181,21 @@ function WorkerMessagesContent() {
           const newMsg = payload.new as Message;
           if (!convIds.includes(newMsg.conversation_id)) return;
 
-          // Append to active conversation
           if (newMsg.conversation_id === activeConvId) {
             setMessages((prev) => {
               if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
+              const withoutOptimistic = prev.filter(
+                (m) => !(m.id.startsWith("temp-") && m.content === newMsg.content && m.sender_id === newMsg.sender_id)
+              );
+              return [...withoutOptimistic, newMsg];
             });
             setTimeout(scrollToBottom, 50);
 
-            // Auto-mark as read
             if (newMsg.sender_id !== currentUserId) {
               fetch(`/api/conversations/${activeConvId}/read`, { method: "POST" }).catch(() => {});
             }
           }
 
-          // Update conversation list
           setConversations((prev) =>
             prev
               .map((c) => {
@@ -195,12 +221,36 @@ function WorkerMessagesContent() {
     };
   }, [currentUserId, conversations.length, activeConvId, scrollToBottom]);
 
-  // Send message via API
+  // Send message — optimistic UI + API
   const handleSend = async () => {
     if (!newMessage.trim() || !activeConvId || !currentUserId || sending) return;
     const content = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
     setNewMessage("");
     setSending(true);
+
+    // Optimistic: show message instantly
+    const optimisticMsg: Message = {
+      id: tempId,
+      conversation_id: activeConvId,
+      sender_id: currentUserId,
+      content,
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setTimeout(scrollToBottom, 20);
+
+    // Update conversation list instantly
+    setConversations((prev) =>
+      prev
+        .map((c) =>
+          c.id === activeConvId
+            ? { ...c, lastMessage: content, lastMessageAt: optimisticMsg.created_at }
+            : c
+        )
+        .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
+    );
 
     try {
       const res = await fetch("/api/messages/send", {
@@ -210,11 +260,15 @@ function WorkerMessagesContent() {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        console.error("Failed to send message:", err);
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         setNewMessage(content);
         setSending(false);
         return;
+      }
+
+      const data = await res.json();
+      if (data.message) {
+        setMessages((prev) => prev.map((m) => (m.id === tempId ? data.message : m)));
       }
 
       // Trigger email notification (non-blocking)
@@ -225,6 +279,7 @@ function WorkerMessagesContent() {
       }).catch(() => {});
     } catch (err) {
       console.error("Failed to send message:", err);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setNewMessage(content);
     }
     setSending(false);
