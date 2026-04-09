@@ -227,6 +227,8 @@ function WorkerMessagesContent() {
     const content = newMessage.trim();
     const tempId = `temp-${Date.now()}`;
     setNewMessage("");
+    // Reset textarea height
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setSending(true);
 
     // Optimistic: show message instantly
@@ -484,12 +486,17 @@ function WorkerMessagesContent() {
                 <textarea
                   ref={inputRef}
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    // Auto-grow textarea
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
                   rows={1}
-                  className="max-h-24 flex-1 resize-none rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary/30"
-                  style={{ minHeight: "2.5rem" }}
+                  className="flex-1 resize-none rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary/30"
+                  style={{ minHeight: "2.5rem", maxHeight: "200px", overflowY: "auto" }}
                 />
                 <button
                   onClick={handleSend}
