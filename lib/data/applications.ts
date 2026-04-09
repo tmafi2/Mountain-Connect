@@ -27,6 +27,7 @@ export interface SeedApplicant {
   date_of_birth: string | null;
   nationality: string | null;
   worker_resume_url: string | null;
+  worker_user_id: string | null;
   references: { id: string; name: string; relationship: string; type: "professional" | "personal"; company: string | null; job_title: string | null; location: string | null; email: string; phone: string | null; notes: string | null }[] | null;
 }
 
@@ -61,6 +62,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "1999-04-12",
     nationality: "Swedish",
     worker_resume_url: "/resumes/emma-johansson-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
   {
@@ -93,6 +95,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "2000-11-28",
     nationality: "Austrian",
     worker_resume_url: "/resumes/lucas-muller-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
   {
@@ -125,6 +128,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "2000-07-03",
     nationality: "Australian",
     worker_resume_url: "/resumes/sophie-chen-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
   {
@@ -156,6 +160,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "2003-02-15",
     nationality: "New Zealander",
     worker_resume_url: "/resumes/jake-thompson-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
   {
@@ -188,6 +193,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "1996-12-08",
     nationality: "French",
     worker_resume_url: "/resumes/marie-dubois-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
   {
@@ -219,6 +225,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "2000-09-22",
     nationality: "Japanese",
     worker_resume_url: null,
+    worker_user_id: null,
     references: null,
   },
   {
@@ -251,6 +258,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "2001-01-17",
     nationality: "Norwegian",
     worker_resume_url: "/resumes/ollie-hansen-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
   {
@@ -283,6 +291,7 @@ export const seedApplicants: SeedApplicant[] = [
     date_of_birth: "1998-06-25",
     nationality: "Italian",
     worker_resume_url: "/resumes/isabella-rossi-resume.pdf",
+    worker_user_id: null,
     references: null,
   },
 ];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { seedApplicants, type SeedApplicant } from "@/lib/data/applications";
 import ApplicantCard from "@/components/ui/ApplicantCard";
 import type { ApplicationStatus } from "@/types/database";
@@ -14,6 +15,7 @@ export default function ApplicantsPage() {
   const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<SeedApplicant[]>([]);
+  const router = useRouter();
   const [allListings, setAllListings] = useState<{ id: string; title: string }[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -85,6 +87,7 @@ export default function ApplicantsPage() {
                 date_of_birth: (wp?.date_of_birth as string) || null,
                 nationality: (wp?.nationality as string) || null,
                 worker_resume_url: (a.resume_url as string) || (wp?.cv_url as string) || null,
+                worker_user_id: (wp?.user_id as string) || null,
               };
             });
           setApplicants(mapped);
@@ -119,6 +122,23 @@ export default function ApplicantsPage() {
       }).catch((err) => console.error("Failed to trigger status email:", err));
     } catch {
       // Optimistic update already applied
+    }
+  };
+
+  const handleMessage = async (workerUserId: string | null) => {
+    if (!workerUserId) return;
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: workerUserId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.conversationId) {
+        router.push(`/business/messages?conv=${data.conversationId}`);
+      }
+    } catch (err) {
+      console.error("Error starting conversation:", err);
     }
   };
 
@@ -318,6 +338,7 @@ export default function ApplicantsPage() {
                 onInvite={handleInvite}
                 inviting={invitingId === applicant.application_id}
                 onStatusChange={handleStatusChange}
+                onMessage={handleMessage}
               />
             ))}
           </>

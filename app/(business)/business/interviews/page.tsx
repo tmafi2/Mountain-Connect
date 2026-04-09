@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
 import { createClient } from "@/lib/supabase/client";
 
@@ -322,10 +323,12 @@ function Avatar({ interview, size = "md" }: { interview: Interview; size?: "sm" 
 function InterviewCard({
   interview,
   onSelect,
+  onMessage,
   faded,
 }: {
   interview: Interview;
   onSelect: (iv: Interview) => void;
+  onMessage: (workerUserId: string | null) => void;
   faded?: boolean;
 }) {
   return (
@@ -384,7 +387,7 @@ function InterviewCard({
           )}
           <button
             title="Message"
-            onClick={(e) => { e.stopPropagation(); setShowMsgToast(true); setTimeout(() => setShowMsgToast(false), 3000); }}
+            onClick={(e) => { e.stopPropagation(); onMessage(interview.worker_user_id); }}
             className="rounded-xl p-2 text-foreground/40 hover:bg-secondary/10 hover:text-primary transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -411,7 +414,7 @@ function ApplicantPanel({
   onCancel,
   actionLoading,
   actionFeedback,
-  onMessageClick,
+  onMessage,
 }: {
   interview: Interview;
   onClose: () => void;
@@ -420,7 +423,7 @@ function ApplicantPanel({
   onCancel: () => void;
   actionLoading: string | null;
   actionFeedback: { type: "success" | "error"; message: string } | null;
-  onMessageClick: () => void;
+  onMessage: (workerUserId: string | null) => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end">
@@ -515,7 +518,7 @@ function ApplicantPanel({
               </span>
             )}
             <button
-              onClick={onMessageClick}
+              onClick={() => onMessage(interview.worker_user_id)}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -850,6 +853,8 @@ export default function BusinessInterviewsPage() {
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(today));
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -862,6 +867,7 @@ export default function BusinessInterviewsPage() {
           setLoading(false);
           return;
         }
+        setCurrentUserId(user.id);
 
         const { data: profile } = await supabase
           .from("business_profiles")
@@ -950,7 +956,27 @@ export default function BusinessInterviewsPage() {
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [panelActionLoading, setPanelActionLoading] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [showMsgToast, setShowMsgToast] = useState(false);
+  const [messagingWorker, setMessagingWorker] = useState<string | null>(null);
+
+  const handleMessageWorker = async (workerUserId: string | null) => {
+    if (!workerUserId || !currentUserId || messagingWorker) return;
+    setMessagingWorker(workerUserId);
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: workerUserId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.conversationId) {
+        router.push(`/business/messages?conv=${data.conversationId}`);
+      }
+    } catch (err) {
+      console.error("Error starting conversation:", err);
+    } finally {
+      setMessagingWorker(null);
+    }
+  };
 
   // Panel action handlers
   const handleSendOffer = async () => {
@@ -1182,6 +1208,7 @@ export default function BusinessInterviewsPage() {
                     key={iv.id}
                     interview={iv}
                     onSelect={setSelectedInterview}
+                    onMessage={handleMessageWorker}
                   />
                 ))
               )}
@@ -1211,6 +1238,7 @@ export default function BusinessInterviewsPage() {
                     key={iv.id}
                     interview={iv}
                     onSelect={setSelectedInterview}
+                    onMessage={handleMessageWorker}
                   />
                 ))
               )}
@@ -1307,6 +1335,7 @@ export default function BusinessInterviewsPage() {
                     key={iv.id}
                     interview={iv}
                     onSelect={setSelectedInterview}
+                    onMessage={handleMessageWorker}
                     faded
                   />
                 ))}
@@ -1511,23 +1540,10 @@ export default function BusinessInterviewsPage() {
           onCancel={handlePanelCancel}
           actionLoading={panelActionLoading}
           actionFeedback={actionFeedback}
-          onMessageClick={() => { setShowMsgToast(true); setTimeout(() => setShowMsgToast(false), 3000); }}
+          onMessage={handleMessageWorker}
         />
       )}
 
-      {/* Messaging coming soon toast */}
-      {showMsgToast && (
-        <div className="fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-3 rounded-xl border border-accent/40 bg-white px-5 py-3 shadow-2xl">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
-              <svg className="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-primary">Messaging coming soon!</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
