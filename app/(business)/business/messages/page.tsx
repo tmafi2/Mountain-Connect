@@ -71,7 +71,6 @@ function BusinessMessagesContent() {
   const [showNewConvModal, setShowNewConvModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const seededRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,25 +95,6 @@ function BusinessMessagesContent() {
       }
       const data = await res.json();
       let convList: Conversation[] = data.conversations || [];
-
-      // Auto-seed demo conversations for business users on first visit
-      if (convList.length === 0 && !seededRef.current && !selectConvId) {
-        seededRef.current = true;
-        try {
-          const seedRes = await fetch("/api/seed-conversations", { method: "POST" });
-          const seedResult = await seedRes.json();
-          if (seedResult.success && seedResult.conversationsCreated > 0) {
-            // Reload after seeding
-            const res2 = await fetch("/api/conversations");
-            if (res2.ok) {
-              const data2 = await res2.json();
-              convList = data2.conversations || [];
-            }
-          }
-        } catch {
-          // Seeding is optional, continue with empty list
-        }
-      }
 
       setConversations(convList);
 
