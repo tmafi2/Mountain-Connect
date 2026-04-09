@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import RegionsDropdown from "./RegionsDropdown";
+import NotificationBell from "@/components/ui/NotificationBell";
+import MessageNotificationBell from "@/components/ui/MessageNotificationBell";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -139,6 +141,12 @@ export default function Header() {
           <div className="flex items-center gap-3">
             {checked && user ? (
               <>
+                <div className={`hidden sm:flex items-center gap-1 ${isHome && !scrolled ? "[&_button]:text-white/80 [&_button]:hover:bg-white/10" : ""}`}>
+                  <MessageNotificationBell
+                    messagesHref={user.role === "business_owner" ? "/business/messages" : "/messages"}
+                  />
+                  <NotificationBell />
+                </div>
                 <Link
                   href={dashboardHref}
                   className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"

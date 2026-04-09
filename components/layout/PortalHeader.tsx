@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/ui/NotificationBell";
+import MessageNotificationBell from "@/components/ui/MessageNotificationBell";
 
 interface PortalHeaderProps {
   portalType: "worker" | "business" | "admin";
@@ -89,6 +90,9 @@ export default function PortalHeader({
 
       {/* Right — notifications + logout + account dropdown */}
       <div className="flex items-center gap-2">
+        <MessageNotificationBell
+          messagesHref={portalType === "business" ? "/business/messages" : "/messages"}
+        />
         <NotificationBell />
         <button
           onClick={handleLogout}
