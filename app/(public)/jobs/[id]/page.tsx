@@ -27,24 +27,24 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
     .eq("id", id)
     .single();
 
-  if (!job) return { title: "Job Not Found | Mountain Connect" };
+  if (!job) return { title: "Job Not Found | Mountain Connects" };
 
   const biz = job.business_profiles as any;
   const resort = job.resorts as any;
-  const title = `${job.title} at ${biz?.business_name || "Mountain Connect"}${resort?.name ? ` — ${resort.name}` : ""}`;
+  const title = `${job.title} at ${biz?.business_name || "Mountain Connects"}${resort?.name ? ` — ${resort.name}` : ""}`;
   const description = job.description
     ? job.description.slice(0, 155) + (job.description.length > 155 ? "..." : "")
-    : `${job.title} position at ${biz?.business_name}. Apply now on Mountain Connect.`;
+    : `${job.title} position at ${biz?.business_name}. Apply now on Mountain Connects.`;
 
   return {
-    title: `${title} | Mountain Connect`,
+    title: `${title} | Mountain Connects`,
     description,
     alternates: { canonical: `${BASE_URL}/jobs/${id}` },
     openGraph: {
       title,
       description,
       url: `${BASE_URL}/jobs/${id}`,
-      siteName: "Mountain Connect",
+      siteName: "Mountain Connects",
       type: "website",
     },
     twitter: {
@@ -97,7 +97,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     employmentType,
     hiringOrganization: {
       "@type": "Organization",
-      name: biz?.business_name || "Mountain Connect",
+      name: biz?.business_name || "Mountain Connects",
       sameAs: `${BASE_URL}/business/${biz?.id}`,
     },
     jobLocation: {
@@ -423,8 +423,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               <p className="text-xs font-medium text-primary/70 mb-3">Know someone who'd be perfect? Share this job:</p>
               <ShareButtons
                 url={`https://www.mountainconnects.com/jobs/${id}`}
-                title={`${job.title} at ${biz?.business_name || "Mountain Connect"}`}
-                description={`Check out this ${positionLabel.toLowerCase()} position at ${biz?.business_name}${resort?.name ? ` — ${resort.name}` : ""}. Apply on Mountain Connect.`}
+                title={`${job.title} at ${biz?.business_name || "Mountain Connects"}`}
+                description={`Check out this ${positionLabel.toLowerCase()} position at ${biz?.business_name}${resort?.name ? ` — ${resort.name}` : ""}. Apply on Mountain Connects.`}
               />
             </div>
           </div>

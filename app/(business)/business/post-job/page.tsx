@@ -1023,7 +1023,7 @@ export default function PostJobPage() {
           <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. You can create draft listings now — they&apos;ll be ready to publish when we launch in your area.
+          Mountain Connects is currently live in {LAUNCH_LOCATION_NAMES}. You can create draft listings now — they&apos;ll be ready to publish when we launch in your area.
         </div>
       )}
 

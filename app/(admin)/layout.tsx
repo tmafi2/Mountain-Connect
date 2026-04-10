@@ -48,7 +48,7 @@ export default function AdminLayout({
             <path d="M16 2L28 28H4L16 2Z" fill="#a9cbe3" />
             <path d="M16 10L24 28H8L16 10Z" fill="#0e2439" />
           </svg>
-          Mountain Connect
+          Mountain Connects
           <span className="ml-2 rounded-md bg-red-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-red-700">
             Admin
           </span>

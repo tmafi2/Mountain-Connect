@@ -20,7 +20,7 @@ export function businessVerifiedEmail({ businessName, dashboardUrl }: BusinessVe
           </td></tr>
           <tr><td style="padding:36px 32px 24px;">
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Congratulations, <strong style="color:#0a1e33;">${businessName}</strong>! Your business has been verified on Mountain Connect.
+                Congratulations, <strong style="color:#0a1e33;">${businessName}</strong>! Your business has been verified on Mountain Connects.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr><td style="padding:20px;background-color:#f0fdf4;border-radius:12px;border-left:4px solid #22c55e;">
@@ -39,8 +39,8 @@ export function businessVerifiedEmail({ businessName, dashboardUrl }: BusinessVe
               </table>
           </td></tr>
           <tr><td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
-              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
-              <p style="margin:0;color:#8899a6;font-size:11px;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect.</p>
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connects</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connects.</p>
           </td></tr>
         </table>
     </td></tr>

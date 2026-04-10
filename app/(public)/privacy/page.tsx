@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Mountain Connect",
-  description: "How Mountain Connect collects, uses, and protects your personal information.",
+  title: "Privacy Policy | Mountain Connects",
+  description: "How Mountain Connects collects, uses, and protects your personal information.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">1. Introduction</h2>
           <p className="mt-2">
-            Mountain Connect (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates the website mountainconnects.com. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. We are committed to protecting your privacy in accordance with the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).
+            Mountain Connects (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates the website mountainconnects.com. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. We are committed to protecting your privacy in accordance with the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).
           </p>
         </section>
 
@@ -43,7 +43,7 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-lg font-semibold text-primary">3. How We Use Your Information</h2>
           <p className="mt-2">We use your information to:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
-            <li>Provide, maintain, and improve the Mountain Connect platform</li>
+            <li>Provide, maintain, and improve the Mountain Connects platform</li>
             <li>Create and manage your account</li>
             <li>Connect workers with businesses and facilitate job applications</li>
             <li>Send transactional emails (account verification, application updates, interview notifications)</li>
@@ -114,7 +114,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">9. Children&apos;s Privacy</h2>
           <p className="mt-2">
-            Mountain Connect is not intended for use by anyone under the age of 16. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us.
+            Mountain Connects is not intended for use by anyone under the age of 16. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us.
           </p>
         </section>
 

@@ -63,7 +63,7 @@ export function supportReportReceivedEmail({
           <tr>
             <td style="padding:0 32px 36px;">
               <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;text-align:center;">
-                Mountain Connect &bull; Connecting seasonal workers with ski resort businesses worldwide
+                Mountain Connects &bull; Connecting seasonal workers with ski resort businesses worldwide
               </p>
             </td>
           </tr>

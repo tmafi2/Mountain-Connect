@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Seasonal Jobs at Ski Resorts Worldwide | Mountain Connect",
+  title: "Seasonal Jobs at Ski Resorts Worldwide | Mountain Connects",
   description:
     "Browse seasonal job listings at ski resorts around the world. Find roles in hospitality, ski instruction, food & beverage, retail, and more.",
   alternates: { canonical: "https://www.mountainconnects.com/jobs" },
@@ -10,12 +10,12 @@ export const metadata: Metadata = {
     description:
       "Browse seasonal job listings at ski resorts around the world. Find roles in hospitality, ski instruction, food & beverage, retail, and more.",
     url: "https://www.mountainconnects.com/jobs",
-    siteName: "Mountain Connect",
+    siteName: "Mountain Connects",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Seasonal Jobs at Ski Resorts Worldwide | Mountain Connect",
+    title: "Seasonal Jobs at Ski Resorts Worldwide | Mountain Connects",
     description:
       "Browse seasonal job listings at ski resorts around the world.",
   },

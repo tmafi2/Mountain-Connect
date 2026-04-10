@@ -5,7 +5,7 @@ interface LoginOtpEmailProps {
 
 export function loginOtpEmail({ userName, code }: LoginOtpEmailProps) {
   return {
-    subject: `${code} — Your Mountain Connect login code`,
+    subject: `${code} — Your Mountain Connects login code`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -46,7 +46,7 @@ export function loginOtpEmail({ userName, code }: LoginOtpEmailProps) {
           <tr>
             <td style="padding:0 32px 36px;">
               <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;text-align:center;">
-                Mountain Connect &bull; Connecting seasonal workers with ski resort businesses worldwide
+                Mountain Connects &bull; Connecting seasonal workers with ski resort businesses worldwide
               </p>
             </td>
           </tr>

@@ -6,7 +6,7 @@ interface WaitlistBusinessEmailProps {
 
 export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistBusinessEmailProps) {
   return {
-    subject: `Welcome to Mountain Connect — ${businessName} is on the list`,
+    subject: `Welcome to Mountain Connects — ${businessName} is on the list`,
     html: `
 <!DOCTYPE html>
 <html>
@@ -25,7 +25,7 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <h1 style="margin:0 0 4px;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">Mountain Connect</h1>
+                    <h1 style="margin:0 0 4px;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">Mountain Connects</h1>
                     <p style="margin:0;color:#c8d5e0;font-size:13px;font-weight:500;letter-spacing:0.5px;">Seasonal Workforce Platform</p>
                   </td>
                   <td align="right" style="vertical-align:middle;">
@@ -40,17 +40,17 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
             <td style="padding:36px 32px 24px;">
               <h2 style="margin:0 0 20px;color:#0a1e33;font-size:22px;font-weight:700;">Thank you for joining us, ${businessName}</h2>
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                We're delighted to confirm that <strong>${businessName}</strong> has been added to the Mountain Connect waitlist. You're among the first businesses to join — and that means early access when we launch this winter.
+                We're delighted to confirm that <strong>${businessName}</strong> has been added to the Mountain Connects waitlist. You're among the first businesses to join — and that means early access when we launch this winter.
               </p>
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Mountain Connect is a purpose-built platform designed to streamline seasonal recruitment for mountain and resort businesses. No more scattered job boards, lost applications, or last-minute staffing gaps.
+                Mountain Connects is a purpose-built platform designed to streamline seasonal recruitment for mountain and resort businesses. No more scattered job boards, lost applications, or last-minute staffing gaps.
               </p>
 
               <!-- Value Props -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
                   <td style="padding:20px 24px;background-color:#f8fafc;border-radius:12px;border:1px solid #e8edf2;">
-                    <p style="margin:0 0 16px;color:#0a1e33;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">How Mountain Connect helps your business</p>
+                    <p style="margin:0 0 16px;color:#0a1e33;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">How Mountain Connects helps your business</p>
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding:10px 0;border-bottom:1px solid #e8edf2;">
@@ -111,7 +111,7 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
           <!-- Footer -->
           <tr>
             <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
-              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connects</p>
               <p style="margin:0;color:#8899a6;font-size:12px;line-height:1.5;">
                 The seasonal workforce platform for mountain businesses.<br />
                 You're receiving this because ${businessName} was registered at mountainconnects.com

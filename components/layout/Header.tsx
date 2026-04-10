@@ -95,14 +95,14 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/images/Logo.jpeg"
-              alt="Mountain Connect"
+              alt="Mountain Connects"
               width={36}
               height={36}
               className="h-9 w-9 rounded-lg object-contain"
               priority
             />
             <span className={`text-lg font-bold tracking-tight transition-colors duration-300 ${logoTextColor}`}>
-              Mountain Connect
+              Mountain Connects
             </span>
           </Link>
 

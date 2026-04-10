@@ -128,7 +128,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold text-primary">Platform Analytics</h1>
-      <p className="mt-1 text-sm text-foreground/50">Overview of Mountain Connect growth and activity</p>
+      <p className="mt-1 text-sm text-foreground/50">Overview of Mountain Connects growth and activity</p>
 
       {/* Key Metrics */}
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">

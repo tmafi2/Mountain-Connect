@@ -18,7 +18,7 @@ import { supportReportAdminAlertEmail } from "./templates/support-report-admin-a
 import { loginOtpEmail } from "./templates/login-otp";
 import { onboardingReminderEmail } from "./templates/onboarding-reminder";
 
-const FROM_EMAIL = "Mountain Connect <notifications@mountainconnects.com>";
+const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 
 export async function sendInterviewInviteEmail(params: {
   to: string;

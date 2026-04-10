@@ -25,20 +25,20 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     .eq("status", "published")
     .single();
 
-  if (!post) return { title: "Post Not Found | Mountain Connect" };
+  if (!post) return { title: "Post Not Found | Mountain Connects" };
 
-  const description = post.excerpt || (post.content ? post.content.slice(0, 155) + "..." : "Read this article on Mountain Connect.");
+  const description = post.excerpt || (post.content ? post.content.slice(0, 155) + "..." : "Read this article on Mountain Connects.");
   const ogImage = post.hero_image_url || DEFAULT_OG_IMAGE;
 
   return {
-    title: `${post.title} | Mountain Connect Blog`,
+    title: `${post.title} | Mountain Connects Blog`,
     description,
     alternates: { canonical: `${BASE_URL}/blog/${slug}` },
     openGraph: {
       title: post.title,
       description,
       url: `${BASE_URL}/blog/${slug}`,
-      siteName: "Mountain Connect",
+      siteName: "Mountain Connects",
       type: "article",
       publishedTime: post.published_at || undefined,
       images: [{ url: ogImage, width: 1200, height: 630 }],
@@ -66,7 +66,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) notFound();
 
   const author = post.users as unknown as { full_name: string; avatar_url: string | null } | null;
-  const authorName = post.author_name || author?.full_name || "Mountain Connect";
+  const authorName = post.author_name || author?.full_name || "Mountain Connects";
 
   // JSON-LD structured data
   const jsonLd = {
@@ -83,7 +83,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     },
     publisher: {
       "@type": "Organization",
-      name: "Mountain Connect",
+      name: "Mountain Connects",
       url: BASE_URL,
     },
     mainEntityOfPage: `${BASE_URL}/blog/${slug}`,

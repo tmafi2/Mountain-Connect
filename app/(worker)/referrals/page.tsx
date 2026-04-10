@@ -49,13 +49,13 @@ export default function WorkerReferralsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold text-primary">Referrals</h1>
       <p className="mt-1 text-sm text-foreground/50">
-        Invite friends to Mountain Connect and track your referrals
+        Invite friends to Mountain Connects and track your referrals
       </p>
 
       {/* Referral Link Card */}
       <div className="mt-8 rounded-xl border border-accent/30 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-primary">Your Referral Link</h2>
-        <p className="mt-1 text-xs text-foreground/40">Share this link with friends to invite them to Mountain Connect</p>
+        <p className="mt-1 text-xs text-foreground/40">Share this link with friends to invite them to Mountain Connects</p>
         <div className="mt-4 flex items-center gap-2">
           <input
             readOnly

@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
   const { id } = await params;
   const resort = resorts.find((r) => r.id === id);
 
-  if (!resort) return { title: "Resort Not Found | Mountain Connect" };
+  if (!resort) return { title: "Resort Not Found | Mountain Connects" };
 
   const region = regions.find((r) => r.id === resort.region_id);
-  const title = `${resort.name} — Seasonal Jobs & Resort Guide | Mountain Connect`;
+  const title = `${resort.name} — Seasonal Jobs & Resort Guide | Mountain Connects`;
   const description = resort.description
     ? resort.description.slice(0, 155) + (resort.description.length > 155 ? "..." : "")
     : `Find seasonal work at ${resort.name}, ${resort.country}. Jobs, housing, and resort info for seasonal workers.`;
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
       title: `${resort.name} — Seasonal Jobs & Resort Guide`,
       description,
       url: `${BASE_URL}/resorts/${id}`,
-      siteName: "Mountain Connect",
+      siteName: "Mountain Connects",
       type: "website",
       ...(resort.banner_image_url && { images: [{ url: resort.banner_image_url, width: 1200, height: 630 }] }),
     },

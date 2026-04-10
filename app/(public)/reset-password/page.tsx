@@ -276,8 +276,8 @@ export default function ResetPasswordPage() {
 
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={40} height={40} className="rounded-lg" />
-            <span className="text-xl font-bold text-white">Mountain Connect</span>
+            <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={40} height={40} className="rounded-lg" />
+            <span className="text-xl font-bold text-white">Mountain Connects</span>
           </Link>
 
           <div className="max-w-md">
@@ -287,12 +287,12 @@ export default function ResetPasswordPage() {
               <span className="text-secondary">account.</span>
             </h2>
             <p className="mt-4 text-base text-white/70">
-              Choose a strong password to keep your Mountain Connect account safe.
+              Choose a strong password to keep your Mountain Connects account safe.
             </p>
           </div>
 
           <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} Mountain Connect
+            &copy; {new Date().getFullYear()} Mountain Connects
           </p>
         </div>
       </div>
@@ -302,8 +302,8 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold text-primary">Mountain Connect</span>
+            <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold text-primary">Mountain Connects</span>
           </div>
 
           <Suspense fallback={

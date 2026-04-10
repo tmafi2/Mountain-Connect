@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
     .eq("slug", slug)
     .single();
 
-  if (!town) return { title: "Town Not Found | Mountain Connect" };
+  if (!town) return { title: "Town Not Found | Mountain Connects" };
 
   // Fetch linked resort names
   const { data: links } = await supabase
@@ -65,9 +65,9 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
   // Build title
   let title: string;
   if (resortNames.length > 0 && resortNames.length <= 3) {
-    title = `${town.name} Seasonal Worker Guide — Near ${resortNames.join(" & ")} | Mountain Connect`;
+    title = `${town.name} Seasonal Worker Guide — Near ${resortNames.join(" & ")} | Mountain Connects`;
   } else {
-    title = `${town.name} Seasonal Worker Guide — Housing, Jobs & Living | Mountain Connect`;
+    title = `${town.name} Seasonal Worker Guide — Housing, Jobs & Living | Mountain Connects`;
   }
 
   // Build description (under 160 chars)
@@ -93,7 +93,7 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
       url: canonicalUrl,
       type: "website",
       images: [{ url: ogImage, alt: `${town.name} town guide` }],
-      siteName: "Mountain Connect",
+      siteName: "Mountain Connects",
     },
     twitter: {
       card: "summary_large_image",

@@ -78,7 +78,7 @@ export default function AboutPage() {
             <span className="text-gradient">mountain adventures</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/50">
-            Mountain Connect is the premium platform bridging the gap between seasonal workers seeking their next adventure and ski resort businesses looking for reliable staff.
+            Mountain Connects is the premium platform bridging the gap between seasonal workers seeking their next adventure and ski resort businesses looking for reliable staff.
           </p>
         </div>
       </section>
@@ -114,7 +114,7 @@ export default function AboutPage() {
               <span className="text-gradient">simple and accessible</span>
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-foreground/60">
-              Every ski season, thousands of businesses need reliable staff, and thousands of workers are searching for their next mountain adventure. Mountain Connect bridges this gap with a streamlined platform that saves time for both sides.
+              Every ski season, thousands of businesses need reliable staff, and thousands of workers are searching for their next mountain adventure. Mountain Connects bridges this gap with a streamlined platform that saves time for both sides.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-foreground/60">
               We believe everyone deserves the chance to experience life in the mountains — whether it&apos;s your first season or your tenth. Our platform removes the barriers and connects you directly with verified opportunities.
@@ -255,7 +255,7 @@ export default function AboutPage() {
                 <span className="text-gradient"> confidence</span>
               </h2>
               <p className="mt-6 text-lg leading-relaxed text-white/50">
-                Stop spending hours on job boards and recruitment agencies. Mountain Connect gives you direct access to a global pool of experienced seasonal workers — all verified and ready to go.
+                Stop spending hours on job boards and recruitment agencies. Mountain Connects gives you direct access to a global pool of experienced seasonal workers — all verified and ready to go.
               </p>
               <p className="mt-4 text-lg leading-relaxed text-white/50">
                 From posting your first listing to making your final hire, our platform handles every step of the process.
@@ -348,7 +348,7 @@ export default function AboutPage() {
             <span className="text-gradient">mountain chapter?</span>
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-white/50">
-            Join the growing community of seasonal workers and mountain businesses on Mountain Connect.
+            Join the growing community of seasonal workers and mountain businesses on Mountain Connects.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link

@@ -19,7 +19,7 @@ const footerLinks = {
   ],
   "For Businesses": [
     { href: "/signup?role=business", label: "Post a Job" },
-    { href: "/employers", label: "Why Mountain Connect" },
+    { href: "/employers", label: "Why Mountain Connects" },
   ],
 };
 
@@ -61,12 +61,12 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <Image
                 src="/images/Logo.jpeg"
-                alt="Mountain Connect"
+                alt="Mountain Connects"
                 width={40}
                 height={40}
                 className="h-10 w-10 rounded-lg object-contain"
               />
-              <span className="text-lg font-bold tracking-tight">Mountain Connect</span>
+              <span className="text-lg font-bold tracking-tight">Mountain Connects</span>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-white/40">
               The premium platform connecting seasonal workers with ski resort businesses worldwide.
@@ -147,7 +147,7 @@ export default function Footer() {
 
         <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-8 sm:flex-row">
           <p className="text-xs text-white/25">
-            &copy; {new Date().getFullYear()} Mountain Connect. All rights reserved.
+            &copy; {new Date().getFullYear()} Mountain Connects. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="text-xs text-white/25 transition-colors hover:text-white/50">Privacy</Link>

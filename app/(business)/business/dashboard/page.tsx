@@ -708,7 +708,7 @@ export default function BusinessDashboard() {
             <div>
               <h3 className="text-sm font-bold text-blue-900">Launching Soon in Your Area</h3>
               <p className="mt-1 text-sm text-blue-800/70">
-                Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. We&apos;re expanding to more locations soon!
+                Mountain Connects is currently live in {LAUNCH_LOCATION_NAMES}. We&apos;re expanding to more locations soon!
               </p>
               <p className="mt-2 text-sm text-blue-800/70">
                 While you wait, you can <strong>set up your company profile</strong> and <strong>create draft job listings</strong>. You&apos;ll be ready to go live as soon as we launch in your area.
@@ -954,7 +954,7 @@ export default function BusinessDashboard() {
                   {companyName}, you have been verified
                 </p>
                 <p className="mt-2 text-sm text-foreground/50">
-                  Your business is now officially verified on Mountain Connect. Here&apos;s what that means:
+                  Your business is now officially verified on Mountain Connects. Here&apos;s what that means:
                 </p>
 
                 {/* Benefits list */}

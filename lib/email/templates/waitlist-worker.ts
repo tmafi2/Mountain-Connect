@@ -4,7 +4,7 @@ interface WaitlistWorkerEmailProps {
 
 export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
   return {
-    subject: "You're on the list! ⛷️ Mountain Connect is coming this winter",
+    subject: "You're on the list! ⛷️ Mountain Connects is coming this winter",
     html: `
 <!DOCTYPE html>
 <html>
@@ -21,7 +21,7 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
           <tr>
             <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:40px 32px 32px;text-align:center;">
               <p style="margin:0 0 8px;font-size:40px;">🏔️</p>
-              <h1 style="margin:0 0 4px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Mountain Connect</h1>
+              <h1 style="margin:0 0 4px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Mountain Connects</h1>
               <p style="margin:0;color:#22d3ee;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Coming This Winter</p>
             </td>
           </tr>
@@ -30,7 +30,7 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
             <td style="padding:36px 32px 24px;">
               <h2 style="margin:0 0 16px;color:#0a1e33;font-size:22px;font-weight:700;">You're in! The adventure starts soon 🎉</h2>
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Hey there! Welcome to the Mountain Connect waitlist. You're now one of the first to know when we launch — and trust us, it's going to be worth the wait.
+                Hey there! Welcome to the Mountain Connects waitlist. You're now one of the first to know when we launch — and trust us, it's going to be worth the wait.
               </p>
               <p style="margin:0 0 20px;color:#4e5d6c;font-size:15px;line-height:1.7;">
                 We're building the ultimate platform to connect seasonal workers like you with ski resorts, mountain towns, and adventure destinations worldwide. Whether it's your first season or your tenth — we've got you.
@@ -60,7 +60,7 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
                 <tr>
                   <td style="background:linear-gradient(135deg,#22d3ee,#3b9ede);border-radius:10px;padding:14px 32px;text-align:center;">
                     <a href="https://www.mountainconnects.com/coming-soon" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.3px;">
-                      Share Mountain Connect with Friends →
+                      Share Mountain Connects with Friends →
                     </a>
                   </td>
                 </tr>
@@ -88,7 +88,7 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
           <!-- Footer -->
           <tr>
             <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
-              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connects</p>
               <p style="margin:0;color:#8899a6;font-size:12px;line-height:1.5;">
                 Connecting adventurous workers with mountain destinations worldwide.<br />
                 You're receiving this because you signed up at mountainconnects.com

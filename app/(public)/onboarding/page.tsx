@@ -67,7 +67,7 @@ function RoleSelection({
 }) {
   return (
     <div className="text-center">
-      <h1 className="text-3xl font-bold text-primary">Welcome to Mountain Connect</h1>
+      <h1 className="text-3xl font-bold text-primary">Welcome to Mountain Connects</h1>
       <p className="mt-3 text-foreground">How will you be using the platform?</p>
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">

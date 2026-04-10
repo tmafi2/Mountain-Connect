@@ -61,7 +61,7 @@ export function applicationStatusChangedEmail({
                 ${newStatus === "accepted" || newStatus === "offered"
                   ? "Congratulations! Check your dashboard for next steps."
                   : newStatus === "unsuccessful"
-                  ? "Thank you for applying. Don't be discouraged — there are plenty more opportunities on Mountain Connect."
+                  ? "Thank you for applying. Don't be discouraged — there are plenty more opportunities on Mountain Connects."
                   : "Log in to your dashboard to see the full details and take action."
                 }
               </p>
@@ -77,8 +77,8 @@ export function applicationStatusChangedEmail({
           </tr>
           <tr>
             <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
-              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
-              <p style="margin:0;color:#8899a6;font-size:11px;line-height:1.5;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect. All rights reserved.</p>
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connects</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;line-height:1.5;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connects. All rights reserved.</p>
             </td>
           </tr>
         </table>

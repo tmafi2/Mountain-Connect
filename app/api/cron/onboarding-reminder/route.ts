@@ -57,7 +57,7 @@ export async function GET(request: Request) {
           user_id: user.id,
           type: "general",
           title: "Complete your profile",
-          message: "Complete your Mountain Connect profile to start finding seasonal work.",
+          message: "Complete your Mountain Connects profile to start finding seasonal work.",
           link: "/onboarding?type=worker",
         }).catch(() => {});
 
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
           user_id: user.id,
           type: "general",
           title: "Complete your profile",
-          message: "Complete your business profile to start posting jobs on Mountain Connect.",
+          message: "Complete your business profile to start posting jobs on Mountain Connects.",
           link: "/onboarding?type=business",
         }).catch(() => {});
 

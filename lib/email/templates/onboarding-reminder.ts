@@ -12,7 +12,7 @@ export function onboardingReminderEmail({
   const isWorker = accountType === "worker";
 
   return {
-    subject: `Complete your Mountain Connect profile — ${isWorker ? "start finding seasonal work" : "start posting jobs"}`,
+    subject: `Complete your Mountain Connects profile — ${isWorker ? "start finding seasonal work" : "start posting jobs"}`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -30,7 +30,7 @@ export function onboardingReminderEmail({
           <tr>
             <td style="padding:36px 32px 24px;">
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Hi <strong style="color:#0a1e33;">${userName || "there"}</strong>, you signed up for Mountain Connect but haven't completed your profile yet.
+                Hi <strong style="color:#0a1e33;">${userName || "there"}</strong>, you signed up for Mountain Connects but haven't completed your profile yet.
               </p>
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
                 ${isWorker
@@ -68,7 +68,7 @@ export function onboardingReminderEmail({
           <tr>
             <td style="padding:0 32px 36px;">
               <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;text-align:center;">
-                Mountain Connect &bull; Connecting seasonal workers with ski resort businesses worldwide
+                Mountain Connects &bull; Connecting seasonal workers with ski resort businesses worldwide
               </p>
             </td>
           </tr>

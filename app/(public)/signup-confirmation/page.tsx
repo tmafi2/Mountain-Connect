@@ -20,8 +20,8 @@ export default function SignupConfirmationPage() {
 
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={40} height={40} className="rounded-lg" />
-            <span className="text-xl font-bold text-white">Mountain Connect</span>
+            <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={40} height={40} className="rounded-lg" />
+            <span className="text-xl font-bold text-white">Mountain Connects</span>
           </Link>
 
           <div className="max-w-md">
@@ -37,7 +37,7 @@ export default function SignupConfirmationPage() {
           </div>
 
           <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} Mountain Connect
+            &copy; {new Date().getFullYear()} Mountain Connects
           </p>
         </div>
       </div>
@@ -47,8 +47,8 @@ export default function SignupConfirmationPage() {
         <div className="w-full max-w-md text-center">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
-            <Image src="/images/Logo.jpeg" alt="Mountain Connect" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold text-primary">Mountain Connect</span>
+            <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold text-primary">Mountain Connects</span>
           </div>
 
           {/* Email icon */}

@@ -28,7 +28,7 @@ export function supportReportAdminAlertEmail({
   const categoryLabel = CATEGORY_LABELS[category] || "Report";
 
   return {
-    subject: `[Mountain Connect] New ${categoryLabel} from ${userName}`,
+    subject: `[Mountain Connects] New ${categoryLabel} from ${userName}`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>

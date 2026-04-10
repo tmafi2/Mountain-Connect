@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Mountain Connect",
-  description: "Terms and conditions for using the Mountain Connect platform.",
+  title: "Terms of Service | Mountain Connects",
+  description: "Terms and conditions for using the Mountain Connects platform.",
 };
 
 export default function TermsOfServicePage() {
@@ -15,20 +15,20 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">1. Acceptance of Terms</h2>
           <p className="mt-2">
-            By accessing or using Mountain Connect (mountainconnects.com), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the platform.
+            By accessing or using Mountain Connects (mountainconnects.com), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the platform.
           </p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-primary">2. About Mountain Connect</h2>
+          <h2 className="text-lg font-semibold text-primary">2. About Mountain Connects</h2>
           <p className="mt-2">
-            Mountain Connect is a platform that connects seasonal workers with businesses at ski resorts and mountain towns. We provide a marketplace for job listings, worker profiles, and communication between workers and employers. We do not act as an employer, employment agency, or recruiter.
+            Mountain Connects is a platform that connects seasonal workers with businesses at ski resorts and mountain towns. We provide a marketplace for job listings, worker profiles, and communication between workers and employers. We do not act as an employer, employment agency, or recruiter.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold text-primary">3. Eligibility</h2>
-          <p className="mt-2">You must be at least 16 years old to use Mountain Connect. By creating an account, you represent that:</p>
+          <p className="mt-2">You must be at least 16 years old to use Mountain Connects. By creating an account, you represent that:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li>You are at least 16 years of age</li>
             <li>You have the legal capacity to enter into these terms</li>
@@ -73,7 +73,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">6. Content</h2>
           <p className="mt-2">
-            You retain ownership of content you post on Mountain Connect (profile information, photos, job listings). By posting content, you grant us a non-exclusive, worldwide, royalty-free licence to use, display, and distribute your content on the platform for the purpose of providing our services.
+            You retain ownership of content you post on Mountain Connects (profile information, photos, job listings). By posting content, you grant us a non-exclusive, worldwide, royalty-free licence to use, display, and distribute your content on the platform for the purpose of providing our services.
           </p>
           <p className="mt-2">
             We reserve the right to remove any content that violates these terms or that we deem inappropriate, at our sole discretion.
@@ -90,7 +90,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">8. No Employment Relationship</h2>
           <p className="mt-2">
-            Mountain Connect is a platform that facilitates connections between workers and businesses. We are not a party to any employment agreement, contract, or arrangement between users. We do not:
+            Mountain Connects is a platform that facilitates connections between workers and businesses. We are not a party to any employment agreement, contract, or arrangement between users. We do not:
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li>Guarantee employment or hiring outcomes</li>
@@ -107,14 +107,14 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">9. Fees</h2>
           <p className="mt-2">
-            Mountain Connect is currently free to use for both workers and businesses. We reserve the right to introduce paid features or subscription tiers in the future. Any changes to pricing will be communicated in advance.
+            Mountain Connects is currently free to use for both workers and businesses. We reserve the right to introduce paid features or subscription tiers in the future. Any changes to pricing will be communicated in advance.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold text-primary">10. Limitation of Liability</h2>
           <p className="mt-2">
-            To the maximum extent permitted by law, Mountain Connect and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the platform, including but not limited to:
+            To the maximum extent permitted by law, Mountain Connects and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the platform, including but not limited to:
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li>Loss of employment or business opportunities</li>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "For Employers — Hire Seasonal Workers | Mountain Connect",
+  title: "For Employers — Hire Seasonal Workers | Mountain Connects",
   description:
     "Find verified seasonal workers for your ski resort business. Post jobs, manage applicants, and connect with experienced mountain workers worldwide.",
   alternates: { canonical: "https://www.mountainconnects.com/employers" },
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     description:
       "Find verified seasonal workers for your ski resort business. Post jobs and connect with experienced mountain workers.",
     url: "https://www.mountainconnects.com/employers",
-    siteName: "Mountain Connect",
+    siteName: "Mountain Connects",
     type: "website",
   },
 };

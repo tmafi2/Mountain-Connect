@@ -109,7 +109,7 @@ export default function AccessPage() {
         <div className="mb-6 flex justify-center">
           <Image
             src="/images/Logo.jpeg"
-            alt="Mountain Connect"
+            alt="Mountain Connects"
             width={72}
             height={72}
             className="rounded-2xl shadow-2xl ring-2 ring-white/10"
@@ -129,7 +129,7 @@ export default function AccessPage() {
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-white/50">
-            Mountain Connect is the platform connecting seasonal workers with ski resorts worldwide. We&apos;re putting the finishing touches on something special.
+            Mountain Connects is the platform connecting seasonal workers with ski resorts worldwide. We&apos;re putting the finishing touches on something special.
           </p>
         </div>
 

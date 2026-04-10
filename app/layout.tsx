@@ -9,22 +9,22 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Mountain Connect — Seasonal Jobs at Ski Resorts Worldwide",
+  title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
   description:
     "Connect with ski resort businesses and find seasonal work opportunities around the world. Build your profile, discover resorts, and apply to jobs with ease.",
   metadataBase: new URL("https://www.mountainconnects.com"),
   openGraph: {
-    title: "Mountain Connect — Seasonal Jobs at Ski Resorts Worldwide",
+    title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
     description:
       "Connect with ski resort businesses and find seasonal work at resorts worldwide.",
     url: "https://www.mountainconnects.com",
-    siteName: "Mountain Connect",
+    siteName: "Mountain Connects",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mountain Connect — Seasonal Jobs at Ski Resorts Worldwide",
+    title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
     description:
       "Connect with ski resort businesses and find seasonal work at resorts worldwide.",
   },

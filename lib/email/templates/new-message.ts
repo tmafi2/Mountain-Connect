@@ -7,7 +7,7 @@ interface NewMessageEmailProps {
 
 export function newMessageEmail({ recipientName, senderName, messagePreview, conversationUrl }: NewMessageEmailProps) {
   return {
-    subject: `New message from ${senderName} — Mountain Connect`,
+    subject: `New message from ${senderName} — Mountain Connects`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -36,8 +36,8 @@ export function newMessageEmail({ recipientName, senderName, messagePreview, con
               <p style="margin:0;color:#8899a6;font-size:12px;text-align:center;">Or copy: <a href="${conversationUrl}" style="color:#3b82f6;">${conversationUrl}</a></p>
           </td></tr>
           <tr><td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #e8edf2;">
-              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connect</p>
-              <p style="margin:0;color:#8899a6;font-size:11px;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connect.</p>
+              <p style="margin:0 0 4px;color:#0a1e33;font-size:13px;font-weight:600;">Mountain Connects</p>
+              <p style="margin:0;color:#8899a6;font-size:11px;">Connecting seasonal workers with mountain destinations worldwide.<br/>&copy; 2026 Mountain Connects.</p>
           </td></tr>
         </table>
     </td></tr>

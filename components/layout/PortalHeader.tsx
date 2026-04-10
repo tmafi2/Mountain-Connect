@@ -75,7 +75,7 @@ export default function PortalHeader({
             <path d="M16 2L28 28H4L16 2Z" fill="#a9cbe3" />
             <path d="M16 10L24 28H8L16 10Z" fill="#0e2439" />
           </svg>
-          Mountain Connect
+          Mountain Connects
         </Link>
         <Link
           href="/"

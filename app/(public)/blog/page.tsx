@@ -7,19 +7,19 @@ import type { Metadata } from "next";
 const BASE_URL = "https://www.mountainconnects.com";
 
 export const metadata: Metadata = {
-  title: "Blog | Mountain Connect",
+  title: "Blog | Mountain Connects",
   description: "Tips, guides, and stories for seasonal mountain workers. Discover resort insights, visa advice, and community stories.",
   alternates: { canonical: `${BASE_URL}/blog` },
   openGraph: {
-    title: "Blog | Mountain Connect",
+    title: "Blog | Mountain Connects",
     description: "Tips, guides, and stories for seasonal mountain workers.",
     url: `${BASE_URL}/blog`,
-    siteName: "Mountain Connect",
+    siteName: "Mountain Connects",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Blog | Mountain Connect",
+    title: "Blog | Mountain Connects",
     description: "Tips, guides, and stories for seasonal mountain workers.",
   },
 };

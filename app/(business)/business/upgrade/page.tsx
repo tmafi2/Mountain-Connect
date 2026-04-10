@@ -178,14 +178,14 @@ export default function UpgradePage() {
                 ) : isUpgrade || gracePeriod ? (
                   tier === "enterprise" ? (
                     <a
-                      href="mailto:hello@mountainconnects.com?subject=Enterprise Plan Inquiry&body=Hi, I'd like to learn more about the Enterprise plan for my business on Mountain Connect."
+                      href="mailto:hello@mountainconnects.com?subject=Enterprise Plan Inquiry&body=Hi, I'd like to learn more about the Enterprise plan for my business on Mountain Connects."
                       className={`block w-full rounded-xl py-2.5 text-center text-sm font-bold text-white transition-colors ${colors.cta}`}
                     >
                       Contact Us
                     </a>
                   ) : (
                     <a
-                      href={`mailto:hello@mountainconnects.com?subject=Upgrade to ${features.name} Plan&body=Hi, I'd like to upgrade my business to the ${features.name} plan on Mountain Connect.`}
+                      href={`mailto:hello@mountainconnects.com?subject=Upgrade to ${features.name} Plan&body=Hi, I'd like to upgrade my business to the ${features.name} plan on Mountain Connects.`}
                       className={`block w-full rounded-xl py-2.5 text-center text-sm font-bold text-white transition-colors ${colors.cta}`}
                     >
                       {gracePeriod ? "Pre-select Plan" : `Upgrade to ${features.name}`}

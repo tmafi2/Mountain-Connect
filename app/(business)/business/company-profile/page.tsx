@@ -768,7 +768,7 @@ export default function CompanyProfilePage() {
             <div>
               <h3 className="text-sm font-bold text-blue-900">Launching Soon in Your Area</h3>
               <p className="mt-1 text-sm text-blue-800/70">
-                Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. We&apos;re expanding to more locations soon!
+                Mountain Connects is currently live in {LAUNCH_LOCATION_NAMES}. We&apos;re expanding to more locations soon!
               </p>
               <p className="mt-2 text-sm text-blue-800/70">
                 In the meantime, keep building your profile and creating draft job listings — you&apos;ll be ready to go live as soon as we launch in your area.

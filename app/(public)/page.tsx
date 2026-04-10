@@ -513,11 +513,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══ Why Mountain Connect ═══════════════════════════ */}
+      {/* ═══ Why Mountain Connects ═══════════════════════════ */}
       <section className="relative py-24 bg-white">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center animate-on-scroll">
-            <span className="text-sm font-bold uppercase tracking-widest text-secondary">Why Mountain Connect</span>
+            <span className="text-sm font-bold uppercase tracking-widest text-secondary">Why Mountain Connects</span>
             <h2 className="mt-3 text-4xl font-extrabold text-primary md:text-5xl">
               Built for the mountain community
             </h2>
@@ -584,7 +584,7 @@ export default function HomePage() {
               <span className="text-gradient">starts now</span>
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg text-foreground/60">
-              Join the community of seasonal workers and mountain businesses already on Mountain Connect.
+              Join the community of seasonal workers and mountain businesses already on Mountain Connects.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link

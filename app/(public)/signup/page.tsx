@@ -190,8 +190,8 @@ function SignupContent() {
         {/* Branding overlay */}
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo.svg" alt="Mountain Connect" width={40} height={40} />
-            <span className="text-xl font-bold text-white">Mountain Connect</span>
+            <Image src="/logo.svg" alt="Mountain Connects" width={40} height={40} />
+            <span className="text-xl font-bold text-white">Mountain Connects</span>
           </Link>
 
           <div className="max-w-md">
@@ -202,13 +202,13 @@ function SignupContent() {
             </h2>
             <p className="mt-4 text-base text-white/70">
               Whether you&apos;re a seasonal worker chasing powder or a business
-              building your dream team — Mountain Connect brings it all together.
+              building your dream team — Mountain Connects brings it all together.
             </p>
 
             {/* Testimonial-style callout */}
             <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
               <p className="text-sm italic text-white/80">
-                &ldquo;Mountain Connect made it so easy to find my dream ski instructor
+                &ldquo;Mountain Connects made it so easy to find my dream ski instructor
                 job in Whistler. Best season of my life!&rdquo;
               </p>
               <div className="mt-3 flex items-center gap-3">
@@ -224,7 +224,7 @@ function SignupContent() {
           </div>
 
           <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} Mountain Connect
+            &copy; {new Date().getFullYear()} Mountain Connects
           </p>
         </div>
       </div>
@@ -234,13 +234,13 @@ function SignupContent() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Image src="/logo.svg" alt="Mountain Connect" width={32} height={32} />
-            <span className="text-lg font-bold text-primary">Mountain Connect</span>
+            <Image src="/logo.svg" alt="Mountain Connects" width={32} height={32} />
+            <span className="text-lg font-bold text-primary">Mountain Connects</span>
           </div>
 
           <h1 className="text-3xl font-extrabold text-primary">Create your account</h1>
           <p className="mt-2 text-sm text-foreground/60">
-            Join Mountain Connect and start your next mountain adventure.
+            Join Mountain Connects and start your next mountain adventure.
           </p>
 
           {/* Account type toggle */}
@@ -418,7 +418,7 @@ function SignupContent() {
                   )}
                 </div>
                 <p className="mt-2 text-xs text-foreground/40">
-                  Mountain Connect is currently live in {LAUNCH_LOCATION_NAMES}. Businesses in other locations can still sign up and prepare their profiles — we&apos;ll be launching in more areas soon!
+                  Mountain Connects is currently live in {LAUNCH_LOCATION_NAMES}. Businesses in other locations can still sign up and prepare their profiles — we&apos;ll be launching in more areas soon!
                 </p>
               </div>
             )}

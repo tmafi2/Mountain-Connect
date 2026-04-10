@@ -60,8 +60,8 @@ export async function POST(request: Request) {
         sendNewMessageEmail({
           to: bizUser.user.email,
           recipientName: business.business_name,
-          senderName: "Mountain Connect Admin",
-          messagePreview: "Your business registration has been accepted! Set up your profile and apply for verification to go public on Mountain Connect.",
+          senderName: "Mountain Connects Admin",
+          messagePreview: "Your business registration has been accepted! Set up your profile and apply for verification to go public on Mountain Connects.",
           conversationUrl: "https://www.mountainconnects.com/business/company-profile",
         }).catch(() => {});
       }
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         userId: business.user_id,
         type: "general",
         title: "Business Verified!",
-        message: "Congratulations! Your business has been verified. Your profile and job listings are now live. Welcome to Mountain Connect!",
+        message: "Congratulations! Your business has been verified. Your profile and job listings are now live. Welcome to Mountain Connects!",
         link: "/business/dashboard",
       });
 
@@ -91,8 +91,8 @@ export async function POST(request: Request) {
         sendNewMessageEmail({
           to: bizUser.user.email,
           recipientName: business.business_name,
-          senderName: "Mountain Connect Admin",
-          messagePreview: "Your business has been verified! Your profile and job listings are now live on Mountain Connect.",
+          senderName: "Mountain Connects Admin",
+          messagePreview: "Your business has been verified! Your profile and job listings are now live on Mountain Connects.",
           conversationUrl: "https://www.mountainconnects.com/business/dashboard",
         }).catch(() => {});
       }
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
         sendNewMessageEmail({
           to: bizUser.user.email,
           recipientName: business.business_name,
-          senderName: "Mountain Connect Admin",
+          senderName: "Mountain Connects Admin",
           messagePreview: message || "Your verification application was not approved at this time. You can continue using the platform and reapply when ready.",
           conversationUrl: "https://www.mountainconnects.com/business/company-profile",
         }).catch(() => {});
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
         sendNewMessageEmail({
           to: bizUser.user.email,
           recipientName: business.business_name,
-          senderName: "Mountain Connect Admin",
+          senderName: "Mountain Connects Admin",
           messagePreview: message || "Your business registration was not approved. Please update your profile and resubmit.",
           conversationUrl: "https://www.mountainconnects.com/business/company-profile",
         }).catch(() => {});
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
         sendNewMessageEmail({
           to: bizUser.user.email,
           recipientName: business.business_name,
-          senderName: "Mountain Connect Admin",
+          senderName: "Mountain Connects Admin",
           messagePreview: message || "We need more information to complete your registration review. Please update your company profile.",
           conversationUrl: "https://www.mountainconnects.com/business/company-profile",
         }).catch(() => {});

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connect",
+  title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connects",
   description:
     "Discover the towns where seasonal ski workers live, eat, and socialise. Housing, transport, cost of living, and insider tips for every resort town.",
 };

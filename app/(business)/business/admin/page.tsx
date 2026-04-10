@@ -29,7 +29,7 @@ export default function BusinessAdminRedirectPage() {
       {/* Content card */}
       <div className="rounded-2xl border border-accent/40 bg-white p-8 shadow-sm">
         <p className="text-sm leading-relaxed text-foreground/70">
-          Business verification is managed by the Mountain Connect admin team.
+          Business verification is managed by the Mountain Connects admin team.
           You can submit your profile for verification from the{" "}
           <Link href="/business/company-profile" className="font-semibold text-primary hover:text-secondary transition-colors hover:underline">
             Company Profile
