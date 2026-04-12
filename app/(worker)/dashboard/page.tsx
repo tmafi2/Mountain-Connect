@@ -62,16 +62,6 @@ export default function WorkerDashboard() {
   const [hasOffer, setHasOffer] = useState(false);
   const [hasInvitedInterview, setHasInvitedInterview] = useState(false);
   const [upcomingInterviews, setUpcomingInterviews] = useState<UpcomingInterview[]>([]);
-  const [currentJob, setCurrentJob] = useState<{
-    jobTitle: string;
-    businessName: string;
-    resortName: string;
-    location: string;
-    startDate: string | null;
-    salaryRange: string | null;
-    positionType: string | null;
-    accommodationIncluded: boolean;
-  } | null>(null);
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
   const [checklistDismissed, setChecklistDismissed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -113,7 +103,7 @@ export default function WorkerDashboard() {
             // Fetch recent applications with job/business details
             supabase
               .from("applications")
-              .select("id, status, applied_at, updated_at, job_post_id, job_posts(title, salary_range, position_type, start_date, accommodation_included, business_profiles(business_name, location), resorts(name))")
+              .select("id, status, applied_at, updated_at, job_post_id, job_posts(title, business_profiles(business_name))")
               .eq("worker_id", profile.id)
               .order("applied_at", { ascending: false })
               .limit(10),
@@ -190,32 +180,6 @@ export default function WorkerDashboard() {
                   href: "/applications",
                 });
               }
-            }
-          }
-
-          // Check for accepted job (current job)
-          const acceptedApp = recentApps.data?.find((a) => a.status === "accepted");
-          if (acceptedApp) {
-            const job = acceptedApp.job_posts as unknown as {
-              title: string;
-              salary_range: string | null;
-              position_type: string | null;
-              start_date: string | null;
-              accommodation_included?: boolean;
-              business_profiles: { business_name: string; location: string | null };
-              resorts?: { name: string } | null;
-            } | null;
-            if (job) {
-              setCurrentJob({
-                jobTitle: job.title,
-                businessName: job.business_profiles?.business_name || "Unknown Business",
-                resortName: (job.resorts as { name: string } | null)?.name || "",
-                location: job.business_profiles?.location || "",
-                startDate: job.start_date || null,
-                salaryRange: job.salary_range || null,
-                positionType: job.position_type || null,
-                accommodationIncluded: !!job.accommodation_included,
-              });
             }
           }
 
@@ -360,13 +324,6 @@ export default function WorkerDashboard() {
               onDismiss={() => setDismissedBanners((prev) => new Set(prev).add(iv.id))}
             />
           ))}
-        </div>
-      )}
-
-      {/* ── Current Job Card ─────────────────────────────────── */}
-      {currentJob && (
-        <div className="mb-6">
-          <CurrentJobCard job={currentJob} />
         </div>
       )}
 
@@ -1223,80 +1180,5 @@ function ActionCard({
   );
 }
 
-/* ── Current Job Card ────────────────────────────────────── */
-function CurrentJobCard({ job }: { job: { jobTitle: string; businessName: string; resortName: string; location: string; startDate: string | null; salaryRange: string | null; positionType: string | null; accommodationIncluded: boolean } }) {
-  const posLabel = job.positionType === "full_time" ? "Full-Time" : job.positionType === "part_time" ? "Part-Time" : job.positionType === "casual" ? "Casual" : null;
 
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 p-6 shadow-sm">
-      {/* Subtle background decoration */}
-      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-200/30 blur-2xl" />
-      <div className="pointer-events-none absolute -left-4 bottom-0 h-20 w-20 rounded-full bg-teal-200/20 blur-2xl" />
-
-      <div className="relative">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Current Job
-          </span>
-        </div>
-
-        <h3 className="text-lg font-bold text-emerald-900">{job.jobTitle}</h3>
-        <p className="mt-1 text-sm text-emerald-700">
-          {job.businessName}
-          {job.resortName ? <> &middot; {job.resortName}</> : ""}
-        </p>
-        {job.location && (
-          <p className="mt-0.5 text-xs text-emerald-600/70">{job.location}</p>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          {job.startDate && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-              </svg>
-              Starts {job.startDate}
-            </div>
-          )}
-          {job.salaryRange && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {job.salaryRange}
-            </div>
-          )}
-          {posLabel && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
-              </svg>
-              {posLabel}
-            </div>
-          )}
-          {job.accommodationIncluded && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205l3 1m1.5.5l-1.5-.5M6.75 7.364V3h-3v18m3-13.636l10.5-3.819" />
-              </svg>
-              Accommodation included
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4">
-          <Link href="/applications" className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-900">
-            View application details
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
 
