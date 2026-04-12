@@ -28,6 +28,12 @@ const STEPS = [
 
 type Step = (typeof STEPS)[number];
 
+interface WorkAuthorization {
+  country: string;
+  visa_status: VisaStatus | "";
+  visa_expiry: string; // date string or "n/a" or ""
+}
+
 /* ─── form state ──────────────────────────────────────────── */
 interface FormState {
   // Core
@@ -45,6 +51,7 @@ interface FormState {
   visa_status: VisaStatus | "";
   visa_expiry_date: string;
   work_eligible_countries: string[];
+  work_authorizations: WorkAuthorization[];
   languages: LanguageProficiency[];
   drivers_license: boolean;
   drivers_license_country: string;
@@ -98,6 +105,7 @@ const INITIAL: FormState = {
   visa_status: "",
   visa_expiry_date: "",
   work_eligible_countries: [],
+  work_authorizations: [],
   languages: [],
   drivers_license: false,
   drivers_license_country: "",
@@ -299,7 +307,7 @@ function getStepMissingFields(f: FormState, stepIndex: number): string[] {
     ],
     1: [ // Eligibility
       { label: "Nationality", value: f.nationality },
-      { label: "Visa Status", value: f.visa_status },
+      { label: "Work Authorization", value: f.work_authorizations },
       { label: "Languages", value: f.languages },
     ],
     2: [ // Availability
@@ -342,7 +350,7 @@ function calcCompletion(f: FormState): number {
   check(f.location_current);
   check(f.country_of_residence);
   check(f.nationality);
-  check(f.visa_status);
+  check(f.work_authorizations);
   check(f.languages);
   check(f.availability_start);
   check(f.season_preference);
@@ -757,6 +765,7 @@ export default function ProfileEditPage() {
           visa_status: profile.visa_status || "",
           visa_expiry_date: profile.visa_expiry_date || "",
           work_eligible_countries: profile.work_eligible_countries || [],
+          work_authorizations: (profile.work_authorizations as WorkAuthorization[]) || [],
           languages: profile.languages || [],
           drivers_license: profile.drivers_license || false,
           drivers_license_country: profile.drivers_license_country || "",
@@ -829,9 +838,14 @@ export default function ProfileEditPage() {
         country_of_residence: form.country_of_residence || null,
         nationality: form.nationality || null,
         second_nationality: form.second_nationality || null,
-        visa_status: form.visa_status || null,
-        visa_expiry_date: form.visa_expiry_date && form.visa_expiry_date !== "n/a" ? form.visa_expiry_date : null,
-        work_eligible_countries: form.work_eligible_countries,
+        visa_status: form.work_authorizations.length > 0 ? form.work_authorizations[0].visa_status || null : form.visa_status || null,
+        visa_expiry_date: form.work_authorizations.length > 0
+          ? (form.work_authorizations[0].visa_expiry && form.work_authorizations[0].visa_expiry !== "n/a" ? form.work_authorizations[0].visa_expiry : null)
+          : (form.visa_expiry_date && form.visa_expiry_date !== "n/a" ? form.visa_expiry_date : null),
+        work_eligible_countries: form.work_authorizations.length > 0
+          ? form.work_authorizations.map((wa) => wa.country)
+          : form.work_eligible_countries,
+        work_authorizations: form.work_authorizations,
         languages: form.languages,
         drivers_license: form.drivers_license,
         drivers_license_country: form.drivers_license_country || null,
@@ -1148,89 +1162,114 @@ export default function ProfileEditPage() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="visa_status">Visa Status</Label>
-                <Select id="visa_status" value={form.visa_status} onChange={(v) => set("visa_status", v as VisaStatus)}>
-                  <option value="">Select...</option>
-                  {VISA_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="visa_exp">Visa Expiry Date</Label>
-                {form.visa_expiry_date === "n/a" ? (
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="flex-1 rounded-lg border border-accent bg-accent/20 px-4 py-2.5 text-sm text-foreground/60">N/A — No expiry</span>
-                    <button
-                      type="button"
-                      onClick={() => set("visa_expiry_date", "")}
-                      className="rounded-lg border border-accent px-3 py-2 text-xs font-medium text-foreground/60 hover:border-secondary hover:text-primary"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      id="visa_exp"
-                      type="date"
-                      value={form.visa_expiry_date}
-                      onChange={(e) => set("visa_expiry_date", e.target.value)}
-                      className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => set("visa_expiry_date", "n/a")}
-                      className="whitespace-nowrap rounded-lg border border-accent bg-white px-3 py-2 text-xs font-medium text-foreground/60 hover:border-secondary hover:text-primary"
-                    >
-                      N/A
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Work-eligible countries */}
+            {/* Countries you can legally work in — per-country visa info */}
             <div>
               <Label>Countries You Can Legally Work In</Label>
+              <p className="mt-0.5 mb-2 text-xs text-foreground/50">Add each country and set your visa/work status for it.</p>
               <div className="mt-1 flex gap-2">
-                <input
-                  type="text"
-                  value={newEligibleCountry}
-                  onChange={(e) => setNewEligibleCountry(e.target.value)}
-                  placeholder="e.g. Canada"
-                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newEligibleCountry.trim()) {
-                      e.preventDefault();
-                      set("work_eligible_countries", [...form.work_eligible_countries, newEligibleCountry.trim()]);
-                      setNewEligibleCountry("");
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value && !form.work_authorizations.some((wa) => wa.country === e.target.value)) {
+                      set("work_authorizations", [...form.work_authorizations, { country: e.target.value, visa_status: "", visa_expiry: "" }]);
                     }
+                    e.target.value = "";
                   }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newEligibleCountry.trim()) {
-                      set("work_eligible_countries", [...form.work_eligible_countries, newEligibleCountry.trim()]);
-                      setNewEligibleCountry("");
-                    }
-                  }}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
                 >
-                  Add
-                </button>
-              </div>
-              {form.work_eligible_countries.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {form.work_eligible_countries.map((c) => (
-                    <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-primary">
-                      {c}
-                      <button type="button" onClick={() => set("work_eligible_countries", form.work_eligible_countries.filter((x) => x !== c))} className="ml-1 text-foreground/50 hover:text-red-500">&times;</button>
-                    </span>
+                  <option value="">Add a country...</option>
+                  {COUNTRIES.filter((c) => !form.work_authorizations.some((wa) => wa.country === c.name)).map((c) => (
+                    <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
                   ))}
+                </select>
+              </div>
+
+              {form.work_authorizations.length > 0 && (
+                <div className="mt-3 space-y-3">
+                  {form.work_authorizations.map((wa, idx) => {
+                    const countryData = COUNTRIES.find((c) => c.name === wa.country);
+                    return (
+                      <div key={wa.country} className="rounded-xl border border-accent/40 bg-accent/5 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-semibold text-primary">
+                            {countryData?.flag || "🌍"} {wa.country}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => set("work_authorizations", form.work_authorizations.filter((_, i) => i !== idx))}
+                            className="rounded-lg p-1 text-foreground/40 hover:bg-red-50 hover:text-red-500 transition-colors"
+                            title="Remove country"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-xs font-medium text-foreground/60 mb-1">Visa Status</label>
+                            <select
+                              value={wa.visa_status}
+                              onChange={(e) => {
+                                const updated = [...form.work_authorizations];
+                                updated[idx] = { ...wa, visa_status: e.target.value as VisaStatus };
+                                set("work_authorizations", updated);
+                              }}
+                              className="w-full rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                            >
+                              <option value="">Select status...</option>
+                              {VISA_OPTIONS.map((o) => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-foreground/60 mb-1">Visa Expiry</label>
+                            {wa.visa_expiry === "n/a" ? (
+                              <div className="flex items-center gap-2">
+                                <span className="flex-1 rounded-lg border border-accent bg-accent/20 px-3 py-2 text-sm text-foreground/60">N/A</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...form.work_authorizations];
+                                    updated[idx] = { ...wa, visa_expiry: "" };
+                                    set("work_authorizations", updated);
+                                  }}
+                                  className="rounded-lg border border-accent px-2 py-1.5 text-xs font-medium text-foreground/60 hover:border-secondary hover:text-primary"
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="date"
+                                  value={wa.visa_expiry}
+                                  onChange={(e) => {
+                                    const updated = [...form.work_authorizations];
+                                    updated[idx] = { ...wa, visa_expiry: e.target.value };
+                                    set("work_authorizations", updated);
+                                  }}
+                                  className="flex-1 rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...form.work_authorizations];
+                                    updated[idx] = { ...wa, visa_expiry: "n/a" };
+                                    set("work_authorizations", updated);
+                                  }}
+                                  className="whitespace-nowrap rounded-lg border border-accent bg-white px-2 py-1.5 text-xs font-medium text-foreground/60 hover:border-secondary hover:text-primary"
+                                >
+                                  N/A
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2457,11 +2496,30 @@ export default function ProfileEditPage() {
                   <dt className="text-xs font-medium uppercase text-foreground/50">Nationality</dt>
                   <dd className="text-sm text-primary">{form.nationality || "—"}</dd>
                 </div>
-                <div>
-                  <dt className="text-xs font-medium uppercase text-foreground/50">Visa Status</dt>
-                  <dd className="text-sm text-primary capitalize">{form.visa_status?.replace("_", " ") || "—"}</dd>
-                </div>
+                {form.second_nationality && (
+                  <div>
+                    <dt className="text-xs font-medium uppercase text-foreground/50">Second Nationality</dt>
+                    <dd className="text-sm text-primary">{form.second_nationality}</dd>
+                  </div>
+                )}
               </dl>
+              {form.work_authorizations.length > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-foreground/50 mb-2">Work Authorization</dt>
+                  <dd className="space-y-2">
+                    {form.work_authorizations.map((wa) => (
+                      <div key={wa.country} className="flex items-center gap-3 rounded-lg bg-accent/10 px-3 py-2 text-sm">
+                        <span className="font-medium text-primary">{COUNTRIES.find((c) => c.name === wa.country)?.flag} {wa.country}</span>
+                        <span className="text-foreground/50">—</span>
+                        <span className="capitalize text-primary">{wa.visa_status?.replace(/_/g, " ") || "Not set"}</span>
+                        {wa.visa_expiry && wa.visa_expiry !== "n/a" && (
+                          <span className="text-xs text-foreground/40">(expires {wa.visa_expiry})</span>
+                        )}
+                      </div>
+                    ))}
+                  </dd>
+                </div>
+              )}
               {form.languages.length > 0 && (
                 <div>
                   <dt className="text-xs font-medium uppercase text-foreground/50">Languages</dt>
@@ -2472,12 +2530,6 @@ export default function ProfileEditPage() {
                       </span>
                     ))}
                   </dd>
-                </div>
-              )}
-              {form.work_eligible_countries.length > 0 && (
-                <div>
-                  <dt className="text-xs font-medium uppercase text-foreground/50">Can Work In</dt>
-                  <dd className="mt-1 text-sm text-primary">{form.work_eligible_countries.join(", ")}</dd>
                 </div>
               )}
             </SectionCard>

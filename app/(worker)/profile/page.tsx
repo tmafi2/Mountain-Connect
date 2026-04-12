@@ -342,14 +342,34 @@ export default function WorkerProfilePage() {
               {profile.second_nationality && (
                 <Detail label="Second Nationality" value={profile.second_nationality} icon={COUNTRY_FLAGS[profile.second_nationality]} />
               )}
-              <Detail label="Visa Status" value={profile.visa_status ? formatLabel(profile.visa_status) : null} />
-              {profile.visa_expiry_date && (
-                <Detail label="Visa Expiry" value={formatDate(profile.visa_expiry_date)} />
-              )}
               <Detail label="Driver's License" value={profile.drivers_license ? `Yes${profile.drivers_license_country ? ` (${profile.drivers_license_country})` : ""}` : profile.drivers_license === false ? "No" : null} />
               <Detail label="Has Car" value={profile.has_car === true ? "Yes" : profile.has_car === false ? "No" : null} />
             </div>
-            {profile.work_eligible_countries && profile.work_eligible_countries.length > 0 && (
+            {/* Per-country work authorizations (new format) */}
+            {profile.work_authorizations && (profile.work_authorizations as { country: string; visa_status: string; visa_expiry: string | null }[]).length > 0 ? (
+              <div className="mt-4">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/40">Work Authorization</span>
+                <div className="mt-1.5 space-y-2">
+                  {(profile.work_authorizations as { country: string; visa_status: string; visa_expiry: string | null }[]).map((wa) => (
+                    <div key={wa.country} className="flex flex-wrap items-center gap-2 rounded-lg bg-green-50 px-3 py-2">
+                      <span className="text-sm font-medium text-green-800">
+                        {COUNTRY_FLAGS[wa.country] || "🌍"} {wa.country}
+                      </span>
+                      {wa.visa_status && (
+                        <>
+                          <span className="text-green-400">•</span>
+                          <span className="text-sm text-green-700 capitalize">{wa.visa_status.replace(/_/g, " ")}</span>
+                        </>
+                      )}
+                      {wa.visa_expiry && wa.visa_expiry !== "n/a" && (
+                        <span className="text-xs text-green-600/60">(expires {formatDate(wa.visa_expiry)})</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : profile.work_eligible_countries && profile.work_eligible_countries.length > 0 ? (
+              /* Fallback for old format */
               <div className="mt-4">
                 <span className="text-xs font-medium uppercase tracking-wider text-foreground/40">Eligible to Work In</span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -360,7 +380,15 @@ export default function WorkerProfilePage() {
                   ))}
                 </div>
               </div>
-            )}
+            ) : profile.visa_status ? (
+              /* Fallback for old single visa status */
+              <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4">
+                <Detail label="Visa Status" value={formatLabel(profile.visa_status)} />
+                {profile.visa_expiry_date && (
+                  <Detail label="Visa Expiry" value={formatDate(profile.visa_expiry_date)} />
+                )}
+              </div>
+            ) : null}
           </Section>
 
           {/* ── Languages ──────────────────────────────────── */}
