@@ -91,6 +91,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   offered: { bg: "bg-orange-50", text: "text-orange-700", label: "Offered" },
   accepted: { bg: "bg-green-50", text: "text-green-700", label: "Accepted" },
   rejected: { bg: "bg-red-50", text: "text-red-700", label: "Unsuccessful" },
+  withdrawn: { bg: "bg-gray-50", text: "text-gray-500", label: "Withdrawn" },
 };
 
 export default function ApplicantCard({

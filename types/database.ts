@@ -17,7 +17,7 @@ export interface BlogPost {
 }
 
 export type UserRole = "worker" | "business_owner" | "admin";
-export type ApplicationStatus = "new" | "viewed" | "interview_pending" | "interview" | "offered" | "accepted" | "rejected";
+export type ApplicationStatus = "new" | "viewed" | "interview_pending" | "interview" | "offered" | "accepted" | "rejected" | "withdrawn";
 export type VisaStatus = "citizen" | "permanent_resident" | "working_holiday" | "work_visa" | "student_visa" | "no_visa" | "other";
 export type SeasonPreference = "northern_winter" | "southern_winter" | "both" | "year_round";
 export type HousingPreference = "staff_housing" | "private_rental" | "shared_rental" | "van_vehicle" | "no_preference";

@@ -12,7 +12,7 @@ interface Application {
   business_location: string;
   business_user_id: string | null;
   resort_name: string;
-  status: "applied" | "viewed" | "interview" | "offered" | "accepted" | "rejected";
+  status: "applied" | "viewed" | "interview" | "offered" | "accepted" | "rejected" | "withdrawn";
   applied_at: string;
   cover_letter: string;
   has_resume: boolean;
@@ -195,6 +195,7 @@ const STATUS_LABELS: Record<Application["status"], string> = {
   offered: "Offered",
   accepted: "Accepted",
   rejected: "Unsuccessful",
+  withdrawn: "Withdrawn",
 };
 
 const STATUS_STYLES: Record<Application["status"], { bg: string; text: string }> = {
@@ -204,6 +205,7 @@ const STATUS_STYLES: Record<Application["status"], { bg: string; text: string }>
   offered: { bg: "bg-emerald-50", text: "text-emerald-700" },
   accepted: { bg: "bg-green-50", text: "text-green-700" },
   rejected: { bg: "bg-red-50", text: "text-red-700" },
+  withdrawn: { bg: "bg-gray-50", text: "text-gray-500" },
 };
 
 const TIMELINE_STEPS = ["Applied", "Viewed", "Interview", "Offer", "Accepted"] as const;
@@ -215,6 +217,7 @@ const STATUS_ORDER: Record<string, number> = {
   offered: 3,
   accepted: 4,
   rejected: -1,
+  withdrawn: -2,
 };
 
 type FilterTab = "all" | Application["status"];
@@ -227,7 +230,9 @@ export default function ApplicationsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [respondingAppId, setRespondingAppId] = useState<string | null>(null);
-  const [celebration, setCelebration] = useState<{ jobTitle: string; businessName: string; resortName: string } | null>(null);
+  const [celebration, setCelebration] = useState<{ jobTitle: string; businessName: string; resortName: string; acceptedApplicationId: string } | null>(null);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawnCount, setWithdrawnCount] = useState<number | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("Newest First");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -270,6 +275,7 @@ export default function ApplicationsPage() {
             offered: "offered",
             accepted: "accepted",
             rejected: "rejected",
+            withdrawn: "withdrawn",
           };
 
           const mapped: Application[] = data.map((a: Record<string, unknown>) => {
@@ -358,6 +364,7 @@ export default function ApplicationsPage() {
           jobTitle: app.job_title,
           businessName: app.business_name,
           resortName: app.resort_name,
+          acceptedApplicationId: app.id,
         });
       }
     } catch (err) {
@@ -365,6 +372,32 @@ export default function ApplicationsPage() {
       alert("Something went wrong. Please try again.");
     }
     setRespondingAppId(null);
+  };
+
+  const handleWithdrawAll = async () => {
+    if (!celebration) return;
+    setWithdrawing(true);
+    try {
+      const res = await fetch("/api/applications/withdraw-others", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acceptedApplicationId: celebration.acceptedApplicationId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const result = await res.json();
+      setWithdrawnCount(result.withdrawnCount);
+      // Update local state to reflect withdrawn applications
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id !== celebration.acceptedApplicationId && ["applied", "viewed", "interview", "offered"].includes(a.status)
+            ? { ...a, status: "withdrawn" as const }
+            : a
+        )
+      );
+    } catch (err) {
+      console.error("Failed to withdraw:", err);
+    }
+    setWithdrawing(false);
   };
 
   if (pageLoading) {
@@ -413,6 +446,7 @@ export default function ApplicationsPage() {
     offered: searchFiltered.filter((a) => a.status === "offered").length,
     accepted: searchFiltered.filter((a) => a.status === "accepted").length,
     rejected: searchFiltered.filter((a) => a.status === "rejected").length,
+    withdrawn: searchFiltered.filter((a) => a.status === "withdrawn").length,
   };
 
   const tabs: { key: FilterTab; label: string }[] = [
@@ -423,10 +457,11 @@ export default function ApplicationsPage() {
     { key: "offered", label: "Offered" },
     { key: "accepted", label: "Accepted" },
     { key: "rejected", label: "Unsuccessful" },
+    { key: "withdrawn", label: "Withdrawn" },
   ];
 
   const getTimelineIndex = (status: Application["status"]): number => {
-    if (status === "rejected") return -1;
+    if (status === "rejected" || status === "withdrawn") return -1;
     return STATUS_ORDER[status] ?? 0;
   };
 
@@ -604,8 +639,8 @@ export default function ApplicationsPage() {
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground/40">
                       Status Timeline
                     </p>
-                    {app.status === "rejected" ? (
-                      <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {app.status === "rejected" || app.status === "withdrawn" ? (
+                      <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${app.status === "withdrawn" ? "bg-gray-50 text-gray-500" : "bg-red-50 text-red-600"}`}>
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
@@ -614,7 +649,7 @@ export default function ApplicationsPage() {
                             d="M6 18L18 6M6 6l12 12"
                           />
                         </svg>
-                        Application was not selected to move forward.
+                        {app.status === "withdrawn" ? "You withdrew this application." : "Application was not selected to move forward."}
                       </div>
                     ) : (
                       <div className="flex items-center">
@@ -843,7 +878,7 @@ export default function ApplicationsPage() {
                         Message Business
                       </button>
                     )}
-                    {app.status !== "rejected" && app.status !== "accepted" && (
+                    {app.status !== "rejected" && app.status !== "accepted" && app.status !== "withdrawn" && (
                       <button className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50">
                         Withdraw Application
                       </button>
@@ -862,7 +897,12 @@ export default function ApplicationsPage() {
           jobTitle={celebration.jobTitle}
           businessName={celebration.businessName}
           resortName={celebration.resortName}
-          onClose={() => setCelebration(null)}
+          otherActiveCount={applications.filter((a) => a.id !== celebration.acceptedApplicationId && ["applied", "viewed", "interview", "offered"].includes(a.status)).length}
+          acceptedApplicationId={celebration.acceptedApplicationId}
+          onWithdrawAll={handleWithdrawAll}
+          withdrawing={withdrawing}
+          withdrawnCount={withdrawnCount}
+          onClose={() => { setCelebration(null); setWithdrawnCount(null); }}
         />
       )}
     </div>
@@ -874,11 +914,21 @@ function CelebrationModal({
   jobTitle,
   businessName,
   resortName,
+  otherActiveCount,
+  acceptedApplicationId,
+  onWithdrawAll,
+  withdrawing,
+  withdrawnCount,
   onClose,
 }: {
   jobTitle: string;
   businessName: string;
   resortName: string;
+  otherActiveCount: number;
+  acceptedApplicationId: string;
+  onWithdrawAll: () => void;
+  withdrawing: boolean;
+  withdrawnCount: number | null;
   onClose: () => void;
 }) {
   const hasRun = useRef(false);
@@ -945,6 +995,48 @@ function CelebrationModal({
                 <span>🏔️</span>
               </div>
             </div>
+
+            {otherActiveCount > 0 && withdrawnCount === null && (
+              <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-5">
+                <p className="text-sm font-medium text-amber-900">
+                  You have {otherActiveCount} other pending application{otherActiveCount !== 1 ? "s" : ""}
+                </p>
+                <p className="mt-1 text-xs text-amber-700">
+                  Would you like to withdraw them to let businesses know you&apos;re off the market?
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={onWithdrawAll}
+                    disabled={withdrawing}
+                    className="flex-1 rounded-lg bg-amber-600 py-2 text-xs font-bold text-white transition-all hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {withdrawing ? "Withdrawing..." : "Withdraw All Others"}
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="flex-1 rounded-lg border border-amber-200 py-2 text-xs font-semibold text-amber-700 transition-all hover:bg-amber-100"
+                  >
+                    Keep Them Active
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {withdrawnCount !== null && (
+              <div className="mt-5 rounded-2xl border border-green-100 bg-green-50 p-5">
+                <div className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-sm font-medium text-green-800">
+                    {withdrawnCount} application{withdrawnCount !== 1 ? "s" : ""} withdrawn
+                  </p>
+                </div>
+                <p className="mt-1 text-xs text-green-700">
+                  Businesses have been notified that you&apos;re off the market.
+                </p>
+              </div>
+            )}
 
             <div className="mt-5 space-y-2 text-sm text-foreground/60">
               <p className="font-medium text-foreground/80">What&apos;s next:</p>
@@ -1180,6 +1272,21 @@ function NextStepsGuidance({
             </li>
           </ul>
         </div>
+      ),
+    },
+    withdrawn: {
+      border: "border-gray-100",
+      bg: "bg-gray-50/50",
+      iconBg: "bg-gray-100",
+      iconColor: "text-gray-500",
+      heading: "Application Withdrawn",
+      icon: (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+        </svg>
+      ),
+      body: (
+        <p className="text-sm text-gray-600">You withdrew this application after accepting another offer.</p>
       ),
     },
     rejected: {
