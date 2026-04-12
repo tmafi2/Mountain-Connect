@@ -233,6 +233,7 @@ export default function ApplicationsPage() {
   const [celebration, setCelebration] = useState<{ jobTitle: string; businessName: string; resortName: string; acceptedApplicationId: string } | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawnCount, setWithdrawnCount] = useState<number | null>(null);
+  const [withdrawingAppId, setWithdrawingAppId] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("Newest First");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -398,6 +399,26 @@ export default function ApplicationsPage() {
       console.error("Failed to withdraw:", err);
     }
     setWithdrawing(false);
+  };
+
+  const handleWithdrawSingle = async (appId: string) => {
+    if (!confirm("Are you sure you want to withdraw this application? The business will be notified.")) return;
+    setWithdrawingAppId(appId);
+    try {
+      const res = await fetch("/api/applications/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId: appId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setApplications((prev) =>
+        prev.map((a) => a.id === appId ? { ...a, status: "withdrawn" as const } : a)
+      );
+    } catch (err) {
+      console.error("Failed to withdraw:", err);
+      alert("Something went wrong. Please try again.");
+    }
+    setWithdrawingAppId(null);
   };
 
   if (pageLoading) {
@@ -879,8 +900,12 @@ export default function ApplicationsPage() {
                       </button>
                     )}
                     {app.status !== "rejected" && app.status !== "accepted" && app.status !== "withdrawn" && (
-                      <button className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50">
-                        Withdraw Application
+                      <button
+                        onClick={() => handleWithdrawSingle(app.id)}
+                        disabled={withdrawingAppId === app.id}
+                        className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {withdrawingAppId === app.id ? "Withdrawing..." : "Withdraw Application"}
                       </button>
                     )}
                   </div>
