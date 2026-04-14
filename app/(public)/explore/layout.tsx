@@ -13,6 +13,12 @@ export const metadata: Metadata = {
     siteName: "Mountain Connects",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Explore Ski Resorts — Interactive Globe & Resort Finder | Mountain Connects",
+    description:
+      "Explore 69+ ski resorts across 12 countries on our interactive globe.",
+  },
 };
 
 export default function ExploreLayout({ children }: { children: React.ReactNode }) {
