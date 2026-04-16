@@ -615,7 +615,7 @@ export default function ApplicantCard({
                     {inviting ? "Inviting…" : "Invite to Interview"}
                   </button>
                 )}
-                {canInvite && onInstantInterview && (
+                {onInstantInterview && applicant.status !== "rejected" && applicant.status !== "accepted" && applicant.status !== "withdrawn" && (
                   <button
                     onClick={() => onInstantInterview(applicant.application_id)}
                     disabled={instantInterviewLoading}
