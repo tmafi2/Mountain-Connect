@@ -21,12 +21,21 @@ export const metadata: Metadata = {
     siteName: "Mountain Connects",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: "/images/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
     description:
       "Connect with ski resort businesses and find seasonal work at resorts worldwide.",
+    images: ["/images/og-image.jpg"],
   },
   robots: {
     index: true,
