@@ -233,6 +233,28 @@ export default function BusinessInterviewDetailPage() {
     }
   };
 
+  const handleCancelInstant = async () => {
+    if (!interview) return;
+    setActionLoading("cancel");
+    try {
+      const res = await fetch("/api/interviews/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interview_id: interview.id }),
+      });
+      if (res.ok) {
+        setInterview({ ...interview, status: "cancelled", cancelled_at: new Date().toISOString() });
+      } else {
+        const err = await res.json().catch(() => ({ error: "Failed to cancel" }));
+        alert(err.error || "Failed to cancel request");
+      }
+    } catch {
+      alert("Failed to cancel request. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + "T00:00:00");
     return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -410,6 +432,28 @@ export default function BusinessInterviewDetailPage() {
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           )}
+          {/* Cancel request button */}
+          <div className="mt-6">
+            <button
+              onClick={() => handleCancelInstant()}
+              disabled={actionLoading === "cancel"}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50 hover:border-red-300 disabled:opacity-50"
+            >
+              {actionLoading === "cancel" ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel Request
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 

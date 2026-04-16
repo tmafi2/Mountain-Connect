@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   // Revert application status
   await admin
     .from("applications")
-    .update({ status: "reviewed" })
+    .update({ status: "viewed" })
     .eq("id", interview.application_id);
 
   // Get worker and job info
