@@ -22,6 +22,7 @@ interface Application {
   interview_status: "invited" | "scheduled" | "completed" | null;
   interview_date: string | null;
   interview_time: string | null;
+  interview_invite_token: string | null;
   last_updated: string;
 }
 
@@ -44,6 +45,7 @@ const demoApplications: Application[] = [
     interview_status: "scheduled",
     interview_date: "2026-03-28",
     interview_time: "10:00",
+    interview_invite_token: null,
     last_updated: "2026-03-20T09:00:00Z",
   },
   {
@@ -64,6 +66,7 @@ const demoApplications: Application[] = [
     interview_status: "invited",
     interview_date: null,
     interview_time: null,
+    interview_invite_token: null,
     last_updated: "2026-03-18T14:30:00Z",
   },
   {
@@ -84,6 +87,7 @@ const demoApplications: Application[] = [
     interview_status: null,
     interview_date: null,
     interview_time: null,
+    interview_invite_token: null,
     last_updated: "2026-03-12T18:45:00Z",
   },
   {
@@ -104,6 +108,7 @@ const demoApplications: Application[] = [
     interview_status: null,
     interview_date: null,
     interview_time: null,
+    interview_invite_token: null,
     last_updated: "2026-03-16T11:00:00Z",
   },
   {
@@ -124,6 +129,7 @@ const demoApplications: Application[] = [
     interview_status: "completed",
     interview_date: "2026-03-10",
     interview_time: "14:00",
+    interview_invite_token: null,
     last_updated: "2026-03-15T16:00:00Z",
   },
   {
@@ -144,6 +150,7 @@ const demoApplications: Application[] = [
     interview_status: "completed",
     interview_date: "2026-03-08",
     interview_time: "11:00",
+    interview_invite_token: null,
     last_updated: "2026-03-20T10:00:00Z",
   },
   {
@@ -164,6 +171,7 @@ const demoApplications: Application[] = [
     interview_status: null,
     interview_date: null,
     interview_time: null,
+    interview_invite_token: null,
     last_updated: "2026-03-10T09:00:00Z",
   },
   {
@@ -184,6 +192,7 @@ const demoApplications: Application[] = [
     interview_status: null,
     interview_date: null,
     interview_time: null,
+    interview_invite_token: null,
     last_updated: "2026-03-18T07:30:00Z",
   },
 ];
@@ -263,7 +272,7 @@ export default function ApplicationsPage() {
 
         const { data } = await supabase
           .from("applications")
-          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location, user_id), resorts(name)), interviews(status, scheduled_date, scheduled_start_time)")
+          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location, user_id), resorts(name)), interviews(status, scheduled_date, scheduled_start_time, invite_token)")
           .eq("worker_id", wp.id)
           .order("applied_at", { ascending: false });
 
@@ -283,7 +292,7 @@ export default function ApplicationsPage() {
             const jp = a.job_posts as Record<string, unknown> | null;
             const bp = jp?.business_profiles as { business_name: string; location: string | null; user_id: string | null } | null;
             const resort = jp?.resorts as { name: string } | null;
-            const interviews = a.interviews as { status: string; scheduled_date: string | null; scheduled_start_time: string | null }[] | null;
+            const interviews = a.interviews as { status: string; scheduled_date: string | null; scheduled_start_time: string | null; invite_token: string | null }[] | null;
             const latestInterview = interviews?.[0] || null;
             const posType = (jp?.position_type as string) || "full_time";
 
@@ -304,6 +313,7 @@ export default function ApplicationsPage() {
               interview_status: latestInterview ? (latestInterview.status as "invited" | "scheduled" | "completed") : null,
               interview_date: latestInterview?.scheduled_date || null,
               interview_time: latestInterview?.scheduled_start_time || null,
+              interview_invite_token: latestInterview?.invite_token || null,
               last_updated: (a.updated_at as string) || (a.applied_at as string),
             };
           });
@@ -833,7 +843,7 @@ export default function ApplicationsPage() {
                     </div>
                   )}
 
-                  {app.interview_status === "invited" && (
+                  {app.interview_status === "invited" && app.interview_invite_token && (
                     <div className="mb-5 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-purple-600">
                         Interview Invitation
@@ -842,7 +852,7 @@ export default function ApplicationsPage() {
                         You have been invited to book an interview for this position.
                       </p>
                       <Link
-                        href="/interviews/book?token=demo"
+                        href={`/interviews/book?token=${app.interview_invite_token}`}
                         className="inline-flex rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-purple-700"
                       >
                         Book Interview

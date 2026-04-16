@@ -125,8 +125,9 @@ export default function BookingContent() {
       const todayStr = new Date().toISOString().split("T")[0];
       const { data: windows } = await supabase
         .from("interview_availability")
-        .select("date, start_time, end_time, timezone, slot_duration_minutes")
+        .select("date, start_time, end_time, timezone, slot_duration_minutes, buffer_minutes")
         .eq("business_id", iv.business_id)
+        .eq("is_active", true)
         .gte("date", todayStr)
         .order("date", { ascending: true })
         .limit(30);
@@ -148,13 +149,14 @@ export default function BookingContent() {
       const availableSlots: TimeSlot[] = [];
       for (const w of windows || []) {
         const slotMins = w.slot_duration_minutes || 30;
+        const bufferMins = w.buffer_minutes || 0;
         const tz = w.timezone || "America/Denver";
         const [sh, sm] = (w.start_time as string).split(":").map(Number);
         const [eh, em] = (w.end_time as string).split(":").map(Number);
         const startMin = sh * 60 + sm;
         const endMin = eh * 60 + em;
 
-        for (let m = startMin; m + slotMins <= endMin; m += slotMins) {
+        for (let m = startMin; m + slotMins <= endMin; m += slotMins + bufferMins) {
           const sH = Math.floor(m / 60).toString().padStart(2, "0");
           const sM = (m % 60).toString().padStart(2, "0");
           const eMin = m + slotMins;
@@ -321,39 +323,75 @@ export default function BookingContent() {
         </div>
       )}
 
-      {/* Timezone picker */}
-      <div className="mt-6">
-        <TimezonePicker value={timezone} onChange={setTimezone} />
-      </div>
+      {slots.length > 0 ? (
+        <>
+          {/* Timezone picker */}
+          <div className="mt-6">
+            <TimezonePicker value={timezone} onChange={setTimezone} />
+          </div>
 
-      {/* Slot grid */}
-      <div className="mt-6">
-        <h2 className="mb-4 text-lg font-semibold text-primary">Available Times</h2>
-        <SlotGrid
-          slots={slots}
-          selectedSlot={selectedSlot}
-          onSelect={setSelectedSlot}
-          workerTimezone={timezone}
-        />
-      </div>
+          {/* Slot grid */}
+          <div className="mt-6">
+            <h2 className="mb-1 text-lg font-semibold text-primary">Available Times</h2>
+            <p className="mb-4 text-sm text-foreground/50">
+              Times shown in your timezone ({timezone.replace(/_/g, " ")})
+            </p>
+            <SlotGrid
+              slots={slots}
+              selectedSlot={selectedSlot}
+              onSelect={setSelectedSlot}
+              workerTimezone={timezone}
+            />
+          </div>
 
-      {/* Confirm booking */}
-      {selectedSlot && (
-        <div className="mt-8 rounded-xl border border-secondary bg-secondary/5 p-5">
-          <h3 className="font-semibold text-primary">Confirm Your Selection</h3>
+          {/* Confirm booking */}
+          {selectedSlot && (
+            <div className="mt-8 rounded-xl border border-secondary bg-secondary/5 p-5">
+              <h3 className="font-semibold text-primary">Confirm Your Selection</h3>
+              <p className="mt-2 text-sm text-foreground/60">
+                <strong>{formatDate(selectedSlot.date)}</strong> at{" "}
+                <strong>{formatTime12(selectedSlot.start_time)} – {formatTime12(selectedSlot.end_time)}</strong>
+              </p>
+              <button
+                onClick={handleBook}
+                disabled={booking}
+                className="mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50 sm:w-auto sm:px-8"
+              >
+                {booking ? "Booking…" : "Confirm Interview"}
+              </button>
+            </div>
+          )}
+
+          {/* Can't make these times? */}
+          {!isDemoMode && interview && (
+            <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+              <div className="flex items-start gap-3">
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">None of these times work for you?</p>
+                  <p className="mt-1 text-sm text-amber-700">
+                    Contact <span className="font-medium">{interview.business_name}</span> directly to arrange an alternative time that suits you both.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : !error ? (
+        <div className="mt-8 rounded-xl border border-accent bg-white p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+            <svg className="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-primary">No Available Times Yet</h2>
           <p className="mt-2 text-sm text-foreground/60">
-            <strong>{formatDate(selectedSlot.date)}</strong> at{" "}
-            <strong>{formatTime12(selectedSlot.start_time)} – {formatTime12(selectedSlot.end_time)}</strong>
+            {interview?.business_name || "The employer"} hasn&apos;t set their availability yet. Check back soon or contact them directly to arrange an interview time.
           </p>
-          <button
-            onClick={handleBook}
-            disabled={booking}
-            className="mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50 sm:w-auto sm:px-8"
-          >
-            {booking ? "Booking…" : "Confirm Interview"}
-          </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
