@@ -1,880 +1,160 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import EmployersClient from "./EmployersClient";
+import type { Business } from "./EmployersClient";
 
-import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { regionHierarchy } from "@/lib/data/region-hierarchy";
-import { getTierOrder } from "@/lib/tier";
+export const dynamic = "force-dynamic";
 
-/* ─── Types ────────────────────────────────────────────── */
-interface Business {
-  id: string;
-  business_name: string;
-  logo_url: string | null;
-  description: string | null;
-  location: string | null;
-  country: string | null;
-  industries: string[] | null;
-  verification_status: string | null;
-  resort_names: string[];
-  resort_ids: string[];
-  active_listings: number;
-  operates_in_town: boolean;
-  nearby_town_id: string | null;
-  tier: "free" | "standard" | "premium" | "enterprise";
-  avg_rating: number;
-  review_count: number;
-}
-
-const INDUSTRY_LABELS: Record<string, string> = {
-  ski_school: "Ski / Snowboard School",
-  hospitality: "Hospitality",
-  food_beverage: "Food & Beverage",
-  retail: "Retail",
-  resort_operations: "Resort Operations",
-  accommodation: "Accommodation",
-  rental_shop: "Rental Shop",
-  transport: "Transport",
-  entertainment: "Entertainment",
-  cleaning_housekeeping: "Cleaning / Housekeeping",
-  construction_maintenance: "Construction / Maintenance",
-  childcare: "Childcare",
-  health_fitness: "Health & Fitness",
-  tourism: "Tourism / Adventure",
-  other: "Other",
+export const metadata = {
+  title: "Employers | Mountain Connects",
+  description:
+    "Discover ski resort businesses hiring seasonal workers worldwide. Browse by resort, country, or industry.",
 };
 
-const INDUSTRY_EMOJIS: Record<string, string> = {
-  ski_school: "🎿",
-  hospitality: "🏨",
-  food_beverage: "🍽️",
-  retail: "🛍️",
-  resort_operations: "⛷️",
-  accommodation: "🏠",
-  rental_shop: "🎿",
-  transport: "🚐",
-  entertainment: "🎭",
-  cleaning_housekeeping: "🧹",
-  construction_maintenance: "🔧",
-  childcare: "👶",
-  health_fitness: "💪",
-  tourism: "🏔️",
-  other: "📋",
-};
+export default async function EmployersPage() {
+  let businesses: Business[] = [];
+  let allResorts: { id: string; name: string }[] = [];
+  let legacyResortMap: Record<string, string> = {};
 
-const COUNTRIES = [
-  "Australia", "Austria", "Canada", "Chile", "Finland", "France", "Germany",
-  "Italy", "Japan", "New Zealand", "Norway", "South Korea", "Spain",
-  "Sweden", "Switzerland", "United Kingdom", "United States",
-];
+  try {
+    const supabase = await createClient();
 
-const INDUSTRY_OPTIONS = Object.entries(INDUSTRY_LABELS).map(([value, label]) => ({ value, label }));
+    // Run all independent queries in parallel
+    const [bpsResult, allResortsResult] = await Promise.all([
+      supabase
+        .from("business_profiles")
+        .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id, operates_in_town, nearby_town_id, tier")
+        .order("verification_status", { ascending: true })
+        .order("business_name", { ascending: true }),
+      supabase
+        .from("resorts")
+        .select("id, name, legacy_id")
+        .order("name", { ascending: true }),
+    ]);
 
-/* ─── Build resort → country map from region hierarchy ── */
-const RESORT_COUNTRY_MAP: Record<string, string> = {};
-const COUNTRY_RESORTS_MAP: Record<string, { id: string; name: string }[]> = {};
-for (const continent of regionHierarchy) {
-  for (const countryEntry of continent.countries) {
-    if (!COUNTRY_RESORTS_MAP[countryEntry.name]) COUNTRY_RESORTS_MAP[countryEntry.name] = [];
-    for (const resort of countryEntry.resorts) {
-      RESORT_COUNTRY_MAP[resort.id] = countryEntry.name;
-      COUNTRY_RESORTS_MAP[countryEntry.name].push({ id: resort.id, name: resort.name });
+    const bps = bpsResult.data;
+    const allResortsData = allResortsResult.data;
+
+    // Build resort lookup from single query (replaces 4 separate resort queries)
+    const resortNameMap: Record<string, string> = {};
+    if (allResortsData) {
+      allResorts = allResortsData.map((r) => ({ id: r.id, name: r.name }));
+      for (const r of allResortsData) {
+        resortNameMap[r.id] = r.name;
+        if (r.legacy_id) legacyResortMap[r.legacy_id] = r.id;
+      }
     }
-  }
-}
 
-/* ─── Helpers ──────────────────────────────────────────── */
-function getInitials(name: string) {
-  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-}
+    if (bps && bps.length > 0) {
+      const bizIds = bps.map((b) => b.id);
 
-/** Map country names from region-hierarchy to the COUNTRIES list used in business profiles */
-const COUNTRY_NAME_ALIASES: Record<string, string> = {
-  "USA": "United States",
-  "United States": "USA",
-};
-
-/* ═══════════════════════════════════════════════════════════ */
-/*  PAGE                                                       */
-/* ═══════════════════════════════════════════════════════════ */
-export default function EmployersPage() {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [allResorts, setAllResorts] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  // Filters
-  const [search, setSearch] = useState("");
-  const [country, setCountry] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [resort, setResort] = useState("");
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [legacyResortMap, setLegacyResortMap] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const supabase = createClient();
-
-        // Fetch all business profiles
-        const { data: bps } = await supabase
-          .from("business_profiles")
-          .select("id, business_name, logo_url, description, location, country, industries, verification_status, resort_id, operates_in_town, nearby_town_id, tier")
-          .order("verification_status", { ascending: true })
-          .order("business_name", { ascending: true });
-
-        if (!bps || bps.length === 0) { setLoading(false); return; }
-
-        // Get active listing counts per business (also grab resort_id for resort linking)
-        const bizIds = bps.map((b) => b.id);
-        const { data: jobs } = await supabase
+      // Run dependent queries in parallel
+      const [jobsResult, bizResortsResult, reviewsResult] = await Promise.all([
+        supabase
           .from("job_posts")
           .select("business_id, resort_id")
           .in("business_id", bizIds)
-          .eq("status", "active");
-
-        const jobCounts: Record<string, number> = {};
-        const jobResortLinks: { business_id: string; resort_id: string }[] = [];
-        if (jobs) {
-          for (const j of jobs) {
-            jobCounts[j.business_id] = (jobCounts[j.business_id] || 0) + 1;
-            if (j.resort_id) {
-              jobResortLinks.push({ business_id: j.business_id, resort_id: j.resort_id });
-            }
-          }
-        }
-
-        // Get resort names linked to each business
-        const { data: bizResorts } = await supabase
+          .eq("status", "active"),
+        supabase
           .from("business_resorts")
           .select("business_id, resort_id")
-          .in("business_id", bizIds);
-
-        const resortMap: Record<string, string[]> = {};
-        const resortIdMap: Record<string, string[]> = {};
-        const allResortIds = new Set<string>();
-
-        if (bizResorts && bizResorts.length > 0) {
-          const resortIds = [...new Set(bizResorts.map((br) => br.resort_id))];
-          const { data: resorts } = await supabase
-            .from("resorts")
-            .select("id, name")
-            .in("id", resortIds);
-
-          const resortNameMap: Record<string, string> = {};
-          if (resorts) {
-            for (const r of resorts) resortNameMap[r.id] = r.name;
-          }
-
-          for (const br of bizResorts) {
-            if (!resortMap[br.business_id]) resortMap[br.business_id] = [];
-            if (!resortIdMap[br.business_id]) resortIdMap[br.business_id] = [];
-            const name = resortNameMap[br.resort_id];
-            if (name && !resortMap[br.business_id].includes(name)) {
-              resortMap[br.business_id].push(name);
-              resortIdMap[br.business_id].push(br.resort_id);
-              allResortIds.add(br.resort_id);
-            }
-          }
-        }
-
-        // Also include resort_id directly from business_profiles (set in company profile)
-        const directResortIds = bps
-          .filter((b) => b.resort_id)
-          .map((b) => b.resort_id as string);
-
-        if (directResortIds.length > 0) {
-          const uniqueDirectIds = [...new Set(directResortIds)];
-          const { data: directResorts } = await supabase
-            .from("resorts")
-            .select("id, name")
-            .in("id", uniqueDirectIds);
-
-          const directNameMap: Record<string, string> = {};
-          if (directResorts) {
-            for (const r of directResorts) directNameMap[r.id] = r.name;
-          }
-
-          for (const b of bps) {
-            if (b.resort_id && directNameMap[b.resort_id]) {
-              if (!resortMap[b.id]) resortMap[b.id] = [];
-              if (!resortIdMap[b.id]) resortIdMap[b.id] = [];
-              if (!resortIdMap[b.id].includes(b.resort_id)) {
-                resortMap[b.id].push(directNameMap[b.resort_id]);
-                resortIdMap[b.id].push(b.resort_id);
-                allResortIds.add(b.resort_id);
-              }
-            }
-          }
-        }
-
-        // Also link businesses to resorts via their active job posts
-        if (jobResortLinks.length > 0) {
-          const jobResortIds = [...new Set(jobResortLinks.map((jrl) => jrl.resort_id))];
-          const { data: jobResorts } = await supabase
-            .from("resorts")
-            .select("id, name")
-            .in("id", jobResortIds);
-
-          const jobResortNameMap: Record<string, string> = {};
-          if (jobResorts) {
-            for (const r of jobResorts) jobResortNameMap[r.id] = r.name;
-          }
-
-          for (const jrl of jobResortLinks) {
-            if (jobResortNameMap[jrl.resort_id]) {
-              if (!resortMap[jrl.business_id]) resortMap[jrl.business_id] = [];
-              if (!resortIdMap[jrl.business_id]) resortIdMap[jrl.business_id] = [];
-              if (!resortIdMap[jrl.business_id].includes(jrl.resort_id)) {
-                resortMap[jrl.business_id].push(jobResortNameMap[jrl.resort_id]);
-                resortIdMap[jrl.business_id].push(jrl.resort_id);
-                allResortIds.add(jrl.resort_id);
-              }
-            }
-          }
-        }
-
-        // Get all resorts for the dropdown (include legacy_id for mapping)
-        const { data: allResortsData } = await supabase
-          .from("resorts")
-          .select("id, name, legacy_id")
-          .order("name", { ascending: true });
-
-        if (allResortsData) {
-          setAllResorts(allResortsData);
-          // Build legacy ID → UUID mapping for browse-by-resort cards
-          const legacyMap: Record<string, string> = {};
-          for (const r of allResortsData) {
-            if (r.legacy_id) legacyMap[r.legacy_id] = r.id;
-          }
-          setLegacyResortMap(legacyMap);
-        }
-
-        // Fetch review stats per business
-        const { data: reviewData } = await supabase
+          .in("business_id", bizIds),
+        supabase
           .from("business_reviews")
           .select("business_id, rating")
-          .in("business_id", bizIds);
+          .in("business_id", bizIds),
+      ]);
 
-        const reviewStats: Record<string, { total: number; sum: number }> = {};
-        if (reviewData) {
-          for (const r of reviewData) {
-            if (!reviewStats[r.business_id]) reviewStats[r.business_id] = { total: 0, sum: 0 };
-            reviewStats[r.business_id].total++;
-            reviewStats[r.business_id].sum += r.rating;
+      // Count active listings per business + collect job resort links
+      const jobCounts: Record<string, number> = {};
+      const jobResortLinks: { business_id: string; resort_id: string }[] = [];
+      if (jobsResult.data) {
+        for (const j of jobsResult.data) {
+          jobCounts[j.business_id] = (jobCounts[j.business_id] || 0) + 1;
+          if (j.resort_id) {
+            jobResortLinks.push({ business_id: j.business_id, resort_id: j.resort_id });
           }
         }
-
-        const mapped: Business[] = bps.map((b) => ({
-          id: b.id,
-          business_name: b.business_name,
-          logo_url: b.logo_url,
-          description: b.description,
-          location: b.location,
-          country: b.country,
-          industries: b.industries,
-          verification_status: b.verification_status,
-          resort_names: resortMap[b.id] || [],
-          resort_ids: resortIdMap[b.id] || [],
-          active_listings: jobCounts[b.id] || 0,
-          operates_in_town: b.operates_in_town ?? false,
-          nearby_town_id: b.nearby_town_id ?? null,
-          tier: ((b as Record<string, unknown>).tier as Business["tier"]) || "free",
-          avg_rating: reviewStats[b.id] ? reviewStats[b.id].sum / reviewStats[b.id].total : 0,
-          review_count: reviewStats[b.id]?.total || 0,
-        }));
-
-        setBusinesses(mapped);
-      } catch (err) {
-        console.error("Failed to load employers:", err);
-        setLoadError(true);
       }
-      setLoading(false);
-    })();
-  }, []);
 
-  // Determine if any filter is active
-  const hasActiveFilter = !!(search.trim() || country || industry || resort || verifiedOnly);
+      // Build resort mappings per business from business_resorts
+      const resortMap: Record<string, string[]> = {};
+      const resortIdMap: Record<string, string[]> = {};
 
-  // Filtered + sorted results
-  const filtered = useMemo(() => {
-    if (!hasActiveFilter) return [];
-
-    let results = businesses;
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      results = results.filter(
-        (b) =>
-          b.business_name.toLowerCase().includes(q) ||
-          b.location?.toLowerCase().includes(q) ||
-          b.resort_names.some((r) => r.toLowerCase().includes(q)) ||
-          b.industries?.some((i) => (INDUSTRY_LABELS[i] || i).toLowerCase().includes(q))
-      );
-    }
-
-    if (country) {
-      results = results.filter((b) => b.country === country);
-    }
-
-    if (industry) {
-      results = results.filter((b) => b.industries?.includes(industry));
-    }
-
-    if (resort) {
-      results = results.filter((b) => b.resort_ids.includes(resort));
-    }
-
-    if (verifiedOnly) {
-      results = results.filter((b) => b.verification_status === "verified");
-    }
-
-    return results.sort((a, b) => {
-      // Higher tiers first (enterprise > premium > standard > free)
-      const tierDiff = getTierOrder(a.tier) - getTierOrder(b.tier);
-      if (tierDiff !== 0) return tierDiff;
-      // Then verified
-      const aV = a.verification_status === "verified" ? 0 : 1;
-      const bV = b.verification_status === "verified" ? 0 : 1;
-      if (aV !== bV) return aV - bV;
-      return a.business_name.localeCompare(b.business_name);
-    });
-  }, [businesses, search, country, industry, resort, verifiedOnly, hasActiveFilter]);
-
-  const verifiedCount = businesses.filter((b) => b.verification_status === "verified").length;
-  const featuredEmployers = useMemo(
-    () => businesses
-      .filter((b) => b.verification_status === "verified")
-      .sort((a, b) => getTierOrder(a.tier) - getTierOrder(b.tier))
-      .slice(0, 4),
-    [businesses]
-  );
-
-  // Count businesses per industry for the category cards
-  const industryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const b of businesses) {
-      if (b.industries) {
-        for (const ind of b.industries) {
-          counts[ind] = (counts[ind] || 0) + 1;
+      if (bizResortsResult.data) {
+        for (const br of bizResortsResult.data) {
+          if (!resortMap[br.business_id]) resortMap[br.business_id] = [];
+          if (!resortIdMap[br.business_id]) resortIdMap[br.business_id] = [];
+          const name = resortNameMap[br.resort_id];
+          if (name && !resortMap[br.business_id].includes(name)) {
+            resortMap[br.business_id].push(name);
+            resortIdMap[br.business_id].push(br.resort_id);
+          }
         }
       }
+
+      // Add direct resort_id from business_profiles
+      for (const b of bps) {
+        if (b.resort_id && resortNameMap[b.resort_id]) {
+          if (!resortMap[b.id]) resortMap[b.id] = [];
+          if (!resortIdMap[b.id]) resortIdMap[b.id] = [];
+          if (!resortIdMap[b.id].includes(b.resort_id)) {
+            resortMap[b.id].push(resortNameMap[b.resort_id]);
+            resortIdMap[b.id].push(b.resort_id);
+          }
+        }
+      }
+
+      // Add resort links from active job posts
+      for (const jrl of jobResortLinks) {
+        if (resortNameMap[jrl.resort_id]) {
+          if (!resortMap[jrl.business_id]) resortMap[jrl.business_id] = [];
+          if (!resortIdMap[jrl.business_id]) resortIdMap[jrl.business_id] = [];
+          if (!resortIdMap[jrl.business_id].includes(jrl.resort_id)) {
+            resortMap[jrl.business_id].push(resortNameMap[jrl.resort_id]);
+            resortIdMap[jrl.business_id].push(jrl.resort_id);
+          }
+        }
+      }
+
+      // Build review stats
+      const reviewStats: Record<string, { total: number; sum: number }> = {};
+      if (reviewsResult.data) {
+        for (const r of reviewsResult.data) {
+          if (!reviewStats[r.business_id]) reviewStats[r.business_id] = { total: 0, sum: 0 };
+          reviewStats[r.business_id].total++;
+          reviewStats[r.business_id].sum += r.rating;
+        }
+      }
+
+      // Map to Business type
+      businesses = bps.map((b) => ({
+        id: b.id,
+        business_name: b.business_name,
+        logo_url: b.logo_url,
+        description: b.description,
+        location: b.location,
+        country: b.country,
+        industries: b.industries,
+        verification_status: b.verification_status,
+        resort_names: resortMap[b.id] || [],
+        resort_ids: resortIdMap[b.id] || [],
+        active_listings: jobCounts[b.id] || 0,
+        operates_in_town: b.operates_in_town ?? false,
+        nearby_town_id: b.nearby_town_id ?? null,
+        tier: ((b as Record<string, unknown>).tier as Business["tier"]) || "free",
+        avg_rating: reviewStats[b.id] ? reviewStats[b.id].sum / reviewStats[b.id].total : 0,
+        review_count: reviewStats[b.id]?.total || 0,
+      }));
     }
-    return counts;
-  }, [businesses]);
-
-  // Only show categories that have at least 1 business
-  const activeCategories = INDUSTRY_OPTIONS.filter((opt) => (industryCounts[opt.value] || 0) > 0);
-
-  // Filter resort dropdown options by selected country
-  const filteredResortOptions = useMemo(() => {
-    if (!country) return allResorts;
-    // Try to match the country filter value to region-hierarchy country names
-    const matchingResorts = COUNTRY_RESORTS_MAP[country] || COUNTRY_RESORTS_MAP[COUNTRY_NAME_ALIASES[country] || ""];
-    if (matchingResorts && matchingResorts.length > 0) {
-      const ids = new Set(matchingResorts.map((r) => r.id));
-      return allResorts.filter((r) => ids.has(r.id));
-    }
-    // Fallback: filter allResorts by matching country name in resort data
-    return allResorts;
-  }, [country, allResorts]);
-
-  const clearFilters = () => {
-    setSearch("");
-    setCountry("");
-    setIndustry("");
-    setResort("");
-    setVerifiedOnly(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-secondary" />
-      </div>
-    );
+  } catch (err) {
+    console.error("Failed to fetch employers:", err);
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      {/* Hero */}
-      <div className="relative mb-8 overflow-hidden rounded-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#132d4a]" />
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-3xl bg-secondary/8 blur-2xl rotate-12" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-32 w-64 rounded-full bg-secondary/6 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
-
-        <div className="relative px-8 py-10 sm:px-10 sm:py-12">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="h-5 w-5 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-            </svg>
-            <span className="text-xs font-medium uppercase tracking-widest text-secondary/70">Employer Directory</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">Employers</h1>
-          <p className="mt-2 max-w-xl text-sm text-white/50">
-            Discover ski resort businesses hiring seasonal workers worldwide. Browse by resort, search by name, or filter by country and industry.
-          </p>
-          <div className="mt-4 flex items-center gap-4 text-sm text-white/40">
-            <span>{businesses.length} employers</span>
-            <span className="h-3 w-px bg-white/20" />
-            <span className="flex items-center gap-1">
-              <svg className="h-3.5 w-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {verifiedCount} verified
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Search bar */}
-      <div className="relative">
-        <svg className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search employers by name, location, or resort..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-2xl border border-accent/40 bg-white py-3.5 pl-12 pr-4 text-sm text-primary placeholder-foreground/40 shadow-sm focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
-        />
-      </div>
-
-      {/* Filter row — always visible */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <select
-          value={country}
-          onChange={(e) => {
-            const newCountry = e.target.value;
-            setCountry(newCountry);
-            // Reset resort if it doesn't belong to the new country
-            if (newCountry && resort) {
-              const resortCountry = RESORT_COUNTRY_MAP[resort];
-              if (resortCountry !== newCountry && COUNTRY_NAME_ALIASES[resortCountry] !== newCountry) {
-                setResort("");
-              }
-            }
-          }}
-          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-        >
-          <option value="">All Countries</option>
-          {COUNTRIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-
-        <select
-          value={resort}
-          onChange={(e) => setResort(e.target.value)}
-          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-        >
-          <option value="">All Resorts</option>
-          {filteredResortOptions.map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
-
-        <select
-          value={industry}
-          onChange={(e) => setIndustry(e.target.value)}
-          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-        >
-          <option value="">All Industries</option>
-          {INDUSTRY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-foreground/70 shadow-sm hover:border-secondary/50 transition-colors">
-          <input
-            type="checkbox"
-            checked={verifiedOnly}
-            onChange={(e) => setVerifiedOnly(e.target.checked)}
-            className="h-4 w-4 rounded border-accent text-secondary focus:ring-secondary"
-          />
-          Verified only
-        </label>
-
-        {hasActiveFilter && (
-          <button
-            onClick={clearFilters}
-            className="rounded-xl px-4 py-2.5 text-sm font-medium text-secondary hover:bg-secondary/10 transition-colors"
-          >
-            Clear all
-          </button>
-        )}
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/*  LANDING VIEW — shown when no filters are active       */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      {!hasActiveFilter && (
-        <div className="mt-8 space-y-10">
-
-          {/* Featured / Verified Employers */}
-          {featuredEmployers.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-primary flex items-center gap-2">
-                  <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Verified Employers
-                </h2>
-                {verifiedCount > 4 && (
-                  <button
-                    onClick={() => setVerifiedOnly(true)}
-                    className="text-sm font-medium text-secondary hover:text-secondary/80 transition-colors"
-                  >
-                    View all {verifiedCount} →
-                  </button>
-                )}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {featuredEmployers.map((biz) => (
-                  <Link
-                    key={biz.id}
-                    href={`/business/${biz.id}`}
-                    className="group rounded-2xl border border-accent/50 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-lg hover:shadow-secondary/10"
-                  >
-                    <div className="flex items-center gap-3">
-                      {biz.logo_url ? (
-                        <img
-                          src={biz.logo_url}
-                          alt={biz.business_name}
-                          className="h-11 w-11 rounded-xl object-cover border border-accent/30 shadow-sm"
-                        />
-                      ) : (
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-sm font-bold text-secondary shadow-sm">
-                          {getInitials(biz.business_name)}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold text-primary truncate group-hover:text-secondary transition-colors">
-                          {biz.business_name}
-                        </h3>
-                        {biz.location && (
-                          <p className="text-xs text-foreground/40 truncate">{biz.location}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      {biz.tier === "enterprise" ? (
-                        <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
-                          ⭐ Enterprise
-                        </span>
-                      ) : biz.tier === "premium" ? (
-                        <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                          👑 Premium
-                        </span>
-                      ) : biz.tier === "standard" ? (
-                        <span className="flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                          ✓ Verified Employer
-                        </span>
-                      ) : (
-                      <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Verified
-                      </span>
-                      )}
-                      {biz.review_count > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600">
-                          <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                          {biz.avg_rating.toFixed(1)} ({biz.review_count})
-                        </span>
-                      )}
-                      {biz.active_listings > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-foreground/40">
-                          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                          {biz.active_listings} listing{biz.active_listings !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Browse by Ski Resort — grouped by country */}
-          <div>
-            <h2 className="text-lg font-bold text-primary mb-6">Browse by Ski Resort</h2>
-            <div className="space-y-8">
-              {regionHierarchy.map((continent) => (
-                <div key={continent.name}>
-                  {/* Continent header */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <h3 className="text-base font-bold text-primary">{continent.name}</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-accent to-transparent" />
-                    <span className="rounded-full bg-primary/5 px-2.5 py-0.5 text-[10px] font-semibold text-primary/60">
-                      {continent.countries.reduce((s, c) => s + c.resorts.length, 0)} resorts
-                    </span>
-                  </div>
-
-                  <div className="space-y-5">
-                    {continent.countries.map((countryEntry) => (
-                      <div key={countryEntry.name}>
-                        {/* Country label */}
-                        <div className="mb-2.5 flex items-center gap-2">
-                          <h4 className="text-xs font-bold uppercase tracking-widest text-secondary">
-                            {countryEntry.name}
-                          </h4>
-                          <span className="text-xs text-foreground/30">
-                            {countryEntry.resorts.length} {countryEntry.resorts.length === 1 ? "resort" : "resorts"}
-                          </span>
-                        </div>
-
-                        {/* Resort cards grid */}
-                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                          {countryEntry.resorts.map((resortEntry) => (
-                            <button
-                              key={resortEntry.id}
-                              onClick={() => {
-                                // Map legacy ID to Supabase UUID, fall back to resort name filter
-                                const uuid = legacyResortMap[resortEntry.id];
-                                if (uuid) {
-                                  setResort(uuid);
-                                } else {
-                                  // Fallback: try matching by name
-                                  const match = allResorts.find((r) => r.name === resortEntry.name);
-                                  setResort(match?.id || resortEntry.id);
-                                }
-                                // Scroll to results
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                              }}
-                              className="group flex items-center gap-2.5 rounded-xl border border-accent/40 bg-white px-3.5 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md hover:shadow-secondary/5"
-                            >
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-base group-hover:bg-secondary/20 transition-colors">
-                                <svg className="h-4.5 w-4.5 text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
-                                </svg>
-                              </span>
-                              <span className="text-sm font-medium text-primary group-hover:text-secondary transition-colors truncate">
-                                {resortEntry.name}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Prompt */}
-          <div className="rounded-2xl border border-dashed border-accent/50 bg-accent/5 p-8 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
-              <svg className="h-6 w-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-foreground/60">
-              Use the search bar or filters above to find specific employers
-            </p>
-            <p className="mt-1 text-xs text-foreground/40">
-              Or click a resort above to browse employers at that location
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/*  RESULTS VIEW — shown when filters are active          */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      {hasActiveFilter && (
-        <>
-          <p className="mt-5 text-xs text-foreground/40">
-            Showing {filtered.length} employer{filtered.length !== 1 ? "s" : ""}
-            {search && <> matching &ldquo;<span className="font-medium text-foreground/60">{search}</span>&rdquo;</>}
-            {industry && <> in <span className="font-medium text-foreground/60">{INDUSTRY_LABELS[industry]}</span></>}
-            {resort && <> at <span className="font-medium text-foreground/60">{allResorts.find((r) => r.id === resort)?.name}</span></>}
-            {country && <> in <span className="font-medium text-foreground/60">{country}</span></>}
-          </p>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {loadError ? (
-              <div className="col-span-full rounded-2xl border border-red-200 bg-red-50 p-12 text-center shadow-sm">
-                <p className="text-sm font-medium text-red-800">Failed to load employers</p>
-                <p className="mt-1 text-xs text-red-600/70">Please try refreshing the page.</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 transition-colors"
-                >
-                  Refresh
-                </button>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="col-span-full rounded-2xl border border-accent/40 bg-white p-12 text-center shadow-sm">
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent/20">
-                  <svg className="h-7 w-7 text-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-foreground/60">No employers match your filters.</p>
-                <p className="mt-1 text-xs text-foreground/40">Try adjusting your search or filter criteria.</p>
-                <button
-                  onClick={clearFilters}
-                  className="mt-3 rounded-lg bg-secondary/10 px-4 py-2 text-xs font-medium text-secondary hover:bg-secondary/20 transition-colors"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            ) : (
-              filtered.map((biz) => {
-                const isVerified = biz.verification_status === "verified";
-                return (
-                  <Link
-                    key={biz.id}
-                    href={`/business/${biz.id}`}
-                    className={`group rounded-2xl border bg-white transition-all hover:-translate-y-0.5 hover:shadow-lg ${
-                      isVerified
-                        ? "border-accent/50 hover:border-secondary/50 hover:shadow-secondary/10"
-                        : "border-accent/30 opacity-75 hover:opacity-100 hover:border-accent"
-                    }`}
-                  >
-                    <div className="p-5">
-                      {/* Logo + Name + Verified */}
-                      <div className="flex items-start gap-3.5">
-                        {biz.logo_url ? (
-                          <img
-                            src={biz.logo_url}
-                            alt={biz.business_name}
-                            className="h-12 w-12 rounded-xl object-cover border border-accent/30 shadow-sm"
-                          />
-                        ) : (
-                          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-sm ${
-                            isVerified
-                              ? "bg-secondary/15 text-secondary"
-                              : "bg-accent/30 text-foreground/40"
-                          }`}>
-                            {getInitials(biz.business_name)}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`font-semibold truncate group-hover:text-secondary transition-colors ${
-                              isVerified ? "text-primary" : "text-foreground/70"
-                            }`}>
-                              {biz.business_name}
-                            </h3>
-                            {biz.tier === "enterprise" && (
-                              <span className="shrink-0 rounded-full bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
-                                ⭐ Enterprise
-                              </span>
-                            )}
-                            {biz.tier === "premium" && (
-                              <span className="shrink-0 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                                👑 Premium
-                              </span>
-                            )}
-                            {biz.tier === "standard" && (
-                              <span className="shrink-0 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                                ✓ Verified Employer
-                              </span>
-                            )}
-                            {isVerified && biz.tier === "free" && (
-                              <span className="shrink-0 flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
-                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Verified
-                              </span>
-                            )}
-                          </div>
-                          {biz.location && (
-                            <p className="mt-0.5 text-xs text-foreground/50 truncate flex items-center gap-1">
-                              <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                              </svg>
-                              {biz.location}{biz.country ? `, ${biz.country}` : ""}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      {biz.description && (
-                        <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-foreground/50">
-                          {biz.description}
-                        </p>
-                      )}
-
-                      {/* Industries */}
-                      {biz.industries && biz.industries.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {biz.industries.slice(0, 3).map((ind) => (
-                            <span
-                              key={ind}
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
-                                isVerified
-                                  ? "bg-secondary/10 text-secondary/80"
-                                  : "bg-accent/30 text-foreground/50"
-                              }`}
-                            >
-                              {INDUSTRY_LABELS[ind] || ind}
-                            </span>
-                          ))}
-                          {biz.industries.length > 3 && (
-                            <span className="rounded-full bg-accent/20 px-2.5 py-0.5 text-[10px] font-medium text-foreground/40">
-                              +{biz.industries.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Resort names + rating + active listings */}
-                      <div className="mt-3 flex items-center justify-between border-t border-accent/30 pt-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex items-center gap-1 text-[11px] text-foreground/40 min-w-0">
-                            {biz.resort_names.length > 0 ? (
-                              <>
-                                <svg className="h-3 w-3 shrink-0 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
-                                </svg>
-                                <span className="truncate">{biz.resort_names.slice(0, 2).join(", ")}</span>
-                                {biz.resort_names.length > 2 && <span>+{biz.resort_names.length - 2}</span>}
-                              </>
-                            ) : (
-                              <span className="text-foreground/30">No resort linked</span>
-                            )}
-                          </div>
-                          {biz.review_count > 0 && (
-                            <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600">
-                              <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                              {biz.avg_rating.toFixed(1)} ({biz.review_count})
-                            </span>
-                          )}
-                        </div>
-                        {biz.active_listings > 0 && (
-                          <span className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                            isVerified
-                              ? "bg-green-50 text-green-700"
-                              : "bg-accent/30 text-foreground/50"
-                          }`}>
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                            {biz.active_listings} active listing{biz.active_listings !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    <EmployersClient
+      initialBusinesses={businesses}
+      initialResorts={allResorts}
+      initialLegacyResortMap={legacyResortMap}
+    />
   );
 }
