@@ -29,9 +29,10 @@ interface Interview {
   job_start_date: string | null;
   job_accommodation: boolean;
   job_ski_pass: boolean;
+  invite_token: string | null;
 }
 
-const DEMO_EXTRA = { job_id: null, business_id: null, job_description: null, job_pay: null, job_position_type: null, job_start_date: null, job_accommodation: false, job_ski_pass: false };
+const DEMO_EXTRA = { job_id: null, business_id: null, job_description: null, job_pay: null, job_position_type: null, job_start_date: null, job_accommodation: false, job_ski_pass: false, invite_token: null };
 
 const demoInterviews: Interview[] = [
   {
@@ -282,8 +283,12 @@ function InterviewCard({
           </div>
         </div>
         <div className="flex gap-2">
-          {interview.status === "invited" && (
-            <span className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap shadow-sm shadow-primary/20">
+          {interview.status === "invited" && interview.invite_token && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); window.location.href = `/interviews/book?token=${interview.invite_token}`; }}
+              className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap shadow-sm shadow-primary/20 cursor-pointer transition-colors hover:bg-primary/90"
+            >
               Book Time
             </span>
           )}
@@ -486,9 +491,19 @@ function InterviewDetailPanel({
                     {formatTime12(interview.scheduled_end_time!)}
                   </span>
                 </div>
+              ) : interview.invite_token ? (
+                <a
+                  href={`/interviews/book?token=${interview.invite_token}`}
+                  className="flex items-center gap-1.5 text-sm text-yellow-600 font-medium hover:text-yellow-700 transition-colors group"
+                >
+                  <span>No date scheduled yet — book a time now</span>
+                  <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
               ) : (
                 <p className="text-sm text-yellow-600 font-medium">
-                  No date scheduled yet — book a time below
+                  No date scheduled yet
                 </p>
               )}
             </div>
@@ -513,10 +528,13 @@ function InterviewDetailPanel({
                   Join Call
                 </button>
               )}
-              {interview.status === "invited" && (
-                <button className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20">
-                  Book Time
-                </button>
+              {interview.status === "invited" && interview.invite_token && (
+                <a
+                  href={`/interviews/book?token=${interview.invite_token}`}
+                  className="block w-full rounded-xl bg-primary py-2.5 text-center text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20"
+                >
+                  Book Interview Time
+                </a>
               )}
               {(interview.status === "scheduled" ||
                 interview.status === "invited") && (
@@ -764,7 +782,7 @@ export default function WorkerInterviewsPage() {
         const { data } = await supabase
           .from("interviews")
           .select(`
-            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes,
+            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes, invite_token,
             applications(job_posts(id, title, description, salary_range, pay_amount, pay_currency, position_type, start_date, accommodation_included, ski_pass_included, business_id, business_profiles(id, business_name, location)))
           `)
           .eq("worker_id", profile.id)
@@ -797,6 +815,7 @@ export default function WorkerInterviewsPage() {
               job_start_date: (jp?.start_date as string) || null,
               job_accommodation: (jp?.accommodation_included as boolean) || false,
               job_ski_pass: (jp?.ski_pass_included as boolean) || false,
+              invite_token: (iv.invite_token as string) || null,
             };
           });
           setInterviews(mapped);

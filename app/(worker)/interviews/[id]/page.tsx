@@ -22,6 +22,7 @@ interface Interview {
   cancelled_at: string | null;
   job_title: string;
   business_name: string;
+  invite_token: string | null;
 }
 
 export default function WorkerInterviewDetailPage() {
@@ -53,7 +54,7 @@ export default function WorkerInterviewDetailPage() {
           .from("interviews")
           .select(`
             id, status, scheduled_date, scheduled_start_time, scheduled_end_time,
-            timezone, video_room_url, business_notes,
+            timezone, video_room_url, business_notes, invite_token,
             invited_at, scheduled_at, completed_at, cancelled_at,
             applications(job_posts(title, business_profiles(business_name)))
           `)
@@ -82,6 +83,7 @@ export default function WorkerInterviewDetailPage() {
           cancelled_at: iv.cancelled_at,
           job_title: (jp?.title as string) || "Unknown Position",
           business_name: bp?.business_name || "Unknown Business",
+          invite_token: iv.invite_token || null,
         });
       } catch {
         setError("Failed to load interview details.");
@@ -167,6 +169,7 @@ export default function WorkerInterviewDetailPage() {
   }
 
   const isUpcoming = interview.status === "scheduled";
+  const isInvited = interview.status === "invited";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -190,6 +193,30 @@ export default function WorkerInterviewDetailPage() {
           <p className="mt-1 text-foreground/60">{interview.business_name}</p>
         </div>
       </div>
+
+      {/* Book Time CTA for invited interviews */}
+      {isInvited && interview.invite_token && (
+        <div className="mt-6 rounded-xl border-2 border-secondary bg-secondary/5 p-6 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-secondary/15">
+            <svg className="h-7 w-7 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-primary">You have been invited to interview!</h3>
+          <p className="mt-1 text-sm text-foreground/60">
+            Choose a time that works for you from {interview.business_name}&apos;s available slots.
+          </p>
+          <Link
+            href={`/interviews/book?token=${interview.invite_token}`}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Book Interview Time
+          </Link>
+        </div>
+      )}
 
       {/* Schedule details */}
       {interview.scheduled_date && (
