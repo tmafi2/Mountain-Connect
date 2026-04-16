@@ -120,6 +120,12 @@ export default function PostJobPage() {
   const [draftSaved, setDraftSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingDrafts, setExistingDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
+  const [templates, setTemplates] = useState<Array<Record<string, unknown> & { id: string; name: string; title: string }>>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateSaved, setTemplateSaved] = useState(false);
+  const [showTemplateNameModal, setShowTemplateNameModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [businessVerified, setBusinessVerified] = useState(false);
   const [inLaunchLoc, setInLaunchLoc] = useState(true);
@@ -241,6 +247,14 @@ export default function PostJobPage() {
           .eq("status", "draft")
           .order("created_at", { ascending: false });
         if (drafts) setExistingDrafts(drafts);
+
+        // Load saved templates
+        const { data: tpls } = await supabase
+          .from("job_templates")
+          .select("*")
+          .eq("business_id", bp.id)
+          .order("updated_at", { ascending: false });
+        if (tpls) setTemplates(tpls);
       }
       setLoading(false);
     })();
@@ -381,6 +395,115 @@ export default function PostJobPage() {
     setTimeout(() => setDraftSaved(false), 4000);
   };
 
+  /* ─── Templates ────────────────────────────────────────── */
+  const applyTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl) return;
+
+    const posType = (tpl.position_type as string) || "";
+    const empType = posType === "full_time" ? "Full-time" : posType === "part_time" ? "Part-time" : posType === "casual" ? "Casual" : "";
+
+    setForm((prev) => ({
+      ...prev,
+      title: (tpl.title as string) || "",
+      category: (tpl.category as string) || "",
+      employmentType: empType,
+      payCurrency: (tpl.pay_currency as string) || prev.payCurrency,
+      payAmount: (tpl.pay_amount as string) || "",
+      description: (tpl.description as string) || "",
+      requirements: (tpl.requirements as string) || "",
+      languageRequirements: (tpl.language_required as string) || "",
+      housingIncluded: Boolean(tpl.accommodation_included),
+      skiPassIncluded: Boolean(tpl.ski_pass_included),
+      mealsIncluded: Boolean(tpl.meal_perks),
+      visaSponsorshipAvailable: Boolean(tpl.visa_sponsorship),
+      housingDetails: (tpl.housing_details as string) || "",
+      accommodationType: (tpl.accommodation_type as string) || "",
+      accommodationCost: (tpl.accommodation_cost as string) || "",
+      urgentlyHiring: Boolean(tpl.urgently_hiring),
+      positions: (tpl.positions_available as number) || 1,
+      showPositions: tpl.show_positions === false ? false : true,
+      customPerks: Array.isArray(tpl.custom_perks) ? (tpl.custom_perks as string[]) : [],
+      how_to_apply: (tpl.how_to_apply as string) || "",
+      application_email: (tpl.application_email as string) || "",
+      application_url: (tpl.application_url as string) || "",
+    }));
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!form.title.trim()) { setError("Please enter a job title before saving as a template."); return; }
+    setTemplateName(form.title.trim());
+    setShowTemplateNameModal(true);
+  };
+
+  const confirmSaveTemplate = async () => {
+    if (!templateName.trim()) return;
+    setSavingTemplate(true);
+    setError(null);
+    setTemplateSaved(false);
+
+    const posType = form.employmentType === "Full-time" ? "full_time" : form.employmentType === "Part-time" ? "part_time" : "casual";
+    const salaryDisplay = form.payAmount.trim() ? `${form.payCurrency} ${form.payAmount.trim()}` : null;
+
+    const payload = {
+      name: templateName.trim(),
+      title: form.title.trim(),
+      category: form.category || null,
+      position_type: posType,
+      description: form.description.trim(),
+      requirements: form.requirements.trim() || null,
+      pay_amount: form.payAmount.trim() || null,
+      pay_currency: form.payCurrency || "AUD",
+      salary_range: salaryDisplay,
+      accommodation_included: form.housingIncluded,
+      accommodation_type: form.accommodationType || null,
+      accommodation_cost: form.accommodationCost.trim() || null,
+      housing_details: form.housingDetails.trim() || null,
+      ski_pass_included: form.skiPassIncluded,
+      meal_perks: form.mealsIncluded,
+      visa_sponsorship: form.visaSponsorshipAvailable,
+      language_required: form.languageRequirements.trim() || null,
+      urgently_hiring: form.urgentlyHiring,
+      positions_available: form.positions,
+      show_positions: form.showPositions,
+      custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
+      how_to_apply: form.how_to_apply.trim() || null,
+      application_email: form.application_email.trim() || null,
+      application_url: form.application_url.trim() || null,
+    };
+
+    const res = await fetch("/api/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || "Failed to save template.");
+      setSavingTemplate(false);
+      return;
+    }
+
+    const { template } = await res.json();
+    if (template) setTemplates((prev) => [template, ...prev]);
+    setTemplateSaved(true);
+    setSavingTemplate(false);
+    setShowTemplateNameModal(false);
+    setTimeout(() => setTemplateSaved(false), 4000);
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm("Delete this template? This cannot be undone.")) return;
+    const res = await fetch(`/api/templates/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      if (selectedTemplateId === id) setSelectedTemplateId("");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -441,6 +564,44 @@ export default function PostJobPage() {
           </p>
         </div>
       </div>
+
+      {/* Templates picker */}
+      {templates.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-purple-200/50 bg-purple-50/30 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            <h3 className="text-sm font-semibold text-purple-700">Start from a template</h3>
+            <span className="text-xs text-purple-500/70">({templates.length} saved)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => applyTemplate(e.target.value)}
+              className="flex-1 rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm text-primary focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            >
+              <option value="">Select a template to pre-fill the form...</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name} — {t.title}</option>
+              ))}
+            </select>
+            {selectedTemplateId && (
+              <button
+                type="button"
+                onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                title="Delete this template"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-purple-600/60">
+            Templates save everything except dates and resort. You can edit anything after applying.
+          </p>
+        </div>
+      )}
 
       {/* Existing drafts */}
       {existingDrafts.length > 0 && (
@@ -1041,15 +1202,33 @@ export default function PostJobPage() {
         </div>
       )}
 
+      {templateSaved && (
+        <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700 flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Template saved! You can use it next time you post a similar role.
+        </div>
+      )}
+
       {/* ── Actions ───────────────────────────────────────── */}
-      <div className="mt-6 flex items-center justify-between rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
-        <button
-          onClick={handleSaveDraft}
-          disabled={savingDraft || posting}
-          className="rounded-xl border border-accent/50 bg-white px-5 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
-        >
-          {savingDraft ? "Saving..." : "Save as Draft"}
-        </button>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/40 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleSaveDraft}
+            disabled={savingDraft || posting}
+            className="rounded-xl border border-accent/50 bg-white px-5 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/20 hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {savingDraft ? "Saving..." : "Save as Draft"}
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveAsTemplate}
+            disabled={savingTemplate || posting || !form.title.trim()}
+            className="rounded-xl border border-purple-200 bg-purple-50 px-5 py-2.5 text-sm font-semibold text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
+            title="Save this role as a template for next season"
+          >
+            {savingTemplate ? "Saving..." : "Save as Template"}
+          </button>
+        </div>
         {businessVerified ? (
           <button
             onClick={handlePost}
@@ -1075,6 +1254,48 @@ export default function PostJobPage() {
           </button>
         )}
       </div>
+
+      {/* Template naming modal */}
+      {showTemplateNameModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !savingTemplate && setShowTemplateNameModal(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-accent/30 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-primary">Save as Template</h3>
+            <p className="mt-1 text-sm text-foreground/60">
+              Give this template a name so you can find it again next season.
+            </p>
+            <input
+              type="text"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="e.g. Head Housekeeper"
+              className="mt-4 w-full rounded-lg border border-accent/50 bg-white px-4 py-2.5 text-sm text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              autoFocus
+            />
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowTemplateNameModal(false)}
+                disabled={savingTemplate}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/20 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmSaveTemplate}
+                disabled={!templateName.trim() || savingTemplate}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                {savingTemplate ? "Saving..." : "Save Template"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
