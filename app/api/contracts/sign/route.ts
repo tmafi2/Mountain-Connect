@@ -34,9 +34,10 @@ export async function POST(request: Request) {
     if (!workerProfile) return NextResponse.json({ error: "Worker profile not found" }, { status: 404 });
 
     // Get contract and verify ownership + status
+    // job title is fetched via applications → job_posts since contracts has no job_post_id column
     const { data: contract } = await admin
       .from("contracts")
-      .select("id, application_id, business_id, worker_id, original_pdf_path, status, job_post_id, job_posts(title)")
+      .select("id, application_id, business_id, worker_id, original_pdf_path, status, applications(job_posts(title))")
       .eq("id", contractId)
       .single();
 
@@ -139,8 +140,8 @@ export async function POST(request: Request) {
       .single();
 
     if (business) {
-      const jobPost = contract.job_posts as unknown as { title: string };
-      const jobTitle = jobPost?.title || "a position";
+      const app = contract.applications as unknown as { job_posts: { title: string } | null } | null;
+      const jobTitle = app?.job_posts?.title || "a position";
       const workerName = [workerProfile.first_name, workerProfile.last_name].filter(Boolean).join(" ") || "A worker";
 
       try {
@@ -167,14 +168,14 @@ export async function POST(request: Request) {
           .single();
 
         if (businessUser?.email) {
-          const jobPost = contract.job_posts as unknown as { title: string };
+          const app = contract.applications as unknown as { job_posts: { title: string } | null } | null;
           const workerName = [workerProfile.first_name, workerProfile.last_name].filter(Boolean).join(" ") || "A worker";
           const { sendContractSignedEmail } = await import("@/lib/email/send");
           await sendContractSignedEmail({
             to: businessUser.email,
             businessName: business.business_name || "there",
             workerName,
-            jobTitle: jobPost?.title || "a position",
+            jobTitle: app?.job_posts?.title || "a position",
             applicantsUrl: `${process.env.NEXT_PUBLIC_BASE_URL || "https://mountainconnects.com"}/business/applicants`,
           });
         }
