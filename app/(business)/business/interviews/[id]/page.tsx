@@ -62,7 +62,7 @@ export default function BusinessInterviewDetailPage() {
             invited_at, scheduled_at, completed_at, cancelled_at,
             applications(
               job_posts(title),
-              worker_profiles(full_name, location, skills, avatar_url)
+              worker_profiles(first_name, last_name, location_current, skills, profile_photo_url)
             )
           `)
           .eq("id", interviewId)
@@ -74,11 +74,14 @@ export default function BusinessInterviewDetailPage() {
         const app = iv.applications as unknown as Record<string, unknown> | null;
         const jp = app?.job_posts as unknown as { title: string } | null;
         const wp = app?.worker_profiles as unknown as {
-          full_name: string;
-          location: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          location_current: string | null;
           skills: string[] | null;
-          avatar_url: string | null;
+          profile_photo_url: string | null;
         } | null;
+
+        const workerName = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown Applicant";
 
         setInterview({
           id: iv.id,
@@ -94,10 +97,10 @@ export default function BusinessInterviewDetailPage() {
           completed_at: iv.completed_at,
           cancelled_at: iv.cancelled_at,
           job_title: jp?.title || "Unknown Position",
-          worker_name: wp?.full_name || "Unknown Applicant",
-          worker_location: wp?.location || "",
+          worker_name: workerName,
+          worker_location: wp?.location_current || "",
           worker_skills: wp?.skills || [],
-          worker_avatar_url: wp?.avatar_url || null,
+          worker_avatar_url: wp?.profile_photo_url || null,
         });
       } catch {
         setError("Failed to load interview details.");
