@@ -18,6 +18,9 @@ import { supportReportAdminAlertEmail } from "./templates/support-report-admin-a
 import { loginOtpEmail } from "./templates/login-otp";
 import { onboardingReminderEmail } from "./templates/onboarding-reminder";
 import { applicationWithdrawnEmail } from "./templates/application-withdrawn";
+import { instantInterviewRequestEmail } from "./templates/instant-interview-request";
+import { instantInterviewDeclinedEmail } from "./templates/instant-interview-declined";
+import { instantInterviewRescheduledEmail } from "./templates/instant-interview-rescheduled";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 
@@ -306,5 +309,44 @@ export async function sendApplicationWithdrawnEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = applicationWithdrawnEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendInstantInterviewRequestEmail(params: {
+  to: string;
+  workerName: string;
+  businessName: string;
+  jobTitle: string;
+  interviewUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = instantInterviewRequestEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendInstantInterviewDeclinedEmail(params: {
+  to: string;
+  businessName: string;
+  workerName: string;
+  jobTitle: string;
+  applicantsUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = instantInterviewDeclinedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendInstantInterviewRescheduledEmail(params: {
+  to: string;
+  businessName: string;
+  workerName: string;
+  jobTitle: string;
+  interviewsUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = instantInterviewRescheduledEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }

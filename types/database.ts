@@ -397,7 +397,7 @@ export interface Application {
 
 // ── Interview Scheduling ──────────────────────────────
 
-export type InterviewStatus = "invited" | "scheduled" | "completed" | "cancelled" | "rescheduled";
+export type InterviewStatus = "invited" | "scheduled" | "completed" | "cancelled" | "rescheduled" | "live" | "declined";
 
 export type NotificationType =
   | "interview_invited"
@@ -413,7 +413,10 @@ export type NotificationType =
   | "new_message"
   | "reschedule_approved"
   | "reschedule_declined"
-  | "general";
+  | "general"
+  | "instant_interview_request"
+  | "instant_interview_declined"
+  | "instant_interview_rescheduled";
 
 export interface InterviewAvailability {
   id: string;
@@ -459,6 +462,9 @@ export interface Interview {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string | null;
+  is_instant: boolean;
+  room_expires_at: string | null;
+  declined_at: string | null;
 }
 
 export interface Notification {

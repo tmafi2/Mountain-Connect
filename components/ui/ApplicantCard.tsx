@@ -81,6 +81,8 @@ interface ApplicantCardProps {
   inviting?: boolean;
   onStatusChange?: (applicationId: string, newStatus: string) => void;
   onMessage?: (workerUserId: string | null) => void;
+  onInstantInterview?: (applicationId: string) => void;
+  instantInterviewLoading?: boolean;
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -100,6 +102,8 @@ export default function ApplicantCard({
   inviting,
   onStatusChange,
   onMessage,
+  onInstantInterview,
+  instantInterviewLoading,
 }: ApplicantCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"application" | "profile" | "resume">("application");
@@ -609,6 +613,19 @@ export default function ApplicantCard({
                     className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
                     {inviting ? "Inviting…" : "Invite to Interview"}
+                  </button>
+                )}
+                {canInvite && onInstantInterview && (
+                  <button
+                    onClick={() => onInstantInterview(applicant.application_id)}
+                    disabled={instantInterviewLoading}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                    </span>
+                    {instantInterviewLoading ? "Starting…" : "Instant Interview"}
                   </button>
                 )}
                 {applicant.status === "interview" && (

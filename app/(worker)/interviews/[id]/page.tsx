@@ -169,6 +169,7 @@ export default function WorkerInterviewDetailPage() {
   }
 
   const isUpcoming = interview.status === "scheduled";
+  const isLive = interview.status === "live";
   const isInvited = interview.status === "invited";
 
   return (
@@ -253,7 +254,17 @@ export default function WorkerInterviewDetailPage() {
         </div>
       )}
 
-      {/* Video Interview Section */}
+      {/* Video Interview Section — Live instant interviews show video room immediately */}
+      {isLive && interview.video_room_url && (
+        <div className="mt-6">
+          <VideoRoom
+            interviewId={interview.id}
+            roomUrl={interview.video_room_url}
+          />
+        </div>
+      )}
+
+      {/* Video Interview Section — Scheduled interviews with time-gate */}
       {isUpcoming && (
         <div className="mt-6">
           {canJoin ? (

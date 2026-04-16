@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -25,6 +25,8 @@ interface Interview {
   worker_location: string;
   worker_skills: string[];
   worker_avatar_url: string | null;
+  is_instant: boolean;
+  room_expires_at: string | null;
 }
 
 export default function BusinessInterviewDetailPage() {
@@ -58,7 +60,7 @@ export default function BusinessInterviewDetailPage() {
           .from("interviews")
           .select(`
             id, status, scheduled_date, scheduled_start_time, scheduled_end_time,
-            timezone, video_room_url, business_notes,
+            timezone, video_room_url, business_notes, is_instant, room_expires_at,
             invited_at, scheduled_at, completed_at, cancelled_at,
             applications(
               job_posts(title),
@@ -101,6 +103,8 @@ export default function BusinessInterviewDetailPage() {
           worker_location: wp?.location_current || "",
           worker_skills: wp?.skills || [],
           worker_avatar_url: wp?.profile_photo_url || null,
+          is_instant: iv.is_instant || false,
+          room_expires_at: iv.room_expires_at || null,
         });
       } catch {
         setError("Failed to load interview details.");
@@ -151,6 +155,54 @@ export default function BusinessInterviewDetailPage() {
     const interval = setInterval(checkTime, 30000);
     return () => clearInterval(interval);
   }, [interview]);
+
+  // Poll for status changes when interview is "live" (waiting for worker to accept)
+  const [liveTimeLeft, setLiveTimeLeft] = useState("");
+  const [liveExpired, setLiveExpired] = useState(false);
+
+  useEffect(() => {
+    if (!interview || interview.status !== "live") return;
+
+    // Poll every 3 seconds to check if worker accepted (room URL appears)
+    const pollInterval = setInterval(async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("interviews")
+        .select("status, video_room_url")
+        .eq("id", interview.id)
+        .single();
+
+      if (data) {
+        if (data.status === "scheduled" && data.video_room_url) {
+          // Worker accepted — update interview and show video room
+          setInterview({ ...interview, status: "scheduled", video_room_url: data.video_room_url });
+        } else if (data.status === "declined") {
+          setInterview({ ...interview, status: "declined" });
+        } else if (data.status === "reschedule_requested") {
+          setInterview({ ...interview, status: "reschedule_requested" });
+        }
+      }
+    }, 3000);
+
+    // Countdown timer for room expiry
+    const timerInterval = setInterval(() => {
+      if (!interview.room_expires_at) return;
+      const diff = new Date(interview.room_expires_at).getTime() - Date.now();
+      if (diff <= 0) {
+        setLiveExpired(true);
+        setLiveTimeLeft("0:00");
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setLiveTimeLeft(`${mins}:${secs.toString().padStart(2, "0")}`);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [interview?.id, interview?.status]);
 
   const handleAction = async (action: "cancel" | "complete") => {
     if (!interview) return;
@@ -222,6 +274,7 @@ export default function BusinessInterviewDetailPage() {
     .slice(0, 2);
 
   const isUpcoming = interview.status === "scheduled";
+  const isLive = interview.status === "live";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -315,6 +368,48 @@ export default function BusinessInterviewDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Live Instant Interview — Waiting for worker */}
+      {isLive && (
+        <div className="mt-6 rounded-xl border-2 border-emerald-300 bg-emerald-50/50 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+            <div className="relative">
+              <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+              </span>
+            </div>
+          </div>
+          <h3 className="text-lg font-semibold text-primary">Waiting for {interview.worker_name} to join...</h3>
+          <p className="mt-2 text-sm text-foreground/60">
+            {interview.worker_name} has been notified. The video call will start as soon as they accept.
+          </p>
+          {!liveExpired ? (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2">
+              <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium text-amber-800">
+                Room expires in <span className="font-mono font-bold">{liveTimeLeft}</span>
+              </span>
+            </div>
+          ) : (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2">
+              <span className="text-sm font-medium text-red-700">Room has expired. The worker did not join in time.</span>
+            </div>
+          )}
+          {!liveExpired && (
+            <div className="mt-4 flex justify-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          )}
         </div>
       )}
 

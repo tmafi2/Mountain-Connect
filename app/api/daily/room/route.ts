@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Interview not found" }, { status: 404 });
   }
 
-  if (interview.status !== "scheduled") {
-    return NextResponse.json({ error: "Interview must be in scheduled status" }, { status: 400 });
+  if (interview.status !== "scheduled" && interview.status !== "live") {
+    return NextResponse.json({ error: "Interview must be in scheduled or live status" }, { status: 400 });
   }
 
   // If room already exists, return it

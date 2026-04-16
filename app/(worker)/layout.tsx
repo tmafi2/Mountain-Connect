@@ -7,6 +7,7 @@ import WorkerSidebar from "@/components/layout/WorkerSidebar";
 import ChatUnreadProvider from "@/components/chat/ChatUnreadProvider";
 import BugReportWidget from "@/components/ui/BugReportWidget";
 import InactivityGuard from "@/components/auth/InactivityGuard";
+import InstantInterviewProvider from "@/components/instant-interview/InstantInterviewProvider";
 import { validatePassword } from "@/lib/utils/password";
 import PasswordStrength from "@/components/ui/PasswordStrength";
 
@@ -132,6 +133,7 @@ export default function WorkerLayout({
 
   return (
     <ChatUnreadProvider>
+      <InstantInterviewProvider>
       <div className="flex h-screen flex-col">
         {showPasswordReset && <PasswordResetModal onClose={() => setShowPasswordReset(false)} />}
         <PortalHeader
@@ -152,6 +154,7 @@ export default function WorkerLayout({
       </div>
       <BugReportWidget />
       <InactivityGuard />
+      </InstantInterviewProvider>
     </ChatUnreadProvider>
   );
 }
