@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/layout/AdminSidebar";
 import BugReportWidget from "@/components/ui/BugReportWidget";
+import InactivityGuard from "@/components/auth/InactivityGuard";
 
 export default function AdminLayout({
   children,
@@ -115,6 +116,7 @@ export default function AdminLayout({
         </main>
       </div>
       <BugReportWidget />
+      <InactivityGuard />
     </div>
   );
 }

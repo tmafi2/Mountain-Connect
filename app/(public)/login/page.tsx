@@ -39,6 +39,8 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const inactiveLogout = searchParams.get("reason") === "inactive";
+
   // Show errors from URL (e.g., Google OAuth role mismatch)
   useEffect(() => {
     const urlError = searchParams.get("error");
@@ -295,6 +297,15 @@ function LoginContent() {
             <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={32} height={32} className="rounded-md" />
             <span className="text-lg font-bold text-primary">Mountain Connects</span>
           </div>
+
+          {inactiveLogout && (
+            <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-center gap-3">
+              <svg className="h-5 w-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-amber-700">You were logged out due to inactivity. Please sign in again.</p>
+            </div>
+          )}
 
           <h1 className="text-3xl font-extrabold text-primary">Welcome back</h1>
           <p className="mt-2 text-sm text-foreground/60">

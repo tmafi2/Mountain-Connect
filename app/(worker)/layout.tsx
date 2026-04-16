@@ -6,6 +6,7 @@ import PortalHeader from "@/components/layout/PortalHeader";
 import WorkerSidebar from "@/components/layout/WorkerSidebar";
 import ChatUnreadProvider from "@/components/chat/ChatUnreadProvider";
 import BugReportWidget from "@/components/ui/BugReportWidget";
+import InactivityGuard from "@/components/auth/InactivityGuard";
 import { validatePassword } from "@/lib/utils/password";
 import PasswordStrength from "@/components/ui/PasswordStrength";
 
@@ -150,6 +151,7 @@ export default function WorkerLayout({
         </div>
       </div>
       <BugReportWidget />
+      <InactivityGuard />
     </ChatUnreadProvider>
   );
 }
