@@ -13,6 +13,7 @@ export default function ApplicantsPage() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [listingFilter, setListingFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [instantInterviewId, setInstantInterviewId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<SeedApplicant[]>([]);
@@ -169,8 +170,33 @@ export default function ApplicantsPage() {
       );
     }
 
+    // Sort
+    results = [...results].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime();
+        case "oldest":
+          return new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime();
+        case "name_asc":
+          return a.worker_name.localeCompare(b.worker_name);
+        case "name_desc":
+          return b.worker_name.localeCompare(a.worker_name);
+        case "experience":
+          return b.years_experience - a.years_experience;
+        case "status": {
+          const statusOrder: Record<string, number> = {
+            new: 0, viewed: 1, interview_pending: 2, interview: 3,
+            offered: 4, accepted: 5, rejected: 6, withdrawn: 7,
+          };
+          return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+        }
+        default:
+          return 0;
+      }
+    });
+
     return results;
-  }, [filter, searchQuery, listingFilter, applicants]);
+  }, [filter, searchQuery, listingFilter, applicants, sortBy]);
 
   const handleInvite = async (applicationId: string) => {
     setInvitingId(applicationId);
@@ -307,6 +333,18 @@ export default function ApplicantsPage() {
               {l.title}
             </option>
           ))}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
+        >
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="name_asc">Name A–Z</option>
+          <option value="name_desc">Name Z–A</option>
+          <option value="experience">Most Seasons</option>
+          <option value="status">Status</option>
         </select>
       </div>
 
