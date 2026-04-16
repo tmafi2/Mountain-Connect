@@ -19,7 +19,7 @@ interface Interview {
   years_experience: number;
   languages: string[];
   cover_letter: string;
-  status: "scheduled" | "invited" | "completed" | "cancelled" | "missed" | "reschedule_requested" | "rescheduled";
+  status: "scheduled" | "invited" | "completed" | "cancelled" | "missed" | "reschedule_requested" | "rescheduled" | "live" | "declined";
   scheduled_date: string | null;
   scheduled_start_time: string | null;
   scheduled_end_time: string | null;
@@ -28,6 +28,8 @@ interface Interview {
   worker_avatar_url: string | null;
   worker_user_id: string | null;
   worker_profile_id: string | null;
+  is_instant: boolean;
+  room_expires_at: string | null;
 }
 
 const demoInterviews: Interview[] = [
@@ -49,6 +51,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/emma-johansson-resume.pdf",
     worker_avatar_url: "flag:🇸🇪",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int2",
@@ -68,6 +72,8 @@ const demoInterviews: Interview[] = [
     timezone: null,
     worker_resume_url: "/resumes/sophie-chen-resume.pdf",
     worker_avatar_url: "flag:🇦🇺",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int3",
@@ -87,6 +93,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/jake-thompson-resume.pdf",
     worker_avatar_url: "flag:🇳🇿",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int4",
@@ -106,6 +114,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/lucas-muller-resume.pdf",
     worker_avatar_url: "flag:🇦🇹",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int5",
@@ -125,6 +135,8 @@ const demoInterviews: Interview[] = [
     timezone: null,
     worker_resume_url: null,
     worker_avatar_url: "flag:🇯🇵",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int6",
@@ -144,6 +156,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/marie-dubois-resume.pdf",
     worker_avatar_url: "flag:🇫🇷",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int7",
@@ -163,6 +177,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/ollie-hansen-resume.pdf",
     worker_avatar_url: "flag:🇳🇴",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int8",
@@ -182,6 +198,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/isabella-rossi-resume.pdf",
     worker_avatar_url: "flag:🇮🇹",
+    is_instant: false,
+    room_expires_at: null,
   },
   {
     id: "int9",
@@ -201,6 +219,8 @@ const demoInterviews: Interview[] = [
     timezone: "America/Vancouver",
     worker_resume_url: "/resumes/ana-santos-resume.pdf",
     worker_avatar_url: "flag:🇵🇹",
+    is_instant: false,
+    room_expires_at: null,
   },
 ];
 
@@ -246,6 +266,8 @@ const statusDotColor: Record<string, string> = {
   invited: "bg-yellow-400",
   completed: "bg-gray-400",
   cancelled: "bg-gray-400",
+  live: "bg-emerald-500",
+  declined: "bg-gray-400",
 };
 
 const statusBlockColor: Record<string, string> = {
@@ -253,6 +275,8 @@ const statusBlockColor: Record<string, string> = {
   invited: "bg-yellow-100 border-yellow-400 text-yellow-800",
   completed: "bg-gray-100 border-gray-400 text-gray-600",
   cancelled: "bg-red-100 border-red-400 text-red-700",
+  live: "bg-emerald-100 border-emerald-400 text-emerald-800",
+  declined: "bg-gray-100 border-gray-300 text-gray-600",
 };
 
 /* ------------------------------------------------------------------ */
@@ -395,6 +419,18 @@ function InterviewCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </button>
+          {interview.status === "live" && (
+            <button
+              onClick={(e) => { e.stopPropagation(); cardRouter.push(`/business/interviews/${interview.id}`); }}
+              className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap ml-1 transition-colors hover:bg-emerald-700 flex items-center gap-1.5"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              </span>
+              Join Call
+            </button>
+          )}
           {interview.status === "scheduled" && (
             <button
               onClick={(e) => { e.stopPropagation(); cardRouter.push(`/business/interviews/${interview.id}`); }}
@@ -883,7 +919,7 @@ export default function BusinessInterviewsPage() {
         const { data } = await supabase
           .from("interviews")
           .select(`
-            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes, worker_id,
+            id, status, scheduled_date, scheduled_start_time, scheduled_end_time, timezone, business_notes, worker_id, is_instant, room_expires_at,
             applications(cover_letter, job_posts(title)),
             worker_profiles(id, user_id, first_name, last_name, location_current, skills, years_seasonal_experience, languages, cv_url, profile_photo_url, users(email))
           `)
@@ -898,7 +934,7 @@ export default function BusinessInterviewsPage() {
             const wpUser = wp?.users as { email: string } | null;
             const langs = (wp?.languages as { language: string }[] | null) || [];
             const statusVal = iv.status as string;
-            const validStatuses = ["scheduled", "invited", "completed", "cancelled", "missed", "reschedule_requested", "rescheduled"];
+            const validStatuses = ["scheduled", "invited", "completed", "cancelled", "missed", "reschedule_requested", "rescheduled", "live", "declined"];
             return {
               id: iv.id as string,
               job_title: jp?.title || "Unknown Position",
@@ -918,6 +954,8 @@ export default function BusinessInterviewsPage() {
               worker_avatar_url: (wp?.profile_photo_url as string) || null,
               worker_user_id: (wp?.user_id as string) || null,
               worker_profile_id: (wp?.id as string) || null,
+              is_instant: (iv.is_instant as boolean) || false,
+              room_expires_at: (iv.room_expires_at as string) || null,
             };
           });
           setInterviews(mapped);
@@ -933,6 +971,8 @@ export default function BusinessInterviewsPage() {
 
   /* ---- list sections ---- */
   const todayStr = new Date().toISOString().slice(0, 10);
+
+  const liveNow = interviews.filter((i) => i.status === "live");
 
   const scheduled = interviews
     .filter((i) => i.status === "scheduled" && (!i.scheduled_date || i.scheduled_date >= todayStr))
@@ -954,7 +994,7 @@ export default function BusinessInterviewsPage() {
   );
 
   const past = interviews.filter(
-    (i) => i.status === "completed" || i.status === "cancelled"
+    (i) => i.status === "completed" || i.status === "cancelled" || i.status === "declined"
   );
 
   const [respondingId, setRespondingId] = useState<string | null>(null);
@@ -1189,6 +1229,62 @@ export default function BusinessInterviewsPage() {
       {/* ============================================================ */}
       {view === "list" && (
         <div className="space-y-8">
+          {/* Live Now */}
+          {liveNow.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/15">
+                  <span className="relative flex h-3 w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+                  </span>
+                </div>
+                <h2 className="text-lg font-semibold text-primary">
+                  Live Now
+                  <span className="ml-2 text-sm font-normal text-foreground/40">({liveNow.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {liveNow.map((iv) => (
+                  <div
+                    key={iv.id}
+                    className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between">
+                      <button onClick={() => setSelectedInterview(iv)} className="flex items-start gap-4 text-left flex-1 min-w-0">
+                        <Avatar interview={iv} />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-primary">{iv.worker_name}</h3>
+                            <InterviewStatusBadge status={iv.status} />
+                          </div>
+                          <p className="mt-0.5 text-sm text-foreground/60">{iv.job_title}</p>
+                          {iv.room_expires_at && (
+                            <p className="mt-1 text-xs text-emerald-600">
+                              Waiting for worker to accept...
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <button
+                          onClick={() => router.push(`/business/interviews/${iv.id}`)}
+                          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white whitespace-nowrap transition-colors hover:bg-emerald-700 flex items-center gap-2"
+                        >
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                          </span>
+                          Join Call
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Scheduled */}
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/50">
@@ -1527,6 +1623,10 @@ export default function BusinessInterviewsPage() {
             <div className="flex items-center gap-1.5">
               <span className="block h-2 w-2 rounded-full bg-red-400" />
               <span className="text-xs text-foreground/50">Cancelled</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="block h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-xs text-foreground/50">Live</span>
             </div>
           </div>
         </div>

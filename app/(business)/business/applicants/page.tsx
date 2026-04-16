@@ -14,6 +14,7 @@ export default function ApplicantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [listingFilter, setListingFilter] = useState<string>("all");
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [instantInterviewId, setInstantInterviewId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<SeedApplicant[]>([]);
   const router = useRouter();
   const [allListings, setAllListings] = useState<{ id: string; title: string }[]>([]);
@@ -190,6 +191,28 @@ export default function ApplicantsPage() {
     setInvitingId(null);
   };
 
+  const handleInstantInterview = async (applicationId: string) => {
+    setInstantInterviewId(applicationId);
+    try {
+      const res = await fetch("/api/interviews/instant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: applicationId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        handleStatusChange(applicationId, "interview");
+        router.push(`/business/interviews/${data.interview_id}`);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to start instant interview");
+      }
+    } catch {
+      alert("Failed to start instant interview");
+    }
+    setInstantInterviewId(null);
+  };
+
   // Count applicants per status (respecting listing filter)
   const counts = useMemo(() => {
     const base = listingFilter === "all"
@@ -328,7 +351,7 @@ export default function ApplicantsPage() {
             <p className="text-xs text-foreground/40">
               Showing {filtered.length} applicant{filtered.length !== 1 ? "s" : ""}
               {listingFilter !== "all" && (
-                <> for <span className="font-medium text-foreground/60">{listings.find((l) => l.id === listingFilter)?.title}</span></>
+                <> for <span className="font-medium text-foreground/60">{allListings.find((l) => l.id === listingFilter)?.title}</span></>
               )}
             </p>
             {filtered.map((applicant) => (
@@ -339,6 +362,8 @@ export default function ApplicantsPage() {
                 inviting={invitingId === applicant.application_id}
                 onStatusChange={handleStatusChange}
                 onMessage={handleMessage}
+                onInstantInterview={handleInstantInterview}
+                instantInterviewLoading={instantInterviewId === applicant.application_id}
               />
             ))}
           </>
