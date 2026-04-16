@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { type SeedJob } from "@/lib/data/jobs";
 import JobsClient from "./JobsClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Find a Job | Mountain Connects",
   description:
