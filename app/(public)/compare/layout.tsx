@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Compare Ski Resorts — Side-by-Side Resort Comparison | Mountain Connects",
@@ -12,6 +13,14 @@ export const metadata: Metadata = {
     url: "https://www.mountainconnects.com/compare",
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Compare Ski Resorts — Side-by-Side Comparison | Mountain Connects",
+    description:
+      "Compare ski resorts side by side. Evaluate terrain, snowfall, and seasonal jobs.",
+    images: [defaultOgImage.url],
   },
 };
 

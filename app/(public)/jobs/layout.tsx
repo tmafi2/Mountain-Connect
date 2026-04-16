@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Seasonal Jobs at Ski Resorts Worldwide | Mountain Connects",
@@ -12,12 +13,14 @@ export const metadata: Metadata = {
     url: "https://www.mountainconnects.com/jobs",
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Seasonal Jobs at Ski Resorts Worldwide | Mountain Connects",
     description:
       "Browse seasonal job listings at ski resorts around the world.",
+    images: [defaultOgImage.url],
   },
 };
 

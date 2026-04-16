@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -16,11 +17,13 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/blog`,
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "Blog | Mountain Connects",
     description: "Tips, guides, and stories for seasonal mountain workers.",
+    images: [defaultOgImage.url],
   },
 };
 

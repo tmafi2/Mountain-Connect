@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "About Mountain Connects — Connecting Seasonal Workers & Resorts",
@@ -12,6 +13,14 @@ export const metadata: Metadata = {
     url: "https://www.mountainconnects.com/about",
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Mountain Connects",
+    description:
+      "Mountain Connects connects seasonal workers with ski resort businesses worldwide.",
+    images: [defaultOgImage.url],
   },
 };
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import CookieConsent from "@/components/ui/CookieConsent";
 import "./globals.css";
@@ -21,21 +22,14 @@ export const metadata: Metadata = {
     siteName: "Mountain Connects",
     type: "website",
     locale: "en_US",
-    images: [
-      {
-        url: "/images/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
-      },
-    ],
+    images: [defaultOgImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
     description:
       "Connect with ski resort businesses and find seasonal work at resorts worldwide.",
-    images: ["/images/og-image.jpg"],
+    images: [defaultOgImage.url],
   },
   robots: {
     index: true,

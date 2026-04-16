@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Explore Ski Resorts — Interactive Globe & Resort Finder | Mountain Connects",
@@ -12,12 +13,14 @@ export const metadata: Metadata = {
     url: "https://www.mountainconnects.com/explore",
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "Explore Ski Resorts — Interactive Globe & Resort Finder | Mountain Connects",
     description:
       "Explore 69+ ski resorts across 12 countries on our interactive globe.",
+    images: [defaultOgImage.url],
   },
 };
 

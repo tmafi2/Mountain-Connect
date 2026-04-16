@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 import type { Metadata } from "next";
+import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connects",
@@ -15,12 +16,14 @@ export const metadata: Metadata = {
     url: "https://www.mountainconnects.com/towns",
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connects",
     description:
       "Discover the towns where seasonal ski workers live. Housing, transport, and insider tips.",
+    images: [defaultOgImage.url],
   },
 };
 
