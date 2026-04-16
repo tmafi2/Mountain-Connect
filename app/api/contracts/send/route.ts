@@ -71,7 +71,6 @@ export async function POST(request: Request) {
         application_id: applicationId,
         business_id: business.id,
         worker_id: application.worker_id,
-        job_post_id: application.job_post_id,
         original_pdf_path: storagePath,
         status: "pending",
       })
