@@ -143,14 +143,18 @@ export async function POST(request: Request) {
       const jobTitle = jobPost?.title || "a position";
       const workerName = [workerProfile.first_name, workerProfile.last_name].filter(Boolean).join(" ") || "A worker";
 
-      await createNotification({
-        userId: business.user_id,
-        type: "contract_signed",
-        title: "Contract Signed",
-        message: `${workerName} has signed the contract for ${jobTitle}`,
-        link: "/manage-listings",
-        metadata: { contract_id: contractId, application_id: contract.application_id },
-      });
+      try {
+        await createNotification({
+          userId: business.user_id,
+          type: "contract_signed",
+          title: "Contract Signed",
+          message: `${workerName} has signed the contract for ${jobTitle}`,
+          link: "/manage-listings",
+          metadata: { contract_id: contractId, application_id: contract.application_id },
+        });
+      } catch (notifErr) {
+        console.error("Failed to create contract_signed notification:", notifErr);
+      }
     }
 
     // Send email notification (non-blocking)

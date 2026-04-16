@@ -99,14 +99,19 @@ export async function POST(request: Request) {
       const jobTitle = jobPost.title || "a position";
       const businessName = business.business_name || "A business";
 
-      await createNotification({
-        userId: workerProfile.user_id,
-        type: "contract_sent",
-        title: "Contract Received",
-        message: `${businessName} has sent you a contract for ${jobTitle}`,
-        link: "/applications",
-        metadata: { contract_id: contract.id, application_id: applicationId },
-      });
+      // Non-blocking: don't fail the whole request if notification insert fails
+      try {
+        await createNotification({
+          userId: workerProfile.user_id,
+          type: "contract_sent",
+          title: "Contract Received",
+          message: `${businessName} has sent you a contract for ${jobTitle}`,
+          link: "/applications",
+          metadata: { contract_id: contract.id, application_id: applicationId },
+        });
+      } catch (notifErr) {
+        console.error("Failed to create contract_sent notification:", notifErr);
+      }
     }
 
     // Send email notification (non-blocking)
