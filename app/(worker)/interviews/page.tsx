@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
 import { createClient } from "@/lib/supabase/client";
 
@@ -501,7 +502,10 @@ function InterviewDetailPanel({
             {/* Action buttons */}
             <div className="space-y-2 pt-2">
               {interview.status === "scheduled" && (
-                <button className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md hover:shadow-secondary/20">
+                <button
+                  onClick={() => router.push(`/interviews/${interview.id}`)}
+                  className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md hover:shadow-secondary/20"
+                >
                   Join Call
                 </button>
               )}
@@ -717,6 +721,7 @@ function WeeklyCalendar({
 /* ------------------------------------------------------------------ */
 
 export default function WorkerInterviewsPage() {
+  const router = useRouter();
   const [view, setView] = useState<"list" | "calendar">("list");
   const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
   const [selectedInterview, setSelectedInterview] =

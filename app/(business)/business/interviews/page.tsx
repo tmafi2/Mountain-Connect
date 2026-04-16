@@ -395,9 +395,12 @@ function InterviewCard({
             </svg>
           </button>
           {interview.status === "scheduled" && (
-            <span className="rounded-xl bg-secondary/15 px-3 py-1.5 text-xs font-semibold text-primary whitespace-nowrap ml-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); router.push(`/business/interviews/${interview.id}`); }}
+              className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap ml-1 transition-colors hover:bg-secondary/90"
+            >
               Join Call
-            </span>
+            </button>
           )}
         </div>
       </div>
