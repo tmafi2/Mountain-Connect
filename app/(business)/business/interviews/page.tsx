@@ -1001,6 +1001,7 @@ export default function BusinessInterviewsPage() {
   const [panelActionLoading, setPanelActionLoading] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [messagingWorker, setMessagingWorker] = useState<string | null>(null);
+  const [showPast, setShowPast] = useState(false);
 
   const handleMessageWorker = async (workerUserId: string | null) => {
     if (!workerUserId || !currentUserId || messagingWorker) return;
@@ -1426,20 +1427,35 @@ export default function BusinessInterviewsPage() {
           {/* Past */}
           {past.length > 0 && (
             <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/50">
-                Past ({past.length})
-              </h2>
-              <div className="space-y-3">
-                {past.map((iv) => (
-                  <InterviewCard
-                    key={iv.id}
-                    interview={iv}
-                    onSelect={setSelectedInterview}
-                    onMessage={handleMessageWorker}
-                    faded
-                  />
-                ))}
-              </div>
+              <button
+                onClick={() => setShowPast(!showPast)}
+                className="flex w-full items-center justify-between rounded-xl border border-accent/40 bg-white px-5 py-3 text-left transition-colors hover:bg-accent/10"
+              >
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+                  Past ({past.length})
+                </h2>
+                <svg
+                  className={`h-4 w-4 text-foreground/40 transition-transform duration-200 ${showPast ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showPast && (
+                <div className="mt-3 space-y-3">
+                  {past.map((iv) => (
+                    <InterviewCard
+                      key={iv.id}
+                      interview={iv}
+                      onSelect={setSelectedInterview}
+                      onMessage={handleMessageWorker}
+                      faded
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>
