@@ -1,10 +1,27 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = {
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connects",
   description:
     "Discover the towns where seasonal ski workers live, eat, and socialise. Housing, transport, cost of living, and insider tips for every resort town.",
+  alternates: { canonical: "https://www.mountainconnects.com/towns" },
+  openGraph: {
+    title: "Explore Towns — Seasonal Worker Town Guides",
+    description:
+      "Discover the towns where seasonal ski workers live. Housing, transport, cost of living, and insider tips for 50+ resort towns worldwide.",
+    url: "https://www.mountainconnects.com/towns",
+    siteName: "Mountain Connects",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connects",
+    description:
+      "Discover the towns where seasonal ski workers live. Housing, transport, and insider tips.",
+  },
 };
 
 interface TownWithResorts {
