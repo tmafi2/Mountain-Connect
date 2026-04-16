@@ -112,6 +112,7 @@ interface ApplicantCardProps {
   onMessage?: (workerUserId: string | null) => void;
   onInstantInterview?: (applicationId: string) => void;
   instantInterviewLoading?: boolean;
+  onSendOffer?: (applicationId: string) => void;
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -133,6 +134,7 @@ export default function ApplicantCard({
   onMessage,
   onInstantInterview,
   instantInterviewLoading,
+  onSendOffer,
 }: ApplicantCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"application" | "profile" | "resume">("application");
@@ -698,9 +700,9 @@ export default function ApplicantCard({
                     Unsuccessful
                   </button>
                 )}
-                {(applicant.status === "interview" || applicant.status === "interview_pending") && onStatusChange && (
+                {(applicant.status === "interview" || applicant.status === "interview_pending") && (
                   <button
-                    onClick={() => onStatusChange(applicant.application_id, "offered")}
+                    onClick={() => onSendOffer ? onSendOffer(applicant.application_id) : onStatusChange?.(applicant.application_id, "offered")}
                     className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-medium text-orange-700 transition-colors hover:bg-orange-100"
                   >
                     Send Offer

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { seedApplicants, type SeedApplicant } from "@/lib/data/applications";
 import ApplicantCard from "@/components/ui/ApplicantCard";
+import ContractUploadModal from "@/components/ui/ContractUploadModal";
 import type { ApplicationStatus } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +17,7 @@ export default function ApplicantsPage() {
   const [sortBy, setSortBy] = useState<string>("newest");
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [instantInterviewId, setInstantInterviewId] = useState<string | null>(null);
+  const [offerModalAppId, setOfferModalAppId] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<SeedApplicant[]>([]);
   const router = useRouter();
   const [allListings, setAllListings] = useState<{ id: string; title: string }[]>([]);
@@ -403,11 +405,34 @@ export default function ApplicantsPage() {
                 onMessage={handleMessage}
                 onInstantInterview={handleInstantInterview}
                 instantInterviewLoading={instantInterviewId === applicant.application_id}
+                onSendOffer={(appId) => setOfferModalAppId(appId)}
               />
             ))}
           </>
         )}
       </div>
+
+      {/* Contract Upload Modal */}
+      {offerModalAppId && (() => {
+        const app = applicants.find((a) => a.application_id === offerModalAppId);
+        if (!app) return null;
+        return (
+          <ContractUploadModal
+            applicationId={offerModalAppId}
+            workerName={app.worker_name}
+            jobTitle={app.job_title}
+            onSuccess={() => {
+              handleStatusChange(offerModalAppId, "offered");
+              setOfferModalAppId(null);
+            }}
+            onClose={() => setOfferModalAppId(null)}
+            onSendWithout={() => {
+              handleStatusChange(offerModalAppId, "offered");
+              setOfferModalAppId(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

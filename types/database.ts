@@ -416,7 +416,9 @@ export type NotificationType =
   | "general"
   | "instant_interview_request"
   | "instant_interview_declined"
-  | "instant_interview_rescheduled";
+  | "instant_interview_rescheduled"
+  | "contract_sent"
+  | "contract_signed";
 
 export interface InterviewAvailability {
   id: string;
@@ -503,6 +505,24 @@ export interface SupportReport {
   admin_note: string | null;
   resolved_at: string | null;
   resolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Contracts
+export type ContractStatus = "pending" | "signed";
+
+export interface Contract {
+  id: string;
+  application_id: string;
+  business_id: string;
+  worker_id: string;
+  original_pdf_path: string;
+  signed_pdf_path: string | null;
+  signature_data: string | null;
+  status: ContractStatus;
+  sent_at: string;
+  signed_at: string | null;
   created_at: string;
   updated_at: string;
 }

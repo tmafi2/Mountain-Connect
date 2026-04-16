@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import StartConversationButton from "@/components/chat/StartConversationButton";
+import ContractViewer from "@/components/ui/ContractViewer";
 
 interface Application {
   id: string;
@@ -24,6 +25,11 @@ interface Application {
   interview_time: string | null;
   interview_invite_token: string | null;
   last_updated: string;
+  contract_id: string | null;
+  contract_status: "pending" | "signed" | null;
+  contract_original_path: string | null;
+  contract_signed_path: string | null;
+  worker_name: string;
 }
 
 const demoApplications: Application[] = [
@@ -47,6 +53,7 @@ const demoApplications: Application[] = [
     interview_time: "10:00",
     interview_invite_token: null,
     last_updated: "2026-03-20T09:00:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w2",
@@ -68,6 +75,7 @@ const demoApplications: Application[] = [
     interview_time: null,
     interview_invite_token: null,
     last_updated: "2026-03-18T14:30:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w3",
@@ -89,6 +97,7 @@ const demoApplications: Application[] = [
     interview_time: null,
     interview_invite_token: null,
     last_updated: "2026-03-12T18:45:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w4",
@@ -110,6 +119,7 @@ const demoApplications: Application[] = [
     interview_time: null,
     interview_invite_token: null,
     last_updated: "2026-03-16T11:00:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w5",
@@ -131,6 +141,7 @@ const demoApplications: Application[] = [
     interview_time: "14:00",
     interview_invite_token: null,
     last_updated: "2026-03-15T16:00:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w6",
@@ -152,6 +163,7 @@ const demoApplications: Application[] = [
     interview_time: "11:00",
     interview_invite_token: null,
     last_updated: "2026-03-20T10:00:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w7",
@@ -173,6 +185,7 @@ const demoApplications: Application[] = [
     interview_time: null,
     interview_invite_token: null,
     last_updated: "2026-03-10T09:00:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
   {
     id: "app-w8",
@@ -194,6 +207,7 @@ const demoApplications: Application[] = [
     interview_time: null,
     interview_invite_token: null,
     last_updated: "2026-03-18T07:30:00Z",
+    contract_id: null, contract_status: null, contract_original_path: null, contract_signed_path: null, worker_name: "Demo Worker",
   },
 ];
 
@@ -272,7 +286,7 @@ export default function ApplicationsPage() {
 
         const { data } = await supabase
           .from("applications")
-          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location, user_id), resorts(name)), interviews(status, scheduled_date, scheduled_start_time, invite_token)")
+          .select("*, job_posts(title, salary_range, position_type, start_date, business_profiles(business_name, location, user_id), resorts(name)), interviews(status, scheduled_date, scheduled_start_time, invite_token), contracts(id, status, original_pdf_path, signed_pdf_path), worker_profiles(first_name, last_name)")
           .eq("worker_id", wp.id)
           .order("applied_at", { ascending: false });
 
@@ -294,6 +308,9 @@ export default function ApplicationsPage() {
             const resort = jp?.resorts as { name: string } | null;
             const interviews = a.interviews as { status: string; scheduled_date: string | null; scheduled_start_time: string | null; invite_token: string | null }[] | null;
             const latestInterview = interviews?.[0] || null;
+            const contracts = a.contracts as { id: string; status: string; original_pdf_path: string; signed_pdf_path: string | null }[] | null;
+            const latestContract = contracts?.[0] || null;
+            const wpData = a.worker_profiles as { first_name: string | null; last_name: string | null } | null;
             const posType = (jp?.position_type as string) || "full_time";
 
             return {
@@ -315,6 +332,11 @@ export default function ApplicationsPage() {
               interview_time: latestInterview?.scheduled_start_time || null,
               interview_invite_token: latestInterview?.invite_token || null,
               last_updated: (a.updated_at as string) || (a.applied_at as string),
+              contract_id: latestContract?.id || null,
+              contract_status: latestContract ? (latestContract.status as "pending" | "signed") : null,
+              contract_original_path: latestContract?.original_pdf_path || null,
+              contract_signed_path: latestContract?.signed_pdf_path || null,
+              worker_name: [wpData?.first_name, wpData?.last_name].filter(Boolean).join(" ") || "Worker",
             };
           });
           setApplications(mapped);
@@ -889,6 +911,26 @@ export default function ApplicationsPage() {
                     onDeclineOffer={() => handleOfferResponse(app, "decline")}
                     offerLoading={respondingAppId === app.id}
                   />
+
+                  {/* Contract Viewer — shown when there's a contract to review */}
+                  {app.contract_id && app.contract_original_path && (app.status === "offered" || app.status === "accepted") && (
+                    <div className="rounded-xl border border-accent bg-accent/5 p-5">
+                      <ContractViewer
+                        contractId={app.contract_id}
+                        originalPdfPath={app.contract_original_path}
+                        status={app.contract_status || "pending"}
+                        signedPdfPath={app.contract_signed_path}
+                        workerName={app.worker_name}
+                        onSigned={() => {
+                          setApplications((prev) =>
+                            prev.map((a) =>
+                              a.id === app.id ? { ...a, contract_status: "signed" as const } : a
+                            )
+                          );
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-3">

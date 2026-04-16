@@ -21,6 +21,8 @@ import { applicationWithdrawnEmail } from "./templates/application-withdrawn";
 import { instantInterviewRequestEmail } from "./templates/instant-interview-request";
 import { instantInterviewDeclinedEmail } from "./templates/instant-interview-declined";
 import { instantInterviewRescheduledEmail } from "./templates/instant-interview-rescheduled";
+import { contractSentEmail } from "./templates/contract-sent";
+import { contractSignedEmail } from "./templates/contract-signed";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 
@@ -348,5 +350,31 @@ export async function sendInstantInterviewRescheduledEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = instantInterviewRescheduledEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendContractSentEmail(params: {
+  to: string;
+  workerName: string;
+  businessName: string;
+  jobTitle: string;
+  contractUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = contractSentEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendContractSignedEmail(params: {
+  to: string;
+  businessName: string;
+  workerName: string;
+  jobTitle: string;
+  applicantsUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = contractSignedEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }
