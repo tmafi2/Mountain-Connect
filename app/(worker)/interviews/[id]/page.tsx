@@ -23,6 +23,7 @@ interface Interview {
   job_title: string;
   business_name: string;
   invite_token: string | null;
+  is_instant: boolean;
 }
 
 export default function WorkerInterviewDetailPage() {
@@ -54,7 +55,7 @@ export default function WorkerInterviewDetailPage() {
           .from("interviews")
           .select(`
             id, status, scheduled_date, scheduled_start_time, scheduled_end_time,
-            timezone, video_room_url, business_notes, invite_token,
+            timezone, video_room_url, business_notes, invite_token, is_instant,
             invited_at, scheduled_at, completed_at, cancelled_at,
             applications(job_posts(title, business_profiles(business_name)))
           `)
@@ -84,6 +85,7 @@ export default function WorkerInterviewDetailPage() {
           job_title: (jp?.title as string) || "Unknown Position",
           business_name: bp?.business_name || "Unknown Business",
           invite_token: iv.invite_token || null,
+          is_instant: iv.is_instant || false,
         });
       } catch {
         setError("Failed to load interview details.");
@@ -96,7 +98,20 @@ export default function WorkerInterviewDetailPage() {
 
   // Time-gate: check if user can join (10 min before through 30 min after end)
   useEffect(() => {
-    if (!interview || interview.status !== "scheduled" || !interview.scheduled_date || !interview.scheduled_start_time || !interview.scheduled_end_time) {
+    if (!interview || interview.status !== "scheduled") {
+      setCanJoin(false);
+      return;
+    }
+
+    // Instant interviews bypass the time gate — once accepted with a video
+    // room, both parties should be able to join immediately.
+    if (interview.is_instant && interview.video_room_url) {
+      setCanJoin(true);
+      setTimeMessage("");
+      return;
+    }
+
+    if (!interview.scheduled_date || !interview.scheduled_start_time || !interview.scheduled_end_time) {
       setCanJoin(false);
       return;
     }
@@ -219,8 +234,8 @@ export default function WorkerInterviewDetailPage() {
         </div>
       )}
 
-      {/* Schedule details */}
-      {interview.scheduled_date && (
+      {/* Schedule details — hidden for instant interviews (no real schedule) */}
+      {interview.scheduled_date && !interview.is_instant && (
         <div className="mt-6 rounded-xl border border-accent bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
             Interview Details

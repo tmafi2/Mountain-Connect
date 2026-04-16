@@ -117,7 +117,20 @@ export default function BusinessInterviewDetailPage() {
 
   // Time-gate: check if user can join (10 min before through 30 min after end)
   useEffect(() => {
-    if (!interview || interview.status !== "scheduled" || !interview.scheduled_date || !interview.scheduled_start_time || !interview.scheduled_end_time) {
+    if (!interview || interview.status !== "scheduled") {
+      setCanJoin(false);
+      return;
+    }
+
+    // Instant interviews bypass the time gate — once the worker accepts and a
+    // video_room_url exists, business should be able to join immediately.
+    if (interview.is_instant && interview.video_room_url) {
+      setCanJoin(true);
+      setTimeMessage("");
+      return;
+    }
+
+    if (!interview.scheduled_date || !interview.scheduled_start_time || !interview.scheduled_end_time) {
       setCanJoin(false);
       return;
     }
@@ -358,10 +371,10 @@ export default function BusinessInterviewDetailPage() {
         )}
       </div>
 
-      {/* Schedule details — hidden for live (instant) interviews, since the
-          'scheduled_date' is just today's date as a placeholder and would
-          make the page look like a previously-scheduled interview. */}
-      {interview.scheduled_date && interview.status !== "live" && (
+      {/* Schedule details — hidden for instant interviews and live status,
+          since the 'scheduled_date' is just a placeholder and would make
+          the page look like a previously-scheduled interview. */}
+      {interview.scheduled_date && interview.status !== "live" && !interview.is_instant && (
         <div className="mt-4 rounded-xl border border-accent bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
             Schedule

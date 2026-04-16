@@ -106,11 +106,13 @@ export async function POST(request: NextRequest) {
       .eq("application_id", application_id)
       .eq("status", "live");
 
-    // Insert the interview
+    // Insert the interview. Note: we deliberately do NOT set scheduled_date
+    // for live interviews — it would otherwise display as a confusing
+    // 'Schedule' card on the detail page (and using UTC's "today" can show
+    // as yesterday for users in eastern timezones).
     const roomExpiresAt = new Date(
       Date.now() + 20 * 60 * 1000
     ).toISOString();
-    const today = new Date().toISOString().split("T")[0];
 
     const { data: interview, error: insertError } = await admin
       .from("interviews")
@@ -120,7 +122,6 @@ export async function POST(request: NextRequest) {
         worker_id: application.worker_id,
         status: "live",
         is_instant: true,
-        scheduled_date: today,
         room_expires_at: roomExpiresAt,
         invited_at: new Date().toISOString(),
       })
