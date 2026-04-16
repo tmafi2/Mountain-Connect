@@ -288,7 +288,11 @@ function InterviewCard({
             </span>
           )}
           {interview.status === "scheduled" && (
-            <span className="rounded-xl bg-secondary/15 px-3 py-1.5 text-xs font-semibold text-secondary whitespace-nowrap">
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); window.location.href = `/interviews/${interview.id}`; }}
+              className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap cursor-pointer transition-colors hover:bg-secondary/90"
+            >
               Join Call
             </span>
           )}
@@ -503,7 +507,7 @@ function InterviewDetailPanel({
             <div className="space-y-2 pt-2">
               {interview.status === "scheduled" && (
                 <button
-                  onClick={() => router.push(`/interviews/${interview.id}`)}
+                  onClick={(e) => { e.stopPropagation(); router.push(`/interviews/${interview.id}`); }}
                   className="w-full rounded-xl bg-secondary py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md hover:shadow-secondary/20"
                 >
                   Join Call

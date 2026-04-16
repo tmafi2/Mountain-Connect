@@ -331,6 +331,7 @@ function InterviewCard({
   onMessage: (workerUserId: string | null) => void;
   faded?: boolean;
 }) {
+  const cardRouter = useRouter();
   return (
     <div
       className={`w-full rounded-2xl border border-accent/40 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-secondary/30 ${faded ? "opacity-50" : ""}`}
@@ -396,7 +397,7 @@ function InterviewCard({
           </button>
           {interview.status === "scheduled" && (
             <button
-              onClick={(e) => { e.stopPropagation(); router.push(`/business/interviews/${interview.id}`); }}
+              onClick={(e) => { e.stopPropagation(); cardRouter.push(`/business/interviews/${interview.id}`); }}
               className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-white whitespace-nowrap ml-1 transition-colors hover:bg-secondary/90"
             >
               Join Call
