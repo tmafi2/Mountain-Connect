@@ -180,12 +180,13 @@ export async function POST(request: NextRequest) {
           ).data.user?.email;
 
         if (workerEmail) {
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://mountainconnects.com";
           await sendFn({
             to: workerEmail,
             workerName: `${workerProfile.first_name} ${workerProfile.last_name}`,
             businessName: businessProfile.business_name,
             jobTitle: jobPost.title,
-            interviewUrl: `/interviews/${interview.id}`,
+            interviewUrl: `${baseUrl}/interviews/${interview.id}`,
           });
         }
       }
