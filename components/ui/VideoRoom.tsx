@@ -204,15 +204,46 @@ function TroubleshootingGuide() {
           {/* Browser-specific instructions */}
           <div className="space-y-4">
             {detected === "chrome" && (
-              <BrowserSteps
-                title="Google Chrome"
-                steps={[
-                  "Look for the camera icon (🎥) in the address bar at the top right — click it.",
-                  'Select "Always allow mountainconnects.com to access your camera and microphone".',
-                  'Click "Done", then refresh the page.',
-                  "If you don't see the icon: go to Settings → Privacy and Security → Site Settings → Camera (and Microphone) → allow mountainconnects.com.",
-                ]}
-              />
+              <div>
+                <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                  <svg className="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Google Chrome — Allow Camera &amp; Microphone
+                </h4>
+
+                {/* Method 1 — quickest */}
+                <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-4 mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-secondary mb-2">Quickest Method</p>
+                  <ol className="ml-5 space-y-1.5 list-decimal">
+                    <li className="text-sm text-foreground/70">Click the <strong>lock icon</strong> or <strong>tune/sliders icon</strong> (⚙) in the address bar — it is to the left of the website URL.</li>
+                    <li className="text-sm text-foreground/70">You will see <strong>Camera</strong> and <strong>Microphone</strong> listed — change both from &quot;Block&quot; to <strong>&quot;Allow&quot;</strong>.</li>
+                    <li className="text-sm text-foreground/70">The page will automatically refresh. Click <strong>&quot;Join Video Call&quot;</strong> again.</li>
+                  </ol>
+                </div>
+
+                {/* Method 2 — address bar icon */}
+                <div className="rounded-lg border border-accent bg-gray-50 p-4 mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-2">Alternative — Camera Icon</p>
+                  <ol className="ml-5 space-y-1.5 list-decimal">
+                    <li className="text-sm text-foreground/70">Look for a <strong>camera icon with a red X</strong> on the far right side of the address bar.</li>
+                    <li className="text-sm text-foreground/70">Click it and select <strong>&quot;Always allow mountainconnects.com to access your camera and microphone&quot;</strong>.</li>
+                    <li className="text-sm text-foreground/70">Click <strong>&quot;Done&quot;</strong>, then refresh the page.</li>
+                  </ol>
+                </div>
+
+                {/* Method 3 — Chrome settings */}
+                <div className="rounded-lg border border-accent bg-gray-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-2">Via Chrome Settings</p>
+                  <ol className="ml-5 space-y-1.5 list-decimal">
+                    <li className="text-sm text-foreground/70">Copy and paste this into your address bar: <code className="rounded bg-gray-200 px-1.5 py-0.5 text-xs font-mono text-primary select-all">chrome://settings/content/camera</code></li>
+                    <li className="text-sm text-foreground/70">Make sure <strong>&quot;Sites can ask to use your camera&quot;</strong> is selected (not blocked).</li>
+                    <li className="text-sm text-foreground/70">If mountainconnects.com is listed under &quot;Not allowed&quot;, click it and change to <strong>&quot;Allow&quot;</strong>.</li>
+                    <li className="text-sm text-foreground/70">Repeat for microphone: <code className="rounded bg-gray-200 px-1.5 py-0.5 text-xs font-mono text-primary select-all">chrome://settings/content/microphone</code></li>
+                    <li className="text-sm text-foreground/70">Come back to this page and refresh.</li>
+                  </ol>
+                </div>
+              </div>
             )}
             {detected === "safari" && (
               <BrowserSteps
