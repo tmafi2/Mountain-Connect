@@ -24,6 +24,7 @@ export interface SeedApplicant {
   work_history: { role?: string; title?: string; company: string; period?: string; location?: string; start_date?: string; end_date?: string | null; description?: string }[];
   education: string | null;
   visa_status: string | null;
+  work_eligible_countries: string[] | null;
   date_of_birth: string | null;
   nationality: string | null;
   worker_resume_url: string | null;
@@ -59,6 +60,7 @@ export const seedApplicants: SeedApplicant[] = [
     ],
     education: "BSc Sport Science — Stockholm University (2021)",
     visa_status: "Working Holiday Visa (IEC)",
+    work_eligible_countries: ["Canada"],
     date_of_birth: "1999-04-12",
     nationality: "Swedish",
     worker_resume_url: "/resumes/emma-johansson-resume.pdf",
@@ -125,6 +127,7 @@ export const seedApplicants: SeedApplicant[] = [
     ],
     education: "Advanced Diploma of Hospitality — William Angliss Institute (2022)",
     visa_status: "Working Holiday Visa (subclass 417)",
+    work_eligible_countries: ["Canada"],
     date_of_birth: "2000-07-03",
     nationality: "Australian",
     worker_resume_url: "/resumes/sophie-chen-resume.pdf",

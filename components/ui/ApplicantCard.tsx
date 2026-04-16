@@ -61,6 +61,16 @@ const COUNTRY_FLAGS: Record<string, string> = {
   "Spanish": "🇪🇸", "Spain": "🇪🇸", "Swedish": "🇸🇪", "Sweden": "🇸🇪",
   "Swiss": "🇨🇭", "Switzerland": "🇨🇭", "British": "🇬🇧", "United Kingdom": "🇬🇧",
   "American": "🇺🇸", "USA": "🇺🇸", "United States": "🇺🇸",
+  "Colombian": "🇨🇴", "Colombia": "🇨🇴", "Peruvian": "🇵🇪", "Peru": "🇵🇪",
+  "Thai": "🇹🇭", "Thailand": "🇹🇭", "Filipino": "🇵🇭", "Philippines": "🇵🇭",
+  "Indian": "🇮🇳", "India": "🇮🇳", "Chinese": "🇨🇳", "China": "🇨🇳",
+  "Korean": "🇰🇷", "Korea": "🇰🇷", "Romanian": "🇷🇴", "Romania": "🇷🇴",
+  "Czech": "🇨🇿", "Czechia": "🇨🇿", "Czech Republic": "🇨🇿",
+  "Slovak": "🇸🇰", "Slovakia": "🇸🇰", "Hungarian": "🇭🇺", "Hungary": "🇭🇺",
+  "Finnish": "🇫🇮", "Finland": "🇫🇮", "Danish": "🇩🇰", "Denmark": "🇩🇰",
+  "Belgian": "🇧🇪", "Belgium": "🇧🇪", "Croatian": "🇭🇷", "Croatia": "🇭🇷",
+  "Greek": "🇬🇷", "Greece": "🇬🇷", "Turkish": "🇹🇷", "Turkey": "🇹🇷",
+  "Russian": "🇷🇺", "Russia": "🇷🇺", "Ukrainian": "🇺🇦", "Ukraine": "🇺🇦",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -74,6 +84,25 @@ const CATEGORY_LABELS: Record<string, string> = {
   cleaning_housekeeping: "Cleaning / Housekeeping",
   other: "Other",
 };
+
+const VISA_LABELS: Record<string, string> = {
+  citizen: "Citizen",
+  permanent_resident: "Permanent Resident",
+  working_holiday: "Working Holiday Visa",
+  work_visa: "Work Visa",
+  student_visa: "Student Visa",
+  no_visa: "No Visa",
+  other: "Other",
+};
+
+function formatVisaStatus(visa: string | null, countries: string[] | null): string {
+  if (!visa) return "Not specified";
+  const label = VISA_LABELS[visa] || visa;
+  if (countries && countries.length > 0) {
+    return `${label} — ${countries.join(", ")}`;
+  }
+  return label;
+}
 
 interface ApplicantCardProps {
   applicant: SeedApplicant;
@@ -177,9 +206,20 @@ export default function ApplicantCard({
               </span>
             </div>
 
-            <p className="mt-0.5 text-sm text-foreground/60">
-              {applicant.worker_location}
-            </p>
+            <div className="mt-0.5 flex items-center gap-2 text-sm text-foreground/60">
+              <span>{applicant.worker_location}</span>
+              {applicant.nationality && (
+                <>
+                  <span className="h-3 w-px bg-foreground/15" />
+                  <span className="flex items-center gap-1">
+                    {COUNTRY_FLAGS[applicant.nationality] && (
+                      <span>{COUNTRY_FLAGS[applicant.nationality]}</span>
+                    )}
+                    {applicant.nationality}
+                  </span>
+                </>
+              )}
+            </div>
 
             <p className="mt-1 text-xs text-foreground/40">
               Applied for <span className="font-medium text-foreground/60">{applicant.job_title}</span>
@@ -252,7 +292,7 @@ export default function ApplicantCard({
         {/* Bottom row */}
         <div className="mt-3 flex items-center justify-between pl-16">
           <div className="flex items-center gap-3 text-xs text-foreground/40">
-            <span>{applicant.years_experience} yrs experience</span>
+            <span>{applicant.years_experience} season{applicant.years_experience !== 1 ? "s" : ""}</span>
             <span>Applied {formatDate(applicant.applied_at)}</span>
                       {applicant.references && applicant.references.length > 0 && (
                         <>
@@ -341,7 +381,7 @@ export default function ApplicantCard({
                 <div className="grid grid-cols-4 gap-3">
                   <div className="rounded-lg bg-accent/15 p-3 text-center">
                     <p className="text-lg font-bold text-primary">{applicant.years_experience}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-foreground/50">Years Exp.</p>
+                    <p className="text-[10px] uppercase tracking-wider text-foreground/50">Seasons</p>
                   </div>
                   <div className="rounded-lg bg-accent/15 p-3 text-center">
                     <p className="text-lg font-bold text-primary">{applicant.languages.length}</p>
@@ -372,8 +412,10 @@ export default function ApplicantCard({
                     <p className="mt-1.5 text-sm font-medium text-primary">{applicant.availability}</p>
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Visa Status</h4>
-                    <p className="mt-1.5 text-sm font-medium text-primary">{applicant.visa_status}</p>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Visa / Work Eligibility</h4>
+                    <p className="mt-1.5 text-sm font-medium text-primary">
+                      {formatVisaStatus(applicant.visa_status, applicant.work_eligible_countries)}
+                    </p>
                   </div>
                 </div>
 
@@ -404,7 +446,12 @@ export default function ApplicantCard({
                 <div className="grid grid-cols-2 gap-4 rounded-lg bg-accent/10 p-4">
                   <div>
                     <p className="text-xs text-foreground/50">Nationality</p>
-                    <p className="mt-0.5 text-sm font-medium text-primary">{applicant.nationality}</p>
+                    <p className="mt-0.5 text-sm font-medium text-primary flex items-center gap-1.5">
+                      {applicant.nationality && COUNTRY_FLAGS[applicant.nationality] && (
+                        <span className="text-base">{COUNTRY_FLAGS[applicant.nationality]}</span>
+                      )}
+                      {applicant.nationality || "—"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-foreground/50">Date of Birth</p>
@@ -415,8 +462,10 @@ export default function ApplicantCard({
                     <p className="mt-0.5 text-sm font-medium text-primary">{applicant.worker_location}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-foreground/50">Visa Status</p>
-                    <p className="mt-0.5 text-sm font-medium text-primary">{applicant.visa_status}</p>
+                    <p className="text-xs text-foreground/50">Visa / Work Eligibility</p>
+                    <p className="mt-0.5 text-sm font-medium text-primary">
+                      {formatVisaStatus(applicant.visa_status, applicant.work_eligible_countries)}
+                    </p>
                   </div>
                 </div>
 

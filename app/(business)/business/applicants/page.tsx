@@ -49,7 +49,7 @@ export default function ApplicantsPage() {
         // Fetch applications
         const { data } = await supabase
           .from("applications")
-          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, date_of_birth, nationality, languages, references, cv_url)")
+          .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, work_eligible_countries, date_of_birth, nationality, languages, references, cv_url)")
           .eq("job_posts.business_id", business.id);
 
         if (data && data.length > 0) {
@@ -85,6 +85,7 @@ export default function ApplicantsPage() {
                 work_history: (wp?.work_history as { title: string; company: string; location: string; start_date: string; end_date: string | null; description: string }[]) || [],
                 education: null,
                 visa_status: (wp?.visa_status as string) || null,
+                work_eligible_countries: (wp?.work_eligible_countries as string[]) || null,
                 date_of_birth: (wp?.date_of_birth as string) || null,
                 nationality: (wp?.nationality as string) || null,
                 worker_resume_url: (a.resume_url as string) || (wp?.cv_url as string) || null,
