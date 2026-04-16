@@ -46,11 +46,20 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       url: `${BASE_URL}/jobs/${id}`,
       siteName: "Mountain Connects",
       type: "website",
+      images: [
+        {
+          url: `${BASE_URL}/opengraph-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [`${BASE_URL}/opengraph-image.jpg`],
     },
   };
 }
