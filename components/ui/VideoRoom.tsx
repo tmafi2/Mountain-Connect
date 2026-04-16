@@ -197,6 +197,32 @@ function TroubleshootingGuide() {
 
       {open && (
         <div className="border-t border-accent px-5 pb-5 pt-4">
+          {/* Mac system-level warning — most common issue */}
+          {typeof navigator !== "undefined" && navigator.platform?.includes("Mac") && (
+            <div className="mb-4 rounded-lg border-2 border-red-200 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-red-800">Mac Users — Check System Settings First!</p>
+                  <p className="mt-1 text-sm text-red-700">
+                    Even if your browser shows camera/mic as &quot;Allowed&quot;, macOS may be blocking it at the system level.
+                  </p>
+                  <ol className="mt-2 ml-5 space-y-1 list-decimal text-sm text-red-700">
+                    <li>Open <strong>System Settings</strong> (Apple menu  → System Settings)</li>
+                    <li>Go to <strong>Privacy &amp; Security → Camera</strong> — make sure <strong>{browserLabel}</strong> is toggled <strong>ON</strong></li>
+                    <li>Go to <strong>Privacy &amp; Security → Microphone</strong> — make sure <strong>{browserLabel}</strong> is toggled <strong>ON</strong></li>
+                    <li>If prompted, click <strong>&quot;Relaunch&quot;</strong> to restart your browser</li>
+                    <li>Come back to this page and click <strong>&quot;Join Video Call&quot;</strong> again</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+
           <p className="mb-4 text-sm text-foreground/60">
             We detected you are using <span className="font-medium text-primary">{browserLabel}</span>. Follow the steps below to allow camera and microphone access.
           </p>
