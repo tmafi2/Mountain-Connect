@@ -16,10 +16,19 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
   const [isFullscreen, setIsFullscreen] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
-  // Listen for fullscreen changes (including Escape key exit)
+  // Check if native Fullscreen API is supported (not on most mobile browsers)
+  const supportsNativeFullscreen = typeof document !== "undefined" && (
+    !!document.documentElement.requestFullscreen ||
+    !!(document.documentElement as HTMLElement & { webkitRequestFullscreen?: unknown }).webkitRequestFullscreen
+  );
+
+  // Listen for native fullscreen changes (desktop)
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      // If native fullscreen was exited (e.g. via Escape), sync state
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
@@ -29,29 +38,49 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
     };
   }, []);
 
-  const toggleFullscreen = useCallback(async () => {
-    const el = videoContainerRef.current;
-    if (!el) return;
+  // Lock body scroll when in CSS fullscreen (mobile)
+  useEffect(() => {
+    if (isFullscreen && !supportsNativeFullscreen) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [isFullscreen, supportsNativeFullscreen]);
 
-    try {
-      if (!document.fullscreenElement) {
-        // Try standard API first, then webkit (Safari/iOS)
+  const toggleFullscreen = useCallback(async () => {
+    if (isFullscreen) {
+      // Exit fullscreen
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+      } else if ((document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen) {
+        await (document as Document & { webkitExitFullscreen: () => Promise<void> }).webkitExitFullscreen().catch(() => {});
+      }
+      setIsFullscreen(false);
+    } else {
+      // Enter fullscreen — try native API first (desktop), fall back to CSS (mobile)
+      const el = videoContainerRef.current;
+      if (!el) return;
+
+      let wentNative = false;
+      try {
         if (el.requestFullscreen) {
           await el.requestFullscreen();
+          wentNative = true;
         } else if ((el as HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen) {
           await (el as HTMLDivElement & { webkitRequestFullscreen: () => Promise<void> }).webkitRequestFullscreen();
+          wentNative = true;
         }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen) {
-          await (document as Document & { webkitExitFullscreen: () => Promise<void> }).webkitExitFullscreen();
-        }
+      } catch {
+        // Native fullscreen denied or not supported — fall through to CSS
       }
-    } catch {
-      // Fullscreen not supported or denied
+
+      // Always set state (CSS fullscreen kicks in if native didn't work)
+      setIsFullscreen(true);
+      if (!wentNative) {
+        // Scroll to top so the fixed overlay is visible
+        window.scrollTo(0, 0);
+      }
     }
-  }, []);
+  }, [isFullscreen]);
 
   const handleJoin = async () => {
     setLoading(true);
@@ -171,20 +200,26 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
     <div>
       <div
         ref={videoContainerRef}
-        className={`overflow-hidden border border-accent bg-black ${
-          isFullscreen ? "flex flex-col" : "rounded-xl"
+        className={`overflow-hidden bg-black ${
+          isFullscreen
+            ? "fixed inset-0 z-[9999] flex flex-col"
+            : "rounded-xl border border-accent"
         }`}
+        style={isFullscreen ? { width: "100vw", height: "100vh" } : undefined}
       >
         <iframe
           src={callUrl}
           allow="camera; microphone; fullscreen; display-capture"
           allowFullScreen
           className={`w-full ${isFullscreen ? "flex-1" : "aspect-video"}`}
+          style={isFullscreen ? { minHeight: 0 } : undefined}
           title="Video Interview"
         />
-        <div className={`flex items-center justify-between border-t border-accent px-4 py-2 ${
-          isFullscreen ? "bg-gray-900" : "bg-white"
-        }`}>
+        <div className={`flex items-center justify-between px-4 py-2 shrink-0 ${
+          isFullscreen ? "bg-gray-900 safe-pb" : "border-t border-accent bg-white"
+        }`}
+          style={isFullscreen ? { paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" } : undefined}
+        >
           <p className={`text-xs ${isFullscreen ? "text-gray-400" : "text-foreground/50"}`}>
             Video call powered by Daily.co
           </p>
