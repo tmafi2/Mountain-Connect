@@ -358,8 +358,10 @@ export default function BusinessInterviewDetailPage() {
         )}
       </div>
 
-      {/* Schedule details */}
-      {interview.scheduled_date && (
+      {/* Schedule details — hidden for live (instant) interviews, since the
+          'scheduled_date' is just today's date as a placeholder and would
+          make the page look like a previously-scheduled interview. */}
+      {interview.scheduled_date && interview.status !== "live" && (
         <div className="mt-4 rounded-xl border border-accent bg-white p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
             Schedule

@@ -93,20 +93,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check there isn't already a live interview for this application
-    const { data: existingInterview } = await admin
+    // Auto-cancel any prior live interviews for this application that are
+    // still hanging around (worker never accepted, expired, etc). This lets
+    // businesses always start a fresh instant interview regardless of history.
+    await admin
       .from("interviews")
-      .select("id")
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq("application_id", application_id)
-      .eq("status", "live")
-      .maybeSingle();
-
-    if (existingInterview) {
-      return NextResponse.json(
-        { error: "A live interview already exists for this application" },
-        { status: 409 }
-      );
-    }
+      .eq("status", "live");
 
     // Insert the interview
     const roomExpiresAt = new Date(
