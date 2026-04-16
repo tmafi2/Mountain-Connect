@@ -150,7 +150,7 @@ export async function POST(request: Request) {
           type: "contract_signed",
           title: "Contract Signed",
           message: `${workerName} has signed the contract for ${jobTitle}`,
-          link: "/manage-listings",
+          link: "/business/applicants",
           metadata: { contract_id: contractId, application_id: contract.application_id },
         });
       } catch (notifErr) {
