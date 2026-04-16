@@ -101,6 +101,11 @@ function ManageListingsContent({ initialListings, initialApplicants }: ManageLis
   const [listings] = useState<ListingItem[]>(initialListings);
   const [acceptConfirm, setAcceptConfirm] = useState<ApplicantItem | null>(null);
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
+  const [templateModalJob, setTemplateModalJob] = useState<ListingItem | null>(null);
+  const [templateModalName, setTemplateModalName] = useState("");
+  const [templateModalSaving, setTemplateModalSaving] = useState(false);
+  const [templateModalError, setTemplateModalError] = useState<string | null>(null);
+  const [templateSavedToast, setTemplateSavedToast] = useState(false);
 
   const query = searchQuery.toLowerCase().trim();
 
@@ -188,6 +193,48 @@ function ManageListingsContent({ initialListings, initialApplicants }: ManageLis
     setSelectedApplicant(null);
     setApplicantSort("newest");
     setApplicantStatusFilter("all");
+  };
+
+  const openTemplateModal = (listing: ListingItem) => {
+    setTemplateModalJob(listing);
+    setTemplateModalName(listing.title);
+    setTemplateModalError(null);
+  };
+
+  const closeTemplateModal = () => {
+    if (templateModalSaving) return;
+    setTemplateModalJob(null);
+    setTemplateModalName("");
+    setTemplateModalError(null);
+  };
+
+  const confirmSaveTemplateFromJob = async () => {
+    if (!templateModalJob) return;
+    if (!templateModalName.trim()) return;
+    setTemplateModalSaving(true);
+    setTemplateModalError(null);
+
+    const res = await fetch("/api/templates/from-job", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jobId: templateModalJob.id,
+        name: templateModalName.trim(),
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTemplateModalError(data.error || "Failed to save template.");
+      setTemplateModalSaving(false);
+      return;
+    }
+
+    setTemplateModalSaving(false);
+    setTemplateModalJob(null);
+    setTemplateModalName("");
+    setTemplateSavedToast(true);
+    setTimeout(() => setTemplateSavedToast(false), 4000);
   };
 
   const activeApplicant = applicants.find((a) => a.id === selectedApplicant);
@@ -307,6 +354,28 @@ function ManageListingsContent({ initialListings, initialApplicants }: ManageLis
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openTemplateModal(listing);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          openTemplateModal(listing);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 cursor-pointer"
+                      title="Save this listing as a template for reuse"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                      </svg>
+                      Save as Template
+                    </span>
                     <span className="text-sm font-medium text-foreground/50">
                       {rawJobApplicants.length} applicant{rawJobApplicants.length !== 1 ? "s" : ""}
                     </span>
@@ -687,6 +756,61 @@ function ManageListingsContent({ initialListings, initialApplicants }: ManageLis
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Save as Template modal */}
+      {templateModalJob && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeTemplateModal}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-accent/30 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-primary">Save as Template</h3>
+            <p className="mt-1 text-sm text-foreground/60">
+              Save &ldquo;{templateModalJob.title}&rdquo; as a template so you can reuse it next season. Dates and resort will not be saved.
+            </p>
+            <input
+              type="text"
+              value={templateModalName}
+              onChange={(e) => setTemplateModalName(e.target.value)}
+              placeholder="Template name (e.g. Head Housekeeper)"
+              className="mt-4 w-full rounded-lg border border-accent/50 bg-white px-4 py-2.5 text-sm text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              autoFocus
+            />
+            {templateModalError && (
+              <p className="mt-2 text-xs text-red-600">{templateModalError}</p>
+            )}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeTemplateModal}
+                disabled={templateModalSaving}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/20 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmSaveTemplateFromJob}
+                disabled={!templateModalName.trim() || templateModalSaving}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                {templateModalSaving ? "Saving..." : "Save Template"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saved toast */}
+      {templateSavedToast && (
+        <div className="fixed bottom-6 right-6 z-[70] flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700 shadow-lg">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Template saved! Find it on the post-job page.
         </div>
       )}
     </div>
