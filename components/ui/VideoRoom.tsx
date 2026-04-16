@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface VideoRoomProps {
   interviewId: string;
@@ -13,6 +13,45 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
   const [loading, setLoading] = useState(false);
   const [callUrl, setCallUrl] = useState(roomUrl || "");
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  // Listen for fullscreen changes (including Escape key exit)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = videoContainerRef.current;
+    if (!el) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        // Try standard API first, then webkit (Safari/iOS)
+        if (el.requestFullscreen) {
+          await el.requestFullscreen();
+        } else if ((el as HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> }).webkitRequestFullscreen) {
+          await (el as HTMLDivElement & { webkitRequestFullscreen: () => Promise<void> }).webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as Document & { webkitExitFullscreen?: () => Promise<void> }).webkitExitFullscreen) {
+          await (document as Document & { webkitExitFullscreen: () => Promise<void> }).webkitExitFullscreen();
+        }
+      }
+    } catch {
+      // Fullscreen not supported or denied
+    }
+  }, []);
 
   const handleJoin = async () => {
     setLoading(true);
@@ -130,24 +169,65 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
   // Real Daily.co iframe
   return (
     <div>
-      <div className="overflow-hidden rounded-xl border border-accent">
+      <div
+        ref={videoContainerRef}
+        className={`overflow-hidden border border-accent bg-black ${
+          isFullscreen ? "flex flex-col" : "rounded-xl"
+        }`}
+      >
         <iframe
           src={callUrl}
           allow="camera; microphone; fullscreen; display-capture"
-          className="aspect-video w-full"
+          allowFullScreen
+          className={`w-full ${isFullscreen ? "flex-1" : "aspect-video"}`}
           title="Video Interview"
         />
-        <div className="flex items-center justify-between border-t border-accent bg-white px-4 py-2">
-          <p className="text-xs text-foreground/50">Video call powered by Daily.co</p>
-          <button
-            onClick={handleLeave}
-            className="rounded-lg bg-red-50 px-4 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
-          >
-            Leave Call
-          </button>
+        <div className={`flex items-center justify-between border-t border-accent px-4 py-2 ${
+          isFullscreen ? "bg-gray-900" : "bg-white"
+        }`}>
+          <p className={`text-xs ${isFullscreen ? "text-gray-400" : "text-foreground/50"}`}>
+            Video call powered by Daily.co
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleFullscreen}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                isFullscreen
+                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  : "bg-gray-100 text-foreground/70 hover:bg-gray-200"
+              }`}
+              title={isFullscreen ? "Exit Full Screen" : "Full Screen"}
+            >
+              {isFullscreen ? (
+                <>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                  </svg>
+                  Exit Full Screen
+                </>
+              ) : (
+                <>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                  </svg>
+                  Full Screen
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleLeave}
+              className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
+                isFullscreen
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-red-50 text-red-600 hover:bg-red-100"
+              }`}
+            >
+              Leave Call
+            </button>
+          </div>
         </div>
       </div>
-      <TroubleshootingGuide />
+      {!isFullscreen && <TroubleshootingGuide />}
     </div>
   );
 }
