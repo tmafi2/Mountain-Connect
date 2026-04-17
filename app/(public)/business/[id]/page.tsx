@@ -136,12 +136,12 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
   const activeJobCount = jobs?.length || 0;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
 
       {/* ═══ HERO HEADER ═══════════════════════════════════ */}
       <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-white shadow-sm">
-        {/* Cover photo / banner */}
-        <div className="h-40 relative overflow-hidden sm:h-52">
+        {/* Cover photo / banner — Facebook-style proportions */}
+        <div className="h-56 relative overflow-hidden sm:h-80">
           {business.cover_photo_url ? (
             <img
               src={business.cover_photo_url}
