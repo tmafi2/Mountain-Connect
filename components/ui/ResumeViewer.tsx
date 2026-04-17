@@ -174,7 +174,7 @@ export default function ResumeViewer({
             </div>
 
             {/* Content area */}
-            <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+            <div className="flex-1 flex items-center justify-center p-2 overflow-auto">
               {loading && (
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -203,9 +203,9 @@ export default function ResumeViewer({
                 <>
                   {isPdf ? (
                     <iframe
-                      src={signedUrl}
-                      className="w-full h-full max-w-4xl rounded-lg bg-white shadow-2xl"
-                      style={{ minHeight: "80vh" }}
+                      src={`${signedUrl}#toolbar=1&navpanes=0&view=FitH`}
+                      className="w-full h-full max-w-6xl rounded-lg bg-white shadow-2xl"
+                      style={{ minHeight: "calc(100vh - 80px)" }}
                       title="Resume Preview"
                     />
                   ) : (

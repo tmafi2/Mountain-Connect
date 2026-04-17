@@ -188,8 +188,8 @@ export default function ContractViewer({
       {pdfUrl && (
         <div className="rounded-xl border border-accent/50 bg-white overflow-hidden">
           <iframe
-            src={`${pdfUrl}#toolbar=1&navpanes=0`}
-            className="h-[500px] w-full border-0"
+            src={`${pdfUrl}#toolbar=1&navpanes=0&view=FitH`}
+            className="h-[900px] w-full border-0"
             title="Contract PDF"
           />
         </div>
