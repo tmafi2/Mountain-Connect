@@ -336,6 +336,7 @@ export default function ListingDetailPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [businessVerified, setBusinessVerified] = useState(false);
+  const [invitingApplicantId, setInvitingApplicantId] = useState<string | null>(null);
 
   // Fetch real listing + applicants from Supabase
   useEffect(() => {
@@ -685,6 +686,46 @@ export default function ListingDetailPage() {
         positionsFilled: updated.filter((a) => a.status === "accepted").length,
       };
     });
+  };
+
+  const handleInviteToInterview = async (applicantId: string) => {
+    const applicant = applicants.find((a) => a.id === applicantId);
+    if (!applicant?.applicationId) return;
+
+    setInvitingApplicantId(applicantId);
+    try {
+      const res = await fetch("/api/interviews/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: applicant.applicationId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to send invitation");
+        setInvitingApplicantId(null);
+        return;
+      }
+
+      setApplicants((prev) =>
+        prev.map((a) => (a.id === applicantId ? { ...a, status: "interview_scheduled" } : a))
+      );
+      setFilledSlots((prev) => prev.filter((sid) => sid !== applicantId));
+      setListing((prev) => {
+        if (!prev) return prev;
+        const updated = applicants.map((a) =>
+          a.id === applicantId ? { ...a, status: "interview_scheduled" as ApplicantStatus } : a
+        );
+        return {
+          ...prev,
+          interviews: updated.filter((a) => a.status === "interview_scheduled").length,
+          positionsFilled: updated.filter((a) => a.status === "accepted").length,
+        };
+      });
+    } catch {
+      alert("Failed to send invitation");
+    }
+    setInvitingApplicantId(null);
   };
 
   const handleTabClick = (tab: ActiveTab) => {
@@ -1130,10 +1171,11 @@ export default function ListingDetailPage() {
                                     Mark Reviewed
                                   </button>
                                   <button
-                                    onClick={() => { handleApplicantStatusChange(applicant.id, "interview_scheduled"); setEditingStatus(null); }}
-                                    className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100"
+                                    disabled={invitingApplicantId === applicant.id}
+                                    onClick={() => { handleInviteToInterview(applicant.id); setEditingStatus(null); }}
+                                    className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-60"
                                   >
-                                    Request Interview
+                                    {invitingApplicantId === applicant.id ? "Inviting…" : "Request Interview"}
                                   </button>
                                   {applicant.status === "rejected" && (
                                     <button
@@ -1180,10 +1222,11 @@ export default function ListingDetailPage() {
                                 </button>
                                 {applicant.status !== "interview_scheduled" && (
                                   <button
-                                    onClick={() => handleApplicantStatusChange(applicant.id, "interview_scheduled")}
-                                    className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100"
+                                    disabled={invitingApplicantId === applicant.id}
+                                    onClick={() => handleInviteToInterview(applicant.id)}
+                                    className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-60"
                                   >
-                                    Request Interview
+                                    {invitingApplicantId === applicant.id ? "Inviting…" : "Request Interview"}
                                   </button>
                                 )}
                                 <button
