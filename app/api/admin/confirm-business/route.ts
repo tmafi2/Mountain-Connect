@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
-import { sendNewMessageEmail } from "@/lib/email/send";
+import {
+  sendNewMessageEmail,
+  sendBusinessVerifiedEmail,
+  sendBusinessUnverifiedEmail,
+} from "@/lib/email/send";
+
+const DASHBOARD_URL = "https://www.mountainconnects.com/business/dashboard";
+const COMPANY_PROFILE_URL = "https://www.mountainconnects.com/business/company-profile";
 import { logAdminAction } from "@/lib/audit/log";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -88,12 +95,10 @@ export async function POST(request: Request) {
 
       const { data: bizUser } = await admin.auth.admin.getUserById(business.user_id);
       if (bizUser?.user?.email) {
-        sendNewMessageEmail({
+        sendBusinessVerifiedEmail({
           to: bizUser.user.email,
-          recipientName: business.business_name,
-          senderName: "Mountain Connects Admin",
-          messagePreview: "Your business has been verified! Your profile and job listings are now live on Mountain Connects.",
-          conversationUrl: "https://www.mountainconnects.com/business/dashboard",
+          businessName: business.business_name,
+          dashboardUrl: DASHBOARD_URL,
         }).catch(() => {});
       }
 
@@ -182,12 +187,11 @@ export async function POST(request: Request) {
 
       const { data: bizUser } = await admin.auth.admin.getUserById(business.user_id);
       if (bizUser?.user?.email) {
-        sendNewMessageEmail({
+        sendBusinessUnverifiedEmail({
           to: bizUser.user.email,
-          recipientName: business.business_name,
-          senderName: "Mountain Connects Admin",
-          messagePreview: message || "Your business verification has been removed. Your profile and job listings are no longer publicly visible. Please contact support if you have any questions.",
-          conversationUrl: "https://www.mountainconnects.com/business/company-profile",
+          businessName: business.business_name,
+          reason: message || null,
+          dashboardUrl: COMPANY_PROFILE_URL,
         }).catch(() => {});
       }
 

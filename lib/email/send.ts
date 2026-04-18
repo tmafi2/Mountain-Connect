@@ -9,6 +9,7 @@ import { applicationReceivedEmail } from "./templates/application-received";
 import { applicationStatusChangedEmail } from "./templates/application-status-changed";
 import { newApplicantEmail } from "./templates/new-applicant";
 import { businessVerifiedEmail } from "./templates/business-verified";
+import { businessUnverifiedEmail } from "./templates/business-unverified";
 import { welcomeWorkerEmail } from "./templates/welcome-worker";
 import { welcomeBusinessEmail } from "./templates/welcome-business";
 import { newMessageEmail } from "./templates/new-message";
@@ -194,6 +195,18 @@ export async function sendBusinessVerifiedEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = businessVerifiedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendBusinessUnverifiedEmail(params: {
+  to: string;
+  businessName: string;
+  reason?: string | null;
+  dashboardUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = businessUnverifiedEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 

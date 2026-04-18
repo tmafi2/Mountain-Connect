@@ -206,25 +206,31 @@ const demoApplicants: ApplicantItem[] = [
 
 /* --- Server-side data fetching --- */
 
-async function fetchListingsData(): Promise<{ listings: ListingItem[]; applicants: ApplicantItem[] }> {
+async function fetchListingsData(): Promise<{
+  listings: ListingItem[];
+  applicants: ApplicantItem[];
+  businessVerified: boolean;
+}> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       // Not logged in — show demo data
-      return { listings: demoListings, applicants: demoApplicants };
+      return { listings: demoListings, applicants: demoApplicants, businessVerified: true };
     }
 
     const { data: bp } = await supabase
       .from("business_profiles")
-      .select("id")
+      .select("id, verification_status")
       .eq("user_id", user.id)
       .single();
 
     if (!bp) {
-      return { listings: [], applicants: [] };
+      return { listings: [], applicants: [], businessVerified: false };
     }
+
+    const businessVerified = bp.verification_status === "verified";
 
     const { data: jobs } = await supabase
       .from("job_posts")
@@ -233,7 +239,7 @@ async function fetchListingsData(): Promise<{ listings: ListingItem[]; applicant
       .order("created_at", { ascending: false });
 
     if (!jobs || jobs.length === 0) {
-      return { listings: [], applicants: [] };
+      return { listings: [], applicants: [], businessVerified };
     }
 
     // Map jobs to ListingItem format
@@ -303,22 +309,23 @@ async function fetchListingsData(): Promise<{ listings: ListingItem[]; applicant
       });
     }
 
-    return { listings, applicants };
+    return { listings, applicants, businessVerified };
   } catch {
     // On error, return empty
-    return { listings: [], applicants: [] };
+    return { listings: [], applicants: [], businessVerified: false };
   }
 }
 
 /* --- Page component (server) --- */
 
 export default async function ManageListingsPage() {
-  const { listings, applicants } = await fetchListingsData();
+  const { listings, applicants, businessVerified } = await fetchListingsData();
 
   return (
     <ManageListingsClient
       initialListings={listings}
       initialApplicants={applicants}
+      businessVerified={businessVerified}
     />
   );
 }

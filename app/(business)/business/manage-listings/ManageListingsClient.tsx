@@ -56,6 +56,9 @@ export interface ApplicantItem {
 export interface ManageListingsClientProps {
   initialListings: ListingItem[];
   initialApplicants: ApplicantItem[];
+  /** Whether the current business is verified. When false, all listings are
+   *  hidden from the public regardless of status. */
+  businessVerified?: boolean;
 }
 
 /* --- Style helpers --- */
@@ -79,15 +82,15 @@ type FilterTab = "all" | "active" | "draft" | "paused" | "closed";
 
 /* --- Component --- */
 
-export default function ManageListingsClient({ initialListings, initialApplicants }: ManageListingsClientProps) {
+export default function ManageListingsClient({ initialListings, initialApplicants, businessVerified = true }: ManageListingsClientProps) {
   return (
     <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" /></div>}>
-      <ManageListingsContent initialListings={initialListings} initialApplicants={initialApplicants} />
+      <ManageListingsContent initialListings={initialListings} initialApplicants={initialApplicants} businessVerified={businessVerified} />
     </Suspense>
   );
 }
 
-function ManageListingsContent({ initialListings, initialApplicants }: ManageListingsClientProps) {
+function ManageListingsContent({ initialListings, initialApplicants, businessVerified = true }: ManageListingsClientProps) {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -343,6 +346,27 @@ function ManageListingsContent({ initialListings, initialApplicants }: ManageLis
                         <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                         {style.label}
                       </span>
+                      {/* 'Not public' indicator — listing is not visible to workers
+                          unless status is active AND the business is verified. */}
+                      {(!businessVerified || listing.status !== "active") && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700"
+                          title={
+                            !businessVerified
+                              ? "Your business is not yet verified — this listing is hidden from workers."
+                              : listing.status === "draft"
+                              ? "Drafts are only visible to you. Publish to make it live."
+                              : listing.status === "paused"
+                              ? "Paused listings are hidden from workers. Resume to make it live."
+                              : "Closed listings are hidden from workers."
+                          }
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                          </svg>
+                          Not public
+                        </span>
+                      )}
                       {listing.urgent && (
                         <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                           Urgently Hiring
