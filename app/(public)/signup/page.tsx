@@ -23,7 +23,12 @@ export default function SignupPage() {
 function SignupContent() {
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
-  const [accountType, setAccountType] = useState<AccountType>("worker");
+  // Pre-select the account type tab from the ?role= URL param so that links
+  // like /signup?role=business land on the business form by default.
+  const roleParam = searchParams.get("role");
+  const initialAccountType: AccountType =
+    roleParam === "business" ? "business" : "worker";
+  const [accountType, setAccountType] = useState<AccountType>(initialAccountType);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
