@@ -101,7 +101,7 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [applicantSort, setApplicantSort] = useState<"newest" | "oldest" | "experience" | "name">("newest");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState<"all" | ApplicantStatus>("all");
-  const [listings] = useState<ListingItem[]>(initialListings);
+  const [listings, setListings] = useState<ListingItem[]>(initialListings);
   const [acceptConfirm, setAcceptConfirm] = useState<ApplicantItem | null>(null);
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [templateModalJob, setTemplateModalJob] = useState<ListingItem | null>(null);
@@ -109,6 +109,10 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
   const [templateModalSaving, setTemplateModalSaving] = useState(false);
   const [templateModalError, setTemplateModalError] = useState<string | null>(null);
   const [templateSavedToast, setTemplateSavedToast] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccessCount, setPublishSuccessCount] = useState<number | null>(null);
 
   const query = searchQuery.toLowerCase().trim();
 
@@ -242,6 +246,32 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
 
   const activeApplicant = applicants.find((a) => a.id === selectedApplicant);
 
+  const handleConfirmPublishAllDrafts = async () => {
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const res = await fetch("/api/business/publish-drafts", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPublishError(data.error || "Failed to publish drafts.");
+        setPublishing(false);
+        return;
+      }
+      // Flip all drafts to active in local state so the UI reflects the change
+      // immediately without needing a full page refresh.
+      setListings((prev) =>
+        prev.map((l) => (l.status === "draft" ? { ...l, status: "active" } : l))
+      );
+      setPublishSuccessCount(data.publishedCount || 0);
+      setPublishModalOpen(false);
+      setTimeout(() => setPublishSuccessCount(null), 5000);
+    } catch (err) {
+      console.error("publish-drafts error:", err);
+      setPublishError("Something went wrong. Please try again.");
+    }
+    setPublishing(false);
+  };
+
   return (
     <div className="mx-auto max-w-5xl">
       {/* Corporate gradient header */}
@@ -286,6 +316,37 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
           className="w-full rounded-xl border border-accent/40 bg-white py-2.5 pl-10 pr-4 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
         />
       </div>
+
+      {/* Publish-all-drafts banner — shown when the business is verified and
+          has drafts sitting around that could go live. Common after initial
+          verification when drafts were prepared during the pending window. */}
+      {businessVerified && counts.draft > 0 && (
+        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-emerald-900">
+                You have {counts.draft} draft{counts.draft === 1 ? "" : "s"} ready to publish
+              </p>
+              <p className="mt-0.5 text-sm text-emerald-800/80">
+                Your business is verified — you can publish all of them at once instead of one by one.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setPublishError(null);
+              setPublishModalOpen(true);
+            }}
+            className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-700"
+          >
+            Publish all drafts
+          </button>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="mb-6 flex gap-2">
@@ -835,6 +896,66 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Template saved! Find it on the post-job page.
+        </div>
+      )}
+
+      {/* Publish-all-drafts confirmation modal */}
+      {publishModalOpen && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !publishing && setPublishModalOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+              <svg className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-primary">
+              Publish {counts.draft} draft{counts.draft === 1 ? "" : "s"}?
+            </h3>
+            <p className="mt-2 text-center text-sm text-foreground/60">
+              All of your draft listings will go live immediately and become visible to workers. Anyone with a matching job alert will be notified.
+            </p>
+
+            {publishError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {publishError}
+              </p>
+            )}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => !publishing && setPublishModalOpen(false)}
+                disabled={publishing}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-foreground/60 hover:bg-accent/20 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPublishAllDrafts}
+                disabled={publishing}
+                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {publishing ? "Publishing..." : "Yes, publish all"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish-all-drafts success toast */}
+      {publishSuccessCount !== null && (
+        <div className="fixed bottom-6 right-6 z-[70] flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-lg">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {publishSuccessCount === 0
+            ? "No drafts to publish."
+            : `${publishSuccessCount} listing${publishSuccessCount === 1 ? "" : "s"} published!`}
         </div>
       )}
     </div>

@@ -541,10 +541,28 @@ export default function ListingDetailPage() {
 
     try {
       const supabase = createClient();
+      // Sync the legacy is_active boolean with the new status field. The
+      // job_posts RLS policy still checks is_active = true for public read,
+      // so forgetting to flip this here silently breaks public visibility.
+      const newStatus = dbStatusMap[action];
       await supabase
         .from("job_posts")
-        .update({ status: dbStatusMap[action] })
+        .update({
+          status: newStatus,
+          is_active: newStatus === "active",
+        })
         .eq("id", listing.id);
+
+      // When a draft gets published, fire the job-alert match so workers
+      // with matching saved alerts get notified — same as when a job is
+      // first posted as active from /business/post-job.
+      if (action === "publish") {
+        fetch("/api/job-alerts/match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId: listing.id }),
+        }).catch((err) => console.error("job-alerts/match failed:", err));
+      }
     } catch (err) {
       console.error("Failed to update status:", err);
     }
