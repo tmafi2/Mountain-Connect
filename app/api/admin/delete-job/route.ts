@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAdminAction } from "@/lib/audit/log";
+import { notifyGoogleIndexing } from "@/lib/seo/google-indexing";
 
 /**
  * POST /api/admin/delete-job
@@ -58,6 +59,10 @@ export async function POST(request: Request) {
       targetId: jobId,
       details: { deleted: true, job_title: job.title, business_id: job.business_id },
     }).catch(() => {});
+
+    notifyGoogleIndexing(`https://www.mountainconnects.com/jobs/${jobId}`, "URL_DELETED").catch(
+      (err) => console.error("Google indexing notify failed:", err)
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {

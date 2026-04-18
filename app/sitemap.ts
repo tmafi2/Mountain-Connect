@@ -8,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
 
   // Fetch dynamic content in parallel
-  const [townsResult, jobsResult, blogResult] = await Promise.all([
+  const [townsResult, jobsResult, blogResult, businessResult] = await Promise.all([
     admin.from("nearby_towns").select("slug, updated_at"),
     admin
       .from("job_posts")
@@ -18,11 +18,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from("blog_posts")
       .select("slug, updated_at")
       .eq("status", "published"),
+    admin
+      .from("business_profiles")
+      .select("id, updated_at"),
   ]);
 
   const towns = townsResult.data || [];
   const jobs = jobsResult.data || [];
   const blogPosts = blogResult.data || [];
+  const businesses = businessResult.data || [];
 
   // Get unique region IDs from static resort data
   const regionIds = [...new Set(resorts.map((r) => r.region_id))];
@@ -40,6 +44,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/resorts`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
     },
     {
       url: `${BASE_URL}/welcome`,
@@ -101,6 +111,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.3,
     },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/terms`,
+      lastModified: new Date(),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/support`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.4,
+    },
   ];
 
   // Resort pages (static data, use legacy_id)
@@ -143,6 +171,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Business profile pages (from database)
+  const businessPages: MetadataRoute.Sitemap = businesses.map((biz) => ({
+    url: `${BASE_URL}/business/${biz.id}`,
+    lastModified: biz.updated_at ? new Date(biz.updated_at) : new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+
   return [
     ...staticPages,
     ...resortPages,
@@ -150,5 +186,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...townPages,
     ...jobPages,
     ...blogPages,
+    ...businessPages,
   ];
 }

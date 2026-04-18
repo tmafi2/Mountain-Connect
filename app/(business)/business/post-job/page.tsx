@@ -375,6 +375,12 @@ export default function PostJobPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId: newJob.id }),
       }).catch((err) => console.error("Failed to trigger job alert match:", err));
+
+      fetch("/api/seo/notify-job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: newJob.id, type: "URL_UPDATED" }),
+      }).catch((err) => console.error("Failed to notify Google indexing:", err));
     }
 
     router.push("/business/manage-listings");

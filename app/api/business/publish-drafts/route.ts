@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { notifyGoogleIndexing } from "@/lib/seo/google-indexing";
 
 /**
  * POST /api/business/publish-drafts
@@ -63,6 +64,10 @@ export async function POST() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ jobId: job.id }),
         }).catch((err) => console.error("job-alerts/match fire-and-forget failed:", err));
+
+        notifyGoogleIndexing(`${origin}/jobs/${job.id}`, "URL_UPDATED").catch((err) =>
+          console.error("Google indexing notify failed:", err)
+        );
       }
     }
 
