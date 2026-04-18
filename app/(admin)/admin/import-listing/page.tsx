@@ -16,6 +16,9 @@ interface ImportResult {
   claimToken: string;
   claimUrl: string;
   outreachEmail: { subject: string; body: string };
+  emailSent: boolean;
+  emailError: string | null;
+  sentTo: string;
 }
 
 const SOURCES = ["Facebook", "Seek", "Indeed", "Gumtree", "LinkedIn", "Other"];
@@ -111,8 +114,32 @@ export default function AdminImportListingPage() {
           >
             /jobs/{result.jobId.slice(0, 8)}
           </Link>
-          . Send the outreach email below to the business owner so they can claim it.
+          .
         </p>
+
+        {/* Email send status */}
+        {result.emailSent ? (
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <span className="text-lg leading-none text-green-700">✓</span>
+            <div>
+              <p className="text-sm font-semibold text-green-800">Outreach email sent</p>
+              <p className="mt-0.5 text-xs text-green-700/80">
+                Sent from <code className="font-mono">tyler@mountainconnects.com</code> to{" "}
+                <code className="font-mono">{result.sentTo}</code>.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <span className="text-lg leading-none text-amber-700">!</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Email did not send automatically</p>
+              <p className="mt-0.5 text-xs text-amber-700/80">
+                {result.emailError || "Unknown error"}. Copy the email below and send it manually.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Claim URL */}
         <div className="mt-6 rounded-xl border border-accent bg-white p-5 shadow-sm">
@@ -135,42 +162,44 @@ export default function AdminImportListingPage() {
           </div>
         </div>
 
-        {/* Outreach email */}
-        <div className="mt-6 rounded-xl border border-accent bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-              Outreach Email
-            </label>
-            <button
-              type="button"
-              onClick={() =>
-                copy(
-                  `Subject: ${result.outreachEmail.subject}\n\n${result.outreachEmail.body}`,
-                  "email"
-                )
-              }
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
-                copyState.email
-                  ? "border-green-200 bg-green-50 text-green-700"
-                  : "border-accent bg-white text-foreground/70 hover:bg-accent/20"
-              }`}
-            >
-              {copyState.email ? "✓ Copied" : "Copy email"}
-            </button>
-          </div>
-          <div className="mt-3 space-y-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-foreground/40">Subject</p>
-              <p className="mt-1 font-medium text-primary">{result.outreachEmail.subject}</p>
+        {/* Outreach email — fallback when auto-send fails */}
+        {!result.emailSent && (
+          <div className="mt-6 rounded-xl border border-accent bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                Outreach Email (fallback)
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  copy(
+                    `Subject: ${result.outreachEmail.subject}\n\n${result.outreachEmail.body}`,
+                    "email"
+                  )
+                }
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                  copyState.email
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-accent bg-white text-foreground/70 hover:bg-accent/20"
+                }`}
+              >
+                {copyState.email ? "✓ Copied" : "Copy email"}
+              </button>
             </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-foreground/40">Body</p>
-              <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-accent/50 bg-background p-4 font-sans text-sm text-foreground/80">
-                {result.outreachEmail.body}
-              </pre>
+            <div className="mt-3 space-y-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-foreground/40">Subject</p>
+                <p className="mt-1 font-medium text-primary">{result.outreachEmail.subject}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-foreground/40">Body</p>
+                <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-accent/50 bg-background p-4 font-sans text-sm text-foreground/80">
+                  {result.outreachEmail.body}
+                </pre>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="mt-6 flex flex-wrap items-center gap-3">

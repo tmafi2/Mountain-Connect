@@ -26,8 +26,11 @@ import { instantInterviewDeclinedEmail } from "./templates/instant-interview-dec
 import { instantInterviewRescheduledEmail } from "./templates/instant-interview-rescheduled";
 import { contractSentEmail } from "./templates/contract-sent";
 import { contractSignedEmail } from "./templates/contract-signed";
+import { importOutreachEmail } from "./templates/import-outreach";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
+const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
+const TYLER_REPLY_TO = "tyler@mountainconnects.com";
 
 export async function sendInterviewInviteEmail(params: {
   to: string;
@@ -415,4 +418,24 @@ export async function sendContractSignedEmail(params: {
   if (!resend) return null;
   const { subject, html } = contractSignedEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendImportOutreachEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  source: string;
+  claimUrl: string;
+  eoiCount: number;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = importOutreachEmail(params);
+  return resend.emails.send({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
 }

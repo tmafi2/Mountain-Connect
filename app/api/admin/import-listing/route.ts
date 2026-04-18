@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAdminAction } from "@/lib/audit/log";
+import { sendImportOutreachEmail } from "@/lib/email/send";
 
 /**
  * Resolve the site origin for the generated claim URL. Prefer the incoming
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
       details: { imported: true, job_id: job.id, source, business_name: businessName, email },
     }).catch(() => {});
 
-    // Build the outreach email text the admin will copy
+    // Build the outreach email text (kept for the response so the UI can preview / fall back)
     const claimUrl = `${resolveOrigin(request)}/claim/${claimToken}`;
     const outreachEmail = buildOutreachEmail({
       businessName: businessName.trim(),
@@ -168,6 +169,25 @@ export async function POST(request: Request) {
       eoiCount: 0,
     });
 
+    // Send the outreach email automatically from tyler@mountainconnects.com
+    let emailSent = false;
+    let emailError: string | null = null;
+    try {
+      const result = await sendImportOutreachEmail({
+        to: email,
+        businessName: businessName.trim(),
+        jobTitle: title.trim(),
+        source,
+        claimUrl,
+        eoiCount: 0,
+      });
+      emailSent = !!result;
+      if (!result) emailError = "Email service is not configured";
+    } catch (err) {
+      console.error("Failed to send import outreach email:", err);
+      emailError = err instanceof Error ? err.message : "Unknown email error";
+    }
+
     return NextResponse.json({
       success: true,
       businessId,
@@ -175,6 +195,9 @@ export async function POST(request: Request) {
       claimToken,
       claimUrl,
       outreachEmail,
+      emailSent,
+      emailError,
+      sentTo: email,
     });
   } catch (err) {
     console.error("Import listing error:", err);
