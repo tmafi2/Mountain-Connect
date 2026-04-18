@@ -195,6 +195,34 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
     setActionLoading(null);
   };
 
+  const handleInviteToInterview = async (applicantId: string) => {
+    const applicant = applicants.find((a) => a.id === applicantId);
+    if (!applicant?.applicationId) return;
+
+    setActionLoading(applicantId + "interview_scheduled");
+    try {
+      const res = await fetch("/api/interviews/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: applicant.applicationId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to send invitation");
+        setActionLoading(null);
+        return;
+      }
+
+      setApplicants((prev) =>
+        prev.map((a) => (a.id === applicantId ? { ...a, status: "interview_scheduled" } : a))
+      );
+    } catch {
+      alert("Failed to send invitation");
+    }
+    setActionLoading(null);
+  };
+
   const toggleListing = (id: string) => {
     setExpandedListing(expandedListing === id ? null : id);
     setSelectedApplicant(null);
@@ -713,11 +741,11 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
                                       Mark Reviewed
                                     </button>
                                     <button
-                                      onClick={() => { handleStatusChange(activeApplicant.id, "interview_scheduled"); setEditingStatus(null); }}
+                                      onClick={() => { handleInviteToInterview(activeApplicant.id); setEditingStatus(null); }}
                                       disabled={actionLoading !== null}
                                       className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
                                     >
-                                      Request Interview
+                                      {actionLoading === activeApplicant.id + "interview_scheduled" ? "Inviting…" : "Request Interview"}
                                     </button>
                                     {activeApplicant.status === "rejected" && (
                                       <button
@@ -766,11 +794,11 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
                                   </button>
                                   {activeApplicant.status !== "interview_scheduled" && (
                                     <button
-                                      onClick={() => handleStatusChange(activeApplicant.id, "interview_scheduled")}
+                                      onClick={() => handleInviteToInterview(activeApplicant.id)}
                                       disabled={actionLoading !== null}
                                       className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 transition-all hover:bg-purple-100 hover:-translate-y-0.5 disabled:opacity-50"
                                     >
-                                      {actionLoading === activeApplicant.id + "interview_scheduled" ? "Requesting..." : "Request Interview"}
+                                      {actionLoading === activeApplicant.id + "interview_scheduled" ? "Inviting…" : "Request Interview"}
                                     </button>
                                   )}
                                   <button
