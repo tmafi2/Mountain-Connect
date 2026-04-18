@@ -55,13 +55,14 @@ supabase/
 - `saved_jobs`, `job_alerts` — worker features
 
 ## Business Registration Flow
-New businesses go through an admin approval gate:
+Businesses can post listings regardless of verification state. Verification is a trust signal, not a gate.
 1. Sign up (with resort selection) → email confirmation
 2. Onboarding creates business_profiles with `verification_status: "pending_review"`
-3. Business can set up profile and create DRAFT job listings only
+3. Business can immediately create + publish active job listings (previously draft-only). Their jobs and profile are publicly visible right away.
 4. Admin reviews at `/admin/registrations` → approve/reject/request info
-5. On approval: status → "verified", profile and jobs go public, celebration shown
-6. Public pages only show jobs from verified businesses
+5. On verification: status → "verified", green "Verified" badge appears on their profile + job listings + the employers directory; celebration shown
+6. Unverified businesses still show publicly but with an amber "Not yet verified" note on their profile page so workers know the business hasn't been vetted
+7. Admins can verify/unverify any business at any time from `/admin/businesses`
 
 ## Current Feature Status
 - **Messaging:** Disabled — shows "Coming Soon" placeholder. Backend code preserved but has RLS race condition issues. DB tables and triggers exist.

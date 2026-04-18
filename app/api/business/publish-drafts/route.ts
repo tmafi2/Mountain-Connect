@@ -11,8 +11,6 @@ import { createClient } from "@/lib/supabase/server";
  * Requirements:
  *  - User must be authenticated
  *  - User must own a business_profile
- *  - The business must be verified (RLS already prevents their jobs from
- *    being public otherwise, so publishing while unverified is pointless)
  *
  * Sets BOTH status="active" AND is_active=true. The is_active sync is
  * important because the job_posts RLS policy "Anyone can view active jobs"
@@ -27,22 +25,15 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Look up the current user's business + verification status
+    // Look up the current user's business
     const { data: business } = await supabase
       .from("business_profiles")
-      .select("id, verification_status")
+      .select("id")
       .eq("user_id", user.id)
       .single();
 
     if (!business) {
       return NextResponse.json({ error: "Business profile not found" }, { status: 404 });
-    }
-
-    if (business.verification_status !== "verified") {
-      return NextResponse.json(
-        { error: "Your business must be verified before publishing listings." },
-        { status: 403 }
-      );
     }
 
     // Update all the business's drafts to active in one go.

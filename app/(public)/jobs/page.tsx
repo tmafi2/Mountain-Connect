@@ -16,13 +16,14 @@ export default async function FindAJobPage() {
 
   try {
     const supabase = await createClient();
+    // Show every active job regardless of the business's verification status.
+    // We still expose the verified state on each row so the UI can badge them.
     const { data } = await supabase
       .from("job_posts")
       .select(
         "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country), nearby_towns(name, slug)"
       )
-      .eq("status", "active")
-      .eq("business_profiles.verification_status", "verified");
+      .eq("status", "active");
 
     if (data && data.length > 0) {
       jobs = data.map((j: Record<string, unknown>) => {

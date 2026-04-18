@@ -445,7 +445,7 @@ const WORKER_FEATURES: FeatureItem[] = [
   {
     accent: "highlight",
     title: "Jobs at 69 resorts worldwide",
-    description: "From Thredbo to Whistler to Niseko. Every listing is from a verified business — no scams, no ghost jobs.",
+    description: "From Thredbo to Whistler to Niseko. Real listings from real ski-resort businesses — verified employers get a trust badge so you know who's vetted.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

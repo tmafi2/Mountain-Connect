@@ -1168,18 +1168,10 @@ export default function PostJobPage() {
         </div>
       </div>
 
-      {/* Pending approval banner */}
-      {!businessVerified && businessId && inLaunchLoc && (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
-          <svg className="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-          Your account is pending approval. Job listings will be saved as drafts and can be published once your registration is confirmed.
-        </div>
-      )}
-
-      {/* Launching soon banner for non-launch locations */}
-      {!businessVerified && businessId && !inLaunchLoc && (
+      {/* Launching soon banner — shown when the business is based outside
+          our current launch region. Job posts still work, just won't rank
+          alongside active-region ones yet. */}
+      {businessId && !inLaunchLoc && (
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex items-center gap-2">
           <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1229,30 +1221,20 @@ export default function PostJobPage() {
             {savingTemplate ? "Saving..." : "Save as Template"}
           </button>
         </div>
-        {businessVerified ? (
-          <button
-            onClick={handlePost}
-            disabled={posting || !form.title.trim()}
-            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
-          >
-            {posting ? (
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Posting...
-              </span>
-            ) : (
-              "Post Job"
-            )}
-          </button>
-        ) : (
-          <button
-            onClick={handleSaveDraft}
-            disabled={savingDraft || !form.title.trim()}
-            className="rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-amber-600 hover:-translate-y-0.5 disabled:opacity-50"
-          >
-            {savingDraft ? "Saving..." : "Save as Draft (Pending Approval)"}
-          </button>
-        )}
+        <button
+          onClick={handlePost}
+          disabled={posting || !form.title.trim()}
+          className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
+        >
+          {posting ? (
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              Posting...
+            </span>
+          ) : (
+            "Post Job"
+          )}
+        </button>
       </div>
 
       {/* Template naming modal */}

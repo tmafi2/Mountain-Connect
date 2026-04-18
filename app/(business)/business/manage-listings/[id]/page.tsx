@@ -712,22 +712,15 @@ export default function ListingDetailPage() {
   ];
 
   // Decide whether this listing is actually visible to the public.
-  // A listing only appears to unauthenticated visitors when:
-  //  • the job's status is "active" (RLS policy "Anyone can view active jobs"), AND
-  //  • the business is verified (per product spec: public pages only show verified employers)
-  const isPubliclyVisible = listing.status === "active" && businessVerified;
+  // A listing appears to unauthenticated visitors when its status is "active"
+  // (RLS policy "Anyone can view active jobs"). Verified vs unverified businesses
+  // are all publicly visible now — verification just drives the badge.
+  const isPubliclyVisible = listing.status === "active";
 
   // Build a helpful explanation for the banner when the listing is not public.
   let notVisibleReason: { title: string; message: string; action?: { href: string; label: string } } | null = null;
   if (!isPubliclyVisible) {
-    if (!businessVerified) {
-      notVisibleReason = {
-        title: "Your business is pending verification",
-        message:
-          "Your listings stay private until our team verifies your business. Once approved, any active listings become visible to workers automatically. Check your email — we usually approve new businesses within 48 hours.",
-        action: { href: "/business/company-profile", label: "Review company profile" },
-      };
-    } else if (listing.status === "draft") {
+    if (listing.status === "draft") {
       notVisibleReason = {
         title: "This listing is a draft — not yet public",
         message:
@@ -1828,9 +1821,7 @@ export default function ListingDetailPage() {
           // available once their listing goes live.
           <>
             <p className="mt-2 text-sm text-foreground/60">
-              {!businessVerified
-                ? "Sharing unlocks as soon as your business is verified and this listing is active."
-                : listing.status === "draft"
+              {listing.status === "draft"
                 ? "Publish this listing to start sharing it with workers."
                 : listing.status === "paused"
                 ? "Resume this listing to start sharing it again."

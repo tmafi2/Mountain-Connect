@@ -317,10 +317,9 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
         />
       </div>
 
-      {/* Publish-all-drafts banner — shown when the business is verified and
-          has drafts sitting around that could go live. Common after initial
-          verification when drafts were prepared during the pending window. */}
-      {businessVerified && counts.draft > 0 && (
+      {/* Publish-all-drafts banner — shown whenever there are drafts ready
+          to go live. Common after prepping a batch of roles to post at once. */}
+      {counts.draft > 0 && (
         <div className="mb-5 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -331,7 +330,7 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
                 You have {counts.draft} draft{counts.draft === 1 ? "" : "s"} ready to publish
               </p>
               <p className="mt-0.5 text-sm text-emerald-800/80">
-                Your business is verified — you can publish all of them at once instead of one by one.
+                Publish them all at once instead of opening each one individually.
               </p>
             </div>
           </div>
@@ -407,15 +406,14 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
                         <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                         {style.label}
                       </span>
-                      {/* 'Not public' indicator — listing is not visible to workers
-                          unless status is active AND the business is verified. */}
-                      {(!businessVerified || listing.status !== "active") && (
+                      {/* 'Not public' indicator — only when the listing itself
+                          is not active (draft/paused/closed). Unverified businesses
+                          with active listings are public, just without a verified badge. */}
+                      {listing.status !== "active" && (
                         <span
                           className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700"
                           title={
-                            !businessVerified
-                              ? "Your business is not yet verified — this listing is hidden from workers."
-                              : listing.status === "draft"
+                            listing.status === "draft"
                               ? "Drafts are only visible to you. Publish to make it live."
                               : listing.status === "paused"
                               ? "Paused listings are hidden from workers. Resume to make it live."
