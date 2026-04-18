@@ -137,16 +137,17 @@ export default function AdminBusinessesPage() {
     if (!selected) return;
     setDeleting(true);
     try {
-      const supabase = createClient();
+      // Use the server-side admin API so RLS can't block the delete and
+      // we can also clean up the auth user + linked users row in one shot.
+      const res = await fetch("/api/admin/delete-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: selected.id }),
+      });
+      const data = await res.json();
 
-      // Delete related job posts first
-      await supabase.from("job_posts").delete().eq("business_id", selected.id);
-
-      // Delete the business profile
-      const { error } = await supabase.from("business_profiles").delete().eq("id", selected.id);
-
-      if (error) {
-        alert("Error deleting business: " + error.message);
+      if (!res.ok || !data.success) {
+        alert("Error deleting business: " + (data.error || "Unknown error"));
         setDeleting(false);
         return;
       }

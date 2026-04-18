@@ -107,13 +107,25 @@ export default function AdminJobsPage() {
     if (!selected) return;
     setDeleting(true);
     try {
-      const supabase = createClient();
-      await supabase.from("job_posts").delete().eq("id", selected.id);
+      const res = await fetch("/api/admin/delete-job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: selected.id }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert("Error deleting job: " + (data.error || "Unknown error"));
+        setDeleting(false);
+        return;
+      }
+
       setJobs((prev) => prev.filter((j) => j.id !== selected.id));
       setSelected(null);
       setShowDeleteConfirm(false);
     } catch (err) {
       console.error("Failed to delete job:", err);
+      alert("Failed to delete job. Please try again.");
     }
     setDeleting(false);
   };
