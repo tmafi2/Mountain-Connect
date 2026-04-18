@@ -89,6 +89,7 @@ const organizationJsonLd = {
     "The seasonal worker platform for ski resorts. Find winter jobs at ski resorts worldwide.",
   sameAs: [
     "https://www.facebook.com/MountainConnects",
+    "https://www.instagram.com/mountain.connects/",
   ],
 };
 
