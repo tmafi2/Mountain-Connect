@@ -335,6 +335,7 @@ export default function ListingDetailPage() {
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  const [businessVerified, setBusinessVerified] = useState(false);
 
   // Fetch real listing + applicants from Supabase
   useEffect(() => {
@@ -343,6 +344,15 @@ export default function ListingDetailPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { setPageLoading(false); return; }
+
+        // Fetch the current user's business verification status so we know
+        // whether their listings are actually live to the public.
+        const { data: bpData } = await supabase
+          .from("business_profiles")
+          .select("verification_status")
+          .eq("user_id", user.id)
+          .single();
+        setBusinessVerified(bpData?.verification_status === "verified");
 
         // Fetch the listing
         const { data: jobData } = await supabase
@@ -683,6 +693,43 @@ export default function ListingDetailPage() {
     { value: "rejected", label: "Unsuccessful" },
   ];
 
+  // Decide whether this listing is actually visible to the public.
+  // A listing only appears to unauthenticated visitors when:
+  //  • the job's status is "active" (RLS policy "Anyone can view active jobs"), AND
+  //  • the business is verified (per product spec: public pages only show verified employers)
+  const isPubliclyVisible = listing.status === "active" && businessVerified;
+
+  // Build a helpful explanation for the banner when the listing is not public.
+  let notVisibleReason: { title: string; message: string; action?: { href: string; label: string } } | null = null;
+  if (!isPubliclyVisible) {
+    if (!businessVerified) {
+      notVisibleReason = {
+        title: "Your business is pending verification",
+        message:
+          "Your listings stay private until our team verifies your business. Once approved, any active listings become visible to workers automatically. Check your email — we usually approve new businesses within 48 hours.",
+        action: { href: "/business/company-profile", label: "Review company profile" },
+      };
+    } else if (listing.status === "draft") {
+      notVisibleReason = {
+        title: "This listing is a draft — not yet public",
+        message:
+          "Drafts are only visible to you. Click Publish Listing below to make it visible to workers and shareable on social media.",
+      };
+    } else if (listing.status === "paused") {
+      notVisibleReason = {
+        title: "This listing is paused — not visible to workers",
+        message:
+          "Paused listings don't appear in search or accept new applications. Click Resume Listing to make it live again.",
+      };
+    } else if (listing.status === "closed") {
+      notVisibleReason = {
+        title: "This listing is closed — not accepting applications",
+        message:
+          "Closed listings aren't visible to workers. Click Reopen Listing if you'd like to start accepting applications again.",
+      };
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       {/* Back link */}
@@ -715,6 +762,31 @@ export default function ListingDetailPage() {
           </p>
         </div>
       </div>
+
+      {/* Visibility banner — tells business owners when their listing is private */}
+      {notVisibleReason && (
+        <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+          <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-900">
+              Not publicly visible
+            </p>
+            <p className="mt-0.5 text-sm text-amber-800">
+              <span className="font-medium">{notVisibleReason.title}.</span> {notVisibleReason.message}
+            </p>
+            {notVisibleReason.action && (
+              <Link
+                href={notVisibleReason.action.href}
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-900 underline hover:text-amber-950"
+              >
+                {notVisibleReason.action.label} →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Action bar */}
       <div className="mt-5 flex flex-wrap gap-2">
@@ -1641,83 +1713,158 @@ export default function ListingDetailPage() {
 
       {/* ─── Share Listing ─── */}
       <div className="mt-6 rounded-xl border border-accent bg-white p-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Share Listing</h2>
-        <p className="mt-2 text-sm text-foreground/60">
-          Share this listing on social media or copy the link to post anywhere.
-        </p>
-
-        {/* Link preview */}
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-accent bg-accent/5 px-3 py-2">
-          <span className="min-w-0 flex-1 truncate text-sm text-foreground/60">
-            mountainconnects.com/jobs/{listing.id.slice(0, 8)}...
-          </span>
-          <button
-            onClick={async () => {
-              const url = `https://www.mountainconnects.com/jobs/${listing.id}`;
-              await navigator.clipboard.writeText(url);
-              setCopiedLink(true);
-              setTimeout(() => setCopiedLink(false), 2000);
-            }}
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              copiedLink
-                ? "bg-green-50 border border-green-200 text-green-700"
-                : "bg-white border border-accent text-foreground/60 hover:bg-accent/20 hover:text-primary"
-            }`}
-          >
-            {copiedLink ? (
-              <span className="flex items-center gap-1">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Copied!
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                </svg>
-                Copy Link
-              </span>
-            )}
-          </button>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">Share Listing</h2>
+          {!isPubliclyVisible && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+              Sharing locked
+            </span>
+          )}
         </div>
 
-        {/* Share buttons */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <a
-            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://www.mountainconnects.com/jobs/${listing.id}`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1877F2] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#166FE5] hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-            Facebook
-          </a>
-          <a
-            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://www.mountainconnects.com/jobs/${listing.id}`)}&text=${encodeURIComponent(`We're hiring: ${listing.title}! Apply now on Mountain Connects`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-            X / Twitter
-          </a>
-          <a
-            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://www.mountainconnects.com/jobs/${listing.id}`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0A66C2] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#004182] hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-            </svg>
-            LinkedIn
-          </a>
-        </div>
+        {isPubliclyVisible ? (
+          <>
+            <p className="mt-2 text-sm text-foreground/60">
+              Share this listing on social media or copy the link to post anywhere.
+            </p>
+
+            {/* Link preview */}
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-accent bg-accent/5 px-3 py-2">
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground/60">
+                mountainconnects.com/jobs/{listing.id.slice(0, 8)}...
+              </span>
+              <button
+                onClick={async () => {
+                  const url = `https://www.mountainconnects.com/jobs/${listing.id}`;
+                  await navigator.clipboard.writeText(url);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                  copiedLink
+                    ? "bg-green-50 border border-green-200 text-green-700"
+                    : "bg-white border border-accent text-foreground/60 hover:bg-accent/20 hover:text-primary"
+                }`}
+              >
+                {copiedLink ? (
+                  <span className="flex items-center gap-1">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    Copy Link
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Share buttons */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://www.mountainconnects.com/jobs/${listing.id}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#1877F2] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#166FE5] hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                Facebook
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://www.mountainconnects.com/jobs/${listing.id}`)}&text=${encodeURIComponent(`We're hiring: ${listing.title}! Apply now on Mountain Connects`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                X / Twitter
+              </a>
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://www.mountainconnects.com/jobs/${listing.id}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#0A66C2] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#004182] hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+                LinkedIn
+              </a>
+            </div>
+          </>
+        ) : (
+          // Share section is locked because the listing isn't public yet.
+          // We still SHOW the buttons (disabled) so users understand what'll be
+          // available once their listing goes live.
+          <>
+            <p className="mt-2 text-sm text-foreground/60">
+              {!businessVerified
+                ? "Sharing unlocks as soon as your business is verified and this listing is active."
+                : listing.status === "draft"
+                ? "Publish this listing to start sharing it with workers."
+                : listing.status === "paused"
+                ? "Resume this listing to start sharing it again."
+                : "This listing must be active before it can be shared."}
+            </p>
+
+            {/* Dimmed/disabled link preview */}
+            <div
+              className="mt-3 flex items-center gap-2 rounded-lg border border-accent bg-accent/10 px-3 py-2 opacity-60"
+              aria-disabled="true"
+              title="Sharing is locked until this listing is publicly visible."
+            >
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground/40">
+                mountainconnects.com/jobs/{listing.id.slice(0, 8)}...
+              </span>
+              <button
+                type="button"
+                disabled
+                className="shrink-0 cursor-not-allowed rounded-lg border border-accent bg-white px-3 py-1.5 text-xs font-medium text-foreground/40"
+              >
+                <span className="flex items-center gap-1">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  Locked
+                </span>
+              </button>
+            </div>
+
+            {/* Dimmed/disabled share buttons */}
+            <div className="mt-3 flex flex-wrap gap-2" aria-disabled="true">
+              {[
+                { label: "Facebook", bg: "bg-[#1877F2]/50" },
+                { label: "X / Twitter", bg: "bg-black/50" },
+                { label: "LinkedIn", bg: "bg-[#0A66C2]/50" },
+              ].map((btn) => (
+                <button
+                  key={btn.label}
+                  type="button"
+                  disabled
+                  title="Sharing is locked until this listing is publicly visible."
+                  className={`inline-flex cursor-not-allowed items-center gap-2 rounded-xl ${btn.bg} px-4 py-2.5 text-sm font-semibold text-white opacity-70`}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* ─── Accept Confirmation Modal ─── */}
