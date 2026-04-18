@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications/create";
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
   // Get business info for notifications
   const { data: businessProfile } = await admin
     .from("business_profiles")
-    .select("id, user_id, business_name")
+    .select("id, user_id, business_name, timezone")
     .eq("id", interview.business_id)
     .single();
 
@@ -124,19 +125,13 @@ export async function POST(request: NextRequest) {
   const jobTitle = job?.title || "the position";
   const origin = request.headers.get("origin") || "http://localhost:3000";
 
-  const formatTime12 = (t: string) => {
-    const [h, m] = t.split(":");
-    const hour = parseInt(h);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    return `${hour % 12 || 12}:${m} ${ampm}`;
-  };
-
-  const formattedDate = new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  // Convert the booked time into the business's local timezone for their notifications
+  const businessTz = businessProfile?.timezone || timezone || "UTC";
+  const startUtc = fromZonedTime(`${date}T${start_time}:00`, timezone || "UTC");
+  const endUtc = fromZonedTime(`${date}T${end_time}:00`, timezone || "UTC");
+  const bizDate = formatInTimeZone(startUtc, businessTz, "EEEE, MMMM d, yyyy");
+  const bizStart = formatInTimeZone(startUtc, businessTz, "h:mm a");
+  const bizEnd = formatInTimeZone(endUtc, businessTz, "h:mm a");
 
   // Notify business
   if (businessProfile) {
@@ -144,7 +139,7 @@ export async function POST(request: NextRequest) {
       userId: businessProfile.user_id,
       type: "interview_scheduled",
       title: "Interview Booked",
-      message: `${workerName} has booked their interview for ${jobTitle} on ${formattedDate} at ${formatTime12(start_time)}.`,
+      message: `${workerName} has booked their interview for ${jobTitle} on ${bizDate} at ${bizStart}.`,
       link: `/business/interviews/${interview.id}`,
       metadata: { interview_id: interview.id },
     });
@@ -157,21 +152,26 @@ export async function POST(request: NextRequest) {
         recipientName: businessProfile.business_name,
         otherPartyName: workerName,
         jobTitle,
-        date: formattedDate,
-        startTime: formatTime12(start_time),
-        endTime: formatTime12(end_time),
-        timezone,
+        date: bizDate,
+        startTime: bizStart,
+        endTime: bizEnd,
+        timezone: businessTz,
         interviewUrl: `${origin}/business/interviews/${interview.id}`,
       }).catch((err) => console.error("Failed to send business confirmation email:", err));
     }
   }
 
-  // Notify worker (confirmation)
+  // Worker notifications stay in the timezone they selected at booking time
+  const workerTz = timezone || "UTC";
+  const workerDate = formatInTimeZone(startUtc, workerTz, "EEEE, MMMM d, yyyy");
+  const workerStart = formatInTimeZone(startUtc, workerTz, "h:mm a");
+  const workerEnd = formatInTimeZone(endUtc, workerTz, "h:mm a");
+
   await createNotification({
     userId: workerProfile.user_id,
     type: "interview_scheduled",
     title: "Interview Confirmed",
-    message: `Your interview for ${jobTitle} with ${businessProfile?.business_name || "the business"} is confirmed for ${formattedDate} at ${formatTime12(start_time)}.`,
+    message: `Your interview for ${jobTitle} with ${businessProfile?.business_name || "the business"} is confirmed for ${workerDate} at ${workerStart}.`,
     link: `/interviews/${interview.id}`,
     metadata: { interview_id: interview.id },
   });
@@ -182,10 +182,10 @@ export async function POST(request: NextRequest) {
     recipientName: workerName,
     otherPartyName: businessProfile?.business_name || "the business",
     jobTitle,
-    date: formattedDate,
-    startTime: formatTime12(start_time),
-    endTime: formatTime12(end_time),
-    timezone,
+    date: workerDate,
+    startTime: workerStart,
+    endTime: workerEnd,
+    timezone: workerTz,
     interviewUrl: `${origin}/interviews/${interview.id}`,
   }).catch((err) => console.error("Failed to send worker confirmation email:", err));
 
