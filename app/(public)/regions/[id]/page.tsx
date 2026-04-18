@@ -1,10 +1,53 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { regions } from "@/lib/data/regions";
 import { resorts } from "@/lib/data/resorts";
 
 interface RegionPageProps {
   params: Promise<{ id: string }>;
+}
+
+const BASE_URL = "https://www.mountainconnects.com";
+
+export async function generateMetadata({ params }: RegionPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const region = regions.find((r) => r.id === id);
+
+  if (!region) return { title: "Region Not Found | Mountain Connects" };
+
+  const resortCount = resorts.filter((r) => r.region_id === id).length;
+  const title = `Ski Resort Jobs in ${region.name}`;
+  const description = resortCount > 0
+    ? `${region.description} Browse seasonal jobs at ${resortCount} resort${resortCount === 1 ? "" : "s"} across ${region.name}.`
+    : `${region.description} Explore seasonal work opportunities across ${region.name}.`;
+
+  return {
+    title: `${title} | Mountain Connects`,
+    description: description.slice(0, 160),
+    alternates: { canonical: `${BASE_URL}/regions/${id}` },
+    openGraph: {
+      title,
+      description: description.slice(0, 160),
+      url: `${BASE_URL}/regions/${id}`,
+      siteName: "Mountain Connects",
+      type: "website",
+      images: [
+        {
+          url: `${BASE_URL}/opengraph-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: description.slice(0, 160),
+      images: [`${BASE_URL}/opengraph-image.jpg`],
+    },
+  };
 }
 
 export default async function RegionDetailPage({ params }: RegionPageProps) {
@@ -17,7 +60,22 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
 
   const regionResorts = resorts.filter((r) => r.region_id === id);
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+      { "@type": "ListItem", position: 2, name: "Regions", item: `${BASE_URL}/regions` },
+      { "@type": "ListItem", position: 3, name: region.name, item: `${BASE_URL}/regions/${id}` },
+    ],
+  };
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+    />
     <div className="mx-auto max-w-7xl px-6 py-16">
       <Link
         href="/regions"
@@ -63,5 +121,6 @@ export default async function RegionDetailPage({ params }: RegionPageProps) {
         </div>
       )}
     </div>
+    </>
   );
 }

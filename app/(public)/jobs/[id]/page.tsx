@@ -101,9 +101,35 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
   // JobPosting JSON-LD structured data
   const employmentType = job.position_type === "full_time" ? "FULL_TIME" : job.position_type === "part_time" ? "PART_TIME" : "TEMPORARY";
+
+  const parseSalary = (raw: string | null | undefined): { min?: number; max?: number } | null => {
+    if (!raw) return null;
+    const cleaned = raw.replace(/[^\d.\-–—]/g, "").replace(/[–—]/g, "-");
+    const range = cleaned.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/);
+    if (range) return { min: parseFloat(range[1]), max: parseFloat(range[2]) };
+    const single = cleaned.match(/^(\d+(?:\.\d+)?)$/);
+    if (single) return { min: parseFloat(single[1]), max: parseFloat(single[1]) };
+    return null;
+  };
+  const salary = parseSalary(job.pay_amount);
+
+  const jobBenefits: string[] = [];
+  if (job.accommodation_included) jobBenefits.push("Staff accommodation");
+  if (job.ski_pass_included) jobBenefits.push("Ski/lift pass");
+  if (job.meal_perks) jobBenefits.push("Meals included");
+  if (job.visa_sponsorship) jobBenefits.push("Visa sponsorship");
+  if (Array.isArray(job.custom_perks)) jobBenefits.push(...job.custom_perks.filter(Boolean));
+
+  const hasDirectApply = Boolean(job.application_email || job.application_url);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
+    identifier: {
+      "@type": "PropertyValue",
+      name: "Mountain Connects",
+      value: id,
+    },
     title: job.title,
     description: job.description || "",
     datePosted: job.created_at,
@@ -112,6 +138,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
       "@type": "Organization",
       name: biz?.business_name || "Mountain Connects",
       sameAs: `${BASE_URL}/business/${biz?.id}`,
+      ...(biz?.logo_url && { logo: biz.logo_url }),
     },
     jobLocation: {
       "@type": "Place",
@@ -121,10 +148,22 @@ export default async function JobDetailPage({ params }: JobPageProps) {
         addressCountry: resort?.country || "",
       },
     },
-    ...(job.start_date && { validThrough: job.end_date || job.start_date }),
-    ...(job.accommodation_included && {
-      jobBenefits: "Staff accommodation included",
+    ...(job.category && { occupationalCategory: job.category }),
+    ...(job.end_date && { validThrough: job.end_date }),
+    ...(salary && job.pay_currency && {
+      baseSalary: {
+        "@type": "MonetaryAmount",
+        currency: job.pay_currency,
+        value: {
+          "@type": "QuantitativeValue",
+          minValue: salary.min,
+          maxValue: salary.max,
+          unitText: "HOUR",
+        },
+      },
     }),
+    ...(jobBenefits.length > 0 && { jobBenefits }),
+    ...(hasDirectApply && { directApply: true }),
   };
 
   return (

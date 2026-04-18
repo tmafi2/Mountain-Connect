@@ -1,10 +1,54 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 
 interface BusinessPageProps {
   params: Promise<{ id: string }>;
+}
+
+const BASE_URL = "https://www.mountainconnects.com";
+
+export async function generateMetadata({ params }: BusinessPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: business } = await supabase
+    .from("business_profiles")
+    .select("business_name, description, logo_url, location, verification_status")
+    .eq("id", id)
+    .single();
+
+  if (!business) return { title: "Business Not Found | Mountain Connects" };
+
+  const title = `${business.business_name} — Seasonal Jobs & Careers`;
+  const rawDesc = business.description
+    ? business.description
+    : `View open roles, perks, and reviews at ${business.business_name}${business.location ? ` in ${business.location}` : ""}. Seasonal ski resort jobs on Mountain Connects.`;
+  const description = rawDesc.length > 160 ? rawDesc.slice(0, 157) + "..." : rawDesc;
+
+  const ogImage = business.logo_url || `${BASE_URL}/opengraph-image.jpg`;
+
+  return {
+    title: `${title} | Mountain Connects`,
+    description,
+    alternates: { canonical: `${BASE_URL}/business/${id}` },
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}/business/${id}`,
+      siteName: "Mountain Connects",
+      type: "profile",
+      images: [{ url: ogImage, alt: business.business_name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
 }
 
 const INDUSTRY_LABELS: Record<string, string> = {
@@ -135,7 +179,30 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
   // Count details to show in quick stats
   const activeJobCount = jobs?.length || 0;
 
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: business.business_name,
+    url: `${BASE_URL}/business/${id}`,
+    ...(business.logo_url && { logo: business.logo_url }),
+    ...(business.description && { description: business.description }),
+    ...(business.location && {
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: business.location,
+      },
+    }),
+    ...(socialLinks && Object.values(socialLinks).filter(Boolean).length > 0 && {
+      sameAs: Object.values(socialLinks).filter(Boolean),
+    }),
+  };
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+    />
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
 
       {/* ═══ HERO HEADER ═══════════════════════════════════ */}
@@ -870,5 +937,6 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
         </div>
       </div>
     </div>
+    </>
   );
 }
