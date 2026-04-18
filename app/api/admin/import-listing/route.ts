@@ -3,8 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAdminAction } from "@/lib/audit/log";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
+/**
+ * Resolve the site origin for the generated claim URL. Prefer the incoming
+ * request's origin so claim links generated on a Vercel preview point at
+ * the preview (not production). Fall back to NEXT_PUBLIC_BASE_URL, then
+ * the canonical prod URL.
+ */
+function resolveOrigin(request: Request): string {
+  const origin = request.headers.get("origin");
+  if (origin) return origin;
+  return process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
+}
 
 /**
  * POST /api/admin/import-listing
@@ -150,7 +159,7 @@ export async function POST(request: Request) {
     }).catch(() => {});
 
     // Build the outreach email text the admin will copy
-    const claimUrl = `${BASE_URL}/claim/${claimToken}`;
+    const claimUrl = `${resolveOrigin(request)}/claim/${claimToken}`;
     const outreachEmail = buildOutreachEmail({
       businessName: businessName.trim(),
       jobTitle: title.trim(),
