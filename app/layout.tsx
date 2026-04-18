@@ -84,7 +84,7 @@ const organizationJsonLd = {
   name: "Mountain Connects",
   alternateName: ["MountainConnects", "Mountain Connect"],
   url: "https://www.mountainconnects.com",
-  logo: "https://www.mountainconnects.com/opengraph-image.jpg",
+  logo: "https://www.mountainconnects.com/images/og-image-v2.jpg",
   description:
     "The seasonal worker platform for ski resorts. Find winter jobs at ski resorts worldwide.",
   sameAs: [

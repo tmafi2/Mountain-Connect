@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       type: "website",
       images: [
         {
-          url: `${BASE_URL}/opengraph-image.jpg`,
+          url: `${BASE_URL}/images/og-image-v2.jpg`,
           width: 1200,
           height: 630,
           alt: title,
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       card: "summary_large_image",
       title,
       description,
-      images: [`${BASE_URL}/opengraph-image.jpg`],
+      images: [`${BASE_URL}/images/og-image-v2.jpg`],
     },
   };
 }
