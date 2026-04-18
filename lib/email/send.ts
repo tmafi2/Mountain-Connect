@@ -10,6 +10,8 @@ import { applicationStatusChangedEmail } from "./templates/application-status-ch
 import { newApplicantEmail } from "./templates/new-applicant";
 import { businessVerifiedEmail } from "./templates/business-verified";
 import { businessUnverifiedEmail } from "./templates/business-unverified";
+import { claimLinkEmail } from "./templates/claim-link";
+import { listingClaimedEmail } from "./templates/listing-claimed";
 import { welcomeWorkerEmail } from "./templates/welcome-worker";
 import { welcomeBusinessEmail } from "./templates/welcome-business";
 import { newMessageEmail } from "./templates/new-message";
@@ -207,6 +209,29 @@ export async function sendBusinessUnverifiedEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = businessUnverifiedEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendClaimLinkEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  claimUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = claimLinkEmail(params);
+  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendListingClaimedEmail(params: {
+  to: string;
+  businessName: string;
+  dashboardUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = listingClaimedEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobApplyButton from "./JobApplyButton";
+import UnclaimedBanner from "./UnclaimedBanner";
 import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
 
@@ -72,7 +73,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     .from("job_posts")
     .select(`
       *,
-      business_profiles!inner(id, business_name, logo_url, verification_status, location, description),
+      business_profiles!inner(id, business_name, logo_url, verification_status, location, description, is_claimed),
       resorts(id, name, country, legacy_id)
     `)
     .eq("id", id)
@@ -85,6 +86,9 @@ export default async function JobDetailPage({ params }: JobPageProps) {
   const biz = job.business_profiles as any;
   const resort = job.resorts as any;
   const isVerified = biz?.verification_status === "verified";
+  const isUnclaimed = biz?.is_claimed === false;
+  const source = job.source as string | null;
+  const sourceUrl = job.source_url as string | null;
 
   const positionLabel =
     job.position_type === "full_time"
@@ -223,6 +227,13 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
       {/* ── Content ───────────────────────────────────────────── */}
       <div className="mx-auto max-w-5xl px-6 py-8">
+        {isUnclaimed && (
+          <UnclaimedBanner
+            jobId={job.id}
+            businessName={biz?.business_name || "this business"}
+            source={source}
+          />
+        )}
         <div className="grid gap-8 lg:grid-cols-3">
 
           {/* ── Main Column ─────────────────────────────── */}
@@ -370,7 +381,12 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                 <p className="text-sm text-foreground/50 mt-0.5">{positionLabel} · {job.category || "Other"}</p>
               </div>
               <div className="p-6 pt-5">
-                <JobApplyButton jobId={job.id} />
+                <JobApplyButton
+                  jobId={job.id}
+                  isUnclaimed={isUnclaimed}
+                  jobTitle={job.title}
+                  businessName={biz?.business_name || "this business"}
+                />
                   </div>
             </div>
 
@@ -438,6 +454,25 @@ export default async function JobDetailPage({ params }: JobPageProps) {
             </div>
           </div>
         </div>
+
+        {isUnclaimed && source && (
+          <p className="mt-8 text-center text-xs text-foreground/40">
+            Sourced from {source}
+            {sourceUrl && (
+              <>
+                {" · "}
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="underline hover:text-foreground/60"
+                >
+                  View original post →
+                </a>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </div>
     </>

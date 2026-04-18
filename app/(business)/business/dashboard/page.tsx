@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isInLaunchLocation } from "@/lib/config/launch-locations";
 import DashboardClient from "./DashboardClient";
-import type { BizActivity } from "./DashboardClient";
+import type { BizActivity, EoiRow } from "./DashboardClient";
 import type { BusinessTier } from "@/lib/tier";
 
 export const dynamic = "force-dynamic";
@@ -83,11 +83,12 @@ export default async function BusinessDashboard() {
 
   let applicantCount = "0";
   let interviewCount = "0";
+  let expressionsOfInterest: EoiRow[] = [];
 
   if (allJobIds && allJobIds.length > 0) {
     const jobIds = allJobIds.map((j) => j.id);
 
-    const [applicants, interviews] = await Promise.all([
+    const [applicants, interviews, eois] = await Promise.all([
       supabase
         .from("applications")
         .select("id", { count: "exact", head: true })
@@ -97,10 +98,31 @@ export default async function BusinessDashboard() {
         .select("id", { count: "exact", head: true })
         .eq("business_id", profile.id)
         .in("status", ["scheduled", "invited"]),
+      supabase
+        .from("expressions_of_interest")
+        .select("id, job_post_id, name, email, phone, message, created_at, job_posts(title)")
+        .in("job_post_id", jobIds)
+        .order("created_at", { ascending: false }),
     ]);
 
     applicantCount = String(applicants.count ?? 0);
     interviewCount = String(interviews.count ?? 0);
+
+    if (eois.data) {
+      expressionsOfInterest = eois.data.map((e: Record<string, unknown>) => {
+        const jp = e.job_posts as { title: string } | null;
+        return {
+          id: e.id as string,
+          jobPostId: e.job_post_id as string,
+          jobTitle: jp?.title || "A listing",
+          name: e.name as string,
+          email: e.email as string,
+          phone: (e.phone as string) || null,
+          message: (e.message as string) || null,
+          createdAt: e.created_at as string,
+        };
+      });
+    }
   }
 
   // ── Build activity feed ──────────────────────────────
@@ -243,6 +265,7 @@ export default async function BusinessDashboard() {
       inLaunchLocation={inLaunchLocation}
       businessTier={businessTier}
       showVerifiedCelebration={showVerifiedCelebration}
+      expressionsOfInterest={expressionsOfInterest}
     />
   );
 }

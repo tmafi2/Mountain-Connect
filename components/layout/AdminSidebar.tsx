@@ -33,6 +33,15 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Import Listing",
+    href: "/admin/import-listing",
+    icon: (
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+    ),
+  },
+  {
     label: "Businesses",
     href: "/admin/businesses",
     icon: (

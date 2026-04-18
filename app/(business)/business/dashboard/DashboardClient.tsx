@@ -26,6 +26,17 @@ export interface BizActivity {
   href: string;
 }
 
+export interface EoiRow {
+  id: string;
+  jobPostId: string;
+  jobTitle: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
 /* ─── props ──────────────────────────────────────────────── */
 interface DashboardClientProps {
   userName: string;
@@ -40,6 +51,7 @@ interface DashboardClientProps {
   inLaunchLocation: boolean;
   businessTier: BusinessTier;
   showVerifiedCelebration: boolean;
+  expressionsOfInterest?: EoiRow[];
 }
 
 export default function DashboardClient({
@@ -55,6 +67,7 @@ export default function DashboardClient({
   inLaunchLocation,
   businessTier,
   showVerifiedCelebration,
+  expressionsOfInterest = [],
 }: DashboardClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCelebration, setShowCelebration] = useState(showVerifiedCelebration);
@@ -656,6 +669,27 @@ export default function DashboardClient({
         </div>
       </div>
 
+      {/* ── Expressions of Interest ─────────────────────────────
+          Shown for businesses that claimed a listing — anyone who expressed
+          interest while the listing was unclaimed shows up here. */}
+      {expressionsOfInterest.length > 0 && (
+        <div className="mt-10 mb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-primary">
+              Expressions of Interest ({expressionsOfInterest.length})
+            </h2>
+          </div>
+          <p className="mt-1 text-sm text-foreground/60">
+            People who reached out about your listing{expressionsOfInterest.length === 1 ? "" : "s"} before you joined. Reach out to them directly using the contact info below.
+          </p>
+          <div className="mt-4 space-y-3">
+            {expressionsOfInterest.map((eoi) => (
+              <EoiCard key={eoi.id} eoi={eoi} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Recent Activity ───────────────────────────────────── */}
       <div className="mt-10 mb-4">
         <div className="flex items-center justify-between">
@@ -963,5 +997,51 @@ function BizActivityRow({ item }: { item: BizActivity }) {
       </div>
       <span className="flex-shrink-0 text-xs text-foreground/40">{bizFormatTimeAgo(item.date)}</span>
     </Link>
+  );
+}
+
+/* ── Expression of Interest card ─────────────────────────── */
+function EoiCard({ eoi }: { eoi: EoiRow }) {
+  return (
+    <div className="rounded-2xl border border-accent/50 bg-white/70 p-5 backdrop-blur-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-primary">{eoi.name}</p>
+          <p className="mt-0.5 text-xs text-foreground/50">
+            Interested in <span className="font-medium text-foreground/70">{eoi.jobTitle}</span>
+          </p>
+        </div>
+        <span className="shrink-0 text-xs text-foreground/40">{bizFormatTimeAgo(eoi.createdAt)}</span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+        <a
+          href={`mailto:${eoi.email}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-accent/50 bg-white px-2.5 py-1 font-medium text-primary transition-colors hover:bg-accent/20"
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          {eoi.email}
+        </a>
+        {eoi.phone && (
+          <a
+            href={`tel:${eoi.phone}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent/50 bg-white px-2.5 py-1 font-medium text-primary transition-colors hover:bg-accent/20"
+          >
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+            </svg>
+            {eoi.phone}
+          </a>
+        )}
+      </div>
+
+      {eoi.message && (
+        <div className="mt-3 rounded-lg border border-accent/30 bg-accent/10 p-3 text-sm leading-relaxed text-foreground/70 whitespace-pre-line">
+          {eoi.message}
+        </div>
+      )}
+    </div>
   );
 }
