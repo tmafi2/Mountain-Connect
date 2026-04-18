@@ -68,6 +68,10 @@ export default function AdminBusinessesPage() {
   const [deleting, setDeleting] = useState(false);
   const [resortName, setResortName] = useState<string | null>(null);
   const [togglingPremium, setTogglingPremium] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<"verify" | "unverify" | null>(null);
+  const [verifyReason, setVerifyReason] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -178,6 +182,58 @@ export default function AdminBusinessesPage() {
       console.error("Tier update error:", err);
     }
     setTogglingPremium(false);
+  };
+
+  const openVerifyModal = (action: "verify" | "unverify") => {
+    setVerifyAction(action);
+    setVerifyReason("");
+    setVerifyError(null);
+  };
+
+  const closeVerifyModal = () => {
+    if (verifying) return;
+    setVerifyAction(null);
+    setVerifyReason("");
+    setVerifyError(null);
+  };
+
+  const handleConfirmVerify = async () => {
+    if (!selected || !verifyAction) return;
+    setVerifying(true);
+    setVerifyError(null);
+    try {
+      const res = await fetch("/api/admin/confirm-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId: selected.id,
+          action: verifyAction,
+          message: verifyAction === "unverify" ? verifyReason.trim() || undefined : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setVerifyError(data.error || "Failed to update verification.");
+        setVerifying(false);
+        return;
+      }
+
+      // Mirror the API's DB updates in local state.
+      const updated: BusinessRow = {
+        ...selected,
+        verification_status:
+          verifyAction === "verify" ? "verified" : "accepted",
+        is_verified: verifyAction === "verify",
+      };
+      setSelected(updated);
+      setBusinesses((prev) => prev.map((b) => (b.id === selected.id ? updated : b)));
+      setVerifyAction(null);
+      setVerifyReason("");
+    } catch (err) {
+      console.error("Verify/unverify error:", err);
+      setVerifyError("Something went wrong. Please try again.");
+    }
+    setVerifying(false);
   };
 
   if (loading) {
@@ -422,6 +478,30 @@ export default function AdminBusinessesPage() {
                   </select>
                   {togglingPremium && <span className="text-xs text-foreground/40">Saving...</span>}
                 </div>
+
+                {/* Verify / Unverify */}
+                {selected.verification_status === "verified" ? (
+                  <button
+                    onClick={() => openVerifyModal("unverify")}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    Unverify Business
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => openVerifyModal("verify")}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition-colors hover:bg-green-100"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verify Business
+                  </button>
+                )}
+
                 <a
                   href={`/business/${selected.id}`}
                   target="_blank"
@@ -437,6 +517,104 @@ export default function AdminBusinessesPage() {
                   Delete Business
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Verify / Unverify Confirmation Modal ─── */}
+      {verifyAction && selected && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeVerifyModal}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div
+              className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${
+                verifyAction === "verify" ? "bg-green-100" : "bg-amber-100"
+              }`}
+            >
+              <svg
+                className={`h-7 w-7 ${
+                  verifyAction === "verify" ? "text-green-600" : "text-amber-600"
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                {verifyAction === "verify" ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                )}
+              </svg>
+            </div>
+            <h3 className="mt-4 text-center text-lg font-bold text-primary">
+              {verifyAction === "verify" ? "Verify Business" : "Unverify Business"}
+            </h3>
+            <p className="mt-2 text-center text-sm text-foreground/60">
+              {verifyAction === "verify" ? (
+                <>
+                  Mark <span className="font-semibold text-primary">{selected.business_name}</span> as verified? Their profile and job listings will become publicly visible, and they&apos;ll receive a welcome notification and email.
+                </>
+              ) : (
+                <>
+                  Remove verification from <span className="font-semibold text-primary">{selected.business_name}</span>? Their profile and active job listings will stop being publicly visible, and they&apos;ll be notified. They can be verified again at any time.
+                </>
+              )}
+            </p>
+
+            {verifyAction === "unverify" && (
+              <div className="mt-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                  Reason (optional)
+                </label>
+                <textarea
+                  value={verifyReason}
+                  onChange={(e) => setVerifyReason(e.target.value)}
+                  disabled={verifying}
+                  rows={3}
+                  placeholder="Shown to the business in their notification and email."
+                  className="mt-1.5 w-full rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary placeholder:text-foreground/30 focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary disabled:opacity-50"
+                />
+              </div>
+            )}
+
+            {verifyError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {verifyError}
+              </p>
+            )}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeVerifyModal}
+                disabled={verifying}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-foreground/60 hover:bg-accent/20 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmVerify}
+                disabled={verifying}
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
+                  verifyAction === "verify"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
+              >
+                {verifying
+                  ? verifyAction === "verify"
+                    ? "Verifying..."
+                    : "Unverifying..."
+                  : verifyAction === "verify"
+                  ? "Yes, Verify"
+                  : "Yes, Unverify"}
+              </button>
             </div>
           </div>
         </div>

@@ -157,6 +157,40 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }
 
+    } else if (action === "unverify") {
+      // Admin is proactively removing verification from a business that
+      // was previously verified. Different from reject_verification (which
+      // is for rejecting a pending verification application).
+      const { error: updateError } = await admin.from("business_profiles").update({
+        verification_status: "accepted",
+        is_verified: false,
+        show_verified_celebration: false,
+      }).eq("id", businessId);
+
+      if (updateError) {
+        console.error("Error unverifying business:", updateError);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      await createNotification({
+        userId: business.user_id,
+        type: "general",
+        title: "Verification Removed",
+        message: message || "Your business verification has been removed by our admin team. Your profile and job listings are no longer publicly visible. Please contact support if you have any questions.",
+        link: "/business/company-profile",
+      });
+
+      const { data: bizUser } = await admin.auth.admin.getUserById(business.user_id);
+      if (bizUser?.user?.email) {
+        sendNewMessageEmail({
+          to: bizUser.user.email,
+          recipientName: business.business_name,
+          senderName: "Mountain Connects Admin",
+          messagePreview: message || "Your business verification has been removed. Your profile and job listings are no longer publicly visible. Please contact support if you have any questions.",
+          conversationUrl: "https://www.mountainconnects.com/business/company-profile",
+        }).catch(() => {});
+      }
+
     } else if (action === "request_info") {
       await createNotification({
         userId: business.user_id,
@@ -178,11 +212,15 @@ export async function POST(request: Request) {
       }
     }
 
-    // Audit log
-    const actionMap: Record<string, "business_approved" | "business_rejected" | "business_info_requested"> = {
+    // Audit log — map action strings to the typed audit action
+    const actionMap: Record<string, "business_approved" | "business_rejected" | "business_info_requested" | "business_verified" | "business_unverified"> = {
+      accept: "business_approved",
       approve: "business_approved",
       reject: "business_rejected",
+      reject_verification: "business_rejected",
       request_info: "business_info_requested",
+      verify: "business_verified",
+      unverify: "business_unverified",
     };
     await logAdminAction({
       adminId: user.id,
