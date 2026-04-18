@@ -44,7 +44,7 @@ export default function AdminImportListingPage() {
   useEffect(() => {
     fetch("/api/search-resorts?all=1")
       .then((r) => r.json())
-      .then((data) => setAllResorts(data.resorts || []))
+      .then((data) => setAllResorts(Array.isArray(data) ? data : []))
       .catch(() => setAllResorts([]));
   }, []);
 
