@@ -131,12 +131,13 @@ function AdminImportListingContent() {
   const [allResorts, setAllResorts] = useState<Resort[]>([]);
   const [nearbyTowns, setNearbyTowns] = useState<NearbyTown[]>([]);
   const [form, setForm] = useState(initialForm);
-  const [submitting, setSubmitting] = useState<null | "draft" | "publish">(null);
+  const [submitting, setSubmitting] = useState<null | "draft" | "approval" | "publish">(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [copyState, setCopyState] = useState<Record<string, boolean>>({});
   const [editLoading, setEditLoading] = useState(!!editJobId);
   const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [editPending, setEditPending] = useState(false);
   const [editSavedToast, setEditSavedToast] = useState(false);
 
   // Section open state (basics + business + source default open)
@@ -226,6 +227,7 @@ function AdminImportListingContent() {
       });
 
       setEditStatus(job.status || "active");
+      setEditPending(!!job.pending_approval);
       setEditLoading(false);
     })();
   }, [editJobId]);
@@ -282,7 +284,7 @@ function AdminImportListingContent() {
     setTimeout(() => setCopyState((prev) => ({ ...prev, [key]: false })), 2000);
   };
 
-  const submit = async (action: "draft" | "publish") => {
+  const submit = async (action: "draft" | "approval" | "publish") => {
     setSubmitting(action);
     setError(null);
 
@@ -296,11 +298,13 @@ function AdminImportListingContent() {
       customPerks,
       positions: Number(form.positions) || 1,
       action,
+      // For PATCH (edits), pendingApproval is sent so the backend can
+      // flip the flag based on which button was clicked.
+      pendingApproval: action === "approval",
     };
 
     try {
       if (editJobId) {
-        // Edit existing listing — update fields, then publish if requested
         const updateRes = await fetch(`/api/admin/import-listing/${editJobId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -329,7 +333,12 @@ function AdminImportListingContent() {
           return;
         }
 
-        setEditStatus(action === "publish" ? "active" : editStatus);
+        if (action === "publish") {
+          setEditStatus("active");
+          setEditPending(false);
+        } else {
+          setEditPending(action === "approval");
+        }
         setEditSavedToast(true);
         setSubmitting(null);
         setTimeout(() => setEditSavedToast(false), 4000);
@@ -518,11 +527,18 @@ function AdminImportListingContent() {
           </p>
         </div>
         {editJobId && editStatus && (
-          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-            editStatus === "active" ? "bg-green-50 text-green-700 border border-green-200" :
-            editStatus === "draft" ? "bg-blue-50 text-blue-700 border border-blue-200" :
-            "bg-gray-50 text-gray-600 border border-gray-200"
-          }`}>{editStatus}</span>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+              editStatus === "active" ? "bg-green-50 text-green-700 border border-green-200" :
+              editStatus === "draft" ? "bg-blue-50 text-blue-700 border border-blue-200" :
+              "bg-gray-50 text-gray-600 border border-gray-200"
+            }`}>{editStatus}</span>
+            {editPending && (
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 border border-amber-200">
+                Pending approval
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -920,7 +936,7 @@ function AdminImportListingContent() {
             </Link>
           )}
 
-          {/* Save as draft (or Save changes for an existing draft) */}
+          {/* Save as draft (work in progress) — for new imports and edits of an existing draft */}
           {(!editJobId || editStatus === "draft") && (
             <button
               type="button"
@@ -931,12 +947,12 @@ function AdminImportListingContent() {
               {submitting === "draft"
                 ? "Saving…"
                 : editJobId
-                  ? "Save draft changes"
+                  ? (editPending ? "Move back to draft" : "Save draft changes")
                   : "Save as draft"}
             </button>
           )}
 
-          {/* Save changes (active listing edit — no publish, just persist) */}
+          {/* Save changes (active listing edit — no status change, just persist) */}
           {editJobId && editStatus === "active" && (
             <button
               type="button"
@@ -945,6 +961,22 @@ function AdminImportListingContent() {
               className="rounded-xl border border-accent/60 bg-white px-5 py-2.5 text-sm font-semibold text-foreground/70 transition-all hover:bg-accent/10 disabled:opacity-50"
             >
               {submitting === "draft" ? "Saving…" : "Save changes"}
+            </button>
+          )}
+
+          {/* Send for approval — marks the draft as ready for review */}
+          {(!editJobId || editStatus === "draft") && (
+            <button
+              type="button"
+              disabled={submitting !== null}
+              onClick={() => submit("approval")}
+              className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-700 transition-all hover:bg-amber-100 disabled:opacity-50"
+            >
+              {submitting === "approval"
+                ? "Saving…"
+                : editPending
+                  ? "Update pending approval"
+                  : "Send for approval"}
             </button>
           )}
 
@@ -958,7 +990,7 @@ function AdminImportListingContent() {
             >
               {submitting === "publish"
                 ? (editJobId ? "Publishing…" : "Importing…")
-                : (editJobId ? "Publish & email" : "Publish & email")}
+                : "Publish & email"}
             </button>
           )}
         </div>

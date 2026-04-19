@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const { error: updateErr } = await admin
       .from("job_posts")
-      .update({ status: "active", is_active: true })
+      .update({ status: "active", is_active: true, pending_approval: false })
       .eq("id", jobId);
 
     if (updateErr) {

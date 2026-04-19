@@ -48,6 +48,9 @@ export async function PATCH(
 
     const body = await request.json();
     const {
+      // Workflow flag — set true when the admin clicks "Send for approval"
+      // on edit, false when they save back to plain draft.
+      pendingApproval,
       // Core
       title,
       description,
@@ -125,6 +128,7 @@ export async function PATCH(
       show_positions: showPositions ?? true,
       custom_perks: Array.isArray(customPerks) && customPerks.length > 0 ? customPerks : null,
       nearby_town_id: nearbyTownId || null,
+      pending_approval: typeof pendingApproval === "boolean" ? pendingApproval : undefined,
     };
 
     // Drop undefined keys so we don't accidentally clobber columns the

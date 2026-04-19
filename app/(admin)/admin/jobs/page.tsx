@@ -11,6 +11,7 @@ interface JobRow {
   requirements: string | null;
   position_type: string;
   status: string;
+  pending_approval: boolean;
   pay_amount: string | null;
   pay_currency: string | null;
   salary_range: string | null;
@@ -40,7 +41,7 @@ export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "closed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft" | "pending" | "closed">("all");
   const [selected, setSelected] = useState<JobRow | null>(null);
   const [selectedApplicants, setSelectedApplicants] = useState<JobApplicant[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
@@ -54,7 +55,7 @@ export default function AdminJobsPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("job_posts")
-        .select("id, title, description, requirements, position_type, status, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, featured_until, created_at, business_id, resorts(name), nearby_towns(name)")
+        .select("id, title, description, requirements, position_type, status, pending_approval, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, featured_until, created_at, business_id, resorts(name), nearby_towns(name)")
         .order("created_at", { ascending: false });
 
       if (error) { console.error("Error loading jobs:", error); setLoading(false); return; }
@@ -156,7 +157,8 @@ export default function AdminJobsPage() {
   const filtered = useMemo(() => {
     let results = [...jobs];
     if (statusFilter === "active") results = results.filter((j) => j.status === "active");
-    else if (statusFilter === "draft") results = results.filter((j) => j.status === "draft");
+    else if (statusFilter === "draft") results = results.filter((j) => j.status === "draft" && !j.pending_approval);
+    else if (statusFilter === "pending") results = results.filter((j) => j.pending_approval);
     else if (statusFilter === "closed") results = results.filter((j) => j.status !== "active" && j.status !== "draft");
 
     if (search.trim()) {
@@ -167,6 +169,7 @@ export default function AdminJobsPage() {
   }, [jobs, search, statusFilter]);
 
   const activeCount = jobs.filter((j) => j.status === "active").length;
+  const pendingCount = jobs.filter((j) => j.pending_approval).length;
 
   if (loading) {
     return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" /></div>;
@@ -184,10 +187,20 @@ export default function AdminJobsPage() {
           className="rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none">
           <option value="all">All Statuses</option>
           <option value="active">Active</option>
-          <option value="draft">Draft</option>
+          <option value="pending">Pending approval</option>
+          <option value="draft">Draft (work in progress)</option>
           <option value="closed">Closed / Paused</option>
         </select>
         <span className="text-sm text-foreground/50">{filtered.length} jobs</span>
+        {pendingCount > 0 && statusFilter !== "pending" && (
+          <button
+            type="button"
+            onClick={() => setStatusFilter("pending")}
+            className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 border border-amber-200 hover:bg-amber-100"
+          >
+            {pendingCount} pending approval →
+          </button>
+        )}
       </div>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-accent bg-white">
@@ -215,11 +228,18 @@ export default function AdminJobsPage() {
                 <td className="px-5 py-3 text-foreground/70 capitalize">{job.position_type?.replace("_", " ") || "—"}</td>
                 <td className="px-5 py-3 text-foreground/70">{job.pay_amount ? `${job.pay_currency || "AUD"} $${job.pay_amount}` : "—"}</td>
                 <td className="px-5 py-3">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                    job.status === "active" ? "bg-green-50 text-green-700" :
-                    job.status === "draft" ? "bg-blue-50 text-blue-600" :
-                    "bg-gray-50 text-gray-600"
-                  }`}>{job.status}</span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+                      job.status === "active" ? "bg-green-50 text-green-700" :
+                      job.status === "draft" ? "bg-blue-50 text-blue-600" :
+                      "bg-gray-50 text-gray-600"
+                    }`}>{job.status}</span>
+                    {job.pending_approval && (
+                      <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        Pending
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-5 py-3 text-right text-foreground/50">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
               </tr>

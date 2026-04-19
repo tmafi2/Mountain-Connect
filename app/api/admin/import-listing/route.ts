@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       applicationEmail,
       applicationUrl,
     } = body as {
-      action?: "draft" | "publish";
+      action?: "draft" | "approval" | "publish";
       title?: string;
       description?: string;
       businessName?: string;
@@ -186,7 +186,8 @@ export async function POST(request: Request) {
       ? `${payCurrency || "AUD"} ${payAmount.trim()}`
       : null;
 
-    const isDraft = action === "draft";
+    const isPublish = action === "publish";
+    const pendingApproval = action === "approval";
     const { data: job, error: jobError } = await admin
       .from("job_posts")
       .insert({
@@ -194,8 +195,9 @@ export async function POST(request: Request) {
         resort_id: resortId,
         title: title.trim(),
         description: description.trim(),
-        status: isDraft ? "draft" : "active",
-        is_active: !isDraft,
+        status: isPublish ? "active" : "draft",
+        is_active: isPublish,
+        pending_approval: pendingApproval,
         source,
         source_url: sourceUrl?.trim() || null,
         how_to_apply: howToApply?.trim() || null,
@@ -252,10 +254,11 @@ export async function POST(request: Request) {
     });
 
     // Only send the outreach email when the listing is being published.
-    // Drafts stay quiet until an admin explicitly approves them.
+    // Drafts and pending-approval listings stay quiet until an admin
+    // explicitly approves them.
     let emailSent = false;
     let emailError: string | null = null;
-    if (!isDraft) {
+    if (isPublish) {
       try {
         const result = await sendImportOutreachEmail({
           to: email,
@@ -280,7 +283,8 @@ export async function POST(request: Request) {
       claimToken,
       claimUrl,
       outreachEmail,
-      status: isDraft ? "draft" : "active",
+      status: isPublish ? "active" : "draft",
+      pendingApproval,
       emailSent,
       emailError,
       sentTo: email,
