@@ -42,15 +42,40 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const {
+      // Required
       title,
       description,
       businessName,
       businessEmail,
-      location,
-      country,
       resortId,
       source,
+      // Source / admin extras
       sourceUrl,
+      // Business shell info
+      location,
+      country,
+      // Job details mirroring post-job
+      category,
+      employmentType,
+      requirements,
+      languageRequirements,
+      payCurrency,
+      payAmount,
+      seasonStart,
+      seasonEnd,
+      housingIncluded,
+      housingDetails,
+      accommodationType,
+      accommodationCost,
+      skiPassIncluded,
+      mealsIncluded,
+      visaSponsorshipAvailable,
+      urgentlyHiring,
+      positions,
+      showPositions,
+      customPerks,
+      nearbyTownId,
+      // Application routing
       howToApply,
       applicationEmail,
       applicationUrl,
@@ -59,11 +84,31 @@ export async function POST(request: Request) {
       description?: string;
       businessName?: string;
       businessEmail?: string;
-      location?: string;
-      country?: string;
       resortId?: string;
       source?: string;
       sourceUrl?: string;
+      location?: string;
+      country?: string;
+      category?: string;
+      employmentType?: string;
+      requirements?: string;
+      languageRequirements?: string;
+      payCurrency?: string;
+      payAmount?: string;
+      seasonStart?: string;
+      seasonEnd?: string;
+      housingIncluded?: boolean;
+      housingDetails?: string;
+      accommodationType?: string;
+      accommodationCost?: string;
+      skiPassIncluded?: boolean;
+      mealsIncluded?: boolean;
+      visaSponsorshipAvailable?: boolean;
+      urgentlyHiring?: boolean;
+      positions?: number;
+      showPositions?: boolean;
+      customPerks?: string[];
+      nearbyTownId?: string;
       howToApply?: string;
       applicationEmail?: string;
       applicationUrl?: string;
@@ -127,6 +172,15 @@ export async function POST(request: Request) {
     }
 
     // Create the job_post
+    const positionType =
+      employmentType === "Full-time" ? "full_time" :
+      employmentType === "Part-time" ? "part_time" :
+      employmentType === "Casual" ? "casual" : null;
+
+    const salaryDisplay = payAmount?.trim()
+      ? `${payCurrency || "AUD"} ${payAmount.trim()}`
+      : null;
+
     const { data: job, error: jobError } = await admin
       .from("job_posts")
       .insert({
@@ -141,6 +195,28 @@ export async function POST(request: Request) {
         how_to_apply: howToApply?.trim() || null,
         application_email: applicationEmail?.trim() || null,
         application_url: applicationUrl?.trim() || null,
+        // Mirrored from post-job
+        category: category?.trim() || null,
+        position_type: positionType,
+        requirements: requirements?.trim() || null,
+        language_required: languageRequirements?.trim() || null,
+        pay_amount: payAmount?.trim() || null,
+        pay_currency: payCurrency || "AUD",
+        salary_range: salaryDisplay,
+        start_date: seasonStart || null,
+        end_date: seasonEnd || null,
+        accommodation_included: housingIncluded ?? false,
+        housing_details: housingDetails?.trim() || null,
+        accommodation_type: accommodationType?.trim() || null,
+        accommodation_cost: accommodationCost?.trim() || null,
+        ski_pass_included: skiPassIncluded ?? false,
+        meal_perks: mealsIncluded ?? false,
+        visa_sponsorship: visaSponsorshipAvailable ?? false,
+        urgently_hiring: urgentlyHiring ?? false,
+        positions_available: positions && positions > 0 ? positions : 1,
+        show_positions: showPositions ?? true,
+        custom_perks: customPerks && customPerks.length > 0 ? customPerks : null,
+        nearby_town_id: nearbyTownId || null,
       })
       .select("id")
       .single();
