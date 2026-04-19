@@ -61,6 +61,22 @@ function SignupContent() {
     // CAPTCHA is best-effort — never block signup if widget didn't render.
     // If a token was obtained, it will be verified server-side below.
 
+    if (accountType === "business") {
+      if (!firstName.trim()) {
+        setError("Please enter your business name.");
+        return;
+      }
+    } else {
+      if (!firstName.trim()) {
+        setError("Please enter your first name.");
+        return;
+      }
+      if (!lastName.trim()) {
+        setError("Please enter your last name.");
+        return;
+      }
+    }
+
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.isValid) {
       setError("Password must meet all requirements: " + passwordCheck.errors.join(", "));
