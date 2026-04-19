@@ -197,9 +197,11 @@ export default async function JobDetailPage({ params }: JobPageProps) {
             <div className="flex-1">
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="rounded-full bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-1 text-xs font-medium text-white/70">
-                  {positionLabel}
-                </span>
+                {(!source || job.position_type) && (
+                  <span className="rounded-full bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-1 text-xs font-medium text-white/70">
+                    {positionLabel}
+                  </span>
+                )}
                 {job.category && (
                   <span className="rounded-full bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-1 text-xs font-medium text-white/70">
                     {job.category}
@@ -255,11 +257,19 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               </Link>
             </div>
 
-            {/* Pay highlight (desktop) */}
-            <div className="hidden sm:block text-right">
-              <p className="text-3xl font-bold text-white">{payDisplay}</p>
-              <p className="text-sm text-white/40 mt-1">{positionLabel}</p>
-            </div>
+            {/* Pay highlight (desktop) — for imports, hide when no pay data instead of showing TBD */}
+            {(() => {
+              const isImported = !!source;
+              const showPay = !isImported || payDisplay !== "TBD";
+              const showPosition = !isImported || !!job.position_type;
+              if (!showPay && !showPosition) return null;
+              return (
+                <div className="hidden sm:block text-right">
+                  {showPay && <p className="text-3xl font-bold text-white">{payDisplay}</p>}
+                  {showPosition && <p className="text-sm text-white/40 mt-1">{positionLabel}</p>}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -278,30 +288,61 @@ export default async function JobDetailPage({ params }: JobPageProps) {
           {/* ── Main Column ─────────────────────────────── */}
           <div className="lg:col-span-2 space-y-8">
 
-            {/* Key Details Strip */}
-            <div className={`grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-accent bg-accent/30 ${job.show_positions !== false ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-              <KeyDetail
-                icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                label="Season"
-                value={
-                  job.start_date && job.end_date
-                    ? `${new Date(job.start_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })} – ${new Date(job.end_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`
-                    : "Flexible"
-                }
-              />
-              {job.show_positions !== false && (
-                <KeyDetail
-                  icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>}
-                  label="Positions"
-                  value={`${job.positions_available || 1} available`}
-                />
-              )}
-              <KeyDetail
-                icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" /></svg>}
-                label="Language"
-                value={job.language_required || "English"}
-              />
-            </div>
+            {/* Key Details Strip — for imported listings, hide details with no data instead of showing defaults */}
+            {(() => {
+              const isImported = !!source;
+              const seasonValue = job.start_date && job.end_date
+                ? `${new Date(job.start_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })} – ${new Date(job.end_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`
+                : null;
+              const showSeason = seasonValue || !isImported;
+              const showPositions = job.show_positions !== false && (!isImported || job.positions_available);
+              const showLanguage = !isImported || !!job.language_required;
+
+              const tiles: React.ReactNode[] = [];
+              if (showSeason) {
+                tiles.push(
+                  <KeyDetail
+                    key="season"
+                    icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                    label="Season"
+                    value={seasonValue || "Flexible"}
+                  />
+                );
+              }
+              if (showPositions) {
+                tiles.push(
+                  <KeyDetail
+                    key="positions"
+                    icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>}
+                    label="Positions"
+                    value={`${job.positions_available || 1} available`}
+                  />
+                );
+              }
+              if (showLanguage) {
+                tiles.push(
+                  <KeyDetail
+                    key="language"
+                    icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" /></svg>}
+                    label="Language"
+                    value={job.language_required || "English"}
+                  />
+                );
+              }
+
+              if (tiles.length === 0) return null;
+
+              const colsClass =
+                tiles.length === 1 ? "grid-cols-1" :
+                tiles.length === 2 ? "grid-cols-2" :
+                "grid-cols-2 sm:grid-cols-3";
+
+              return (
+                <div className={`grid ${colsClass} gap-px overflow-hidden rounded-2xl border border-accent bg-accent/30`}>
+                  {tiles}
+                </div>
+              );
+            })()}
 
             {/* Perks & Benefits */}
             <section className="rounded-2xl border border-accent bg-white p-6 shadow-sm">
@@ -416,8 +457,25 @@ export default async function JobDetailPage({ params }: JobPageProps) {
             {/* Apply Card */}
             <div className="rounded-2xl border border-accent bg-white shadow-sm overflow-hidden">
               <div className="bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
-                <p className="text-2xl font-bold text-primary">{payDisplay}</p>
-                <p className="text-sm text-foreground/50 mt-0.5">{positionLabel} · {job.category || "Other"}</p>
+                {(() => {
+                  const isImported = !!source;
+                  const showPay = !isImported || payDisplay !== "TBD";
+                  const subParts: string[] = [];
+                  if (!isImported || job.position_type) subParts.push(positionLabel);
+                  if (!isImported) {
+                    subParts.push(job.category || "Other");
+                  } else if (job.category) {
+                    subParts.push(job.category);
+                  }
+                  return (
+                    <>
+                      {showPay && <p className="text-2xl font-bold text-primary">{payDisplay}</p>}
+                      {subParts.length > 0 && (
+                        <p className="text-sm text-foreground/50 mt-0.5">{subParts.join(" · ")}</p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <div className="p-6 pt-5">
                 <JobApplyButton
