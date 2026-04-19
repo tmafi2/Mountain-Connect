@@ -310,7 +310,9 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
       );
     }
 
-    // Sort
+    // Sort (Array.prototype.sort is stable, so layered sorts compose:
+    // user-chosen sort → verified-first → featured-first. Final order:
+    // featured > verified > user-sort)
     switch (filters.sort) {
       case "newest":
         jobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -325,6 +327,9 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
         jobs.sort((a, b) => a.applications_count - b.applications_count);
         break;
     }
+
+    // Verified businesses float above unverified ones
+    jobs.sort((a, b) => Number(b.business_verified) - Number(a.business_verified));
 
     // Featured jobs always float to the top
     const now = new Date();
