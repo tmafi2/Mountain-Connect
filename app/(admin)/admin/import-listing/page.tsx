@@ -153,18 +153,38 @@ export default function AdminImportListingPage() {
       return;
     }
     const supabase = createClient();
-    supabase
-      .from("resort_nearby_towns")
-      .select("nearby_towns(id, name, slug, country, state_region)")
-      .eq("resort_id", form.resortId)
-      .then(({ data }) => {
-        if (data) {
-          const towns = data
-            .map((r) => r.nearby_towns as unknown as NearbyTown)
-            .filter(Boolean);
-          setNearbyTowns(towns);
-        }
-      });
+    (async () => {
+      const { data: links, error: linkErr } = await supabase
+        .from("resort_nearby_towns")
+        .select("town_id")
+        .eq("resort_id", form.resortId);
+
+      if (linkErr) {
+        console.error("Failed to load resort_nearby_towns:", linkErr);
+        setNearbyTowns([]);
+        return;
+      }
+
+      const townIds = (links || []).map((l) => l.town_id as string);
+      if (townIds.length === 0) {
+        setNearbyTowns([]);
+        return;
+      }
+
+      const { data: towns, error: townErr } = await supabase
+        .from("nearby_towns")
+        .select("id, name, slug, country, state_region")
+        .in("id", townIds)
+        .order("name");
+
+      if (townErr) {
+        console.error("Failed to load nearby_towns:", townErr);
+        setNearbyTowns([]);
+        return;
+      }
+
+      setNearbyTowns((towns || []) as NearbyTown[]);
+    })();
   }, [form.resortId]);
 
   const update = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
