@@ -22,15 +22,14 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
   const { token } = await params;
   const admin = createAdminClient();
 
-  const { data: business } = await admin
+  const { data: business, error: bizErr } = await admin
     .from("business_profiles")
-    .select(
-      "id, business_name, email, location, country, is_claimed, logo_url, resorts(name)"
-    )
+    .select("id, business_name, email, location, country, is_claimed, logo_url, resort_id")
     .eq("claim_token", token)
     .maybeSingle();
 
   // Invalid / unknown token
+  if (bizErr) console.error("Claim page lookup failed:", bizErr);
   if (!business) {
     return <ClaimError title="Invalid claim link" message="This claim link isn't recognised. It may have been revoked or mistyped. Please check the link in your email or contact our team." />;
   }
@@ -54,7 +53,17 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
     .eq("status", "active")
     .order("created_at", { ascending: false });
 
-  const resortName = (business.resorts as { name: string } | null)?.name || null;
+  // business_profiles.resort_id is a text column without an FK constraint, so
+  // we fetch the resort name in a separate query rather than via nested select.
+  let resortName: string | null = null;
+  if (business.resort_id) {
+    const { data: resort } = await admin
+      .from("resorts")
+      .select("name")
+      .eq("id", business.resort_id)
+      .maybeSingle();
+    resortName = resort?.name || null;
+  }
 
   return (
     <div className="min-h-screen bg-background py-12 px-4">
