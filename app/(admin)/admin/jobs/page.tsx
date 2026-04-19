@@ -47,6 +47,7 @@ export default function AdminJobsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [featuring, setFeaturing] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -331,6 +332,36 @@ export default function AdminJobsPage() {
 
               {/* Actions */}
               <div className="mt-5 pt-4 border-t border-accent/30 flex items-center gap-3 flex-wrap">
+                {selected.status === "draft" && (
+                  <button
+                    onClick={async () => {
+                      setPublishing(true);
+                      const res = await fetch("/api/admin/publish-job", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ jobId: selected.id }),
+                      });
+                      const data = await res.json();
+                      setPublishing(false);
+                      if (res.ok && data.success) {
+                        setSelected({ ...selected, status: "active" });
+                        setJobs((prev) => prev.map((j) => j.id === selected.id ? { ...j, status: "active" } : j));
+                      } else {
+                        alert(data.error || "Failed to publish");
+                      }
+                    }}
+                    disabled={publishing}
+                    className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {publishing ? "Publishing…" : "✓ Publish & email"}
+                  </button>
+                )}
+                <Link
+                  href={`/admin/import-listing?edit=${selected.id}`}
+                  className="rounded-xl border border-accent/40 bg-white px-4 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10 transition-colors"
+                >
+                  ✎ Edit
+                </Link>
                 <button
                   onClick={handleToggleFeature}
                   disabled={featuring}

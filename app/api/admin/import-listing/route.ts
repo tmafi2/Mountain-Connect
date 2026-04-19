@@ -42,6 +42,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const {
+      // Workflow action: "draft" saves without publishing, "publish" goes
+      // live and triggers the outreach email. Defaults to publish for
+      // backwards compatibility with any existing callers.
+      action = "publish",
       // Required
       title,
       description,
@@ -80,6 +84,7 @@ export async function POST(request: Request) {
       applicationEmail,
       applicationUrl,
     } = body as {
+      action?: "draft" | "publish";
       title?: string;
       description?: string;
       businessName?: string;
@@ -181,6 +186,7 @@ export async function POST(request: Request) {
       ? `${payCurrency || "AUD"} ${payAmount.trim()}`
       : null;
 
+    const isDraft = action === "draft";
     const { data: job, error: jobError } = await admin
       .from("job_posts")
       .insert({
@@ -188,8 +194,8 @@ export async function POST(request: Request) {
         resort_id: resortId,
         title: title.trim(),
         description: description.trim(),
-        status: "active",
-        is_active: true,
+        status: isDraft ? "draft" : "active",
+        is_active: !isDraft,
         source,
         source_url: sourceUrl?.trim() || null,
         how_to_apply: howToApply?.trim() || null,
@@ -245,23 +251,26 @@ export async function POST(request: Request) {
       eoiCount: 0,
     });
 
-    // Send the outreach email automatically from tyler@mountainconnects.com
+    // Only send the outreach email when the listing is being published.
+    // Drafts stay quiet until an admin explicitly approves them.
     let emailSent = false;
     let emailError: string | null = null;
-    try {
-      const result = await sendImportOutreachEmail({
-        to: email,
-        businessName: businessName.trim(),
-        jobTitle: title.trim(),
-        source,
-        claimUrl,
-        eoiCount: 0,
-      });
-      emailSent = !!result;
-      if (!result) emailError = "Email service is not configured";
-    } catch (err) {
-      console.error("Failed to send import outreach email:", err);
-      emailError = err instanceof Error ? err.message : "Unknown email error";
+    if (!isDraft) {
+      try {
+        const result = await sendImportOutreachEmail({
+          to: email,
+          businessName: businessName.trim(),
+          jobTitle: title.trim(),
+          source,
+          claimUrl,
+          eoiCount: 0,
+        });
+        emailSent = !!result;
+        if (!result) emailError = "Email service is not configured";
+      } catch (err) {
+        console.error("Failed to send import outreach email:", err);
+        emailError = err instanceof Error ? err.message : "Unknown email error";
+      }
     }
 
     return NextResponse.json({
@@ -271,6 +280,7 @@ export async function POST(request: Request) {
       claimToken,
       claimUrl,
       outreachEmail,
+      status: isDraft ? "draft" : "active",
       emailSent,
       emailError,
       sentTo: email,

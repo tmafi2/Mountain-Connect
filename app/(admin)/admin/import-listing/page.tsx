@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 interface Resort {
@@ -115,13 +116,28 @@ const initialForm = {
 };
 
 export default function AdminImportListingPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl py-12 text-center text-sm text-foreground/40">Loading…</div>}>
+      <AdminImportListingContent />
+    </Suspense>
+  );
+}
+
+function AdminImportListingContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editJobId = searchParams.get("edit");
+
   const [allResorts, setAllResorts] = useState<Resort[]>([]);
   const [nearbyTowns, setNearbyTowns] = useState<NearbyTown[]>([]);
   const [form, setForm] = useState(initialForm);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<null | "draft" | "publish">(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [copyState, setCopyState] = useState<Record<string, boolean>>({});
+  const [editLoading, setEditLoading] = useState(!!editJobId);
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [editSavedToast, setEditSavedToast] = useState(false);
 
   // Section open state (basics + business + source default open)
   const [openSections, setOpenSections] = useState({
@@ -144,6 +160,75 @@ export default function AdminImportListingPage() {
       .then((data) => setAllResorts(Array.isArray(data) ? data : []))
       .catch(() => setAllResorts([]));
   }, []);
+
+  // Edit mode: pre-populate the form from the existing listing
+  useEffect(() => {
+    if (!editJobId) return;
+    (async () => {
+      const supabase = createClient();
+      const { data: job, error: jobErr } = await supabase
+        .from("job_posts")
+        .select("*")
+        .eq("id", editJobId)
+        .maybeSingle();
+
+      if (jobErr || !job) {
+        console.error("Failed to load job for edit:", jobErr);
+        setError("Could not load this listing for editing.");
+        setEditLoading(false);
+        return;
+      }
+
+      const { data: business } = await supabase
+        .from("business_profiles")
+        .select("business_name, email, location, country")
+        .eq("id", job.business_id)
+        .maybeSingle();
+
+      const employmentTypeLabel =
+        job.position_type === "full_time" ? "Full-time" :
+        job.position_type === "part_time" ? "Part-time" :
+        job.position_type === "casual" ? "Casual" : "";
+
+      setForm({
+        title: job.title || "",
+        description: job.description || "",
+        businessName: business?.business_name || "",
+        businessEmail: business?.email || "",
+        resortId: job.resort_id || "",
+        source: job.source || "Facebook",
+        sourceUrl: job.source_url || "",
+        location: business?.location || "",
+        country: business?.country || "",
+        category: job.category || "",
+        employmentType: employmentTypeLabel,
+        requirements: job.requirements || "",
+        languageRequirements: job.language_required || "",
+        payCurrency: job.pay_currency || "AUD",
+        payAmount: job.pay_amount || "",
+        seasonStart: job.start_date || "",
+        seasonEnd: job.end_date || "",
+        housingIncluded: !!job.accommodation_included,
+        housingDetails: job.housing_details || "",
+        accommodationType: job.accommodation_type || "",
+        accommodationCost: job.accommodation_cost || "",
+        skiPassIncluded: !!job.ski_pass_included,
+        mealsIncluded: !!job.meal_perks,
+        visaSponsorshipAvailable: !!job.visa_sponsorship,
+        urgentlyHiring: !!job.urgently_hiring,
+        customPerksRaw: Array.isArray(job.custom_perks) ? job.custom_perks.join(", ") : "",
+        positions: job.positions_available || 1,
+        showPositions: job.show_positions !== false,
+        nearbyTownId: job.nearby_town_id || "",
+        howToApply: job.how_to_apply || "",
+        applicationEmail: job.application_email || "",
+        applicationUrl: job.application_url || "",
+      });
+
+      setEditStatus(job.status || "active");
+      setEditLoading(false);
+    })();
+  }, [editJobId]);
 
   // Fetch nearby towns when the resort changes
   useEffect(() => {
@@ -197,9 +282,8 @@ export default function AdminImportListingPage() {
     setTimeout(() => setCopyState((prev) => ({ ...prev, [key]: false })), 2000);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+  const submit = async (action: "draft" | "publish") => {
+    setSubmitting(action);
     setError(null);
 
     const customPerks = form.customPerksRaw
@@ -211,23 +295,73 @@ export default function AdminImportListingPage() {
       ...form,
       customPerks,
       positions: Number(form.positions) || 1,
+      action,
     };
 
-    const res = await fetch("/api/admin/import-listing", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
+    try {
+      if (editJobId) {
+        // Edit existing listing — update fields, then publish if requested
+        const updateRes = await fetch(`/api/admin/import-listing/${editJobId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const updateData = await updateRes.json();
+        if (!updateRes.ok || !updateData.success) {
+          setError(updateData.error || "Failed to save changes.");
+          setSubmitting(null);
+          return;
+        }
 
-    if (!res.ok || !data.success) {
-      setError(data.error || "Failed to import listing.");
-      setSubmitting(false);
-      return;
+        if (action === "publish" && editStatus !== "active") {
+          const pubRes = await fetch("/api/admin/publish-job", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jobId: editJobId }),
+          });
+          const pubData = await pubRes.json();
+          if (!pubRes.ok || !pubData.success) {
+            setError(pubData.error || "Saved changes, but failed to publish.");
+            setSubmitting(null);
+            return;
+          }
+          router.push("/admin/jobs");
+          return;
+        }
+
+        setEditStatus(action === "publish" ? "active" : editStatus);
+        setEditSavedToast(true);
+        setSubmitting(null);
+        setTimeout(() => setEditSavedToast(false), 4000);
+        return;
+      }
+
+      // New import
+      const res = await fetch("/api/admin/import-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || "Failed to import listing.");
+        setSubmitting(null);
+        return;
+      }
+      setResult(data as ImportResult);
+      setSubmitting(null);
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+      setSubmitting(null);
     }
+  };
 
-    setResult(data as ImportResult);
-    setSubmitting(false);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Default form submit (Enter key) saves as draft when editing,
+    // publishes when creating new. Buttons override this.
+    submit(editJobId ? "draft" : "publish");
   };
 
   const resetForm = () => {
@@ -362,12 +496,41 @@ export default function AdminImportListingPage() {
     );
   }
 
+  if (editLoading) {
+    return (
+      <div className="mx-auto max-w-3xl py-12 text-center text-sm text-foreground/40">
+        Loading listing…
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold text-primary">Import a listing</h1>
-      <p className="mt-1 text-sm text-foreground/60">
-        Mirrors the same fields a business would fill out themselves. Anything you do not know — leave blank or write &quot;TBA&quot;. Only the starred sections are required.
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-primary">
+            {editJobId ? "Edit listing" : "Import a listing"}
+          </h1>
+          <p className="mt-1 text-sm text-foreground/60">
+            {editJobId
+              ? <>Editing an {editStatus === "draft" ? "imported draft" : "active listing"}. Update any fields and save your changes.</>
+              : <>Mirrors the same fields a business would fill out themselves. Anything you do not know — leave blank or write &quot;TBA&quot;. Only the starred sections are required.</>}
+          </p>
+        </div>
+        {editJobId && editStatus && (
+          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+            editStatus === "active" ? "bg-green-50 text-green-700 border border-green-200" :
+            editStatus === "draft" ? "bg-blue-50 text-blue-700 border border-blue-200" :
+            "bg-gray-50 text-gray-600 border border-gray-200"
+          }`}>{editStatus}</span>
+        )}
+      </div>
+
+      {editSavedToast && (
+        <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+          ✓ Changes saved.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         {/* BASICS — required */}
@@ -747,14 +910,57 @@ export default function AdminImportListingPage() {
           </div>
         )}
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 disabled:opacity-50"
-          >
-            {submitting ? "Importing…" : "Import listing"}
-          </button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {editJobId && (
+            <Link
+              href="/admin/jobs"
+              className="rounded-xl border border-accent bg-white px-5 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10"
+            >
+              Cancel
+            </Link>
+          )}
+
+          {/* Save as draft (or Save changes for an existing draft) */}
+          {(!editJobId || editStatus === "draft") && (
+            <button
+              type="button"
+              disabled={submitting !== null}
+              onClick={() => submit("draft")}
+              className="rounded-xl border border-accent/60 bg-white px-5 py-2.5 text-sm font-semibold text-foreground/70 transition-all hover:bg-accent/10 disabled:opacity-50"
+            >
+              {submitting === "draft"
+                ? "Saving…"
+                : editJobId
+                  ? "Save draft changes"
+                  : "Save as draft"}
+            </button>
+          )}
+
+          {/* Save changes (active listing edit — no publish, just persist) */}
+          {editJobId && editStatus === "active" && (
+            <button
+              type="button"
+              disabled={submitting !== null}
+              onClick={() => submit("draft")}
+              className="rounded-xl border border-accent/60 bg-white px-5 py-2.5 text-sm font-semibold text-foreground/70 transition-all hover:bg-accent/10 disabled:opacity-50"
+            >
+              {submitting === "draft" ? "Saving…" : "Save changes"}
+            </button>
+          )}
+
+          {/* Publish (or publish from draft) */}
+          {(!editJobId || editStatus === "draft") && (
+            <button
+              type="button"
+              disabled={submitting !== null}
+              onClick={() => submit("publish")}
+              className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 disabled:opacity-50"
+            >
+              {submitting === "publish"
+                ? (editJobId ? "Publishing…" : "Importing…")
+                : (editJobId ? "Publish & email" : "Publish & email")}
+            </button>
+          )}
         </div>
       </form>
     </div>
