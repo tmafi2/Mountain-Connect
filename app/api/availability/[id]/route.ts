@@ -13,7 +13,16 @@ export async function PUT(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { date, start_time, end_time, timezone, slot_duration_minutes, buffer_minutes, is_active } = body;
+  const { date, start_time, end_time, timezone, slot_duration_minutes, buffer_minutes, is_active, blocks } = body as {
+    date?: string;
+    start_time?: string;
+    end_time?: string;
+    timezone?: string;
+    slot_duration_minutes?: number;
+    buffer_minutes?: number;
+    is_active?: boolean;
+    blocks?: { start_time: string; end_time: string; reason?: string | null }[];
+  };
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (date !== undefined) updates.date = date;
@@ -32,6 +41,27 @@ export async function PUT(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Replace blocks wholesale when provided. Callers that only want to flip
+  // is_active (the pause/resume toggle) omit `blocks` so their existing
+  // blocked periods survive untouched.
+  if (Array.isArray(blocks)) {
+    await supabase
+      .from("interview_availability_blocks")
+      .delete()
+      .eq("availability_id", id);
+
+    if (blocks.length > 0) {
+      const rows = blocks.map((b) => ({
+        availability_id: id,
+        start_time: b.start_time,
+        end_time: b.end_time,
+        reason: b.reason || null,
+      }));
+      await supabase.from("interview_availability_blocks").insert(rows);
+    }
+  }
+
   return NextResponse.json({ availability: data });
 }
 

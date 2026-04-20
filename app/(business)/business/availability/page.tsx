@@ -27,6 +27,7 @@ export default function AvailabilityPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchAvailability = useCallback(async () => {
     try {
@@ -79,6 +80,36 @@ export default function AvailabilityPage() {
       await fetchAvailability();
     } catch {
       // ignore
+    }
+  };
+
+  const handleUpdate = async (
+    id: string,
+    formData: {
+      date: string;
+      start_time: string;
+      end_time: string;
+      timezone: string;
+      slot_duration_minutes: number;
+      buffer_minutes: number;
+      blocks: { start_time: string; end_time: string; reason: string }[];
+    }
+  ) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/availability/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        setEditingId(null);
+        await fetchAvailability();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -194,65 +225,100 @@ export default function AvailabilityPage() {
               {upcoming.map((w) => (
                 <div
                   key={w.id}
-                  className={`rounded-2xl border bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                    w.is_active ? "border-accent/40" : "border-accent/30 opacity-60"
+                  className={`rounded-2xl border bg-white p-5 shadow-sm transition-all ${
+                    editingId === w.id
+                      ? "border-secondary/60 shadow-md"
+                      : `${w.is_active ? "border-accent/40" : "border-accent/30 opacity-60"} hover:-translate-y-0.5 hover:shadow-md`
                   }`}
                 >
-                  <div className="flex items-start justify-between">
+                  {editingId === w.id ? (
                     <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-primary">{formatDate(w.date)}</p>
-                        {w.is_active && (
-                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
-                            Active
+                      <div className="mb-4 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-secondary">Editing window</p>
+                      </div>
+                      <AvailabilityForm
+                        initial={{
+                          date: w.date,
+                          start_time: w.start_time,
+                          end_time: w.end_time,
+                          timezone: w.timezone,
+                          slot_duration_minutes: w.slot_duration_minutes,
+                          buffer_minutes: w.buffer_minutes,
+                          blocks: w.interview_availability_blocks.map((b) => ({
+                            start_time: b.start_time,
+                            end_time: b.end_time,
+                            reason: b.reason || "",
+                          })),
+                        }}
+                        submitLabel="Save changes"
+                        onSubmit={(data) => handleUpdate(w.id, data)}
+                        onCancel={() => setEditingId(null)}
+                        loading={saving}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-primary">{formatDate(w.date)}</p>
+                          {w.is_active && (
+                            <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-sm text-foreground/60">
+                          {formatTime12(w.start_time)} – {formatTime12(w.end_time)}
+                          <span className="ml-2 text-foreground/40">
+                            ({w.timezone.replace(/_/g, " ")})
                           </span>
+                        </p>
+                        <p className="mt-1 text-xs text-foreground/40">
+                          {w.slot_duration_minutes}min slots &middot; {w.buffer_minutes}min buffer
+                        </p>
+
+                        {/* Blocks */}
+                        {w.interview_availability_blocks.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {w.interview_availability_blocks.map((b) => (
+                              <span
+                                key={b.id}
+                                className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs text-red-600"
+                              >
+                                Blocked: {formatTime12(b.start_time)} – {formatTime12(b.end_time)}
+                                {b.reason && ` (${b.reason})`}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      <p className="mt-1 text-sm text-foreground/60">
-                        {formatTime12(w.start_time)} – {formatTime12(w.end_time)}
-                        <span className="ml-2 text-foreground/40">
-                          ({w.timezone.replace(/_/g, " ")})
-                        </span>
-                      </p>
-                      <p className="mt-1 text-xs text-foreground/40">
-                        {w.slot_duration_minutes}min slots &middot; {w.buffer_minutes}min buffer
-                      </p>
 
-                      {/* Blocks */}
-                      {w.interview_availability_blocks.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {w.interview_availability_blocks.map((b) => (
-                            <span
-                              key={b.id}
-                              className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs text-red-600"
-                            >
-                              Blocked: {formatTime12(b.start_time)} – {formatTime12(b.end_time)}
-                              {b.reason && ` (${b.reason})`}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleToggleActive(w.id, w.is_active)}
+                          className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            w.is_active
+                              ? "bg-green-50 text-green-700 hover:bg-green-100"
+                              : "bg-accent/20 text-foreground/50 hover:bg-accent/40"
+                          }`}
+                        >
+                          {w.is_active ? "Active" : "Paused"}
+                        </button>
+                        <button
+                          onClick={() => setEditingId(w.id)}
+                          className="rounded-xl border border-accent/40 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-accent/10"
+                        >
+                          ✎ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(w.id)}
+                          className="rounded-xl border border-red-100 px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleToggleActive(w.id, w.is_active)}
-                        className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          w.is_active
-                            ? "bg-green-50 text-green-700 hover:bg-green-100"
-                            : "bg-accent/20 text-foreground/50 hover:bg-accent/40"
-                        }`}
-                      >
-                        {w.is_active ? "Active" : "Paused"}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(w.id)}
-                        className="rounded-xl border border-red-100 px-3 py-1.5 text-xs font-semibold text-red-500 transition-colors hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

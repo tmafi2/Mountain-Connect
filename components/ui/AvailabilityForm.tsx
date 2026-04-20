@@ -20,6 +20,16 @@ interface AvailabilityFormProps {
   }) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  initial?: {
+    date: string;
+    start_time: string;
+    end_time: string;
+    timezone: string;
+    slot_duration_minutes: number;
+    buffer_minutes: number;
+    blocks: Block[];
+  };
+  submitLabel?: string;
 }
 
 const TIMEZONES = [
@@ -42,14 +52,16 @@ export default function AvailabilityForm({
   onSubmit,
   onCancel,
   loading,
+  initial,
+  submitLabel,
 }: AvailabilityFormProps) {
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("17:00");
-  const [timezone, setTimezone] = useState("America/Denver");
-  const [slotDuration, setSlotDuration] = useState(30);
-  const [buffer, setBuffer] = useState(10);
-  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [date, setDate] = useState(initial?.date ?? "");
+  const [startTime, setStartTime] = useState(initial?.start_time ?? "09:00");
+  const [endTime, setEndTime] = useState(initial?.end_time ?? "17:00");
+  const [timezone, setTimezone] = useState(initial?.timezone ?? "America/Denver");
+  const [slotDuration, setSlotDuration] = useState(initial?.slot_duration_minutes ?? 30);
+  const [buffer, setBuffer] = useState(initial?.buffer_minutes ?? 10);
+  const [blocks, setBlocks] = useState<Block[]>(initial?.blocks ?? []);
   const [showBlockForm, setShowBlockForm] = useState(false);
   const [blockStart, setBlockStart] = useState("12:00");
   const [blockEnd, setBlockEnd] = useState("13:00");
@@ -262,7 +274,7 @@ export default function AvailabilityForm({
           disabled={loading}
           className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? "Saving…" : "Save Availability"}
+          {loading ? "Saving…" : submitLabel || "Save Availability"}
         </button>
         <button
           type="button"
