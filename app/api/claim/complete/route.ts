@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendListingClaimedEmail } from "@/lib/email/send";
+import { sendListingClaimedEmail, sendAdminListingClaimedEmail } from "@/lib/email/send";
+import { createNotification } from "@/lib/notifications/create";
+import { logAdminAction } from "@/lib/audit/log";
 import { validatePassword } from "@/lib/utils/password";
 
 /**
@@ -123,12 +125,70 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to link listing" }, { status: 500 });
     }
 
-    // Welcome email (non-blocking)
+    // Welcome email to the business (non-blocking)
     sendListingClaimedEmail({
       to: normalizedEmail,
       businessName: business.business_name,
       dashboardUrl: `${process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com"}/business/dashboard`,
     }).catch((err) => console.error("Failed to send listing-claimed email:", err));
+
+    // Admin visibility — log the claim to the audit trail, then notify
+    // every admin user both by in-app notification and email. All three
+    // channels run best-effort so a failure in any one of them does not
+    // break the claim itself.
+    const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
+    const adminBusinessUrl = `${siteUrl}/admin/businesses`;
+
+    // Count linked active/draft jobs for the admin email summary
+    const { data: linkedJobs } = await admin
+      .from("job_posts")
+      .select("id")
+      .eq("business_id", business.id);
+    const jobCount = linkedJobs?.length || 0;
+
+    logAdminAction({
+      adminId: newUserId,
+      action: "business_claimed",
+      targetType: "business",
+      targetId: business.id,
+      details: {
+        business_name: business.business_name,
+        business_email: normalizedEmail,
+        job_count: jobCount,
+      },
+    }).catch((err) => console.error("Failed to log claim audit:", err));
+
+    // Fetch admin users for notifications + emails
+    const { data: adminUsers } = await admin
+      .from("users")
+      .select("id, email")
+      .eq("role", "admin");
+
+    for (const adminUser of adminUsers || []) {
+      createNotification({
+        userId: adminUser.id,
+        type: "general",
+        title: "Listing claimed",
+        message: `${business.business_name} just claimed their listing (${jobCount} job${jobCount === 1 ? "" : "s"}).`,
+        link: `/admin/businesses`,
+        metadata: {
+          business_id: business.id,
+          business_name: business.business_name,
+          business_email: normalizedEmail,
+          job_count: jobCount,
+        },
+      }).catch((err) => console.error("Failed to create admin claim notification:", err));
+
+      if (adminUser.email) {
+        sendAdminListingClaimedEmail({
+          to: adminUser.email,
+          businessName: business.business_name,
+          businessEmail: normalizedEmail,
+          jobCount,
+          adminBusinessUrl,
+        }).catch((err) => console.error("Failed to send admin claim email:", err));
+      }
+    }
 
     return NextResponse.json({
       success: true,

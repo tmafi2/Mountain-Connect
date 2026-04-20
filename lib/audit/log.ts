@@ -6,6 +6,7 @@ export type AuditAction =
   | "business_info_requested"
   | "business_verified"
   | "business_unverified"
+  | "business_claimed"
   | "worker_suspended"
   | "worker_reactivated"
   | "job_featured"

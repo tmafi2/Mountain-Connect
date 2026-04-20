@@ -27,6 +27,7 @@ import { instantInterviewRescheduledEmail } from "./templates/instant-interview-
 import { contractSentEmail } from "./templates/contract-sent";
 import { contractSignedEmail } from "./templates/contract-signed";
 import { importOutreachEmail } from "./templates/import-outreach";
+import { adminListingClaimedEmail } from "./templates/admin-listing-claimed";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -418,6 +419,24 @@ export async function sendContractSignedEmail(params: {
   if (!resend) return null;
   const { subject, html } = contractSignedEmail(params);
   return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+export async function sendAdminListingClaimedEmail(params: {
+  to: string;
+  businessName: string;
+  businessEmail: string;
+  jobCount: number;
+  adminBusinessUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = adminListingClaimedEmail(params);
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: params.to,
+    subject,
+    html,
+  });
 }
 
 export async function sendImportOutreachEmail(params: {
