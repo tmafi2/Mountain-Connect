@@ -60,6 +60,46 @@ const formatTime12 = (time: string) => {
 
 const parseHour = (time: string) => parseInt(time.split(":")[0]);
 
+// Convert an "HH:MM" or "HH:MM:SS" string to minutes from midnight
+const timeToMinutes = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
+// Greedy lane assignment for interval scheduling. Returns an array the same
+// length as `events` where each element is the lane index for that event.
+// Events that don't overlap any other event share lane 0, so consecutive
+// bookings (e.g. 1:00-1:30 + 1:30-2:00) stay full-width.
+function assignLanes(events: Interview[]): number[] {
+  const indexed = events.map((e, i) => ({ e, i }));
+  indexed.sort((a, b) => {
+    const sa = a.e.scheduled_start_time ? timeToMinutes(a.e.scheduled_start_time) : 0;
+    const sb = b.e.scheduled_start_time ? timeToMinutes(b.e.scheduled_start_time) : 0;
+    return sa - sb;
+  });
+  const laneEnds: number[] = [];
+  const result: number[] = new Array(events.length).fill(0);
+  for (const { e, i } of indexed) {
+    if (!e.scheduled_start_time) continue;
+    const start = timeToMinutes(e.scheduled_start_time);
+    const end = e.scheduled_end_time ? timeToMinutes(e.scheduled_end_time) : start + 30;
+    let assigned = -1;
+    for (let l = 0; l < laneEnds.length; l++) {
+      if (start >= laneEnds[l]) {
+        laneEnds[l] = end;
+        assigned = l;
+        break;
+      }
+    }
+    if (assigned === -1) {
+      laneEnds.push(end);
+      assigned = laneEnds.length - 1;
+    }
+    result[i] = assigned;
+  }
+  return result;
+}
+
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -655,26 +695,54 @@ function WeeklyCalendar({
                 const atHour = dayInterviews.filter(
                   (iv) => iv.scheduled_start_time && parseHour(iv.scheduled_start_time) === hour
                 );
+                // Assign side-by-side lanes only when events genuinely overlap
+                // in time. Consecutive bookings in the same hour (e.g. 1:00 +
+                // 1:30) get separate vertical slots from top/height alone.
+                const lanes = assignLanes(atHour);
+                const laneCount = lanes.reduce((max, l) => Math.max(max, l + 1), 1);
                 return (
                   <div
                     key={`${key}-${hour}`}
                     className="relative h-16 border-l border-t border-accent/40"
                   >
-                    {atHour.map((iv) => (
-                      <button
-                        key={iv.id}
-                        onClick={() => onSelectInterview(iv)}
-                        className={`absolute inset-x-0.5 top-0.5 rounded-lg border-l-2 px-1.5 py-1 text-left transition-opacity hover:opacity-80 ${statusBlockColor[iv.status]}`}
-                        style={{ height: "calc(100% - 4px)" }}
-                      >
-                        <p className="truncate text-[10px] font-semibold leading-tight">
-                          {iv.worker_name}
-                        </p>
-                        <p className="truncate text-[10px] leading-tight opacity-70">
-                          {formatTime12(iv.scheduled_start_time!)}
-                        </p>
-                      </button>
-                    ))}
+                    {atHour.map((iv, idx) => {
+                      const startMin = timeToMinutes(iv.scheduled_start_time!);
+                      const endMin = iv.scheduled_end_time
+                        ? timeToMinutes(iv.scheduled_end_time)
+                        : startMin + 30;
+                      const hourStart = hour * 60;
+                      const topPct = ((startMin - hourStart) / 60) * 100;
+                      // Clamp so events that overflow into the next hour
+                      // don't visually leak over the row below.
+                      const rawHeight = ((endMin - startMin) / 60) * 100;
+                      const heightPct = Math.min(rawHeight, 100 - topPct);
+                      const lane = lanes[idx];
+                      const leftPct = (lane / laneCount) * 100;
+                      const widthPct = 100 / laneCount;
+                      const duration = endMin - startMin;
+                      return (
+                        <button
+                          key={iv.id}
+                          onClick={() => onSelectInterview(iv)}
+                          className={`absolute rounded-lg border-l-2 px-1.5 py-0.5 text-left transition-opacity hover:opacity-80 ${statusBlockColor[iv.status]}`}
+                          style={{
+                            top: `calc(${topPct}% + 2px)`,
+                            height: `calc(${heightPct}% - 4px)`,
+                            left: `calc(${leftPct}% + 2px)`,
+                            width: `calc(${widthPct}% - 4px)`,
+                          }}
+                        >
+                          <p className="truncate text-[10px] font-semibold leading-tight">
+                            {iv.worker_name}
+                          </p>
+                          {duration >= 25 && (
+                            <p className="truncate text-[10px] leading-tight opacity-70">
+                              {formatTime12(iv.scheduled_start_time!)}
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 );
               })}
