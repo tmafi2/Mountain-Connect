@@ -46,6 +46,15 @@ function SignupContent() {
   const [resortSearch, setResortSearch] = useState("");
   const [showResortDropdown, setShowResortDropdown] = useState(false);
 
+  // Admin-imported listing claim modal
+  interface PendingImport {
+    businessId: string;
+    businessName: string;
+    jobs: { id: string; title: string; status: string }[];
+  }
+  const [pendingImports, setPendingImports] = useState<PendingImport[]>([]);
+  const [showImportsModal, setShowImportsModal] = useState(false);
+
   // Load resorts on mount
   useEffect(() => {
     fetch("/api/search-resorts?all=1")
@@ -58,9 +67,6 @@ function SignupContent() {
     e.preventDefault();
     setError(null);
 
-    // CAPTCHA is best-effort — never block signup if widget didn't render.
-    // If a token was obtained, it will be verified server-side below.
-
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.isValid) {
       setError("Password must meet all requirements: " + passwordCheck.errors.join(", "));
@@ -72,6 +78,36 @@ function SignupContent() {
       return;
     }
 
+    // For businesses, first check whether an admin has already imported
+    // listings under this email. If so, pause the signup and ask the user
+    // whether they'd like to claim them.
+    if (accountType === "business") {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/signup/check-imports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.imports) && data.imports.length > 0) {
+          setPendingImports(data.imports as PendingImport[]);
+          setShowImportsModal(true);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error("check-imports failed, continuing with normal signup:", err);
+      }
+      setLoading(false);
+    }
+
+    await proceedSignup(false);
+  };
+
+  const proceedSignup = async (claimExistingImports: boolean) => {
+    setShowImportsModal(false);
+    setError(null);
     setLoading(true);
 
     try {
@@ -123,12 +159,25 @@ function SignupContent() {
           { onConflict: "id" }
         );
 
-        // Auto-create a basic profile so the user appears in admin immediately
+        // Auto-create a basic profile so the user appears in admin immediately.
+        // When claiming existing imports, we skip the new business_profile
+        // insert and let /api/signup/claim-imports update the shell profile
+        // in place (unique(user_id) would otherwise collide).
         if (accountType === "worker") {
           await supabase.from("worker_profiles").upsert(
             { user_id: signUpData.user.id, contact_email: email },
             { onConflict: "user_id" }
           ).then(() => {}).catch(() => {});
+        } else if (claimExistingImports) {
+          await fetch("/api/signup/claim-imports", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: email.trim().toLowerCase(),
+              businessName: firstName.trim(),
+              resortId: selectedResortId || null,
+            }),
+          }).catch((err) => console.error("claim-imports request failed:", err));
         } else {
           await supabase.from("business_profiles").upsert(
             {
@@ -540,6 +589,77 @@ function SignupContent() {
           </p>
         </div>
       </div>
+
+      {showImportsModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowImportsModal(false)} />
+          <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="px-6 pt-6 pb-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10 text-2xl">
+                ✨
+              </div>
+              <h3 className="mt-4 text-center text-lg font-bold text-primary">
+                We&apos;ve already set up listings for you
+              </h3>
+              <p className="mt-2 text-center text-sm text-foreground/60">
+                We found {pendingImports.reduce((n, p) => n + p.jobs.length, 0)} listing
+                {pendingImports.reduce((n, p) => n + p.jobs.length, 0) === 1 ? "" : "s"} linked to{" "}
+                <strong className="text-primary">{email}</strong>. Would you like to claim them so they show up in your dashboard?
+              </p>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto border-y border-accent/40 bg-accent/5 px-6 py-4">
+              {pendingImports.map((p) => (
+                <div key={p.businessId} className="mb-3 last:mb-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                    {p.businessName}
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {p.jobs.map((j) => (
+                      <li key={j.id} className="flex items-center gap-2 text-sm text-foreground/70">
+                        <span className={`h-1.5 w-1.5 rounded-full ${j.status === "active" ? "bg-green-500" : "bg-amber-400"}`} />
+                        {j.title}
+                        {j.status !== "active" && (
+                          <span className="text-[10px] uppercase tracking-wider text-foreground/40">
+                            {j.status}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                    {p.jobs.length === 0 && (
+                      <li className="text-sm text-foreground/40">No jobs yet</li>
+                    )}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 px-6 pb-6 pt-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowImportsModal(false)}
+                className="rounded-xl border border-accent bg-white px-5 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => proceedSignup(false)}
+                className="rounded-xl border border-accent bg-white px-5 py-2.5 text-sm font-semibold text-foreground/70 hover:bg-accent/10"
+              >
+                Start fresh anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => proceedSignup(true)}
+                className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90"
+              >
+                Claim &amp; continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
