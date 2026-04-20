@@ -28,6 +28,8 @@ interface JobRow {
   created_at: string;
   business_id: string;
   business_name?: string;
+  business_claimed?: boolean;
+  business_email?: string | null;
 }
 
 interface JobApplicant {
@@ -49,6 +51,8 @@ export default function AdminJobsPage() {
   const [deleting, setDeleting] = useState(false);
   const [featuring, setFeaturing] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [resendingOutreach, setResendingOutreach] = useState(false);
+  const [outreachSentTo, setOutreachSentTo] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -62,16 +66,26 @@ export default function AdminJobsPage() {
 
       if (data && data.length > 0) {
         const bizIds = [...new Set(data.map((j) => j.business_id))];
-        const { data: bizData } = await supabase.from("business_profiles").select("id, business_name").in("id", bizIds);
-        const bizMap: Record<string, string> = {};
-        if (bizData) bizData.forEach((b) => { bizMap[b.id] = b.business_name; });
+        const { data: bizData } = await supabase
+          .from("business_profiles")
+          .select("id, business_name, is_claimed, email")
+          .in("id", bizIds);
+        const bizMap: Record<string, { name: string; claimed: boolean; email: string | null }> = {};
+        if (bizData) bizData.forEach((b) => {
+          bizMap[b.id] = { name: b.business_name, claimed: !!b.is_claimed, email: b.email || null };
+        });
 
-        setJobs(data.map((j) => ({
-          ...j,
-          resort_name: (j.resorts as unknown as { name: string } | null)?.name || null,
-          nearby_town_name: ((j as any).nearby_towns as { name: string } | null)?.name || null,
-          business_name: bizMap[j.business_id] || "Unknown",
-        })));
+        setJobs(data.map((j) => {
+          const biz = bizMap[j.business_id];
+          return {
+            ...j,
+            resort_name: (j.resorts as unknown as { name: string } | null)?.name || null,
+            nearby_town_name: ((j as any).nearby_towns as { name: string } | null)?.name || null,
+            business_name: biz?.name || "Unknown",
+            business_claimed: biz?.claimed ?? true,
+            business_email: biz?.email || null,
+          };
+        }));
       }
       setLoading(false);
     }
@@ -382,6 +396,36 @@ export default function AdminJobsPage() {
                 >
                   ✎ Edit
                 </Link>
+                {selected.business_claimed === false && selected.business_email && (
+                  <button
+                    onClick={async () => {
+                      setResendingOutreach(true);
+                      setOutreachSentTo(null);
+                      const res = await fetch("/api/admin/resend-outreach", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ jobId: selected.id }),
+                      });
+                      const data = await res.json().catch(() => ({}));
+                      setResendingOutreach(false);
+                      if (res.ok && data.success) {
+                        setOutreachSentTo(data.sentTo || selected.business_email || "business");
+                        setTimeout(() => setOutreachSentTo(null), 5000);
+                      } else {
+                        alert(data.error || "Failed to send outreach email.");
+                      }
+                    }}
+                    disabled={resendingOutreach}
+                    className="rounded-xl border border-secondary/40 bg-secondary/10 px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/20 disabled:opacity-50"
+                    title={`Resend the claim link to ${selected.business_email}`}
+                  >
+                    {resendingOutreach
+                      ? "Sending…"
+                      : outreachSentTo
+                        ? `✓ Sent to ${outreachSentTo}`
+                        : "✉ Email business"}
+                  </button>
+                )}
                 <button
                   onClick={handleToggleFeature}
                   disabled={featuring}
