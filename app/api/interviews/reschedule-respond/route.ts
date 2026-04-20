@@ -81,11 +81,15 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true, newStatus: "invited" });
     } else if (action === "decline") {
-      // Mark as missed (final state)
+      // Decline the reschedule request. Semantically distinct from "missed"
+      // (a no-show) — this is a business action, not a natural outcome.
+      // Using status="declined" also means the reschedule-request list on
+      // the business interviews page filters it out automatically.
       await admin
         .from("interviews")
         .update({
-          status: "missed",
+          status: "declined",
+          declined_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", interviewId);
@@ -100,7 +104,7 @@ export async function POST(request: Request) {
         metadata: { interview_id: interviewId },
       });
 
-      return NextResponse.json({ success: true, newStatus: "missed" });
+      return NextResponse.json({ success: true, newStatus: "declined" });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

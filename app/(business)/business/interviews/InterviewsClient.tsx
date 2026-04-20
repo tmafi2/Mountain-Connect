@@ -1204,9 +1204,15 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
                                     body: JSON.stringify({ interviewId: iv.id, action: "decline", declineReason: "Unable to reschedule at this time." }),
                                   });
                                   if (res.ok) {
-                                    setInterviews((prev) => prev.map((i) => i.id === iv.id ? { ...i, status: "missed" as const } : i));
+                                    setInterviews((prev) => prev.map((i) => i.id === iv.id ? { ...i, status: "declined" as const } : i));
+                                  } else {
+                                    const data = await res.json().catch(() => ({}));
+                                    alert(data.error || "Failed to decline reschedule request.");
                                   }
-                                } catch { /* ignore */ }
+                                } catch (err) {
+                                  console.error("Decline failed:", err);
+                                  alert("Failed to decline reschedule request. Please try again.");
+                                }
                                 setRespondingId(null);
                               }}
                               className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
