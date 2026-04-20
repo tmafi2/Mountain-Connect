@@ -54,7 +54,8 @@ export async function POST(request: Request) {
   const sourceUrl = typeof body.sourceUrl === "string" ? body.sourceUrl.trim() : "";
   const datePosted = typeof body.datePosted === "string" ? body.datePosted : "";
   const notionId = typeof body.notionId === "string" ? body.notionId.trim() : "";
-  const resortId = typeof body.resortId === "string" ? body.resortId.trim() : "";
+  const rawResortId = typeof body.resortId === "string" ? body.resortId.trim() : "";
+  const resortName = typeof body.resortName === "string" ? body.resortName.trim() : "";
 
   if (!notionId) return NextResponse.json({ error: "notionId is required" }, { status: 400 });
   if (!businessName) return NextResponse.json({ error: "businessName is required" }, { status: 400 });
@@ -62,8 +63,30 @@ export async function POST(request: Request) {
   if (!description) return NextResponse.json({ error: "description is required" }, { status: 400 });
   if (!businessEmail) return NextResponse.json({ error: "businessEmail is required" }, { status: 400 });
   if (!source) return NextResponse.json({ error: "source is required" }, { status: 400 });
+  if (!rawResortId && !resortName) {
+    return NextResponse.json({ error: "resortId or resortName is required" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
+
+  // Resolve the resort. Accept either a UUID (resortId) or a friendly
+  // resort name (resortName) so Notion automations can pass the name
+  // without having to look up UUIDs first.
+  let resortId = rawResortId;
+  if (!resortId && resortName) {
+    const { data: resort } = await admin
+      .from("resorts")
+      .select("id")
+      .ilike("name", resortName)
+      .maybeSingle();
+    if (!resort) {
+      return NextResponse.json(
+        { error: `Resort not found: "${resortName}"` },
+        { status: 400 }
+      );
+    }
+    resortId = resort.id;
+  }
 
   // Find-or-create the business profile shell by email (same pattern as
   // the manual admin import). If already claimed, we attach to it but
