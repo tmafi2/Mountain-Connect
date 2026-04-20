@@ -41,21 +41,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const businessName = typeof body.businessName === "string" ? body.businessName.trim() : "";
-  const jobTitle = typeof body.jobTitle === "string" ? body.jobTitle.trim() : "";
-  const description = typeof body.description === "string" ? body.description.trim() : "";
-  const location = typeof body.location === "string" ? body.location.trim() : "";
-  const country = typeof body.country === "string" ? body.country.trim() : "";
-  const businessEmail =
-    typeof body.businessEmail === "string" ? body.businessEmail.trim().toLowerCase() : "";
-  const applicationEmail =
-    typeof body.applicationEmail === "string" ? body.applicationEmail.trim() : "";
-  const source = typeof body.source === "string" ? body.source.trim() : "";
-  const sourceUrl = typeof body.sourceUrl === "string" ? body.sourceUrl.trim() : "";
-  const datePosted = typeof body.datePosted === "string" ? body.datePosted : "";
-  const notionId = typeof body.notionId === "string" ? body.notionId.trim() : "";
-  const rawResortId = typeof body.resortId === "string" ? body.resortId.trim() : "";
-  const resortName = typeof body.resortName === "string" ? body.resortName.trim() : "";
+  // Accept both camelCase and snake_case so external automation (e.g.
+  // Cowork push tasks) can evolve its payload format without breaking us.
+  // sourceUrl also accepts "original_post_url" as an alias since that is
+  // what the Notion column is called.
+  const pick = (...keys: string[]): string => {
+    for (const k of keys) {
+      const v = body[k];
+      if (typeof v === "string") return v.trim();
+    }
+    return "";
+  };
+
+  const businessName = pick("businessName", "business_name");
+  const jobTitle = pick("jobTitle", "job_title");
+  const description = pick("description");
+  const location = pick("location");
+  const country = pick("country");
+  const businessEmail = pick("businessEmail", "business_email").toLowerCase();
+  const applicationEmail = pick("applicationEmail", "application_email");
+  const source = pick("source");
+  const sourceUrl = pick("sourceUrl", "source_url", "original_post_url");
+  const datePosted = pick("datePosted", "date_posted");
+  const notionId = pick("notionId", "notion_id");
+  const rawResortId = pick("resortId", "resort_id");
+  const resortName = pick("resortName", "resort_name");
 
   if (!notionId) return NextResponse.json({ error: "notionId is required" }, { status: 400 });
   if (!businessName) return NextResponse.json({ error: "businessName is required" }, { status: 400 });

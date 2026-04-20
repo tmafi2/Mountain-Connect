@@ -90,3 +90,120 @@ Note: There are two 00032 files (interview_missed_reschedule and worker_contact_
 - Background: #f5f7fa
 - Foreground: #3d4f5f
 - Accent: #c8d5e0
+
+
+## Notion import pipeline (managed by Cowork)
+
+This section documents the automated social media → Notion → Mountain Connects import pipeline. It is maintained by the Cowork agent. Do not edit manually — changes will be overwritten on the next Cowork session.
+
+---
+
+### Notion database IDs
+
+| Database | Data Source ID |
+|---|---|
+| Job Posts (raw Facebook captures) | `0bec452f-3acd-46df-8ae4-0c99a05fb7c1` |
+| MC Import Listings (staging for import) | `4d3a647a-5b13-4670-8ff3-6bdb79c418ca` |
+
+Both databases live on the Notion page: **🏔️ Snowy Mountains Job Monitor**
+
+---
+
+### MC Import Listings → API field mappings
+
+When pushing a listing from Notion to the `/api/admin/job-listings/import` endpoint, map Notion columns to API fields as follows:
+
+| Notion Column | API Field | Notes |
+|---|---|---|
+| Business Name | `businessName` | Title field — always present |
+| Job Title | `jobTitle` | Omit if blank |
+| Description | `description` | Up to 500 chars |
+| Location | `location` | e.g. "Jindabyne, NSW" |
+| Country | `country` | Always "Australia" |
+| Business Email | `businessEmail` | Omit if blank |
+| Application Email | `applicationEmail` | Omit if blank |
+| Original Post URL | `sourceUrl` | Source Facebook post permalink |
+| Source | `source` | Facebook group name — see source-name registry below |
+| Date Posted (date:Date Posted:start) | `datePosted` | ISO 8601 date string of original post |
+| Page ID | `notionId` | Always include — used to update the Notion record after push |
+| Resort (inferred) | `resortName` | Canonical resort name (see normalisation rules); required unless a UUID `resortId` is sent instead. Omit if resort cannot be determined. |
+
+Fields intentionally never sent: Category, Employment Type, Housing Included, Season Start, Season End, Requirements, MC Listing URL.
+
+---
+
+### Sync status — which column marks a record as synced
+
+The **Status** column on MC Import Listings is the single source of truth for sync state:
+
+| Status value | Meaning |
+|---|---|
+| `📋 To Import` | Ready to push — will be included in the next push run |
+| `✅ Imported` | Successfully pushed to MC; `MC Listing URL` field is populated |
+| `⚠️ Has Account` | Business already has an MC account — do not push |
+
+**After a successful push:** set Status → `✅ Imported` and populate `MC Listing URL` with the URL returned by the API.  
+**After a failed push:** leave Status as `📋 To Import` and prepend `⚠️ Push failed: <error>` to the Description field.  
+**Never push** records with Status `✅ Imported` or `⚠️ Has Account`.
+
+---
+
+### Push task — schedule and error handling
+
+The push task (`push-mc-job-listings`) is **ad-hoc** (manual trigger only, no cron). Tyler triggers it by saying *"push new job listings"* in a Cowork session.
+
+**Error handling rules:**
+- On **401 Unauthorized** → stop the entire batch immediately and report that the API key may be invalid
+- On **4xx (other)** → log the error against that listing, continue to the next
+- On **5xx / network error** → retry once after 5 seconds; if it fails again, log and continue
+- On **partial batch failure** → report which listings succeeded and which failed; do not re-attempt succeeded ones
+
+**API credentials** are stored at:  
+`/Users/tylermafi/Documents/Claude/Mountain Connects - social/mc_api_config.json`
+
+---
+
+### Source-name registry
+
+The `source` field sent to the API must exactly match one of these canonical names. These also correspond to the Facebook groups the monitor scans:
+
+```
+Jindabyne Notice Board
+Jindabyne Job Guide
+Thredbo Job Guide
+Snowy Mountain Uncensored
+Looking to live around Jindabyne
+Thredbo Notice Board
+```
+
+Do not abbreviate, translate, or reformat these. If a source value in Notion doesn't match the list (e.g. a previously appended cross-post note like "Jindabyne Notice Board → also: Jindabyne Job Guide"), extract only the first group name (before the `→`) as the canonical source.
+
+---
+
+### Resort-name normalisation
+
+The `resortName` API field must be one of these canonical values:
+
+| Canonical value | Maps from |
+|---|---|
+| `Perisher` | "Perisher Valley", "Perisher Blue", "Perisher FoodWorks", posts mentioning Perisher ski resort |
+| `Thredbo` | "Thredbo Alpine Village", "Thredbo Resort", posts from Thredbo groups or mentioning Thredbo |
+| `Smiggins` | "Smiggins Holes", "Smiggins Hotel", posts mentioning Smiggins |
+| `Jindabyne` | Posts based in Jindabyne town with no specific resort mentioned |
+| `Both` | Posts that explicitly service or recruit for both Perisher and Thredbo |
+
+If resort cannot be determined from the post content or group context, omit `resortName` entirely — do not guess.
+
+---
+
+### Deduplication rule (MC Import Listings)
+
+Before creating a new MC Import Listings entry, check for an existing record where:
+1. `Business Email` matches (case-insensitive) **OR** `Business Name` matches (case-insensitive)
+2. **AND** `Job Title` matches (case-insensitive), or both entries have a blank Job Title
+3. **AND** `Date Posted` is within the last **21 days**
+
+If all three match → do not create a new record. Instead append the new source group to the existing record's `Source` field:  
+`"Jindabyne Notice Board → also: Jindabyne Job Guide"`
+
+After 21 days → treat as a fresh listing regardless of business/role match.
