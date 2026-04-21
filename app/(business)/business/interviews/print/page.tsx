@@ -5,7 +5,12 @@ import PrintTrigger from "./PrintTrigger";
 export const dynamic = "force-dynamic";
 
 interface PrintPageProps {
-  searchParams: Promise<{ view?: string; date?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    date?: string;
+    start?: string;
+    end?: string;
+  }>;
 }
 
 function toDateKey(d: Date) {
@@ -59,8 +64,9 @@ const statusStyles: Record<string, { label: string; bg: string; text: string }> 
 };
 
 export default async function InterviewsPrintPage({ searchParams }: PrintPageProps) {
-  const { view: viewParam, date: dateParam } = await searchParams;
-  const view = viewParam === "week" ? "week" : "day";
+  const { view: viewParam, date: dateParam, start: startParam, end: endParam } = await searchParams;
+  const view: "day" | "week" | "range" =
+    viewParam === "week" ? "week" : viewParam === "range" ? "range" : "day";
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -82,6 +88,21 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
   if (view === "week") {
     rangeStart = getWeekStart(baseDate);
     rangeEnd = addDays(rangeStart, 6);
+    const startLabel = rangeStart.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+    const endLabel = rangeEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    rangeLabel = `${startLabel} – ${endLabel}`;
+  } else if (view === "range") {
+    // Custom range — clamp to start <= end and cap at 92 days so a
+    // mistyped year never triggers a massive fetch
+    const rawStart = startParam ? new Date(startParam + "T00:00:00") : new Date();
+    const rawEnd = endParam ? new Date(endParam + "T00:00:00") : rawStart;
+    rangeStart = new Date(rawStart);
+    rangeStart.setHours(0, 0, 0, 0);
+    rangeEnd = new Date(rawEnd);
+    rangeEnd.setHours(0, 0, 0, 0);
+    if (rangeEnd < rangeStart) rangeEnd = new Date(rangeStart);
+    const maxEnd = addDays(rangeStart, 92);
+    if (rangeEnd > maxEnd) rangeEnd = maxEnd;
     const startLabel = rangeStart.toLocaleDateString("en-US", { month: "long", day: "numeric" });
     const endLabel = rangeEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     rangeLabel = `${startLabel} – ${endLabel}`;
@@ -131,9 +152,10 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
     groups.get(r.date)!.push(r);
   }
 
-  const daysToRender = view === "week"
-    ? Array.from({ length: 7 }, (_, i) => toDateKey(addDays(rangeStart, i)))
-    : [toDateKey(rangeStart)];
+  const daySpan = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const daysToRender = view === "day"
+    ? [toDateKey(rangeStart)]
+    : Array.from({ length: daySpan }, (_, i) => toDateKey(addDays(rangeStart, i)));
 
   const generatedAt = new Date().toLocaleString("en-US", {
     month: "short",
@@ -191,7 +213,7 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
           </div>
           <div className="text-right">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              {view === "week" ? "Week of" : "Date"}
+              {view === "week" ? "Week of" : view === "range" ? "Date range" : "Date"}
             </p>
             <p className="mt-1 text-base font-bold text-[#0a1e33]">{rangeLabel}</p>
             <p className="mt-0.5 text-xs text-slate-500">{profile.business_name}</p>
@@ -203,9 +225,10 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
           <span>
             <strong className="text-[#0a1e33]">{rows.length}</strong> interview{rows.length === 1 ? "" : "s"} scheduled
           </span>
-          {view === "week" && (
+          {view !== "day" && (
             <span>
               Across <strong className="text-[#0a1e33]">{groups.size}</strong> day{groups.size === 1 ? "" : "s"}
+              <span className="text-slate-400"> of {daySpan}</span>
             </span>
           )}
         </div>
@@ -215,18 +238,23 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
           <div className="mt-10 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-10 text-center">
             <p className="text-base font-semibold text-slate-600">No interviews scheduled</p>
             <p className="mt-1 text-sm text-slate-500">
-              You have no scheduled interviews for {view === "week" ? "this week" : "this day"}.
+              You have no scheduled interviews for {view === "week" ? "this week" : view === "range" ? "this range" : "this day"}.
             </p>
           </div>
         ) : (
           <div className="mt-6 space-y-6">
             {daysToRender.map((dateKey) => {
               const dayRows = groups.get(dateKey) || [];
-              if (view === "day" || dayRows.length > 0) {
+              // Day view always renders its single day (even if empty).
+              // Week/range views skip empty days when the range is long so
+              // the printout stays tight; for week specifically we still
+              // show every day so the structure is recognisable.
+              const showEmptyDay = view === "day" || view === "week";
+              if (showEmptyDay || dayRows.length > 0) {
                 const d = new Date(dateKey + "T00:00:00");
                 return (
                   <section key={dateKey} className="break-inside-avoid">
-                    {view === "week" && (
+                    {view !== "day" && (
                       <div className="mb-2 flex items-baseline gap-3 border-b border-slate-200 pb-1">
                         <p className="text-sm font-bold text-[#0a1e33]">
                           {d.toLocaleDateString("en-US", { weekday: "long" })}

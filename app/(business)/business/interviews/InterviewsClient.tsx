@@ -765,13 +765,20 @@ interface InterviewsClientProps {
 
 export default function InterviewsClient({ initialInterviews, currentUserId }: InterviewsClientProps) {
   const [view, setView] = useState<"list" | "calendar">("list");
-  const [printDate, setPrintDate] = useState<string>(() => {
-    const d = new Date();
+  const toISO = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
+  };
+  const [printDate, setPrintDate] = useState<string>(() => toISO(new Date()));
+  const [printRangeStart, setPrintRangeStart] = useState<string>(() => toISO(new Date()));
+  const [printRangeEnd, setPrintRangeEnd] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 6);
+    return toISO(d);
   });
+  const rangeValid = printRangeStart && printRangeEnd && printRangeStart <= printRangeEnd;
   const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [calYear, setCalYear] = useState(today.getFullYear());
@@ -1063,6 +1070,48 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             Print week
+          </a>
+        </div>
+
+        {/* Custom date range */}
+        <div className="relative mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+            Custom range
+          </span>
+          <input
+            type="date"
+            value={printRangeStart}
+            onChange={(e) => setPrintRangeStart(e.target.value)}
+            className="rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-medium text-white [color-scheme:dark] focus:bg-white/15 focus:outline-none"
+            aria-label="Range start"
+          />
+          <span className="text-white/40 text-xs">to</span>
+          <input
+            type="date"
+            value={printRangeEnd}
+            min={printRangeStart}
+            onChange={(e) => setPrintRangeEnd(e.target.value)}
+            className="rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-medium text-white [color-scheme:dark] focus:bg-white/15 focus:outline-none"
+            aria-label="Range end"
+          />
+          <a
+            href={rangeValid
+              ? `/business/interviews/print?view=range&start=${printRangeStart}&end=${printRangeEnd}`
+              : undefined}
+            target="_blank"
+            rel="noopener"
+            aria-disabled={!rangeValid}
+            onClick={(e) => { if (!rangeValid) e.preventDefault(); }}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold text-white transition-colors ${
+              rangeValid
+                ? "bg-white/10 border-white/15 hover:bg-white/20"
+                : "bg-white/5 border-white/10 opacity-50 cursor-not-allowed"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print range
           </a>
         </div>
       </div>
