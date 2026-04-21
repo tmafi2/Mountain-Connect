@@ -765,6 +765,13 @@ interface InterviewsClientProps {
 
 export default function InterviewsClient({ initialInterviews, currentUserId }: InterviewsClientProps) {
   const [view, setView] = useState<"list" | "calendar">("list");
+  const [printDate, setPrintDate] = useState<string>(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  });
   const [calendarMode, setCalendarMode] = useState<"month" | "week">("month");
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [calYear, setCalYear] = useState(today.getFullYear());
@@ -1028,8 +1035,15 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
           <span className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
             Print schedule
           </span>
+          <input
+            type="date"
+            value={printDate}
+            onChange={(e) => setPrintDate(e.target.value)}
+            className="rounded-lg bg-white/10 border border-white/15 px-2 py-1.5 text-xs font-medium text-white [color-scheme:dark] focus:bg-white/15 focus:outline-none"
+            aria-label="Date to print"
+          />
           <a
-            href="/business/interviews/print?view=day"
+            href={`/business/interviews/print?view=day&date=${printDate}`}
             target="_blank"
             rel="noopener"
             className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
@@ -1037,10 +1051,10 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            Today
+            Print day
           </a>
           <a
-            href="/business/interviews/print?view=week"
+            href={`/business/interviews/print?view=week&date=${printDate}`}
             target="_blank"
             rel="noopener"
             className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
@@ -1048,7 +1062,7 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            This week
+            Print week
           </a>
         </div>
       </div>

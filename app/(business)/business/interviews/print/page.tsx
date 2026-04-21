@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import PrintTrigger from "./PrintTrigger";
 
@@ -183,7 +182,11 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
         {/* Header with logo */}
         <div className="flex items-start justify-between border-b-2 border-[#0a1e33] pb-5">
           <div className="flex items-center gap-3">
-            <Image src="/logo.svg" alt="Mountain Connects" width={44} height={44} priority />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0a1e33]">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="#22d3ee" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 21l5-10 5 7 3-5 5 8H3z" />
+              </svg>
+            </div>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#22d3ee]">Mountain Connects</p>
               <h1 className="mt-0.5 text-2xl font-extrabold text-[#0a1e33]">Interview Schedule</h1>
