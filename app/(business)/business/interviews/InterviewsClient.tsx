@@ -790,17 +790,34 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
 
   const interviewsByDate = buildInterviewMap(interviews);
 
+  const [scheduledSort, setScheduledSort] = useState<"date" | "listing">("date");
+
   /* ---- list sections ---- */
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const liveNow = interviews.filter((i) => i.status === "live");
 
-  const scheduled = interviews
-    .filter((i) => i.status === "scheduled" && (!i.scheduled_date || i.scheduled_date >= todayStr))
-    .sort((a, b) => {
-      if (!a.scheduled_date || !b.scheduled_date) return 0;
-      return a.scheduled_date.localeCompare(b.scheduled_date);
-    });
+  // Build a sortable key per interview so ties broken on date fall
+  // through to time, then listing. Missing dates sort last so the
+  // upcoming list always shows the next interview first.
+  const dateTimeKey = (i: Interview) => {
+    const d = i.scheduled_date || "9999-12-31";
+    const t = i.scheduled_start_time || "99:99";
+    return `${d}T${t}`;
+  };
+  const scheduledBase = interviews.filter(
+    (i) => i.status === "scheduled" && (!i.scheduled_date || i.scheduled_date >= todayStr)
+  );
+  const scheduled = [...scheduledBase].sort((a, b) => {
+    if (scheduledSort === "listing") {
+      const ta = (a.job_title || "").toLowerCase();
+      const tb = (b.job_title || "").toLowerCase();
+      const cmp = ta.localeCompare(tb);
+      if (cmp !== 0) return cmp;
+      return dateTimeKey(a).localeCompare(dateTimeKey(b));
+    }
+    return dateTimeKey(a).localeCompare(dateTimeKey(b));
+  });
 
   const awaiting = interviews.filter((i) => i.status === "invited");
 
@@ -1179,9 +1196,40 @@ export default function InterviewsClient({ initialInterviews, currentUserId }: I
 
           {/* Scheduled */}
           <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/50">
-              Scheduled ({scheduled.length})
-            </h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground/50">
+                Scheduled ({scheduled.length})
+              </h2>
+              {scheduled.length > 1 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-foreground/40">Sort by</span>
+                  <div className="inline-flex overflow-hidden rounded-lg border border-accent/40">
+                    <button
+                      type="button"
+                      onClick={() => setScheduledSort("date")}
+                      className={`px-2.5 py-1 font-medium transition-colors ${
+                        scheduledSort === "date"
+                          ? "bg-primary text-white"
+                          : "bg-white text-foreground/60 hover:bg-accent/10"
+                      }`}
+                    >
+                      Date &amp; time
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScheduledSort("listing")}
+                      className={`px-2.5 py-1 font-medium border-l border-accent/40 transition-colors ${
+                        scheduledSort === "listing"
+                          ? "bg-primary text-white"
+                          : "bg-white text-foreground/60 hover:bg-accent/10"
+                      }`}
+                    >
+                      Listing
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="space-y-3">
               {scheduled.length === 0 ? (
                 <div className="rounded-2xl border border-accent/40 bg-white p-8 text-center shadow-sm">
