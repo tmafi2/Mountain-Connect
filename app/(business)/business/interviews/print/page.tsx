@@ -181,15 +181,12 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
       <div className="mx-auto max-w-4xl px-8 py-10">
         {/* Header with logo */}
         <div className="flex items-start justify-between border-b-2 border-[#0a1e33] pb-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0a1e33]">
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="#22d3ee" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 21l5-10 5 7 3-5 5 8H3z" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Mountain Connects" className="h-16 w-16" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#22d3ee]">Mountain Connects</p>
-              <h1 className="mt-0.5 text-2xl font-extrabold text-[#0a1e33]">Interview Schedule</h1>
+              <h1 className="text-2xl font-extrabold text-[#0a1e33]">Interview Schedule</h1>
+              <p className="mt-0.5 text-sm text-slate-500">Mountain Connects</p>
             </div>
           </div>
           <div className="text-right">
