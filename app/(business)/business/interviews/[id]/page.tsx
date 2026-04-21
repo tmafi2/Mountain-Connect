@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
 import VideoRoom from "@/components/ui/VideoRoom";
+import type { WorkerProfile } from "@/types/database";
 
 interface Interview {
   id: string;
@@ -27,12 +28,7 @@ interface Interview {
   worker_avatar_url: string | null;
   worker_profile_id: string | null;
   worker_cv_url: string | null;
-  worker_years_experience: number | null;
-  worker_languages: string[];
-  worker_nationality: string | null;
-  worker_second_nationality: string | null;
-  worker_bio: string | null;
-  worker_phone: string | null;
+  worker_profile: WorkerProfile | null;
   cover_letter: string | null;
   is_instant: boolean;
   room_expires_at: string | null;
@@ -74,11 +70,7 @@ export default function BusinessInterviewDetailPage() {
             applications(
               cover_letter,
               job_posts(title),
-              worker_profiles(
-                id, first_name, last_name, location_current, skills, profile_photo_url,
-                cv_url, years_seasonal_experience, languages, nationality, second_nationality,
-                bio, phone
-              )
+              worker_profiles(*)
             )
           `)
           .eq("id", interviewId)
@@ -89,28 +81,9 @@ export default function BusinessInterviewDetailPage() {
 
         const app = iv.applications as unknown as Record<string, unknown> | null;
         const jp = app?.job_posts as unknown as { title: string } | null;
-        const wp = app?.worker_profiles as unknown as {
-          id: string | null;
-          first_name: string | null;
-          last_name: string | null;
-          location_current: string | null;
-          skills: string[] | null;
-          profile_photo_url: string | null;
-          cv_url: string | null;
-          years_seasonal_experience: number | null;
-          languages: unknown;
-          nationality: string | null;
-          second_nationality: string | null;
-          bio: string | null;
-          phone: string | null;
-        } | null;
+        const wp = app?.worker_profiles as unknown as WorkerProfile | null;
 
         const workerName = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown Applicant";
-
-        // languages may come back as string[] or [{language: string}] depending on schema
-        const langArr: string[] = Array.isArray(wp?.languages)
-          ? (wp!.languages as unknown[]).map((l) => typeof l === "string" ? l : (l as { language?: string })?.language || "").filter(Boolean)
-          : [];
 
         setInterview({
           id: iv.id,
@@ -132,12 +105,7 @@ export default function BusinessInterviewDetailPage() {
           worker_avatar_url: wp?.profile_photo_url || null,
           worker_profile_id: wp?.id || null,
           worker_cv_url: wp?.cv_url || null,
-          worker_years_experience: wp?.years_seasonal_experience ?? null,
-          worker_languages: langArr,
-          worker_nationality: wp?.nationality || null,
-          worker_second_nationality: wp?.second_nationality || null,
-          worker_bio: wp?.bio || null,
-          worker_phone: wp?.phone || null,
+          worker_profile: wp,
           cover_letter: (app?.cover_letter as string) || null,
           is_instant: iv.is_instant || false,
           room_expires_at: iv.room_expires_at || null,
@@ -679,101 +647,15 @@ export default function BusinessInterviewDetailPage() {
         {/* ============================================================
             RIGHT SIDEBAR — WORKER PROFILE (xl+ only)
             ============================================================ */}
-        <aside className="hidden xl:block xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
-          <div className="rounded-xl border border-accent bg-white p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                Candidate
-              </h3>
-              {interview.worker_profile_id && (
-                <Link
-                  href={`/business/workers/${interview.worker_profile_id}`}
-                  target="_blank"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary hover:underline"
-                >
-                  Full profile
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </Link>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {interview.worker_avatar_url ? (
-                <img
-                  src={interview.worker_avatar_url}
-                  alt={interview.worker_name}
-                  className="h-14 w-14 rounded-full border border-accent object-cover"
-                />
-              ) : (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-base font-bold text-primary">
-                  {initials}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-primary">{interview.worker_name}</p>
-                {interview.worker_location && (
-                  <p className="truncate text-xs text-foreground/60">{interview.worker_location}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-3 text-sm">
-              {interview.worker_nationality && (
-                <ProfileField label="Nationality">
-                  {interview.worker_nationality}
-                  {interview.worker_second_nationality && ` · ${interview.worker_second_nationality}`}
-                </ProfileField>
-              )}
-              {interview.worker_years_experience !== null && interview.worker_years_experience !== undefined && (
-                <ProfileField label="Seasonal experience">
-                  {interview.worker_years_experience} year{interview.worker_years_experience === 1 ? "" : "s"}
-                </ProfileField>
-              )}
-              {interview.worker_languages.length > 0 && (
-                <ProfileField label="Languages">
-                  {interview.worker_languages.join(", ")}
-                </ProfileField>
-              )}
-              {interview.worker_phone && (
-                <ProfileField label="Phone">
-                  {interview.worker_phone}
-                </ProfileField>
-              )}
-              {interview.worker_skills.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Skills</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {interview.worker_skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="inline-flex rounded-full bg-accent/30 px-2 py-0.5 text-[11px] text-foreground/70"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {interview.worker_bio && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">About</p>
-                  <p className="mt-1 text-xs leading-relaxed text-foreground/70">
-                    {interview.worker_bio}
-                  </p>
-                </div>
-              )}
-              {interview.cover_letter && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Cover letter</p>
-                  <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-foreground/70">
-                    {interview.cover_letter}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+        <aside className="hidden xl:block xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100vh-3rem)]">
+          <CandidateSidebar
+            profile={interview.worker_profile}
+            workerName={interview.worker_name}
+            workerProfileId={interview.worker_profile_id}
+            avatarUrl={interview.worker_avatar_url}
+            initials={initials}
+            coverLetter={interview.cover_letter}
+          />
         </aside>
       </div>
     </div>
@@ -785,6 +667,265 @@ function ProfileField({ label, children }: { label: string; children: React.Reac
     <div>
       <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">{label}</p>
       <p className="mt-0.5 text-xs text-foreground/80">{children}</p>
+    </div>
+  );
+}
+
+function formatLabel(s: string) {
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatShortDate(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function CandidateSidebar({
+  profile,
+  workerName,
+  workerProfileId,
+  avatarUrl,
+  initials,
+  coverLetter,
+}: {
+  profile: WorkerProfile | null;
+  workerName: string;
+  workerProfileId: string | null;
+  avatarUrl: string | null;
+  initials: string;
+  coverLetter: string | null;
+}) {
+  type Tab = "about" | "experience" | "availability" | "letter";
+  const [tab, setTab] = useState<Tab>("about");
+
+  const languages: string[] = Array.isArray(profile?.languages)
+    ? (profile!.languages as unknown[])
+        .map((l) => typeof l === "string" ? l : (l as { language?: string })?.language || "")
+        .filter(Boolean)
+    : [];
+
+  const workHistory = Array.isArray(profile?.work_history) ? profile!.work_history! : [];
+  const certifications = Array.isArray(profile?.certifications) ? profile!.certifications! : [];
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-accent bg-white">
+      {/* Header — identity + full profile link */}
+      <div className="border-b border-accent/40 p-4">
+        <div className="flex items-center gap-3">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={workerName}
+              className="h-12 w-12 rounded-full border border-accent object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-sm font-bold text-primary">
+              {initials}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-primary">{workerName}</p>
+            {profile?.location_current && (
+              <p className="truncate text-xs text-foreground/60">{profile.location_current}</p>
+            )}
+          </div>
+        </div>
+        {workerProfileId && (
+          <Link
+            href={`/business/workers/${workerProfileId}`}
+            target="_blank"
+            className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-secondary hover:underline"
+          >
+            Open full profile
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </Link>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-accent/40 text-[11px] font-semibold uppercase tracking-wider">
+        {(
+          [
+            ["about", "About"],
+            ["experience", "Experience"],
+            ["availability", "Avail."],
+            ["letter", "Letter"],
+          ] as [Tab, string][]
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`flex-1 border-b-2 px-2 py-2 transition-colors ${
+              tab === key
+                ? "border-primary text-primary"
+                : "border-transparent text-foreground/50 hover:text-foreground/80"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content — scrollable */}
+      <div className="flex-1 overflow-y-auto p-4 text-sm">
+        {!profile ? (
+          <p className="text-xs text-foreground/50">No worker profile available.</p>
+        ) : tab === "about" ? (
+          <div className="space-y-3">
+            {profile.bio && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Bio</p>
+                <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-foreground/80">{profile.bio}</p>
+              </div>
+            )}
+            {profile.phone && <ProfileField label="Phone">{profile.phone}</ProfileField>}
+            {profile.date_of_birth && (
+              <ProfileField label="Date of birth">{formatShortDate(profile.date_of_birth)}</ProfileField>
+            )}
+            {(profile.nationality || profile.second_nationality) && (
+              <ProfileField label="Nationality">
+                {[profile.nationality, profile.second_nationality].filter(Boolean).join(" · ")}
+              </ProfileField>
+            )}
+            {profile.country_of_residence && (
+              <ProfileField label="Country of residence">{profile.country_of_residence}</ProfileField>
+            )}
+            {profile.visa_status && (
+              <ProfileField label="Visa status">
+                {formatLabel(profile.visa_status)}
+                {profile.visa_expiry_date && ` (exp. ${formatShortDate(profile.visa_expiry_date)})`}
+              </ProfileField>
+            )}
+            {profile.drivers_license !== null && profile.drivers_license !== undefined && (
+              <ProfileField label="Driver's license">
+                {profile.drivers_license ? `Yes${profile.drivers_license_country ? ` (${profile.drivers_license_country})` : ""}` : "No"}
+              </ProfileField>
+            )}
+            {profile.has_car !== null && profile.has_car !== undefined && (
+              <ProfileField label="Has car">{profile.has_car ? "Yes" : "No"}</ProfileField>
+            )}
+            {!profile.bio && !profile.phone && !profile.nationality && !profile.visa_status && (
+              <p className="text-xs text-foreground/50">No personal details shared.</p>
+            )}
+          </div>
+        ) : tab === "experience" ? (
+          <div className="space-y-3">
+            {profile.years_seasonal_experience !== null && profile.years_seasonal_experience !== undefined && (
+              <ProfileField label="Seasonal experience">
+                {profile.years_seasonal_experience} year{profile.years_seasonal_experience === 1 ? "" : "s"}
+              </ProfileField>
+            )}
+            {languages.length > 0 && (
+              <ProfileField label="Languages">{languages.join(", ")}</ProfileField>
+            )}
+            {Array.isArray(profile.skills) && profile.skills.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Skills</p>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {profile.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="inline-flex rounded-full bg-accent/30 px-2 py-0.5 text-[11px] text-foreground/70"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {certifications.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Certifications</p>
+                <ul className="mt-1.5 space-y-1">
+                  {certifications.map((c, i) => (
+                    <li key={i} className="text-xs text-foreground/80">
+                      {c.name}
+                      {c.issuer && <span className="text-foreground/50"> · {c.issuer}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {workHistory.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Work history</p>
+                <ul className="mt-1.5 space-y-2">
+                  {workHistory.map((w) => (
+                    <li key={w.id} className="rounded-lg border border-accent/40 bg-accent/5 p-2 text-xs">
+                      <p className="font-semibold text-primary">{w.title}</p>
+                      <p className="text-foreground/60">{w.company}{w.location ? ` · ${w.location}` : ""}</p>
+                      <p className="mt-0.5 text-[10px] text-foreground/40">
+                        {formatShortDate(w.start_date)}{w.end_date ? ` – ${formatShortDate(w.end_date)}` : w.is_current ? " – Present" : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {profile.pay_range_min != null && profile.pay_range_max != null && (
+              <ProfileField label="Pay range">
+                {profile.pay_currency || "$"}{profile.pay_range_min}–{profile.pay_range_max}
+              </ProfileField>
+            )}
+          </div>
+        ) : tab === "availability" ? (
+          <div className="space-y-3">
+            {(profile.availability_start || profile.availability_end) && (
+              <ProfileField label="Available">
+                {formatShortDate(profile.availability_start) || "—"}
+                {" to "}
+                {formatShortDate(profile.availability_end) || "open"}
+              </ProfileField>
+            )}
+            {profile.season_preference && (
+              <ProfileField label="Season preference">{formatLabel(profile.season_preference)}</ProfileField>
+            )}
+            {profile.position_type && (
+              <ProfileField label="Position type">{formatLabel(profile.position_type)}</ProfileField>
+            )}
+            {profile.housing_preference && (
+              <ProfileField label="Housing">{formatLabel(profile.housing_preference)}</ProfileField>
+            )}
+            {profile.willing_to_relocate !== null && profile.willing_to_relocate !== undefined && (
+              <ProfileField label="Willing to relocate">{profile.willing_to_relocate ? "Yes" : "No"}</ProfileField>
+            )}
+            {profile.available_immediately !== null && profile.available_immediately !== undefined && (
+              <ProfileField label="Available immediately">{profile.available_immediately ? "Yes" : "No"}</ProfileField>
+            )}
+            {profile.available_nights !== null && profile.available_nights !== undefined && (
+              <ProfileField label="Nights">{profile.available_nights ? "Yes" : "No"}</ProfileField>
+            )}
+            {profile.available_weekends !== null && profile.available_weekends !== undefined && (
+              <ProfileField label="Weekends">{profile.available_weekends ? "Yes" : "No"}</ProfileField>
+            )}
+            {profile.open_to_second_job !== null && profile.open_to_second_job !== undefined && (
+              <ProfileField label="Open to second job">{profile.open_to_second_job ? "Yes" : "No"}</ProfileField>
+            )}
+            {profile.traveling_with_partner !== null && profile.traveling_with_partner !== undefined && (
+              <ProfileField label="Traveling with partner">{profile.traveling_with_partner ? "Yes" : "No"}</ProfileField>
+            )}
+            {profile.traveling_with_pets !== null && profile.traveling_with_pets !== undefined && (
+              <ProfileField label="Traveling with pets">{profile.traveling_with_pets ? "Yes" : "No"}</ProfileField>
+            )}
+          </div>
+        ) : (
+          <div>
+            {coverLetter ? (
+              <p className="whitespace-pre-line text-xs leading-relaxed text-foreground/80">
+                {coverLetter}
+              </p>
+            ) : (
+              <p className="text-xs text-foreground/50">
+                No cover letter submitted with this application.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
