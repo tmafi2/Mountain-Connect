@@ -697,6 +697,9 @@ function CandidateSidebar({
 }) {
   type Tab = "about" | "experience" | "availability" | "letter";
   const [tab, setTab] = useState<Tab>("about");
+  // Single-open accordion for work history — selecting a new job collapses
+  // the previously expanded one.
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const languages: string[] = Array.isArray(profile?.languages)
     ? (profile!.languages as unknown[])
@@ -854,15 +857,68 @@ function CandidateSidebar({
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Work history</p>
                 <ul className="mt-1.5 space-y-2">
-                  {workHistory.map((w) => (
-                    <li key={w.id} className="rounded-lg border border-accent/40 bg-accent/5 p-2 text-xs">
-                      <p className="font-semibold text-primary">{w.title}</p>
-                      <p className="text-foreground/60">{w.company}{w.location ? ` · ${w.location}` : ""}</p>
-                      <p className="mt-0.5 text-[10px] text-foreground/40">
-                        {formatShortDate(w.start_date)}{w.end_date ? ` – ${formatShortDate(w.end_date)}` : w.is_current ? " – Present" : ""}
-                      </p>
-                    </li>
-                  ))}
+                  {workHistory.map((w) => {
+                    const isOpen = expandedJobId === w.id;
+                    return (
+                      <li key={w.id} className="overflow-hidden rounded-lg border border-accent/40 bg-accent/5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedJobId(isOpen ? null : w.id)}
+                          aria-expanded={isOpen}
+                          className="flex w-full items-start gap-2 p-2 text-left transition-colors hover:bg-accent/10"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-primary">{w.title}</p>
+                            <p className="text-foreground/60">
+                              {w.company}{w.location ? ` · ${w.location}` : ""}
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-foreground/40">
+                              {formatShortDate(w.start_date)}
+                              {w.end_date
+                                ? ` – ${formatShortDate(w.end_date)}`
+                                : w.is_current
+                                  ? " – Present"
+                                  : ""}
+                            </p>
+                          </div>
+                          <svg
+                            className={`mt-0.5 h-3.5 w-3.5 shrink-0 text-foreground/40 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {isOpen && (
+                          <div className="border-t border-accent/40 bg-white p-2 text-xs text-foreground/80">
+                            {(w.country || w.category) && (
+                              <div className="mb-1.5 flex flex-wrap gap-2 text-[10px] text-foreground/50">
+                                {w.country && <span>{w.country}</span>}
+                                {w.category && (
+                                  <span className="rounded-full bg-accent/30 px-1.5 py-0.5 text-foreground/60">
+                                    {formatLabel(w.category)}
+                                  </span>
+                                )}
+                                {w.is_verified && (
+                                  <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-green-700">
+                                    Verified
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {w.description ? (
+                              <p className="whitespace-pre-line leading-relaxed">{w.description}</p>
+                            ) : (
+                              <p className="italic text-foreground/40">No description provided.</p>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
