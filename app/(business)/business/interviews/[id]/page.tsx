@@ -25,6 +25,15 @@ interface Interview {
   worker_location: string;
   worker_skills: string[];
   worker_avatar_url: string | null;
+  worker_profile_id: string | null;
+  worker_cv_url: string | null;
+  worker_years_experience: number | null;
+  worker_languages: string[];
+  worker_nationality: string | null;
+  worker_second_nationality: string | null;
+  worker_bio: string | null;
+  worker_phone: string | null;
+  cover_letter: string | null;
   is_instant: boolean;
   room_expires_at: string | null;
 }
@@ -63,8 +72,13 @@ export default function BusinessInterviewDetailPage() {
             timezone, video_room_url, business_notes, is_instant, room_expires_at,
             invited_at, scheduled_at, completed_at, cancelled_at,
             applications(
+              cover_letter,
               job_posts(title),
-              worker_profiles(first_name, last_name, location_current, skills, profile_photo_url)
+              worker_profiles(
+                id, first_name, last_name, location_current, skills, profile_photo_url,
+                cv_url, years_seasonal_experience, languages, nationality, second_nationality,
+                bio, phone
+              )
             )
           `)
           .eq("id", interviewId)
@@ -76,14 +90,27 @@ export default function BusinessInterviewDetailPage() {
         const app = iv.applications as unknown as Record<string, unknown> | null;
         const jp = app?.job_posts as unknown as { title: string } | null;
         const wp = app?.worker_profiles as unknown as {
+          id: string | null;
           first_name: string | null;
           last_name: string | null;
           location_current: string | null;
           skills: string[] | null;
           profile_photo_url: string | null;
+          cv_url: string | null;
+          years_seasonal_experience: number | null;
+          languages: unknown;
+          nationality: string | null;
+          second_nationality: string | null;
+          bio: string | null;
+          phone: string | null;
         } | null;
 
         const workerName = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "Unknown Applicant";
+
+        // languages may come back as string[] or [{language: string}] depending on schema
+        const langArr: string[] = Array.isArray(wp?.languages)
+          ? (wp!.languages as unknown[]).map((l) => typeof l === "string" ? l : (l as { language?: string })?.language || "").filter(Boolean)
+          : [];
 
         setInterview({
           id: iv.id,
@@ -103,6 +130,15 @@ export default function BusinessInterviewDetailPage() {
           worker_location: wp?.location_current || "",
           worker_skills: wp?.skills || [],
           worker_avatar_url: wp?.profile_photo_url || null,
+          worker_profile_id: wp?.id || null,
+          worker_cv_url: wp?.cv_url || null,
+          worker_years_experience: wp?.years_seasonal_experience ?? null,
+          worker_languages: langArr,
+          worker_nationality: wp?.nationality || null,
+          worker_second_nationality: wp?.second_nationality || null,
+          worker_bio: wp?.bio || null,
+          worker_phone: wp?.phone || null,
+          cover_letter: (app?.cover_letter as string) || null,
           is_instant: iv.is_instant || false,
           room_expires_at: iv.room_expires_at || null,
         });
@@ -312,7 +348,7 @@ export default function BusinessInterviewDetailPage() {
   const isLive = interview.status === "live";
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl xl:max-w-7xl">
       <Link
         href="/business/interviews"
         className="mb-4 inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-foreground"
@@ -322,6 +358,54 @@ export default function BusinessInterviewDetailPage() {
         </svg>
         Back to Interviews
       </Link>
+
+      <div className="xl:grid xl:grid-cols-[minmax(280px,_320px)_minmax(0,_1fr)_minmax(280px,_320px)] xl:gap-6">
+        {/* ============================================================
+            LEFT SIDEBAR — RESUME (xl+ only)
+            ============================================================ */}
+        <aside className="hidden xl:block xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
+          <div className="rounded-xl border border-accent bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                Resume
+              </h3>
+              {interview.worker_cv_url && (
+                <a
+                  href={interview.worker_cv_url}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary hover:underline"
+                >
+                  Open
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+            </div>
+            {interview.worker_cv_url ? (
+              <div className="overflow-hidden rounded-lg border border-accent/50 bg-accent/5">
+                <iframe
+                  src={interview.worker_cv_url}
+                  title={`${interview.worker_name} resume`}
+                  className="h-[calc(100vh-10rem)] w-full"
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-accent/50 bg-accent/5 p-6 text-center">
+                <svg className="mx-auto h-8 w-8 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="mt-2 text-xs text-foreground/50">No resume uploaded</p>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ============================================================
+            MAIN COLUMN
+            ============================================================ */}
+        <div className="min-w-0">
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -561,6 +645,146 @@ export default function BusinessInterviewDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Below-xl quick-access row — on wide screens these live in the sidebars */}
+      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:hidden">
+        {interview.worker_cv_url && (
+          <a
+            href={interview.worker_cv_url}
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent bg-white px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-accent/10"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            View resume
+          </a>
+        )}
+        {interview.worker_profile_id && (
+          <Link
+            href={`/business/workers/${interview.worker_profile_id}`}
+            target="_blank"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent bg-white px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-accent/10"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            View full profile
+          </Link>
+        )}
+      </div>
+
+        </div>
+        {/* ============================================================
+            RIGHT SIDEBAR — WORKER PROFILE (xl+ only)
+            ============================================================ */}
+        <aside className="hidden xl:block xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
+          <div className="rounded-xl border border-accent bg-white p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                Candidate
+              </h3>
+              {interview.worker_profile_id && (
+                <Link
+                  href={`/business/workers/${interview.worker_profile_id}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary hover:underline"
+                >
+                  Full profile
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {interview.worker_avatar_url ? (
+                <img
+                  src={interview.worker_avatar_url}
+                  alt={interview.worker_name}
+                  className="h-14 w-14 rounded-full border border-accent object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-base font-bold text-primary">
+                  {initials}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-primary">{interview.worker_name}</p>
+                {interview.worker_location && (
+                  <p className="truncate text-xs text-foreground/60">{interview.worker_location}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm">
+              {interview.worker_nationality && (
+                <ProfileField label="Nationality">
+                  {interview.worker_nationality}
+                  {interview.worker_second_nationality && ` · ${interview.worker_second_nationality}`}
+                </ProfileField>
+              )}
+              {interview.worker_years_experience !== null && interview.worker_years_experience !== undefined && (
+                <ProfileField label="Seasonal experience">
+                  {interview.worker_years_experience} year{interview.worker_years_experience === 1 ? "" : "s"}
+                </ProfileField>
+              )}
+              {interview.worker_languages.length > 0 && (
+                <ProfileField label="Languages">
+                  {interview.worker_languages.join(", ")}
+                </ProfileField>
+              )}
+              {interview.worker_phone && (
+                <ProfileField label="Phone">
+                  {interview.worker_phone}
+                </ProfileField>
+              )}
+              {interview.worker_skills.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Skills</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {interview.worker_skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="inline-flex rounded-full bg-accent/30 px-2 py-0.5 text-[11px] text-foreground/70"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {interview.worker_bio && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">About</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/70">
+                    {interview.worker_bio}
+                  </p>
+                </div>
+              )}
+              {interview.cover_letter && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Cover letter</p>
+                  <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-foreground/70">
+                    {interview.cover_letter}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">{label}</p>
+      <p className="mt-0.5 text-xs text-foreground/80">{children}</p>
     </div>
   );
 }
