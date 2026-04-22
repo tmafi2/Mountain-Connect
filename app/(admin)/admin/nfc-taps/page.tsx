@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import NfcTapsCharts from "./NfcTapsCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,23 @@ export default async function NfcTapsPage() {
       <div className="mt-4 grid grid-cols-2 gap-4">
         <StatTile label={"Clicked I\u2019m hiring"} value={ctaHiringRows.length} />
         <StatTile label="Clicked Looking for work" value={ctaWorkerRows.length} />
+      </div>
+
+      {/* Pie charts — event mix and card split */}
+      <div className="mt-8">
+        <NfcTapsCharts
+          eventMix={[
+            { name: "Taps", value: tapRows.length, color: "#3b9ede" },
+            { name: "Saved contact", value: downloadRows.length, color: "#10b981" },
+            { name: "Clicked I\u2019m hiring", value: ctaHiringRows.length, color: "#f59e0b" },
+            { name: "Clicked Looking for work", value: ctaWorkerRows.length, color: "#d97706" },
+          ]}
+          cardSplit={tapCardEntries.map(([code, count], i) => ({
+            name: describeCard(code),
+            value: count,
+            color: ["#0a1e33", "#3b9ede", "#22d3ee", "#94a3b8", "#8b5cf6", "#ec4899"][i] || "#6b7280",
+          }))}
+        />
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
