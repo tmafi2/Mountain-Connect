@@ -327,49 +327,7 @@ export default function BusinessInterviewDetailPage() {
         Back to Interviews
       </Link>
 
-      <div className="xl:grid xl:grid-cols-[minmax(280px,_320px)_minmax(0,_1fr)_minmax(280px,_320px)] xl:gap-6">
-        {/* ============================================================
-            LEFT SIDEBAR — RESUME (xl+ only)
-            ============================================================ */}
-        <aside className="hidden xl:block xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
-          <div className="rounded-xl border border-accent bg-white p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
-                Resume
-              </h3>
-              {interview.worker_cv_url && (
-                <a
-                  href={interview.worker_cv_url}
-                  target="_blank"
-                  rel="noopener"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary hover:underline"
-                >
-                  Open
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              )}
-            </div>
-            {interview.worker_cv_url ? (
-              <div className="overflow-hidden rounded-lg border border-accent/50 bg-accent/5">
-                <iframe
-                  src={interview.worker_cv_url}
-                  title={`${interview.worker_name} resume`}
-                  className="h-[calc(100vh-10rem)] w-full"
-                />
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-accent/50 bg-accent/5 p-6 text-center">
-                <svg className="mx-auto h-8 w-8 text-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="mt-2 text-xs text-foreground/50">No resume uploaded</p>
-              </div>
-            )}
-          </div>
-        </aside>
-
+      <div className="xl:grid xl:grid-cols-[minmax(0,_1fr)_minmax(300px,_360px)] xl:gap-6">
         {/* ============================================================
             MAIN COLUMN
             ============================================================ */}
@@ -614,34 +572,22 @@ export default function BusinessInterviewDetailPage() {
         </div>
       </div>
 
-      {/* Below-xl quick-access row — on wide screens these live in the sidebars */}
-      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:hidden">
-        {interview.worker_cv_url && (
-          <a
-            href={interview.worker_cv_url}
-            target="_blank"
-            rel="noopener"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent bg-white px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-accent/10"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            View resume
-          </a>
-        )}
-        {interview.worker_profile_id && (
+      {/* Below-xl quick-access row — on wide screens the candidate sidebar
+          is visible; below that we expose the full-profile link here. */}
+      {interview.worker_profile_id && (
+        <div className="mt-8 xl:hidden">
           <Link
             href={`/business/workers/${interview.worker_profile_id}`}
             target="_blank"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-accent bg-white px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-accent/10"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent bg-white px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-accent/10"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             View full profile
           </Link>
-        )}
-      </div>
+        </div>
+      )}
 
         </div>
         {/* ============================================================
