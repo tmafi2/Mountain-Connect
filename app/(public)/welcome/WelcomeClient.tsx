@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AnimatedCounter from "../home/AnimatedCounter";
 
 type View = "business" | "worker";
@@ -13,7 +13,10 @@ interface WelcomeClientProps {
 
 export default function WelcomeClient({ initialView }: WelcomeClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromNfc = searchParams.get("src") === "nfc";
   const [view, setView] = useState<View>(initialView);
+  const [nfcBannerOpen, setNfcBannerOpen] = useState(fromNfc);
 
   const handleToggle = (next: View) => {
     if (next === view) return;
@@ -75,6 +78,31 @@ export default function WelcomeClient({ initialView }: WelcomeClientProps) {
           </div>
         </div>
       </div>
+
+      {/* NFC tap welcome banner */}
+      {nfcBannerOpen && (
+        <div className="border-b border-secondary/20 bg-gradient-to-r from-secondary/10 via-highlight/10 to-secondary/10">
+          <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5 sm:px-6">
+            <span className="text-base">✨</span>
+            <p className="flex-1 text-sm text-primary">
+              <strong className="font-semibold">Thanks for tapping!</strong>{" "}
+              <span className="text-foreground/70">
+                Here&apos;s everything you need to know about Mountain Connects — pick your path below.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setNfcBannerOpen(false)}
+              aria-label="Dismiss"
+              className="shrink-0 rounded-full p-1 text-foreground/40 transition-colors hover:bg-secondary/10 hover:text-foreground/80"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ────────────────────────────────────────────────────────── */}
       {/*  Hero                                                       */}
