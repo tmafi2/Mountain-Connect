@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseUserAgent } from "@/lib/utils/user-agent";
 
 /**
  * GET /card?c=<code>
@@ -36,17 +37,34 @@ export async function GET(request: NextRequest) {
   // after() instead of fire-and-forget so the serverless function does not
   // terminate mid-insert on Vercel — the write always completes even if it
   // takes a few hundred ms after the user has already been redirected.
-  const userAgent = request.headers.get("user-agent");
-  const referrer = request.headers.get("referer");
-  const country = request.headers.get("x-vercel-ip-country");
+  const headers = request.headers;
+  const userAgent = headers.get("user-agent");
+  const referrer = headers.get("referer");
+  const country = headers.get("x-vercel-ip-country");
+  const city = headers.get("x-vercel-ip-city");
+  const region = headers.get("x-vercel-ip-country-region");
+  const timezone = headers.get("x-vercel-ip-timezone");
+  const lat = headers.get("x-vercel-ip-latitude");
+  const lon = headers.get("x-vercel-ip-longitude");
+  const { os, browser, deviceType } = parseUserAgent(userAgent);
+
   after(async () => {
     try {
       const admin = createAdminClient();
       await admin.from("nfc_taps").insert({
+        event_type: "tap",
         card_code: code,
         user_agent: userAgent,
         referrer,
         country,
+        city: city ? decodeURIComponent(city) : null,
+        region,
+        timezone,
+        latitude: lat ? parseFloat(lat) : null,
+        longitude: lon ? parseFloat(lon) : null,
+        os,
+        browser,
+        device_type: deviceType,
       });
     } catch (err) {
       console.error("Failed to log NFC tap:", err);
