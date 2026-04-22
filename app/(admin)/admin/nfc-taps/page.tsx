@@ -17,6 +17,8 @@ function describeCard(code: string) {
 function describeEvent(type: string) {
   if (type === "tap") return "Tap";
   if (type === "vcard_download") return "Saved contact";
+  if (type === "cta_hiring") return "Clicked \u201cI\u2019m hiring\u201d";
+  if (type === "cta_worker") return "Clicked \u201cLooking for work\u201d";
   return type;
 }
 
@@ -57,6 +59,8 @@ export default async function NfcTapsPage() {
   // Split by event type
   const tapRows = rows.filter((r) => r.event_type === "tap");
   const downloadRows = rows.filter((r) => r.event_type === "vcard_download");
+  const ctaHiringRows = rows.filter((r) => r.event_type === "cta_hiring");
+  const ctaWorkerRows = rows.filter((r) => r.event_type === "cta_worker");
 
   // Per-card tap counts
   const tapsPerCard = new Map<string, number>();
@@ -102,6 +106,12 @@ export default async function NfcTapsPage() {
           value={downloadRows.length}
           caption={conversionPct !== null ? `${conversionPct}% of Tyler taps` : undefined}
         />
+      </div>
+
+      {/* CTA click tiles */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <StatTile label={"Clicked I\u2019m hiring"} value={ctaHiringRows.length} />
+        <StatTile label="Clicked Looking for work" value={ctaWorkerRows.length} />
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -201,7 +211,9 @@ export default async function NfcTapsPage() {
                         className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           r.event_type === "vcard_download"
                             ? "bg-emerald-50 text-emerald-700"
-                            : "bg-secondary/10 text-secondary"
+                            : r.event_type.startsWith("cta_")
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-secondary/10 text-secondary"
                         }`}
                       >
                         {describeEvent(r.event_type)}

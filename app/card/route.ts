@@ -23,14 +23,29 @@ const DESTINATIONS: Record<string, string> = {
 };
 const DEFAULT_DESTINATION = "/welcome";
 
+// CTA click targets — ?cta=hiring or ?cta=worker. The CTA takes precedence
+// over the card destination so we can reuse /card as a lightweight tracking
+// redirect for in-page buttons (e.g. the I'm hiring / Looking for work
+// buttons on the Tyler contact card).
+const CTA_DESTINATIONS: Record<string, string> = {
+  hiring: "/welcome?view=business",
+  worker: "/welcome?view=worker",
+};
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const rawCode = url.searchParams.get("c");
   const code = (rawCode || "default").toLowerCase().slice(0, 32);
+  const rawCta = url.searchParams.get("cta");
+  const cta = rawCta ? rawCta.toLowerCase().slice(0, 32) : null;
 
-  const destPath = DESTINATIONS[code] || DEFAULT_DESTINATION;
+  // CTA click wins over card destination — used by in-page buttons that
+  // want to log a conversion and redirect in one step.
+  const destPath = cta && CTA_DESTINATIONS[cta]
+    ? CTA_DESTINATIONS[cta]
+    : DESTINATIONS[code] || DEFAULT_DESTINATION;
   const dest = new URL(destPath, url.origin);
-  dest.searchParams.set("src", "nfc");
+  dest.searchParams.set("src", cta ? "contact-card" : "nfc");
   if (rawCode) dest.searchParams.set("c", code);
 
   // Queue the tap insert to run after the redirect response is sent. Using
@@ -48,11 +63,13 @@ export async function GET(request: NextRequest) {
   const lon = headers.get("x-vercel-ip-longitude");
   const { os, browser, deviceType } = parseUserAgent(userAgent);
 
+  const eventType = cta ? `cta_${cta}` : "tap";
+
   after(async () => {
     try {
       const admin = createAdminClient();
       await admin.from("nfc_taps").insert({
-        event_type: "tap",
+        event_type: eventType,
         card_code: code,
         user_agent: userAgent,
         referrer,

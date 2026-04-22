@@ -101,13 +101,15 @@ export default function TylerContactPage() {
             </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Link
-                href="/welcome?view=business&src=contact-card"
+                href="/card?c=tyler&cta=hiring"
+                prefetch={false}
                 className="rounded-xl border border-accent bg-white px-3 py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-accent/20"
               >
                 I&apos;m hiring
               </Link>
               <Link
-                href="/welcome?view=worker&src=contact-card"
+                href="/card?c=tyler&cta=worker"
+                prefetch={false}
                 className="rounded-xl border border-accent bg-white px-3 py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-accent/20"
               >
                 Looking for work
