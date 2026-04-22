@@ -18,7 +18,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const DESTINATIONS: Record<string, string> = {
   biz: "/welcome?view=business",
   worker: "/welcome?view=worker",
-  tyler: "/welcome",
+  tyler: "/connect/tyler",
 };
 const DEFAULT_DESTINATION = "/welcome";
 
