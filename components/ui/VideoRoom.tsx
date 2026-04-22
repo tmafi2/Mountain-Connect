@@ -1,14 +1,26 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { playJoinChime } from "@/lib/utils/chime";
+import type { OtherParty, PresenceStatus } from "@/lib/hooks/useInterviewPresence";
 
 interface VideoRoomProps {
   interviewId: string;
   roomUrl?: string;
   isDemo?: boolean;
+  otherParty?: OtherParty;
+  otherPartyLabel?: string;
+  onStatusChange?: (status: PresenceStatus) => void;
 }
 
-export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomProps) {
+export default function VideoRoom({
+  interviewId,
+  roomUrl,
+  isDemo,
+  otherParty,
+  otherPartyLabel,
+  onStatusChange,
+}: VideoRoomProps) {
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(false);
   const [callUrl, setCallUrl] = useState(roomUrl || "");
@@ -82,6 +94,37 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
     }
   }, [isFullscreen]);
 
+  // Presence-driven toast + chime. Watch the other party's status while
+  // we're joined to the call; when they arrive / leave, surface a toast and
+  // (on arrival) play a subtle chime.
+  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  const prevOtherStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!joined || !otherParty) return;
+    const current = otherParty.status;
+    const previous = prevOtherStatusRef.current;
+    prevOtherStatusRef.current = current;
+    if (!previous) return; // first read — no transition
+
+    const name = otherParty.displayName || otherPartyLabel || "The other party";
+    const becameActive = (previous === "absent" || previous === "recently_left") && (current === "viewing" || current === "in_call");
+    const becameInactive = (previous === "viewing" || previous === "in_call") && (current === "absent" || current === "recently_left");
+
+    if (becameActive) {
+      setToast({ id: Date.now(), text: `${name} joined the call` });
+      playJoinChime();
+    } else if (becameInactive) {
+      setToast({ id: Date.now(), text: `${name} left the call` });
+    }
+  }, [joined, otherParty, otherPartyLabel]);
+
+  // Auto-dismiss toast after 4 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const handleJoin = async () => {
     setLoading(true);
     setError(null);
@@ -90,6 +133,7 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
       // Demo mode — show placeholder
       setCallUrl("demo");
       setJoined(true);
+      onStatusChange?.("in_call");
       setLoading(false);
       return;
     }
@@ -115,6 +159,7 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
       }
 
       setJoined(true);
+      onStatusChange?.("in_call");
     } catch {
       setError("Failed to join video call. Please try again.");
     } finally {
@@ -124,6 +169,7 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
 
   const handleLeave = () => {
     setJoined(false);
+    onStatusChange?.("viewing");
   };
 
   if (!joined) {
@@ -195,12 +241,15 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
     );
   }
 
+  const waitingForOther = joined && otherParty && otherParty.status !== "in_call";
+  const otherName = otherParty?.displayName || otherPartyLabel || "the other party";
+
   // Real Daily.co iframe
   return (
     <div>
       <div
         ref={videoContainerRef}
-        className={`overflow-hidden bg-black ${
+        className={`relative overflow-hidden bg-black ${
           isFullscreen
             ? "fixed inset-0 z-[9999] flex flex-col"
             : "rounded-xl border border-accent"
@@ -215,6 +264,28 @@ export default function VideoRoom({ interviewId, roomUrl, isDemo }: VideoRoomPro
           style={isFullscreen ? { minHeight: 0 } : undefined}
           title="Video Interview"
         />
+
+        {/* Waiting-for-other-party banner (shown while alone in the call) */}
+        {waitingForOther && (
+          <div className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-black/70 px-4 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+            <span className="relative mr-2 inline-flex h-2 w-2 align-middle">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300 opacity-70" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-300" />
+            </span>
+            {otherParty?.status === "viewing"
+              ? `${otherName} is here — waiting to join…`
+              : otherParty?.status === "recently_left"
+                ? `${otherName} stepped away — they were here a moment ago`
+                : `Waiting for ${otherName} to join…`}
+          </div>
+        )}
+
+        {/* Presence toast — bottom center of the video */}
+        {toast && (
+          <div className="pointer-events-none absolute bottom-16 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-4 py-2 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+            {toast.text}
+          </div>
+        )}
         <div className={`flex items-center justify-between px-4 py-2 shrink-0 ${
           isFullscreen ? "bg-gray-900 safe-pb" : "border-t border-accent bg-white"
         }`}

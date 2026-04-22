@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
 import VideoRoom from "@/components/ui/VideoRoom";
+import OtherPartyPresencePill from "@/components/ui/OtherPartyPresencePill";
+import { useInterviewPresence } from "@/lib/hooks/useInterviewPresence";
 import type { WorkerProfile } from "@/types/database";
 
 interface Interview {
@@ -45,6 +47,16 @@ export default function BusinessInterviewDetailPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [canJoin, setCanJoin] = useState(false);
   const [timeMessage, setTimeMessage] = useState("");
+  const [businessUserId, setBusinessUserId] = useState<string | null>(null);
+  const [businessDisplayName, setBusinessDisplayName] = useState<string>("");
+
+  const { otherParty, setStatus: setPresenceStatus } = useInterviewPresence({
+    interviewId,
+    selfRole: "business",
+    selfUserId: businessUserId,
+    selfDisplayName: businessDisplayName,
+    otherRole: "worker",
+  });
 
   useEffect(() => {
     async function load() {
@@ -52,14 +64,16 @@ export default function BusinessInterviewDetailPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { setError("Please log in."); setLoading(false); return; }
+        setBusinessUserId(user.id);
 
         const { data: bp } = await supabase
           .from("business_profiles")
-          .select("id")
+          .select("id, business_name")
           .eq("user_id", user.id)
           .single();
 
         if (!bp) { setError("Business profile not found."); setLoading(false); return; }
+        setBusinessDisplayName(bp.business_name || "Business");
 
         const { data: iv, error: ivErr } = await supabase
           .from("interviews")
@@ -485,10 +499,20 @@ export default function BusinessInterviewDetailPage() {
       {/* Video Interview Section */}
       {isUpcoming && (
         <div className="mt-6">
+          {/* Live presence pill — visible before and alongside the video */}
+          <div className="mb-3 flex justify-center">
+            <OtherPartyPresencePill
+              otherParty={otherParty}
+              otherPartyLabel={interview.worker_name}
+            />
+          </div>
           {canJoin ? (
             <VideoRoom
               interviewId={interview.id}
               roomUrl={interview.video_room_url || undefined}
+              otherParty={otherParty}
+              otherPartyLabel={interview.worker_name}
+              onStatusChange={setPresenceStatus}
             />
           ) : (
             <div className="rounded-xl border border-accent bg-white p-8 text-center">

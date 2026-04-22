@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import InterviewStatusBadge from "@/components/ui/InterviewStatusBadge";
 import VideoRoom from "@/components/ui/VideoRoom";
+import OtherPartyPresencePill from "@/components/ui/OtherPartyPresencePill";
+import { useInterviewPresence } from "@/lib/hooks/useInterviewPresence";
 
 interface Interview {
   id: string;
@@ -35,6 +37,16 @@ export default function WorkerInterviewDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [canJoin, setCanJoin] = useState(false);
   const [timeMessage, setTimeMessage] = useState("");
+  const [workerUserId, setWorkerUserId] = useState<string | null>(null);
+  const [workerDisplayName, setWorkerDisplayName] = useState<string>("");
+
+  const { otherParty, setStatus: setPresenceStatus } = useInterviewPresence({
+    interviewId,
+    selfRole: "worker",
+    selfUserId: workerUserId,
+    selfDisplayName: workerDisplayName,
+    otherRole: "business",
+  });
 
   useEffect(() => {
     async function load() {
@@ -42,14 +54,18 @@ export default function WorkerInterviewDetailPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { setError("Please log in to view this interview."); setLoading(false); return; }
+        setWorkerUserId(user.id);
 
         const { data: wp } = await supabase
           .from("worker_profiles")
-          .select("id")
+          .select("id, first_name, last_name")
           .eq("user_id", user.id)
           .single();
 
         if (!wp) { setError("Worker profile not found."); setLoading(false); return; }
+        setWorkerDisplayName(
+          [wp.first_name, wp.last_name].filter(Boolean).join(" ").trim() || "Worker"
+        );
 
         const { data: iv, error: ivErr } = await supabase
           .from("interviews")
@@ -272,9 +288,18 @@ export default function WorkerInterviewDetailPage() {
       {/* Video Interview Section — Live instant interviews show video room immediately */}
       {isLive && interview.video_room_url && (
         <div className="mt-6">
+          <div className="mb-3 flex justify-center">
+            <OtherPartyPresencePill
+              otherParty={otherParty}
+              otherPartyLabel={interview.business_name}
+            />
+          </div>
           <VideoRoom
             interviewId={interview.id}
             roomUrl={interview.video_room_url}
+            otherParty={otherParty}
+            otherPartyLabel={interview.business_name}
+            onStatusChange={setPresenceStatus}
           />
         </div>
       )}
@@ -282,10 +307,19 @@ export default function WorkerInterviewDetailPage() {
       {/* Video Interview Section — Scheduled interviews with time-gate */}
       {isUpcoming && (
         <div className="mt-6">
+          <div className="mb-3 flex justify-center">
+            <OtherPartyPresencePill
+              otherParty={otherParty}
+              otherPartyLabel={interview.business_name}
+            />
+          </div>
           {canJoin ? (
             <VideoRoom
               interviewId={interview.id}
               roomUrl={interview.video_room_url || undefined}
+              otherParty={otherParty}
+              otherPartyLabel={interview.business_name}
+              onStatusChange={setPresenceStatus}
             />
           ) : (
             <div className="rounded-xl border border-accent bg-white p-8 text-center">
