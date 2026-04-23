@@ -19,6 +19,13 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+          <!-- Brand Masthead -->
+          <tr>
+            <td style="background-color:#ffffff;padding:24px 32px 0;text-align:center;">
+              <img src="https://www.mountainconnects.com/images/email-logo.png" alt="Mountain Connects" width="52" height="52" style="display:inline-block;width:52px;height:52px;border-radius:12px;vertical-align:middle;" />
+              <span style="display:inline-block;margin-left:10px;font-size:15px;font-weight:700;color:#0a1e33;letter-spacing:-0.3px;vertical-align:middle;">Mountain Connects</span>
+            </td>
+          </tr>
           <!-- Professional Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0a1e33 0%,#132d4a 50%,#1a3a5c 100%);padding:40px 32px 32px;">

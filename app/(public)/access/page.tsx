@@ -108,7 +108,7 @@ export default function AccessPage() {
         {/* Logo */}
         <div className="mb-6 flex justify-center">
           <Image
-            src="/images/Logo.jpeg"
+            src="/images/logo-source.png"
             alt="Mountain Connects"
             width={72}
             height={72}

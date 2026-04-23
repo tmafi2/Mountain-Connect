@@ -244,7 +244,7 @@ function SignupContent() {
         {/* Branding overlay */}
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo.svg" alt="Mountain Connects" width={40} height={40} />
+            <Image src="/images/logo-source.png" alt="Mountain Connects" width={40} height={40} />
             <span className="text-xl font-bold text-white">Mountain Connects</span>
           </Link>
 
@@ -288,7 +288,7 @@ function SignupContent() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Image src="/logo.svg" alt="Mountain Connects" width={32} height={32} />
+            <Image src="/images/logo-source.png" alt="Mountain Connects" width={32} height={32} />
             <span className="text-lg font-bold text-primary">Mountain Connects</span>
           </div>
 

@@ -20,7 +20,7 @@ export default function SignupConfirmationPage() {
 
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={40} height={40} className="rounded-lg" />
+            <Image src="/images/logo-source.png" alt="Mountain Connects" width={40} height={40} className="rounded-lg" />
             <span className="text-xl font-bold text-white">Mountain Connects</span>
           </Link>
 
@@ -47,7 +47,7 @@ export default function SignupConfirmationPage() {
         <div className="w-full max-w-md text-center">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
-            <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={32} height={32} className="rounded-lg" />
+            <Image src="/images/logo-source.png" alt="Mountain Connects" width={32} height={32} className="rounded-lg" />
             <span className="text-lg font-bold text-primary">Mountain Connects</span>
           </div>
 

@@ -146,7 +146,7 @@ function VerifyContent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center gap-2">
-          <Image src="/images/Logo.jpeg" alt="Mountain Connects" width={32} height={32} className="rounded-md" />
+          <Image src="/images/logo-source.png" alt="Mountain Connects" width={32} height={32} className="rounded-md" />
           <span className="text-lg font-bold text-primary">Mountain Connects</span>
         </div>
 

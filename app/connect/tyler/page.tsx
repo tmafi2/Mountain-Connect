@@ -17,7 +17,7 @@ export default function TylerContactPage() {
         {/* Top brand */}
         <Link href="/" className="flex items-center gap-2 self-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Mountain Connects" className="h-10 w-10" />
+          <img src="/images/logo-source.png" alt="Mountain Connects" className="h-10 w-10" />
           <span className="text-sm font-bold uppercase tracking-[0.25em] text-white/90">
             Mountain Connects
           </span>
@@ -34,7 +34,7 @@ export default function TylerContactPage() {
           <div className="relative -mt-10 flex justify-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white bg-white shadow-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="" className="h-14 w-14" />
+              <img src="/images/logo-source.png" alt="" className="h-14 w-14" />
             </div>
           </div>
 

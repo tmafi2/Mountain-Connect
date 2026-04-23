@@ -205,7 +205,7 @@ export default async function InterviewsPrintPage({ searchParams }: PrintPagePro
         <div className="flex items-start justify-between border-b-2 border-[#0a1e33] pb-5">
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Mountain Connects" className="h-16 w-16" />
+            <img src="/images/logo-source.png" alt="Mountain Connects" className="h-16 w-16" />
             <div>
               <h1 className="text-2xl font-extrabold text-[#0a1e33]">Interview Schedule</h1>
               <p className="mt-0.5 text-sm text-slate-500">Mountain Connects</p>
