@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { sendEoiThresholdNudgeEmail } from "@/lib/email/send";
+
+const EOI_NUDGE_THRESHOLD = 5;
 
 /**
  * POST /api/jobs/[id]/express-interest
@@ -49,7 +52,7 @@ export async function POST(
     // Check the job exists and the business is unclaimed
     const { data: job } = await admin
       .from("job_posts")
-      .select("id, status, business_profiles!inner(is_claimed)")
+      .select("id, title, status, business_id, business_profiles!inner(id, business_name, email, is_claimed, claim_token, eoi_nudge_sent_at)")
       .eq("id", jobId)
       .single();
 
@@ -57,7 +60,14 @@ export async function POST(
     if (job.status !== "active") {
       return NextResponse.json({ error: "This job is no longer accepting interest" }, { status: 400 });
     }
-    const biz = job.business_profiles as unknown as { is_claimed: boolean };
+    const biz = job.business_profiles as unknown as {
+      id: string;
+      business_name: string;
+      email: string | null;
+      is_claimed: boolean;
+      claim_token: string | null;
+      eoi_nudge_sent_at: string | null;
+    };
     if (biz?.is_claimed) {
       return NextResponse.json(
         { error: "This listing has been claimed. Please apply through the normal flow." },
@@ -77,6 +87,36 @@ export async function POST(
     if (insertError) {
       console.error("Failed to insert EOI:", insertError);
       return NextResponse.json({ error: "Failed to submit interest" }, { status: 500 });
+    }
+
+    // Fire a one-shot nudge email to the business once this listing crosses
+    // the EOI threshold. Counts EOIs across ALL job posts for this business
+    // so a business with multiple imported listings is nudged based on
+    // aggregate interest. Guarded by eoi_nudge_sent_at so we only send once.
+    if (!biz.eoi_nudge_sent_at && biz.email && biz.claim_token) {
+      const { count } = await admin
+        .from("expressions_of_interest")
+        .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
+        .eq("job_posts.business_id", biz.id);
+
+      if (count !== null && count >= EOI_NUDGE_THRESHOLD) {
+        const origin = new URL(request.url).origin;
+        const claimUrl = `${origin}/claim/${biz.claim_token}`;
+        await admin
+          .from("business_profiles")
+          .update({ eoi_nudge_sent_at: new Date().toISOString() })
+          .eq("id", biz.id)
+          .is("eoi_nudge_sent_at", null);
+
+        // Fire the email; don't block the caller on failure.
+        sendEoiThresholdNudgeEmail({
+          to: biz.email,
+          businessName: biz.business_name,
+          jobTitle: job.title,
+          eoiCount: count,
+          claimUrl,
+        }).catch((err) => console.error("Failed to send EOI nudge:", err));
+      }
     }
 
     return NextResponse.json({ success: true });
