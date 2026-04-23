@@ -61,6 +61,45 @@ const websiteJsonLd = {
   },
 };
 
+/* ─── FAQ content — also emitted as FAQPage JSON-LD ────────
+   Each entry targets a real search query we want to rank for. */
+const faqItems: { q: string; a: string }[] = [
+  {
+    q: "How much do seasonal ski resort jobs pay?",
+    a: "Pay varies by role and country but most seasonal ski resort jobs range from entry-level minimum wage up to experienced-instructor rates. Many positions include accommodation, a ski or lift pass, and meals as additional perks, which significantly reduces your cost of living for the season. Each listing on Mountain Connects shows the pay range, currency, and what perks are included up front.",
+  },
+  {
+    q: "When does hiring start for ski season?",
+    a: "Northern Hemisphere resorts (North America, Europe, Japan) typically start hiring in July–September for the December–April season. Southern Hemisphere resorts (Australia, New Zealand, Chile, Argentina) hire from February–April for the June–October season. Applying early gives you the best shot at staff accommodation and first-choice roles.",
+  },
+  {
+    q: "Do I need a working holiday visa to work at a ski resort?",
+    a: "In most cases, yes. If you're not a citizen or permanent resident of the country you want to work in, you'll usually need a working holiday visa or equivalent work permit. Requirements, age limits, and application timelines differ by country — Australia, New Zealand, Canada, and several European countries run generous WHV schemes for eligible applicants. Some resorts also offer visa sponsorship for specialist roles.",
+  },
+  {
+    q: "What types of jobs are available at ski resorts?",
+    a: "Common roles include ski and snowboard instruction, lift operations, hospitality (front desk, housekeeping, reservations), food and beverage (chefs, bartenders, servers), retail, rental shop technicians, ski patrol, childcare, and resort operations. Mountain Connects lists roles across all of these categories, so you can filter by what matches your skills.",
+  },
+  {
+    q: "Can I get staff accommodation with a ski resort job?",
+    a: "Many seasonal roles include staff accommodation, and most of the rest point you toward subsidised or partnered housing in nearby mountain towns. Look for listings with the Accommodation perk flagged — these include on-mountain staff housing, shared apartments, or rent stipends. Housing availability is tight in most ski towns, so securing a job with housing included is one of the biggest advantages.",
+  },
+  {
+    q: "Is it free to use Mountain Connects?",
+    a: "Yes. Workers can create a profile, browse every listing, and apply to jobs completely free. Businesses can post listings and manage applicants without any subscription fees. We're focused on making seasonal hiring frictionless for both sides.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqItems.map(({ q, a }) => ({
+    "@type": "Question",
+    name: q,
+    acceptedAnswer: { "@type": "Answer", text: a },
+  })),
+};
+
 /* ─── Feature Card (pure server component) ──────────────── */
 function FeatureCard({
   icon,
@@ -120,6 +159,10 @@ export default async function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
       {/* Initialise scroll-triggered CSS animations */}
@@ -456,6 +499,47 @@ export default async function HomePage() {
                   {card.description}
                 </p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ FAQ ═══════════════════════════════════════════ */}
+      <section className="relative border-t border-accent/30 bg-background py-24">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="animate-on-scroll text-center">
+            <span className="text-sm font-bold uppercase tracking-widest text-secondary">
+              Common Questions
+            </span>
+            <h2 className="mt-3 text-4xl font-extrabold text-primary md:text-5xl">
+              Seasonal ski work, answered
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-foreground/60">
+              Everything you need to know before applying for a seasonal role — or posting one.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-2">
+            {faqItems.map(({ q, a }, i) => (
+              <details
+                key={i}
+                className="animate-on-scroll group rounded-2xl border border-accent/40 bg-white p-6 shadow-sm transition-all open:shadow-md"
+              >
+                <summary className="flex cursor-pointer items-start justify-between gap-3 list-none">
+                  <h3 className="text-base font-bold text-primary">{q}</h3>
+                  <svg
+                    className="h-5 w-5 shrink-0 text-foreground/40 transition-transform group-open:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/70">{a}</p>
+              </details>
             ))}
           </div>
         </div>

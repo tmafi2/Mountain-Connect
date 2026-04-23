@@ -85,6 +85,46 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
   const biz = job.business_profiles as any;
   const resort = job.resorts as any;
+
+  // ── Fetch related jobs ──
+  // First pull jobs at the same resort (up to 6), then top up from the same
+  // category if we have fewer than 4. Dedupe, cap at 5, drop the current
+  // job. Selecting only the fields we render keeps the payload tight.
+  const relatedSelect =
+    "id, title, pay_amount, pay_currency, salary_range, position_type, accommodation_included, ski_pass_included, created_at, business_profiles!inner(business_name, logo_url), resorts(name, country)";
+
+  const [sameResortRes, sameCategoryRes] = await Promise.all([
+    job.resort_id
+      ? supabase
+          .from("job_posts")
+          .select(relatedSelect)
+          .eq("status", "active")
+          .eq("resort_id", job.resort_id)
+          .neq("id", id)
+          .order("created_at", { ascending: false })
+          .limit(6)
+      : Promise.resolve({ data: [] as unknown[] }),
+    job.category
+      ? supabase
+          .from("job_posts")
+          .select(relatedSelect)
+          .eq("status", "active")
+          .eq("category", job.category)
+          .neq("id", id)
+          .order("created_at", { ascending: false })
+          .limit(6)
+      : Promise.resolve({ data: [] as unknown[] }),
+  ]);
+
+  const relatedSeen = new Set<string>();
+  const relatedJobs: Array<Record<string, unknown>> = [];
+  for (const row of [...(sameResortRes.data || []), ...(sameCategoryRes.data || [])] as Array<Record<string, unknown>>) {
+    const rowId = row.id as string;
+    if (relatedSeen.has(rowId)) continue;
+    relatedSeen.add(rowId);
+    relatedJobs.push(row);
+    if (relatedJobs.length >= 5) break;
+  }
   const isVerified = biz?.verification_status === "verified";
   const isUnclaimed = biz?.is_claimed === false;
   const source = job.source as string | null;
@@ -569,6 +609,109 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               </>
             )}
           </p>
+        )}
+
+        {/* ── Related jobs ─────────────────────────────────────────── */}
+        {relatedJobs.length > 0 && (
+          <section className="mt-16 border-t border-accent/40 pt-12">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-secondary">
+                  More opportunities
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">
+                  {resort?.name
+                    ? `Similar jobs at ${resort.name} and related roles`
+                    : "Similar jobs you might like"}
+                </h2>
+              </div>
+              <Link
+                href="/jobs"
+                className="shrink-0 text-sm font-semibold text-secondary hover:underline"
+              >
+                Browse all jobs →
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedJobs.map((r) => {
+                const rBiz = r.business_profiles as { business_name: string; logo_url: string | null } | null;
+                const rResort = r.resorts as { name: string; country: string } | null;
+                const rPositionLabel =
+                  r.position_type === "full_time"
+                    ? "Full Time"
+                    : r.position_type === "part_time"
+                      ? "Part Time"
+                      : "Casual";
+                const rPay = formatPay(
+                  r.pay_amount as string | null,
+                  r.pay_currency as string | null,
+                  r.salary_range as string | null,
+                );
+                return (
+                  <Link
+                    key={r.id as string}
+                    href={`/jobs/${r.id}`}
+                    className="group flex h-full flex-col rounded-2xl border border-accent bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary/40 hover:shadow-md"
+                  >
+                    <div className="flex items-start gap-3">
+                      {rBiz?.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={rBiz.logo_url}
+                          alt={rBiz.business_name}
+                          className="h-9 w-9 shrink-0 rounded-lg border border-accent/40 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-xs font-semibold text-primary">
+                          {(rBiz?.business_name || "?")
+                            .split(" ")
+                            .map((w) => w[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="line-clamp-2 text-sm font-semibold text-primary group-hover:text-secondary">
+                          {r.title as string}
+                        </h3>
+                        <p className="mt-0.5 truncate text-xs text-foreground/60">
+                          {rBiz?.business_name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-medium text-foreground/70">
+                        {rPositionLabel}
+                      </span>
+                      {rResort?.name && (
+                        <span className="rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-medium text-foreground/70">
+                          {rResort.name}
+                        </span>
+                      )}
+                      {r.accommodation_included && (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                          🏠 Housing
+                        </span>
+                      )}
+                      {r.ski_pass_included && (
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                          🎿 Ski pass
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-auto pt-3 flex items-center justify-between">
+                      <p className="text-sm font-bold text-primary">{rPay}</p>
+                      <span className="text-xs text-foreground/40">
+                        {timeAgo(r.created_at as string)}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         )}
       </div>
     </div>
