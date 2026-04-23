@@ -1,11 +1,11 @@
 interface WelcomeWorkerEmailProps {
   workerName: string;
-  dashboardUrl: string;
+  profileUrl: string;
 }
 
 export function welcomeWorkerEmail({
   workerName,
-  dashboardUrl,
+  profileUrl,
 }: WelcomeWorkerEmailProps) {
   return {
     subject: "Welcome to Mountain Connects! Your season starts here",
@@ -61,7 +61,7 @@ export function welcomeWorkerEmail({
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
                 <tr>
                   <td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:15px 36px;text-align:center;">
-                    <a href="${dashboardUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.3px;">
+                    <a href="${profileUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.3px;">
                       Complete Your Profile →
                     </a>
                   </td>
@@ -69,7 +69,7 @@ export function welcomeWorkerEmail({
               </table>
 
               <p style="margin:0 0 8px;color:#8899a6;font-size:12px;text-align:center;">
-                Or copy this link: <a href="${dashboardUrl}" style="color:#3b82f6;">${dashboardUrl}</a>
+                Or copy this link: <a href="${profileUrl}" style="color:#3b82f6;">${profileUrl}</a>
               </p>
             </td>
           </tr>
