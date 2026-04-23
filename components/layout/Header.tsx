@@ -94,7 +94,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             <Image
-              src="/images/Logo.jpeg"
+              src="/images/logo-source.png"
               alt="Mountain Connects"
               width={36}
               height={36}

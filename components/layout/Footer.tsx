@@ -60,7 +60,7 @@ export default function Footer() {
           <div className="sm:col-span-2 lg:col-span-2">
             <div className="flex items-center gap-3">
               <Image
-                src="/images/Logo.jpeg"
+                src="/images/logo-source.png"
                 alt="Mountain Connects"
                 width={40}
                 height={40}
