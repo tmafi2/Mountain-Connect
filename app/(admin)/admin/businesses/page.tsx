@@ -54,6 +54,7 @@ interface BusinessRow {
   standard_perks: string[] | null;
   resort_id: string | null;
   tier: "free" | "standard" | "premium" | "enterprise";
+  is_claimed: boolean;
   created_at: string;
 }
 
@@ -285,6 +286,7 @@ export default function AdminBusinessesPage() {
               <th className="px-5 py-3">Industry</th>
               <th className="px-5 py-3">Location</th>
               <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Claim</th>
               <th className="px-5 py-3 text-right">Registered</th>
             </tr>
           </thead>
@@ -325,6 +327,13 @@ export default function AdminBusinessesPage() {
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${style.bg} ${style.text}`}>
                       {style.label}
                     </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    {biz.is_claimed ? (
+                      <span className="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Claimed</span>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Pending</span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-right text-foreground/50">
                     {new Date(biz.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
