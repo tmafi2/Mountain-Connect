@@ -31,7 +31,7 @@ components/
   ui/          — NotificationBell, NotificationDropdown, ResortMap, Map
 
 supabase/
-  migrations/  — 00001 through 00033 (sequential, run in Supabase SQL Editor)
+  migrations/  — 00001 through 00065 (sequential, run in Supabase SQL Editor)
 ```
 
 ## Supabase Patterns
@@ -67,12 +67,12 @@ Businesses can post listings regardless of verification state. Verification is a
 ## Current Feature Status
 - **Messaging:** Live — realtime conversations between workers and businesses. RLS policies, DB triggers, and unread-count hooks all wired up.
 - **Nearby Towns:** Full feature — 50+ towns with detail pages, linked to resorts, job filtering by town
-- **Interviews:** Functional — invite, book, reschedule, cancel. Missed interview detection needs migration 00032.
-- **Email notifications:** 13 templates, Resend integration. Message notification trigger (migration 00031).
+- **Interviews:** Functional — invite, book, reschedule, cancel, missed-interview detection.
+- **Email notifications:** 30+ templates, Resend integration, branded masthead with logo + wordmark. Message notification trigger via DB.
+- **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently; first time aggregate EOIs hit 5 the business gets a nudge email; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
 
 ## Migration Status
-Next migration number: **00034**
-Note: There are two 00032 files (interview_missed_reschedule and worker_contact_email). Check which have been run.
+All migrations applied through **00065** (`unclaimed_outreach_timestamps`). Next migration number: **00066**.
 
 ## Important Conventions
 - Resort `id` in database is UUID. Static data uses `legacy_id` (text: "1", "2", etc.)
