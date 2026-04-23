@@ -14,8 +14,11 @@ function hashOtp(code: string): string {
 }
 
 function generatePendingToken(userId: string): string {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required to sign 2FA pending tokens");
+  }
   const payload = JSON.stringify({ userId, exp: Date.now() + 10 * 60 * 1000 });
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || "fallback-secret";
   const hmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return Buffer.from(payload).toString("base64") + "." + hmac;
 }
