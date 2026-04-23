@@ -2,7 +2,7 @@ interface ApplicationStatusChangedEmailProps {
   workerName: string;
   jobTitle: string;
   businessName: string;
-  newStatus: "accepted" | "unsuccessful" | "interview" | "offered" | "reviewed" | "shortlisted";
+  newStatus: string;
   dashboardUrl: string;
 }
 

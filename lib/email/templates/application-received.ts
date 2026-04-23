@@ -2,14 +2,14 @@ interface ApplicationReceivedEmailProps {
   workerName: string;
   jobTitle: string;
   businessName: string;
-  applicationsUrl: string;
+  jobUrl: string;
 }
 
 export function applicationReceivedEmail({
   workerName,
   jobTitle,
   businessName,
-  applicationsUrl,
+  jobUrl,
 }: ApplicationReceivedEmailProps) {
   return {
     subject: `Application Submitted — ${jobTitle} at ${businessName}`,
@@ -54,7 +54,7 @@ export function applicationReceivedEmail({
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
                 <tr>
                   <td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:15px 36px;text-align:center;">
-                    <a href="${applicationsUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">View Your Applications →</a>
+                    <a href="${jobUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">View the job →</a>
                   </td>
                 </tr>
               </table>

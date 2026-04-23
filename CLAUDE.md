@@ -65,7 +65,7 @@ Businesses can post listings regardless of verification state. Verification is a
 7. Admins can verify/unverify any business at any time from `/admin/businesses`
 
 ## Current Feature Status
-- **Messaging:** Disabled — shows "Coming Soon" placeholder. Backend code preserved but has RLS race condition issues. DB tables and triggers exist.
+- **Messaging:** Live — realtime conversations between workers and businesses. RLS policies, DB triggers, and unread-count hooks all wired up.
 - **Nearby Towns:** Full feature — 50+ towns with detail pages, linked to resorts, job filtering by town
 - **Interviews:** Functional — invite, book, reschedule, cancel. Missed interview detection needs migration 00032.
 - **Email notifications:** 13 templates, Resend integration. Message notification trigger (migration 00031).
