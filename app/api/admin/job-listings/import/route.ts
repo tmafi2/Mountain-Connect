@@ -77,6 +77,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "resortId or resortName is required" }, { status: 400 });
   }
 
+  // Length caps to prevent oversized payloads from bloating the DB.
+  const limits: Record<string, [string, number]> = {
+    businessName: [businessName, 200],
+    jobTitle: [jobTitle, 200],
+    description: [description, 5000],
+    location: [location, 200],
+    country: [country, 100],
+    businessEmail: [businessEmail, 200],
+    applicationEmail: [applicationEmail, 200],
+    source: [source, 200],
+    sourceUrl: [sourceUrl, 2048],
+    datePosted: [datePosted, 50],
+    notionId: [notionId, 100],
+    resortId: [rawResortId, 100],
+    resortName: [resortName, 200],
+  };
+  for (const [field, [value, max]] of Object.entries(limits)) {
+    if (value.length > max) {
+      return NextResponse.json(
+        { error: `${field} exceeds maximum length of ${max} characters` },
+        { status: 400 }
+      );
+    }
+  }
+
   const admin = createAdminClient();
 
   // Resolve the resort. Accept either a UUID (resortId) or a friendly
