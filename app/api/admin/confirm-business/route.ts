@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { createNotification } from "@/lib/notifications/create";
 import {
   sendNewMessageEmail,
@@ -22,14 +21,9 @@ export async function POST(request: Request) {
   if (rateLimited) return rateLimited;
 
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    // Verify admin role
-    const admin = createAdminClient();
-    const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
-    if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    const { admin, user } = auth;
 
     const { businessId, action, message } = await request.json();
     if (!businessId || !action) return NextResponse.json({ error: "Missing businessId or action" }, { status: 400 });

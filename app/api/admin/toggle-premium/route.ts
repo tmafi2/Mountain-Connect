@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -8,13 +7,9 @@ export async function POST(request: Request) {
   if (rateLimited) return rateLimited;
 
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const admin = createAdminClient();
-    const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
-    if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    const { admin } = auth;
 
     const { businessId, tier } = await request.json();
     if (!businessId || !["free", "standard", "premium", "enterprise"].includes(tier)) {

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { slugify } from "@/lib/utils/slugify";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -15,13 +14,9 @@ interface RouteContext {
 export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const admin = createAdminClient();
-    const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
-    if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    const { admin } = auth;
 
     const { data: post, error } = await admin
       .from("blog_posts")
@@ -48,13 +43,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const admin = createAdminClient();
-    const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
-    if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    const { admin } = auth;
 
     const body = await request.json();
     const updates: Record<string, unknown> = {
@@ -140,13 +131,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const admin = createAdminClient();
-    const { data: adminUser } = await admin.from("users").select("role").eq("id", user.id).single();
-    if (adminUser?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    const { admin } = auth;
 
     // Delete associated images from storage
     const { data: files } = await admin.storage
