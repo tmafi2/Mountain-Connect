@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { logAdminAction } from "@/lib/audit/log";
 
@@ -13,18 +12,12 @@ export async function POST(request: Request) {
   if (rateLimited) return rateLimited;
 
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    // Verify admin role
-    const { data: userData } = await supabase.from("users").select("role").eq("id", user.id).single();
-    if (userData?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
+    const { admin, user } = auth;
 
     const { workerId, action, reason } = await request.json();
     if (!workerId || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-
-    const admin = createAdminClient();
 
     if (action === "suspend") {
       // Suspend the worker
