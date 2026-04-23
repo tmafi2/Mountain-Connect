@@ -817,7 +817,7 @@ function CandidateSidebar({
                   {certifications.map((c, i) => (
                     <li key={i} className="text-xs text-foreground/80">
                       {c.name}
-                      {c.issuer && <span className="text-foreground/50"> · {c.issuer}</span>}
+                      {c.issuing_body && <span className="text-foreground/50"> · {c.issuing_body}</span>}
                     </li>
                   ))}
                 </ul>

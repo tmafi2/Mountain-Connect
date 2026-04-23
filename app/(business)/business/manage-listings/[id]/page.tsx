@@ -1669,6 +1669,7 @@ export default function ListingDetailPage() {
                   skiPass: listing.skiPass,
                   meals: listing.meals,
                   visaSponsorship: listing.visaSponsorship,
+                  showPositions: listing.showPositions !== false,
                 });
               }}
               className="rounded-lg border border-accent bg-white px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
