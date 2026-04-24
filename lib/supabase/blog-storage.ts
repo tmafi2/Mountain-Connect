@@ -28,7 +28,9 @@ export async function uploadBlogImage(
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  // Cache-bust: upsert writes to the same path each time, so without a
+  // unique query param browsers + the CDN keep serving the previous file.
+  return `${data.publicUrl}?v=${Date.now()}`;
 }
 
 /**
@@ -39,7 +41,9 @@ export async function deleteBlogImage(fileUrl: string): Promise<void> {
 
   const urlParts = fileUrl.split(`${BUCKET}/`);
   if (urlParts.length < 2) return;
-  const path = urlParts[1];
+  // Strip any cache-busting query string (e.g. ?v=…) that uploadBlogImage
+  // appends — the storage API expects the bare path.
+  const path = urlParts[1].split("?")[0];
 
   const { error } = await supabase.storage.from(BUCKET).remove([path]);
 
