@@ -88,7 +88,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const description = truncate(job.description, 720);
+  const description = truncate(job.description, 520);
 
   // Build the "how to apply" steps. If the business set custom instructions on
   // the listing, lead with those; otherwise just walk them through the QR flow.
@@ -113,11 +113,15 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
         .poster-root { color: #0a1e33; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .poster-page {
           width: 210mm;
-          min-height: 297mm;
+          height: 297mm;
           margin: 0 auto;
           background: #ffffff;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
+        }
+        @media print {
+          .poster-page { box-shadow: none; }
         }
         .hero {
           background:
@@ -164,50 +168,50 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
 
       <div className="poster-page">
         {/* ───────── Hero ───────── */}
-        <section className="hero relative overflow-hidden px-12 pb-10 pt-12 text-white">
+        <section className="hero relative overflow-hidden px-12 pb-6 pt-7 text-white">
           <div className="relative z-10">
             {/* Top row: brand + chip */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/logo-source.png" alt="Mountain Connects" className="h-8 w-8 rounded-lg" />
-                <span className="text-[12px] font-bold tracking-tight text-white">Mountain Connects</span>
+                <img src="/images/logo-source.png" alt="Mountain Connects" className="h-7 w-7 rounded-lg" />
+                <span className="text-[11px] font-bold tracking-tight text-white">Mountain Connects</span>
               </div>
-              <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-white backdrop-blur-sm">
+              <span className="rounded-full bg-white/15 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.25em] text-white backdrop-blur-sm">
                 Local Job
               </span>
             </div>
 
             {/* Hiring eyebrow */}
-            <div className="mt-10 inline-block rounded-full px-4 py-1.5 hiring-eyebrow">
-              <span className="text-xs font-extrabold uppercase tracking-[0.3em] text-[#0a1e33]">
+            <div className="mt-6 inline-block rounded-full px-4 py-1 hiring-eyebrow">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.3em] text-[#0a1e33]">
                 We&apos;re Hiring
               </span>
             </div>
 
             {/* Title */}
-            <h1 className="mt-4 text-[58px] font-black leading-[1.02] tracking-tight text-white">
+            <h1 className="mt-3 text-[44px] font-black leading-[1.02] tracking-tight text-white">
               {job.title}
             </h1>
 
             {/* Business identity row */}
-            <div className="mt-7 flex items-center gap-4">
+            <div className="mt-4 flex items-center gap-3">
               {profile.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profile.logo_url}
                   alt={`${profile.business_name} logo`}
-                  className="h-16 w-16 rounded-2xl bg-white/10 object-cover ring-2 ring-white/40"
+                  className="h-12 w-12 rounded-xl bg-white/10 object-cover ring-2 ring-white/40"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-xl font-extrabold text-[#0a1e33] ring-2 ring-white/40">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-base font-extrabold text-[#0a1e33] ring-2 ring-white/40">
                   {businessInitials}
                 </div>
               )}
               <div>
-                <p className="text-lg font-bold text-white">{profile.business_name}</p>
+                <p className="text-base font-bold text-white">{profile.business_name}</p>
                 {locationLabel && (
-                  <p className="mt-0.5 text-sm text-white/75">📍 {locationLabel}</p>
+                  <p className="mt-0.5 text-xs text-white/75">📍 {locationLabel}</p>
                 )}
               </div>
             </div>
@@ -216,76 +220,76 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
 
         {/* ───────── Pay + perks band ───────── */}
         <section className="grid grid-cols-12 gap-0 border-b-2 border-[#0a1e33]">
-          <div className="col-span-5 bg-[#22d3ee] px-10 py-6 text-[#0a1e33]">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] opacity-70">Pay</p>
-            <p className="mt-1 text-2xl font-black leading-tight">
+          <div className="col-span-5 bg-[#22d3ee] px-9 py-4 text-[#0a1e33]">
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.3em] opacity-70">Pay</p>
+            <p className="mt-0.5 text-xl font-black leading-tight">
               {payLabel || "Competitive"}
             </p>
             {job.position_type && (
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide capitalize opacity-80">
+              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide capitalize opacity-80">
                 {job.position_type.replace(/_/g, " ")}
               </p>
             )}
           </div>
-          <div className="col-span-7 bg-[#0a1e33] px-10 py-6 text-white">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#22d3ee]">
+          <div className="col-span-7 bg-[#0a1e33] px-9 py-4 text-white">
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.3em] text-[#22d3ee]">
               What you get
             </p>
             {perks.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {perks.map((perk) => (
                   <span
                     key={perk}
-                    className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/30"
+                    className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-white ring-1 ring-white/30"
                   >
                     ★ {perk}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-white/70">A great seasonal opportunity.</p>
+              <p className="mt-1.5 text-xs text-white/70">A great seasonal opportunity.</p>
             )}
           </div>
         </section>
 
         {/* ───────── About the role ───────── */}
         {description && (
-          <section className="px-12 py-7">
+          <section className="px-12 py-5">
             <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#3b9ede]">
               About the role
             </p>
-            <p className="mt-2 whitespace-pre-line text-[13.5px] leading-[1.6] text-[#1f2d3d]">
+            <p className="mt-1.5 whitespace-pre-line text-[12px] leading-[1.5] text-[#1f2d3d]">
               {description}
             </p>
           </section>
         )}
 
         {/* ───────── How to apply ───────── */}
-        <section className="mt-auto bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] px-12 py-8 text-white">
+        <section className="mt-auto bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] px-12 py-5 text-white">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.4em] text-[#22d3ee]">
             How to apply
           </p>
-          <h2 className="mt-1 text-3xl font-black tracking-tight">Scan to apply in seconds</h2>
+          <h2 className="mt-0.5 text-2xl font-black tracking-tight">Scan to apply in seconds</h2>
 
-          <div className="mt-5 flex items-stretch gap-7">
+          <div className="mt-3 flex items-stretch gap-5">
             {/* QR with white frame so it always reads on dark */}
-            <div className="flex shrink-0 items-center justify-center rounded-2xl bg-white p-4">
+            <div className="flex shrink-0 items-center justify-center rounded-xl bg-white p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrDataUrl}
                 alt={`Scan to apply for ${job.title}`}
-                className="h-44 w-44"
+                className="h-32 w-32"
               />
             </div>
 
             {/* Steps */}
-            <ol className="flex flex-1 flex-col justify-center gap-2.5">
+            <ol className="flex flex-1 flex-col justify-center gap-1.5">
               {applySteps.map((step, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22d3ee] text-xs font-extrabold text-[#0a1e33]">
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#22d3ee] text-[10px] font-extrabold text-[#0a1e33]">
                     {i + 1}
                   </span>
-                  <span className="text-sm font-medium leading-snug text-white">
+                  <span className="text-[12px] font-medium leading-snug text-white">
                     {step}
                   </span>
                 </li>
@@ -294,7 +298,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
           </div>
 
           {/* Fallback contact / URL row */}
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-white/15 pt-4 text-xs">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/15 pt-2.5 text-[11px]">
             <span className="font-semibold uppercase tracking-[0.2em] text-[#22d3ee]">
               No phone?
             </span>
@@ -310,7 +314,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
         </section>
 
         {/* ───────── Footer ───────── */}
-        <footer className="flex items-center justify-between bg-white px-12 py-3 text-[10px] text-slate-400">
+        <footer className="flex shrink-0 items-center justify-between bg-white px-12 py-2 text-[9px] text-slate-400">
           <span>Powered by Mountain Connects · {BASE_URL.replace("https://", "")}</span>
           <span>{profile.business_name}</span>
         </footer>
