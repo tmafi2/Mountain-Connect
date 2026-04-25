@@ -849,7 +849,7 @@ export default function ListingDetailPage() {
           Edit Listing
         </Link>
         <Link
-          href={`/business/manage-listings/${listing.id}/poster`}
+          href={`/poster/${listing.id}`}
           target="_blank"
           rel="noopener"
           className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
