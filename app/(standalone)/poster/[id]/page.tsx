@@ -32,7 +32,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
 
   const { data: profile } = await supabase
     .from("business_profiles")
-    .select("id, business_name, logo_url, location, description, year_established")
+    .select("id, business_name, logo_url, location")
     .eq("user_id", user.id)
     .single();
 
@@ -88,8 +88,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const description = truncate(job.description, 360);
-  const businessBlurb = truncate(profile.description, 220);
+  const description = truncate(job.description, 720);
 
   // Build the "how to apply" steps. If the business set custom instructions on
   // the listing, lead with those; otherwise just walk them through the QR flow.
@@ -260,24 +259,6 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
             </p>
           </section>
         )}
-
-        {/* ───────── About the business ───────── */}
-        <section className="border-y-2 border-[#0a1e33] bg-[#fef3c7] px-12 py-6">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#92400e]">
-            About {profile.business_name}
-          </p>
-          {businessBlurb ? (
-            <p className="mt-2 text-[13px] leading-[1.55] text-[#0a1e33]">
-              {businessBlurb}
-            </p>
-          ) : (
-            <p className="mt-2 text-[13px] italic leading-[1.55] text-[#0a1e33]/70">
-              {profile.year_established
-                ? `Operating since ${profile.year_established}.`
-                : "Local mountain business hiring for the season."}
-            </p>
-          )}
-        </section>
 
         {/* ───────── How to apply ───────── */}
         <section className="mt-auto bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] px-12 py-8 text-white">
