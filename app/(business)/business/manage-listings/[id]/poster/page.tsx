@@ -11,6 +11,18 @@ interface PosterPageProps {
   params: Promise<{ id: string }>;
 }
 
+function truncate(text: string | null | undefined, max: number): string {
+  if (!text) return "";
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  // Cut at the last sentence end before max, falling back to last word boundary.
+  const sub = trimmed.slice(0, max);
+  const lastStop = Math.max(sub.lastIndexOf(". "), sub.lastIndexOf("! "), sub.lastIndexOf("? "));
+  if (lastStop > max * 0.6) return sub.slice(0, lastStop + 1).trim();
+  const lastSpace = sub.lastIndexOf(" ");
+  return (lastSpace > 0 ? sub.slice(0, lastSpace) : sub).trim() + "…";
+}
+
 export default async function ListingPosterPage({ params }: PosterPageProps) {
   const { id } = await params;
 
@@ -18,12 +30,9 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Find the caller's business profile so we can scope the listing read to
-  // their own jobs — prevents anyone from generating a poster for someone
-  // else's listing by guessing the URL.
   const { data: profile } = await supabase
     .from("business_profiles")
-    .select("id, business_name, logo_url, location")
+    .select("id, business_name, logo_url, location, description, year_established")
     .eq("user_id", user.id)
     .single();
 
@@ -35,6 +44,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
       id, title, description, pay_amount, pay_currency, salary_range,
       position_type, accommodation_included, ski_pass_included, meal_perks,
       start_date, end_date, status, business_id,
+      how_to_apply, application_email, application_url,
       resorts(name, country),
       nearby_towns(name)
     `)
@@ -57,15 +67,13 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
       : null);
 
   const perks: string[] = [];
-  if (job.accommodation_included) perks.push("Housing");
-  if (job.ski_pass_included) perks.push("Ski Pass");
+  if (job.accommodation_included) perks.push("Housing included");
+  if (job.ski_pass_included) perks.push("Ski pass");
   if (job.meal_perks) perks.push("Meals");
 
   const jobUrl = `${BASE_URL}/jobs/${job.id}`;
   const shortUrl = `mountainconnects.com/jobs/${job.id.slice(0, 8)}`;
 
-  // High-error-correction QR so the centered logo and any reasonable scuff
-  // on the printout still scans cleanly. 360px renders crisply at A4.
   const qrDataUrl = await QRCode.toDataURL(jobUrl, {
     errorCorrectionLevel: "H",
     margin: 1,
@@ -79,6 +87,20 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const description = truncate(job.description, 360);
+  const businessBlurb = truncate(profile.description, 220);
+
+  // Build the "how to apply" steps. If the business set custom instructions on
+  // the listing, lead with those; otherwise just walk them through the QR flow.
+  const applySteps: string[] = job.how_to_apply
+    ? job.how_to_apply.split("\n").map((s: string) => s.trim()).filter((s: string) => s.length > 0).slice(0, 4)
+    : [
+        "Scan the QR code with your phone",
+        "Tap Apply on the Mountain Connects listing",
+        "Sign in or create a free account",
+        "Send your application — easy",
+      ];
 
   return (
     <div className="poster-root bg-white">
@@ -94,10 +116,26 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
           width: 210mm;
           min-height: 297mm;
           margin: 0 auto;
-          padding: 22mm 18mm;
           background: #ffffff;
           display: flex;
           flex-direction: column;
+        }
+        .hero {
+          background:
+            radial-gradient(circle at 85% 15%, rgba(34,211,238,0.35) 0%, transparent 45%),
+            radial-gradient(circle at 10% 90%, rgba(245,158,11,0.25) 0%, transparent 50%),
+            linear-gradient(135deg, #0a1e33 0%, #0f2942 35%, #1a3a5c 70%, #1d4682 100%);
+        }
+        .hero::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
+          background-size: 18px 18px;
+          pointer-events: none;
+        }
+        .hiring-eyebrow {
+          background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
         }
       `}</style>
 
@@ -126,85 +164,175 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
       </div>
 
       <div className="poster-page">
-        {/* Top masthead */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-          <div className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo-source.png" alt="Mountain Connects" className="h-8 w-8 rounded-lg" />
-            <span className="text-[13px] font-bold tracking-tight text-[#0a1e33]">Mountain Connects</span>
-          </div>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Now Hiring</span>
-        </div>
-
-        {/* Business identity */}
-        <div className="mt-10 flex flex-col items-center text-center">
-          {profile.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.logo_url}
-              alt={`${profile.business_name} logo`}
-              className="h-28 w-28 rounded-2xl object-cover ring-1 ring-slate-200"
-            />
-          ) : (
-            <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-[#0a1e33] text-3xl font-extrabold text-white ring-1 ring-slate-200">
-              {businessInitials}
-            </div>
-          )}
-          <p className="mt-4 text-base font-semibold text-slate-700">{profile.business_name}</p>
-        </div>
-
-        {/* Eyebrow + title */}
-        <div className="mt-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#3b9ede]">We&apos;re hiring</p>
-          <h1 className="mt-3 text-5xl font-extrabold leading-tight tracking-tight text-[#0a1e33]">
-            {job.title}
-          </h1>
-        </div>
-
-        {/* Meta line */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-sm text-slate-600">
-          {locationLabel && <span>📍 {locationLabel}</span>}
-          {locationLabel && payLabel && <span className="text-slate-300">·</span>}
-          {payLabel && <span>💰 {payLabel}</span>}
-          {(locationLabel || payLabel) && job.position_type && <span className="text-slate-300">·</span>}
-          {job.position_type && (
-            <span className="capitalize">{job.position_type.replace(/_/g, " ")}</span>
-          )}
-        </div>
-
-        {/* Perks */}
-        {perks.length > 0 && (
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            {perks.map((perk) => (
-              <span
-                key={perk}
-                className="rounded-full border border-[#22d3ee]/40 bg-[#22d3ee]/10 px-3 py-1 text-xs font-semibold text-[#0a1e33]"
-              >
-                ★ {perk}
+        {/* ───────── Hero ───────── */}
+        <section className="hero relative overflow-hidden px-12 pb-10 pt-12 text-white">
+          <div className="relative z-10">
+            {/* Top row: brand + chip */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/logo-source.png" alt="Mountain Connects" className="h-8 w-8 rounded-lg" />
+                <span className="text-[12px] font-bold tracking-tight text-white">Mountain Connects</span>
+              </div>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-white backdrop-blur-sm">
+                Local Job
               </span>
-            ))}
+            </div>
+
+            {/* Hiring eyebrow */}
+            <div className="mt-10 inline-block rounded-full px-4 py-1.5 hiring-eyebrow">
+              <span className="text-xs font-extrabold uppercase tracking-[0.3em] text-[#0a1e33]">
+                We&apos;re Hiring
+              </span>
+            </div>
+
+            {/* Title */}
+            <h1 className="mt-4 text-[58px] font-black leading-[1.02] tracking-tight text-white">
+              {job.title}
+            </h1>
+
+            {/* Business identity row */}
+            <div className="mt-7 flex items-center gap-4">
+              {profile.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.logo_url}
+                  alt={`${profile.business_name} logo`}
+                  className="h-16 w-16 rounded-2xl bg-white/10 object-cover ring-2 ring-white/40"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-xl font-extrabold text-[#0a1e33] ring-2 ring-white/40">
+                  {businessInitials}
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-bold text-white">{profile.business_name}</p>
+                {locationLabel && (
+                  <p className="mt-0.5 text-sm text-white/75">📍 {locationLabel}</p>
+                )}
+              </div>
+            </div>
           </div>
+        </section>
+
+        {/* ───────── Pay + perks band ───────── */}
+        <section className="grid grid-cols-12 gap-0 border-b-2 border-[#0a1e33]">
+          <div className="col-span-5 bg-[#22d3ee] px-10 py-6 text-[#0a1e33]">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] opacity-70">Pay</p>
+            <p className="mt-1 text-2xl font-black leading-tight">
+              {payLabel || "Competitive"}
+            </p>
+            {job.position_type && (
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide capitalize opacity-80">
+                {job.position_type.replace(/_/g, " ")}
+              </p>
+            )}
+          </div>
+          <div className="col-span-7 bg-[#0a1e33] px-10 py-6 text-white">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#22d3ee]">
+              What you get
+            </p>
+            {perks.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {perks.map((perk) => (
+                  <span
+                    key={perk}
+                    className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/30"
+                  >
+                    ★ {perk}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-white/70">A great seasonal opportunity.</p>
+            )}
+          </div>
+        </section>
+
+        {/* ───────── About the role ───────── */}
+        {description && (
+          <section className="px-12 py-7">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#3b9ede]">
+              About the role
+            </p>
+            <p className="mt-2 whitespace-pre-line text-[13.5px] leading-[1.6] text-[#1f2d3d]">
+              {description}
+            </p>
+          </section>
         )}
 
-        {/* QR — pushes to bottom of available space */}
-        <div className="mt-auto flex flex-col items-center pt-10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={qrDataUrl}
-            alt={`Scan to apply for ${job.title}`}
-            className="h-60 w-60"
-          />
-          <p className="mt-4 text-base font-bold uppercase tracking-[0.25em] text-[#0a1e33]">
-            Scan to apply
+        {/* ───────── About the business ───────── */}
+        <section className="border-y-2 border-[#0a1e33] bg-[#fef3c7] px-12 py-6">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#92400e]">
+            About {profile.business_name}
           </p>
-          <p className="mt-1 text-xs text-slate-500">{shortUrl}</p>
-        </div>
+          {businessBlurb ? (
+            <p className="mt-2 text-[13px] leading-[1.55] text-[#0a1e33]">
+              {businessBlurb}
+            </p>
+          ) : (
+            <p className="mt-2 text-[13px] italic leading-[1.55] text-[#0a1e33]/70">
+              {profile.year_established
+                ? `Operating since ${profile.year_established}.`
+                : "Local mountain business hiring for the season."}
+            </p>
+          )}
+        </section>
 
-        {/* Footer */}
-        <div className="mt-10 flex items-center justify-between border-t border-slate-200 pt-4 text-[10px] text-slate-400">
-          <span>Powered by Mountain Connects</span>
-          <span>{BASE_URL.replace("https://", "")}</span>
-        </div>
+        {/* ───────── How to apply ───────── */}
+        <section className="mt-auto bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] px-12 py-8 text-white">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.4em] text-[#22d3ee]">
+            How to apply
+          </p>
+          <h2 className="mt-1 text-3xl font-black tracking-tight">Scan to apply in seconds</h2>
+
+          <div className="mt-5 flex items-stretch gap-7">
+            {/* QR with white frame so it always reads on dark */}
+            <div className="flex shrink-0 items-center justify-center rounded-2xl bg-white p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt={`Scan to apply for ${job.title}`}
+                className="h-44 w-44"
+              />
+            </div>
+
+            {/* Steps */}
+            <ol className="flex flex-1 flex-col justify-center gap-2.5">
+              {applySteps.map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22d3ee] text-xs font-extrabold text-[#0a1e33]">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-medium leading-snug text-white">
+                    {step}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Fallback contact / URL row */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-white/15 pt-4 text-xs">
+            <span className="font-semibold uppercase tracking-[0.2em] text-[#22d3ee]">
+              No phone?
+            </span>
+            <span className="text-white/85">
+              Visit <strong className="font-bold text-white">{shortUrl}</strong>
+            </span>
+            {job.application_email && (
+              <span className="text-white/85">
+                or email <strong className="font-bold text-white">{job.application_email}</strong>
+              </span>
+            )}
+          </div>
+        </section>
+
+        {/* ───────── Footer ───────── */}
+        <footer className="flex items-center justify-between bg-white px-12 py-3 text-[10px] text-slate-400">
+          <span>Powered by Mountain Connects · {BASE_URL.replace("https://", "")}</span>
+          <span>{profile.business_name}</span>
+        </footer>
       </div>
     </div>
   );
