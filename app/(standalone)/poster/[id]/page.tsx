@@ -11,21 +11,6 @@ interface PosterPageProps {
   params: Promise<{ id: string }>;
 }
 
-function truncate(text: string | null | undefined, max: number): string {
-  if (!text) return "";
-  // Collapse 2+ blank lines down to a single newline so the poster doesn't
-  // render gaping vertical gaps for paragraph breaks the original copy used
-  // for screen readability.
-  const trimmed = text.replace(/\n\s*\n+/g, "\n").trim();
-  if (trimmed.length <= max) return trimmed;
-  // Cut at the last sentence end before max, falling back to last word boundary.
-  const sub = trimmed.slice(0, max);
-  const lastStop = Math.max(sub.lastIndexOf(". "), sub.lastIndexOf("! "), sub.lastIndexOf("? "));
-  if (lastStop > max * 0.6) return sub.slice(0, lastStop + 1).trim();
-  const lastSpace = sub.lastIndexOf(" ");
-  return (lastSpace > 0 ? sub.slice(0, lastSpace) : sub).trim() + "…";
-}
-
 export default async function ListingPosterPage({ params }: PosterPageProps) {
   const { id } = await params;
 
@@ -44,7 +29,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
   const { data: job } = await supabase
     .from("job_posts")
     .select(`
-      id, title, description, pay_amount, pay_currency, salary_range,
+      id, title, pay_amount, pay_currency, salary_range,
       position_type, accommodation_included, ski_pass_included, meal_perks,
       start_date, end_date, status, business_id,
       how_to_apply, application_email, application_url,
@@ -90,8 +75,6 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-
-  const description = truncate(job.description, 1100);
 
   // Build the "how to apply" steps. If the business set custom instructions on
   // the listing, lead with those; otherwise just walk them through the QR flow.
@@ -255,53 +238,39 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
           </div>
         </section>
 
-        {/* ───────── About the role ───────── */}
-        {description && (
-          <section className="px-12 py-5">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-[#3b9ede]">
-              About the role
-            </p>
-            <p className="mt-1.5 whitespace-pre-line text-[12px] leading-[1.5] text-[#1f2d3d]">
-              {description}
-            </p>
-          </section>
-        )}
-
-        {/* ───────── How to apply ───────── */}
-        <section className="mt-auto bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] px-12 py-5 text-white">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.4em] text-[#22d3ee]">
+        {/* ───────── How to apply (centered QR + steps below) ───────── */}
+        <section className="flex flex-1 flex-col items-center bg-gradient-to-br from-[#0a1e33] via-[#0f2942] to-[#1a3a5c] px-12 py-10 text-center text-white">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.4em] text-[#22d3ee]">
             How to apply
           </p>
-          <h2 className="mt-0.5 text-2xl font-black tracking-tight">Scan to apply in seconds</h2>
+          <h2 className="mt-1.5 text-3xl font-black tracking-tight">Scan to apply in seconds</h2>
 
-          <div className="mt-3 flex items-stretch gap-5">
-            {/* QR with white frame so it always reads on dark */}
-            <div className="flex shrink-0 items-center justify-center rounded-xl bg-white p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={qrDataUrl}
-                alt={`Scan to apply for ${job.title}`}
-                className="h-32 w-32"
-              />
-            </div>
-
-            {/* Steps */}
-            <ol className="flex flex-1 flex-col justify-center gap-1.5">
-              {applySteps.map((step, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#22d3ee] text-[10px] font-extrabold text-[#0a1e33]">
-                    {i + 1}
-                  </span>
-                  <span className="text-[12px] font-medium leading-snug text-white">
-                    {step}
-                  </span>
-                </li>
-              ))}
-            </ol>
+          {/* Centered QR */}
+          <div className="mt-6 inline-flex items-center justify-center rounded-2xl bg-white p-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={qrDataUrl}
+              alt={`Scan to apply for ${job.title}`}
+              className="h-56 w-56"
+            />
           </div>
 
+          {/* Steps below */}
+          <ol className="mt-6 mx-auto flex max-w-md flex-col items-start gap-2 text-left">
+            {applySteps.map((step, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22d3ee] text-[11px] font-extrabold text-[#0a1e33]">
+                  {i + 1}
+                </span>
+                <span className="text-[13px] font-medium leading-snug text-white">
+                  {step}
+                </span>
+              </li>
+            ))}
+          </ol>
+
           {/* Fallback contact / URL row */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/15 pt-2.5 text-[11px]">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/15 pt-3 text-[11px]">
             <span className="font-semibold uppercase tracking-[0.2em] text-[#22d3ee]">
               No phone?
             </span>
