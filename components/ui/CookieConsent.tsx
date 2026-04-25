@@ -1,14 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Script from "next/script";
 
 const COOKIE_KEY = "cookie-consent";
 
+// Routes where the cookie banner shouldn't appear (printable / standalone
+// surfaces). Anything matching one of these prefixes hides the banner
+// regardless of consent state.
+const HIDDEN_PREFIXES = ["/poster"];
+
 export default function CookieConsent() {
+  const pathname = usePathname();
   const [consent, setConsent] = useState<"granted" | "denied" | null>(null);
   const [visible, setVisible] = useState(false);
+
+  const hiddenForRoute = HIDDEN_PREFIXES.some((p) => pathname?.startsWith(p));
 
   useEffect(() => {
     const stored = localStorage.getItem(COOKIE_KEY);
@@ -54,7 +63,7 @@ export default function CookieConsent() {
       )}
 
       {/* Banner */}
-      {visible && (
+      {visible && !hiddenForRoute && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-accent/30 bg-white p-4 shadow-lg sm:p-5">
           <div className="mx-auto flex max-w-5xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-foreground/70">

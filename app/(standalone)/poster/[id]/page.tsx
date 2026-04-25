@@ -13,7 +13,10 @@ interface PosterPageProps {
 
 function truncate(text: string | null | undefined, max: number): string {
   if (!text) return "";
-  const trimmed = text.trim();
+  // Collapse 2+ blank lines down to a single newline so the poster doesn't
+  // render gaping vertical gaps for paragraph breaks the original copy used
+  // for screen readability.
+  const trimmed = text.replace(/\n\s*\n+/g, "\n").trim();
   if (trimmed.length <= max) return trimmed;
   // Cut at the last sentence end before max, falling back to last word boundary.
   const sub = trimmed.slice(0, max);
@@ -88,7 +91,7 @@ export default async function ListingPosterPage({ params }: PosterPageProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const description = truncate(job.description, 520);
+  const description = truncate(job.description, 1100);
 
   // Build the "how to apply" steps. If the business set custom instructions on
   // the listing, lead with those; otherwise just walk them through the QR flow.
