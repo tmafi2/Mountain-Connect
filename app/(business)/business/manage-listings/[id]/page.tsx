@@ -848,6 +848,18 @@ export default function ListingDetailPage() {
         >
           Edit Listing
         </Link>
+        <Link
+          href={`/business/manage-listings/${listing.id}/poster`}
+          target="_blank"
+          rel="noopener"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
+          title="Print a poster with a QR code that links to this listing"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5V3.75a.75.75 0 01.75-.75h9a.75.75 0 01.75.75V7.5m-12 0h13.5a1.5 1.5 0 011.5 1.5v6a1.5 1.5 0 01-1.5 1.5h-1.5m-10.5 0h-1.5A1.5 1.5 0 013 15V9a1.5 1.5 0 011.5-1.5m2.25 8.25v3a.75.75 0 00.75.75h9a.75.75 0 00.75-.75v-3m-10.5 0h10.5" />
+          </svg>
+          Print Poster
+        </Link>
         {listing.status === "draft" && (
           <>
             <button
