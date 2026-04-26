@@ -120,13 +120,11 @@ export default function UpgradePage() {
               </div>
 
               <div className="mt-4">
-                <span className="text-3xl font-extrabold text-primary">{features.price}</span>
-                {tier !== "enterprise" && (
-                  <span className="ml-1 text-sm text-foreground/50">/{features.priceNote}</span>
-                )}
-                {tier === "enterprise" && (
-                  <p className="mt-1 text-sm text-foreground/50">Custom pricing</p>
-                )}
+                {/* Pricing TBD — every tier currently shows as free until we
+                    finalise the rate card. Restore features.price /
+                    features.priceNote (defined in lib/tier.ts) when prices
+                    are confirmed. */}
+                <span className="text-3xl font-extrabold text-primary">Currently free</span>
               </div>
 
               <p className="mt-3 text-sm text-foreground/60">
