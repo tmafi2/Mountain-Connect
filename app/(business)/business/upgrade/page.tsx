@@ -120,11 +120,13 @@ export default function UpgradePage() {
               </div>
 
               <div className="mt-4">
-                {/* Pricing TBD — every tier currently shows as free until we
-                    finalise the rate card. Restore features.price /
+                {/* Pricing TBD — non-enterprise tiers show "Currently free"
+                    until we finalise the rate card. Restore features.price /
                     features.priceNote (defined in lib/tier.ts) when prices
                     are confirmed. */}
-                <span className="text-3xl font-extrabold text-primary">Currently free</span>
+                <span className="text-3xl font-extrabold text-primary">
+                  {tier === "enterprise" ? "Contact us" : "Currently free"}
+                </span>
               </div>
 
               <p className="mt-3 text-sm text-foreground/60">
