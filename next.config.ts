@@ -49,6 +49,11 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
+  // Quiet upload spam during build — release info still shows up in Sentry,
+  // we just don't print every step to the console.
   silent: true,
-  disableLogger: true,
+  // disableLogger was removed (it was deprecated). Sentry's internal debug
+  // logger has trivial bundle impact in modern versions; if you ever need
+  // to strip it, use the new bundleSizeOptimizations.excludeDebugStatements
+  // option here.
 });
