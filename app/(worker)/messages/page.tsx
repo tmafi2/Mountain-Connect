@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import NewConversationModal, { type ConversationCreatedData } from "@/components/chat/NewConversationModal";
+import ConversationProfileModal, { type ConversationProfile } from "@/components/chat/ConversationProfileModal";
 
 /* ─── types ───────────────────────────────────────────────── */
 interface Conversation {
@@ -11,9 +12,49 @@ interface Conversation {
   otherName: string;
   otherRole: string;
   otherUserId: string;
+  otherAvatarUrl: string | null;
+  otherLocation: string | null;
+  otherWorker: ConversationProfile["otherWorker"];
+  otherBusiness: ConversationProfile["otherBusiness"];
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
+}
+
+/* ─── conversation avatar ─────────────────────────────────── */
+function ConvAvatar({
+  name,
+  avatarUrl,
+  size = "md",
+}: {
+  name: string;
+  avatarUrl: string | null;
+  size?: "sm" | "md";
+}) {
+  const dim = size === "sm" ? "h-9 w-9 text-sm" : "h-10 w-10 text-sm";
+  const flagSize = size === "sm" ? "text-xl" : "text-2xl";
+  if (avatarUrl?.startsWith("flag:")) {
+    return (
+      <div className={`flex flex-shrink-0 items-center justify-center rounded-full bg-primary/10 ${dim}`}>
+        <span className={flagSize}>{avatarUrl.replace("flag:", "")}</span>
+      </div>
+    );
+  }
+  if (avatarUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        className={`flex-shrink-0 rounded-full bg-primary/10 object-cover ${dim}`}
+      />
+    );
+  }
+  return (
+    <div className={`flex flex-shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary ${dim}`}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
 }
 
 interface Message {
@@ -69,6 +110,7 @@ function WorkerMessagesContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [showNewConvModal, setShowNewConvModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -367,9 +409,7 @@ function WorkerMessagesContent() {
                 }`}
               >
                 {/* Avatar */}
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  {conv.otherName.charAt(0).toUpperCase()}
-                </div>
+                <ConvAvatar name={conv.otherName} avatarUrl={conv.otherAvatarUrl} />
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
@@ -414,13 +454,22 @@ function WorkerMessagesContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                {activeConv.otherName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-primary">{activeConv.otherName}</p>
-                <p className="text-[11px] text-foreground/40">{activeConv.otherRole}</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(true)}
+                className="group flex items-center gap-3 rounded-lg px-1 py-0.5 -mx-1 text-left transition-colors hover:bg-accent/15"
+                title="View profile"
+              >
+                <ConvAvatar name={activeConv.otherName} avatarUrl={activeConv.otherAvatarUrl} size="sm" />
+                <div>
+                  <p className="text-sm font-semibold text-primary group-hover:underline">
+                    {activeConv.otherName}
+                  </p>
+                  <p className="text-[11px] text-foreground/40">
+                    {activeConv.otherRole} · View profile
+                  </p>
+                </div>
+              </button>
             </div>
 
             {/* Messages */}
@@ -529,6 +578,23 @@ function WorkerMessagesContent() {
           </div>
         )}
       </div>
+
+      {/* Profile Modal */}
+      {showProfileModal && activeConv && (
+        <ConversationProfileModal
+          profile={{
+            otherName: activeConv.otherName,
+            otherRole: activeConv.otherRole,
+            otherUserId: activeConv.otherUserId,
+            otherAvatarUrl: activeConv.otherAvatarUrl,
+            otherLocation: activeConv.otherLocation,
+            otherWorker: activeConv.otherWorker,
+            otherBusiness: activeConv.otherBusiness,
+          }}
+          viewerPortal="worker"
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
 
       {/* New Conversation Modal */}
       {showNewConvModal && currentUserId && (

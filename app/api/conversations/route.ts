@@ -3,6 +3,27 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 
+type OtherProfile = {
+  name: string;
+  role: "Worker" | "Employer" | "User";
+  avatarUrl: string | null;
+  location: string | null;
+  worker: {
+    workerProfileId: string;
+    nationality: string | null;
+    bio: string | null;
+    skills: string[];
+    languages: { language: string; proficiency: string }[];
+    yearsExperience: number;
+  } | null;
+  business: {
+    businessProfileId: string;
+    slug: string | null;
+    description: string | null;
+    yearEstablished: number | null;
+  } | null;
+};
+
 /**
  * GET /api/conversations
  * List all conversations for the authenticated user,
@@ -38,37 +59,63 @@ export async function GET() {
       .in("conversation_id", convIds)
       .neq("user_id", user.id);
 
-    // Look up display names (parallel queries)
+    // Look up display info for every "other" user — names + a small profile
+    // snapshot so the message list can render avatars and the chat header
+    // popover can show profile details without a second request.
     const otherUserIds = [
       ...new Set((otherParticipants || []).map((p) => p.user_id)),
     ];
-    const names: Record<string, { name: string; role: string }> = {};
+    const profiles: Record<string, OtherProfile> = {};
 
     if (otherUserIds.length > 0) {
       const [{ data: workerProfiles }, { data: bizProfiles }] =
         await Promise.all([
           admin
             .from("worker_profiles")
-            .select("user_id, first_name, last_name")
+            .select(
+              "id, user_id, first_name, last_name, avatar_url, profile_photo_url, nationality, location_current, bio, skills, languages, years_seasonal_experience"
+            )
             .in("user_id", otherUserIds),
           admin
             .from("business_profiles")
-            .select("user_id, business_name")
+            .select(
+              "id, user_id, business_name, logo_url, location, description, year_established, slug"
+            )
             .in("user_id", otherUserIds),
         ]);
 
       workerProfiles?.forEach((wp) => {
-        names[wp.user_id] = {
+        profiles[wp.user_id] = {
           name:
-            [wp.first_name, wp.last_name].filter(Boolean).join(" ") ||
-            "Worker",
+            [wp.first_name, wp.last_name].filter(Boolean).join(" ") || "Worker",
           role: "Worker",
+          avatarUrl: wp.avatar_url || wp.profile_photo_url || null,
+          location: wp.location_current || null,
+          worker: {
+            workerProfileId: wp.id,
+            nationality: wp.nationality || null,
+            bio: wp.bio || null,
+            skills: (wp.skills as string[]) || [],
+            languages:
+              (wp.languages as { language: string; proficiency: string }[]) || [],
+            yearsExperience: (wp.years_seasonal_experience as number) || 0,
+          },
+          business: null,
         };
       });
       bizProfiles?.forEach((bp) => {
-        names[bp.user_id] = {
+        profiles[bp.user_id] = {
           name: bp.business_name || "Business",
           role: "Employer",
+          avatarUrl: bp.logo_url || null,
+          location: bp.location || null,
+          worker: null,
+          business: {
+            businessProfileId: bp.id,
+            slug: bp.slug || null,
+            description: bp.description || null,
+            yearEstablished: bp.year_established || null,
+          },
         };
       });
     }
@@ -80,9 +127,13 @@ export async function GET() {
           (p) => p.conversation_id === convId
         );
         const otherUserId = otherP?.user_id || "";
-        const otherInfo = names[otherUserId] || {
+        const otherInfo: OtherProfile = profiles[otherUserId] || {
           name: "Unknown",
           role: "User",
+          avatarUrl: null,
+          location: null,
+          worker: null,
+          business: null,
         };
 
         const [{ data: latestMsg }, { count: unread }] = await Promise.all([
@@ -106,6 +157,10 @@ export async function GET() {
           otherName: otherInfo.name,
           otherRole: otherInfo.role,
           otherUserId,
+          otherAvatarUrl: otherInfo.avatarUrl,
+          otherLocation: otherInfo.location,
+          otherWorker: otherInfo.worker,
+          otherBusiness: otherInfo.business,
           lastMessage: latestMsg?.content || "",
           lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
           unreadCount: unread ?? 0,
