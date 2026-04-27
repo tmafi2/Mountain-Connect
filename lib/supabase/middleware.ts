@@ -1,5 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { withTimeout } from "@/lib/utils/with-timeout";
+
+// Hard cap on how long we will wait for Supabase to return the auth user
+// before failing open. Vercel's middleware deadline is short, so it's much
+// better to render the page as logged-out (downstream code re-validates
+// where it matters) than to 504 the entire request.
+const AUTH_TIMEOUT_MS = 2500;
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -33,7 +40,19 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const [authResult, timedOut] = await withTimeout(
+    supabase.auth.getUser(),
+    AUTH_TIMEOUT_MS,
+  );
 
-  return { response: supabaseResponse, supabase, user };
+  if (timedOut) {
+    console.warn("Supabase auth.getUser timed out in middleware — failing open");
+    return { response: supabaseResponse, supabase, user: null };
+  }
+
+  return {
+    response: supabaseResponse,
+    supabase,
+    user: authResult?.data?.user ?? null,
+  };
 }

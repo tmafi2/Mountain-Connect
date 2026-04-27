@@ -1,5 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { withTimeout } from "@/lib/utils/with-timeout";
+
+// Short-lived cookie that caches the user's role so we do not hit Supabase
+// on every protected-route request. Format is "<userId>:<role>" so a stale
+// cookie from a previous user is detected and ignored. The 5-minute TTL is
+// long enough to cover most browsing sessions and short enough that a role
+// change (e.g. promoting a worker to admin in the DB) propagates quickly.
+const ROLE_COOKIE = "mc-role";
+const ROLE_COOKIE_TTL_SECONDS = 60 * 5;
+const ROLE_QUERY_TIMEOUT_MS = 2500;
 
 // Routes that require the "worker" role
 const WORKER_ROUTES = ["/dashboard", "/profile", "/applications", "/saved-jobs", "/messages", "/interviews", "/following", "/job-alerts"];
@@ -108,15 +118,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Role-based enforcement (single DB query — only for protected routes)
+  // Role-based enforcement. Try the role cookie first to avoid a Supabase
+  // round-trip on every protected request; fall back to a DB lookup with
+  // a hard timeout so a slow/unavailable database does not 504 the page.
   if (supabase) {
-    const { data: userData } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    let role: string | null | undefined = readCachedRole(request, user.id);
 
-    const role = userData?.role;
+    if (role === null) {
+      const [queryResult, timedOut] = await withTimeout(
+        supabase.from("users").select("role").eq("id", user.id).single(),
+        ROLE_QUERY_TIMEOUT_MS,
+      );
+      if (timedOut) {
+        // Fail open — let the request through so the user does not see a 504.
+        // Downstream RLS still gates anything sensitive, so this is safe.
+        console.warn("Role lookup timed out — letting request through unrestricted");
+        return response;
+      }
+      role = queryResult?.data?.role;
+      if (role) {
+        writeCachedRole(response, user.id, role);
+      }
+    }
 
     if (isWorkerRoute && role === "business_owner") {
       return NextResponse.redirect(new URL("/business/dashboard", request.url));
@@ -133,6 +156,33 @@ export async function middleware(request: NextRequest) {
   }
 
   return response;
+}
+
+/**
+ * Returns the cached role for the given user from the mc-role cookie if
+ * the cookie is present and tied to the same user. Returns `null` to mean
+ * "no cache, do a fresh lookup" — distinct from a DB result of "no role
+ * found" (rare; the row should always exist for an authed user).
+ */
+function readCachedRole(request: NextRequest, userId: string): string | null {
+  const raw = request.cookies.get(ROLE_COOKIE)?.value;
+  if (!raw) return null;
+  const idx = raw.indexOf(":");
+  if (idx <= 0) return null;
+  const cachedUserId = raw.slice(0, idx);
+  const cachedRole = raw.slice(idx + 1);
+  if (cachedUserId !== userId || !cachedRole) return null;
+  return cachedRole;
+}
+
+function writeCachedRole(response: NextResponse, userId: string, role: string) {
+  response.cookies.set(ROLE_COOKIE, `${userId}:${role}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ROLE_COOKIE_TTL_SECONDS,
+  });
 }
 
 export const config = {
