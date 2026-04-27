@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://unpkg.com",
               "media-src 'self' https://cdn.coverr.co",
-              "connect-src 'self' https://kafekhemktqoczxclthy.supabase.co wss://kafekhemktqoczxclthy.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://*.ingest.sentry.io",
+              "connect-src 'self' https://kafekhemktqoczxclthy.supabase.co wss://kafekhemktqoczxclthy.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
               "frame-src 'self' https://*.daily.co https://kafekhemktqoczxclthy.supabase.co",
               "worker-src blob:",
               "frame-ancestors 'none'",
