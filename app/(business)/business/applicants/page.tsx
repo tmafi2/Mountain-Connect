@@ -28,7 +28,7 @@ export default async function ApplicantsPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("applications")
-      .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, work_eligible_countries, date_of_birth, nationality, languages, references, cv_url)")
+      .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, work_eligible_countries, date_of_birth, nationality, languages, references, cv_url, contact_email, users(email))")
       .eq("job_posts.business_id", business.id),
   ]);
 
@@ -45,6 +45,11 @@ export default async function ApplicantsPage() {
       const wp = a.worker_profiles as Record<string, unknown> | null;
       const firstName = (wp?.first_name as string) || "";
       const lastName = (wp?.last_name as string) || "";
+      // Worker email: prefer their explicit contact_email override, fall back
+      // to the auth users.email pulled via the users(email) join. Both can be
+      // null if the row is incomplete.
+      const wpUser = wp?.users as { email?: string | null } | null;
+      const workerEmail = (wp?.contact_email as string | null) || wpUser?.email || "";
 
       return {
         id: (wp?.id as string) || (a.worker_id as string),
@@ -53,7 +58,7 @@ export default async function ApplicantsPage() {
         job_title: jp.title as string,
         resort_name: resort?.name || "",
         worker_name: [firstName, lastName].filter(Boolean).join(" ") || "Unknown",
-        worker_email: "",
+        worker_email: workerEmail,
         worker_phone: (wp?.phone as string) || null,
         worker_avatar: (wp?.avatar_url as string) || (wp?.profile_photo_url as string) || null,
         worker_location: (wp?.location_current as string) || null,
