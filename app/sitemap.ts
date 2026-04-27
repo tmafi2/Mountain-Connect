@@ -4,6 +4,12 @@ import { resorts } from "@/lib/data/resorts";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
+// Generate the sitemap on-demand instead of at build time. The four Supabase
+// queries below were timing out the Vercel static-page generation step (60s
+// limit) whenever Supabase was slow, breaking deploys. ISR re-generates after
+// each request older than an hour, which is plenty for crawler traffic.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
 
