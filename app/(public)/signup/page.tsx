@@ -164,8 +164,16 @@ function SignupContent() {
         // insert and let /api/signup/claim-imports update the shell profile
         // in place (unique(user_id) would otherwise collide).
         if (accountType === "worker") {
+          // Save first/last name into the structured columns alongside the
+          // contact email — without this the columns stay null and the
+          // worker shows up as "Unknown" everywhere they're rendered.
           await supabase.from("worker_profiles").upsert(
-            { user_id: signUpData.user.id, contact_email: email },
+            {
+              user_id: signUpData.user.id,
+              contact_email: email,
+              first_name: firstName.trim() || null,
+              last_name: lastName.trim() || null,
+            },
             { onConflict: "user_id" }
           ).then(() => {}).catch(() => {});
         } else if (claimExistingImports) {
