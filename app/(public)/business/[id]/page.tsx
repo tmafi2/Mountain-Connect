@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
     .eq("id", id)
     .single();
 
-  if (!business) return { title: "Business Not Found | Mountain Connects" };
+  if (!business) return { title: "Business Not Found" };
 
   const title = `${business.business_name} — Seasonal Jobs & Careers`;
   const rawDesc = business.description
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
   const ogImage = business.logo_url || `${BASE_URL}/opengraph-image.jpg`;
 
   return {
-    title: `${title} | Mountain Connects`,
+    title,
     description,
     alternates: { canonical: `${BASE_URL}/business/${id}` },
     openGraph: {

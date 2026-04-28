@@ -6,9 +6,10 @@ import type { Business } from "./EmployersClient";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "Employers | Mountain Connects",
+  title: "Employers Hiring at Ski Resorts",
   description:
     "Discover ski resort businesses hiring seasonal workers worldwide. Browse by resort, country, or industry.",
+  alternates: { canonical: "https://www.mountainconnects.com/employers" },
 };
 
 export default async function EmployersPage() {

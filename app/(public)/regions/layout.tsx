@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Ski Regions — Browse Resorts by Region | Mountain Connects",
+  title: "Ski Regions — Browse Resorts by Region",
   description:
     "Explore ski regions around the world. Browse resorts by continent and country to find seasonal work opportunities in Europe, North America, Japan, and more.",
   alternates: { canonical: "https://www.mountainconnects.com/regions" },

@@ -13,7 +13,7 @@ const BASE_URL = "https://www.mountainconnects.com";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Blog | Mountain Connects",
+  title: "Ski Resort Worker Blog — Tips, Guides, Stories",
   description: "Tips, guides, and stories for seasonal mountain workers. Discover resort insights, visa advice, and community stories.",
   alternates: { canonical: `${BASE_URL}/blog` },
   openGraph: {

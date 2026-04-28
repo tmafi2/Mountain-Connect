@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
     .eq("slug", slug)
     .single();
 
-  if (!town) return { title: "Town Not Found | Mountain Connects" };
+  if (!town) return { title: "Town Not Found" };
 
   // Fetch linked resort names
   const { data: links } = await supabase
@@ -65,9 +65,9 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
   // Build title
   let title: string;
   if (resortNames.length > 0 && resortNames.length <= 3) {
-    title = `${town.name} Seasonal Worker Guide — Near ${resortNames.join(" & ")} | Mountain Connects`;
+    title = `${town.name} Seasonal Worker Guide — Near ${resortNames.join(" & ")}`;
   } else {
-    title = `${town.name} Seasonal Worker Guide — Housing, Jobs & Living | Mountain Connects`;
+    title = `${town.name} Seasonal Worker Guide — Housing, Jobs & Living`;
   }
 
   // Build description (under 160 chars)
