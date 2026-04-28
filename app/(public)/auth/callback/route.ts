@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -100,15 +101,51 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/business/dashboard`);
         }
 
-        // Worker — only redirect to onboarding if NO profile exists at all
-        const { data: workerProfile } = await supabase
+        // Worker — make sure a worker_profiles row exists with names
+        // before deciding where to send them. Without this, OAuth
+        // users (whose names live only in user_metadata.full_name)
+        // ended up with blank rows and showed as "Unknown" in admin
+        // lists. The admin client is used here to bypass any RLS
+        // timing concerns at first-login.
+        const fullName = String(user.user_metadata?.full_name || "").trim();
+        const [firstName, ...lastParts] = fullName.split(/\s+/);
+        const lastName = lastParts.join(" ");
+        const adminCli = createAdminClient();
+
+        const { data: workerProfile } = await adminCli
           .from("worker_profiles")
-          .select("id")
+          .select("id, first_name, last_name")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
+
         if (!workerProfile) {
+          // No row yet — create a stub with names so the user shows
+          // up in admin lists with a name even if they never finish
+          // onboarding. Onboarding then fills out the rest.
+          await adminCli.from("worker_profiles").insert({
+            user_id: user.id,
+            contact_email: user.email,
+            first_name: firstName || null,
+            last_name: lastName || null,
+          });
           return NextResponse.redirect(`${origin}/onboarding?type=worker`);
         }
+
+        // Row exists. If first or last name is missing but auth
+        // metadata has a full_name, backfill only the missing pieces.
+        // Anything the user has set themselves stays untouched.
+        if (fullName && (!workerProfile.first_name || !workerProfile.last_name)) {
+          const updates: Record<string, string> = {};
+          if (!workerProfile.first_name && firstName) updates.first_name = firstName;
+          if (!workerProfile.last_name && lastName) updates.last_name = lastName;
+          if (Object.keys(updates).length > 0) {
+            await adminCli
+              .from("worker_profiles")
+              .update(updates)
+              .eq("id", workerProfile.id);
+          }
+        }
+
         return NextResponse.redirect(`${origin}/dashboard`);
       }
 

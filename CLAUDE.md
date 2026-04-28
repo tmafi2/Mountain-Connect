@@ -72,7 +72,7 @@ Businesses can post listings regardless of verification state. Verification is a
 - **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently; first time aggregate EOIs hit 5 the business gets a nudge email; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
 
 ## Migration Status
-All migrations applied through **00068** (`populate_jindabyne_details` — fills in the rich content fields + hero image for Jindabyne; UPDATEs from 00025/00028 silently no-op'd because the row didn't exist yet). Next migration number: **00069**.
+All migrations applied through **00069** (`fix_worker_profile_names` — backfills missing first/last names from auth metadata and creates worker_profiles for orphan OAuth signups). Next migration number: **00070**.
 
 ## Important Conventions
 - Resort `id` in database is UUID. Static data uses `legacy_id` (text: "1", "2", etc.)
