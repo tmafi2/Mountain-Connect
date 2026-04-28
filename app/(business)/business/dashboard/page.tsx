@@ -52,43 +52,71 @@ export default async function BusinessDashboard() {
   const filled = fields.filter((f) => f && String(f).length > 0).length;
   const profileCompletion = Math.round((filled / fields.length) * 100);
 
-  // Fetch resort legacy_id and town slug in parallel for launch location check
-  const [resortResult, townResult] = await Promise.all([
+  // ── Round 3 (parallel): everything that depends only on profile.id /
+  //    profile.resort_id / profile.nearby_town_id. Previously these ran
+  //    one-by-one (resort then town then count then jobIds then …). Now
+  //    they all fire concurrently — the dashboard waits for the slowest
+  //    rather than the sum of all of them.
+  const [
+    resortResult,
+    townResult,
+    activeCountResult,
+    allJobIdsResult,
+    recentInterviewsResult,
+    recentJobsResult,
+  ] = await Promise.all([
     profile.resort_id
       ? supabase.from("resorts").select("legacy_id").eq("id", profile.resort_id).single()
       : Promise.resolve({ data: null }),
     profile.nearby_town_id
       ? supabase.from("nearby_towns").select("slug").eq("id", profile.nearby_town_id).single()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("job_posts")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", profile.id)
+      .eq("status", "active"),
+    supabase
+      .from("job_posts")
+      .select("id")
+      .eq("business_id", profile.id),
+    supabase
+      .from("interviews")
+      .select(
+        "id, status, scheduled_date, scheduled_start_time, scheduled_at, completed_at, invited_at, applications(job_post_id, job_posts(title), worker_id, worker_profiles(first_name, last_name))"
+      )
+      .eq("business_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("job_posts")
+      .select("id, title, status, created_at")
+      .eq("business_id", profile.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   const resortLegacyId = resortResult.data?.legacy_id ?? null;
   const townSlug = townResult.data?.slug ?? null;
   const inLaunchLocation = isInLaunchLocation(resortLegacyId, townSlug);
 
-  // Fetch active listing count
-  const { count: activeListingCount } = await supabase
-    .from("job_posts")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", profile.id)
-    .eq("status", "active");
+  const listingCount = String(activeCountResult.count ?? 0);
+  const allJobIds = allJobIdsResult.data;
+  const recentInterviews = recentInterviewsResult.data;
+  const recentJobs = recentJobsResult.data;
 
-  const listingCount = String(activeListingCount ?? 0);
-
-  // Fetch ALL job IDs for this business (not just active) to count applicants across all listings
-  const { data: allJobIds } = await supabase
-    .from("job_posts")
-    .select("id")
-    .eq("business_id", profile.id);
-
+  // ── Round 4 (parallel): the four queries that need the full set of
+  //    job_post ids resolved first. Same idea — fire them all together.
   let applicantCount = "0";
   let interviewCount = "0";
   let expressionsOfInterest: EoiRow[] = [];
+  let recentApps: Array<Record<string, unknown>> | null = null;
 
   if (allJobIds && allJobIds.length > 0) {
     const jobIds = allJobIds.map((j) => j.id);
 
-    const [applicants, interviews, eois] = await Promise.all([
+    const [applicants, interviews, eois, recentAppsRes] = await Promise.all([
       supabase
         .from("applications")
         .select("id", { count: "exact", head: true })
@@ -103,10 +131,19 @@ export default async function BusinessDashboard() {
         .select("id, job_post_id, name, email, phone, message, created_at, job_posts(title)")
         .in("job_post_id", jobIds)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("applications")
+        .select(
+          "id, status, applied_at, updated_at, worker_id, job_post_id, worker_profiles(first_name, last_name), job_posts(title)"
+        )
+        .in("job_post_id", jobIds)
+        .order("applied_at", { ascending: false })
+        .limit(10),
     ]);
 
     applicantCount = String(applicants.count ?? 0);
     interviewCount = String(interviews.count ?? 0);
+    recentApps = recentAppsRes.data;
 
     if (eois.data) {
       expressionsOfInterest = eois.data.map((e: Record<string, unknown>) => {
@@ -128,63 +165,44 @@ export default async function BusinessDashboard() {
   // ── Build activity feed ──────────────────────────────
   const feed: BizActivity[] = [];
 
-  // Recent applications
-  if (allJobIds && allJobIds.length > 0) {
-    const jobIds = allJobIds.map((j) => j.id);
-    const { data: recentApps } = await supabase
-      .from("applications")
-      .select("id, status, applied_at, updated_at, worker_id, job_post_id, worker_profiles(first_name, last_name), job_posts(title)")
-      .in("job_post_id", jobIds)
-      .order("applied_at", { ascending: false })
-      .limit(10);
+  if (recentApps) {
+    for (const app of recentApps) {
+      const wp = app.worker_profiles as { first_name: string | null; last_name: string | null } | null;
+      const jp = app.job_posts as { title: string } | null;
+      const name = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "A worker";
+      const jobTitle = jp?.title || "a position";
 
-    if (recentApps) {
-      for (const app of recentApps) {
-        const wp = app.worker_profiles as unknown as { first_name: string | null; last_name: string | null } | null;
-        const jp = app.job_posts as unknown as { title: string } | null;
-        const name = [wp?.first_name, wp?.last_name].filter(Boolean).join(" ") || "A worker";
-        const jobTitle = jp?.title || "a position";
+      feed.push({
+        id: `app-${app.id}`,
+        type: "new_application",
+        title: `${name} applied`,
+        subtitle: jobTitle,
+        date: app.applied_at as string,
+        href: "/business/applicants",
+      });
 
+      if (app.status === "accepted") {
         feed.push({
-          id: `app-${app.id}`,
-          type: "new_application",
-          title: `${name} applied`,
+          id: `accepted-${app.id}`,
+          type: "offer_accepted",
+          title: `${name} accepted your offer`,
           subtitle: jobTitle,
-          date: app.applied_at,
+          date: (app.updated_at as string) || (app.applied_at as string),
           href: "/business/applicants",
         });
-
-        if (app.status === "accepted") {
-          feed.push({
-            id: `accepted-${app.id}`,
-            type: "offer_accepted",
-            title: `${name} accepted your offer`,
-            subtitle: jobTitle,
-            date: app.updated_at || app.applied_at,
-            href: "/business/applicants",
-          });
-        }
-        if (app.status === "rejected") {
-          feed.push({
-            id: `declined-${app.id}`,
-            type: "offer_declined",
-            title: `${name} declined your offer`,
-            subtitle: jobTitle,
-            date: app.updated_at || app.applied_at,
-            href: "/business/applicants",
-          });
-        }
+      }
+      if (app.status === "rejected") {
+        feed.push({
+          id: `declined-${app.id}`,
+          type: "offer_declined",
+          title: `${name} declined your offer`,
+          subtitle: jobTitle,
+          date: (app.updated_at as string) || (app.applied_at as string),
+          href: "/business/applicants",
+        });
       }
     }
   }
-
-  // Recent interviews
-  const { data: recentInterviews } = await supabase
-    .from("interviews")
-    .select("id, status, scheduled_date, scheduled_start_time, scheduled_at, completed_at, invited_at, applications(job_post_id, job_posts(title), worker_id, worker_profiles(first_name, last_name))")
-    .eq("business_id", profile.id)
-    .order("created_at", { ascending: false })
-    .limit(10);
 
   if (recentInterviews) {
     for (const iv of recentInterviews) {
@@ -214,15 +232,6 @@ export default async function BusinessDashboard() {
       }
     }
   }
-
-  // Recent job postings
-  const { data: recentJobs } = await supabase
-    .from("job_posts")
-    .select("id, title, status, created_at")
-    .eq("business_id", profile.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(5);
 
   if (recentJobs) {
     for (const job of recentJobs) {
