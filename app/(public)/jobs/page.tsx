@@ -59,6 +59,7 @@ export default async function FindAJobPage() {
           resort_country: resort?.country || "",
           nearby_town_id: (j.nearby_town_id as string) || null,
           nearby_town_name: nearbyTown?.name || null,
+          nearby_town_slug: nearbyTown?.slug || null,
           category: (j.category as string) || "Other",
           position_type: posType as "full_time" | "part_time" | "casual",
           pay_amount:

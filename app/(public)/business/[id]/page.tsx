@@ -186,12 +186,14 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     url: `${BASE_URL}/business/${id}`,
     ...(business.logo_url && { logo: business.logo_url }),
     ...(business.description && { description: business.description }),
-    ...(business.location && {
+    ...((business.operates_in_town && nearbyTownName) || business.location) && {
       address: {
         "@type": "PostalAddress",
-        addressLocality: business.location,
+        addressLocality:
+          (business.operates_in_town && nearbyTownName) || business.location,
+        ...(business.country && { addressCountry: business.country }),
       },
-    }),
+    },
     ...(socialLinks && Object.values(socialLinks).filter(Boolean).length > 0 && {
       sameAs: Object.values(socialLinks).filter(Boolean),
     }),
@@ -275,15 +277,17 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
 
               {/* Location & Resort tags */}
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-white" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.3)" }}>
-                {(business.location || business.country) && (
+                {(business.operates_in_town && nearbyTownName) || business.location || business.country ? (
                   <span className="flex items-center gap-1.5">
                     <svg className="h-3.5 w-3.5 shrink-0 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                     </svg>
-                    {[business.location, business.country].filter(Boolean).join(", ")}
+                    {business.operates_in_town && nearbyTownName
+                      ? [nearbyTownName, business.country].filter(Boolean).join(", ")
+                      : [business.location, business.country].filter(Boolean).join(", ")}
                   </span>
-                )}
+                ) : null}
                 {business.year_established && (
                   <span className="flex items-center gap-1.5">
                     <svg className="h-3.5 w-3.5 shrink-0 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

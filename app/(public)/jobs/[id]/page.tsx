@@ -23,7 +23,8 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       title, description, pay_amount, pay_currency, salary_range, position_type, category,
       start_date, end_date, accommodation_included, created_at,
       business_profiles!inner(business_name, location),
-      resorts(name, country)
+      resorts(name, country),
+      nearby_towns(name, state, country)
     `)
     .eq("id", id)
     .single();
@@ -74,7 +75,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     .select(`
       *,
       business_profiles!inner(id, business_name, logo_url, verification_status, location, description, is_claimed),
-      resorts(id, name, country, legacy_id)
+      resorts(id, name, country, legacy_id),
+      nearby_towns(id, name, slug, state, country)
     `)
     .eq("id", id)
     .single();
@@ -85,6 +87,17 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
   const biz = job.business_profiles as any;
   const resort = job.resorts as any;
+  const town = job.nearby_towns as { id?: string; name?: string; slug?: string; state?: string; country?: string } | null;
+  // Lead with the town when the listing is town-based — that's the actual
+  // place of work / where the worker would commute from. Resort still gets
+  // shown as a "near …" subtitle below so candidates know which mountain
+  // the role is associated with.
+  const primaryLocation = town?.name
+    ? `${town.name}${town.state ? `, ${town.state}` : town.country ? `, ${town.country}` : ""}`
+    : resort?.name
+      ? `${resort.name}, ${resort.country}`
+      : biz?.location || "";
+  const nearResortLine = town?.name && resort?.name ? `near ${resort.name}` : null;
 
   // ── Fetch related jobs ──
   // First pull jobs at the same resort (up to 6), then top up from the same
@@ -184,8 +197,9 @@ export default async function JobDetailPage({ params }: JobPageProps) {
       "@type": "Place",
       address: {
         "@type": "PostalAddress",
-        addressLocality: biz?.location || resort?.name || "",
-        addressCountry: resort?.country || "",
+        addressLocality: town?.name || biz?.location || resort?.name || "",
+        addressRegion: town?.state || "",
+        addressCountry: town?.country || resort?.country || "",
       },
     },
     ...(job.category && { occupationalCategory: job.category }),
@@ -291,7 +305,10 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                     </svg>
-                    {resort?.name ? `${resort.name}, ${resort.country}` : biz?.location}
+                    {primaryLocation}
+                    {nearResortLine && (
+                      <span className="text-white/35"> · {nearResortLine}</span>
+                    )}
                   </p>
                 </div>
               </Link>
@@ -527,7 +544,42 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                   </div>
             </div>
 
-            {/* Resort Card */}
+            {/* Town card — primary location card when the listing is
+                town-based. Replaces the resort card so the side panel
+                matches the hero ("Jindabyne · near Perisher" not just
+                "Perisher"). The resort card still renders below as a
+                secondary "near …" link so candidates can dig into the
+                mountain too. */}
+            {town?.slug && (
+              <Link
+                href={`/towns/${town.slug}`}
+                className="group block rounded-2xl border border-accent bg-white p-5 shadow-sm transition-all hover:border-secondary hover:shadow-md"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 text-xl shadow-sm">
+                    🏘️
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-primary group-hover:text-secondary transition-colors">{town.name}</p>
+                    <p className="text-xs text-foreground/50">
+                      {town.state ? `${town.state}, ${town.country || ""}` : town.country || ""}
+                      {resort?.name && (
+                        <span className="text-foreground/40"> · near {resort.name}</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 flex items-center gap-1 text-xs text-foreground/40 group-hover:text-secondary/70 transition-colors">
+                  View {town.name} living info & more jobs
+                  <svg className="h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </p>
+              </Link>
+            )}
+
+            {/* Resort Card — primary when the listing has no town,
+                secondary (still shown) when it does. */}
             {resort && (
               <Link
                 href={`/resorts/${resort.legacy_id || resort.id}`}
@@ -690,12 +742,12 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                           {rResort.name}
                         </span>
                       )}
-                      {r.accommodation_included && (
+                      {Boolean(r.accommodation_included) && (
                         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
                           🏠 Housing
                         </span>
                       )}
-                      {r.ski_pass_included && (
+                      {Boolean(r.ski_pass_included) && (
                         <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
                           🎿 Ski pass
                         </span>

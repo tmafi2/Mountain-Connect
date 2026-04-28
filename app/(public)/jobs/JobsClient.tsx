@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   type SeedJob,
@@ -89,6 +89,8 @@ export default function JobsClient({ initialJobs }: JobsClientProps) {
 
 function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [allJobs] = useState<SeedJob[]>(initialJobs);
   const [loadError] = useState(false);
   const [townResortIds, setTownResortIds] = useState<string[]>([]);
@@ -269,6 +271,32 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
 
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
+
+  // Town filter helper. The town fetch flow keys off the ?town=<slug> URL
+  // param (see useEffect above), so we update the URL via router.replace and
+  // mirror into local filter state so the chip + active-filter logic see it.
+  const setTownFilter = (slug: string) => {
+    setFilter("town", slug);
+    const params = new URLSearchParams(searchParams.toString());
+    if (slug) params.set("town", slug);
+    else params.delete("town");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  // Towns picked up from the loaded jobs — only towns that actually have
+  // a listing surface in the dropdown so it never shows empty options.
+  const TOWN_OPTIONS = useMemo(() => {
+    const seen = new Map<string, string>(); // slug → display name
+    for (const j of allJobs) {
+      if (j.nearby_town_slug && j.nearby_town_name && !seen.has(j.nearby_town_slug)) {
+        seen.set(j.nearby_town_slug, j.nearby_town_name);
+      }
+    }
+    return Array.from(seen.entries())
+      .map(([slug, name]) => ({ value: slug, label: name }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [allJobs]);
 
   /* ─── filter + sort logic ───────────────────────────────── */
   const filteredJobs = useMemo(() => {
@@ -479,6 +507,20 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
                     ).map((r) => ({ value: r, label: r }))}
                   />
                 </FilterSection>
+
+                {/* Town — surface listings tied to a nearby town
+                    (e.g. Jindabyne for Thredbo / Perisher) so workers
+                    based in the support town can find them directly. */}
+                {TOWN_OPTIONS.length > 0 && (
+                  <FilterSection title="Town">
+                    <FilterSelect
+                      value={filters.town}
+                      onChange={(v) => setTownFilter(v)}
+                      placeholder="Any town"
+                      options={TOWN_OPTIONS}
+                    />
+                  </FilterSection>
+                )}
 
                 {/* Position Type */}
                 <FilterSection title="Position Type">
@@ -705,13 +747,7 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
                   Showing jobs near <span className="font-bold text-secondary">{townDisplayName}</span>
                 </p>
                 <button
-                  onClick={() => {
-                    setFilter("town", "");
-                    // Remove town from URL
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete("town");
-                    window.history.replaceState({}, "", url.toString());
-                  }}
+                  onClick={() => setTownFilter("")}
                   className="rounded-lg p-1 text-foreground/40 hover:bg-accent/30 hover:text-foreground/70 transition-colors"
                   title="Clear town filter"
                 >
