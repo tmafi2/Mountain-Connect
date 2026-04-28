@@ -120,53 +120,78 @@ export async function GET() {
       });
     }
 
-    // Build conversation list — all per-conversation queries in parallel
-    const conversations = await Promise.all(
-      convIds.map(async (convId) => {
-        const otherP = otherParticipants?.find(
-          (p) => p.conversation_id === convId
-        );
-        const otherUserId = otherP?.user_id || "";
-        const otherInfo: OtherProfile = profiles[otherUserId] || {
-          name: "Unknown",
-          role: "User",
-          avatarUrl: null,
-          location: null,
-          worker: null,
-          business: null,
-        };
+    // ── Bulk-fetch the message data for ALL conversations at once.
+    //
+    // Previously this section ran 2 queries per conversation (latest
+    // message + unread count) wrapped in a per-conv Promise.all, so a
+    // user with 30 conversations was firing 60 DB round-trips on every
+    // load. Replaced with two bulk queries plus in-memory aggregation:
+    //
+    //   1. Fetch recent messages across all convs (capped). Dedupe by
+    //      conversation_id in JS to get each conv's latest message.
+    //   2. Fetch all unread messages where the caller wasn't the sender.
+    //      Group + count in JS for per-conv unread totals.
+    //
+    // Wall-clock latency drops from ~O(N) round-trips to O(1) regardless
+    // of conversation count.
+    const recentLimit = Math.max(convIds.length * 5, 50);
+    const [latestMsgsRes, unreadMsgsRes] = await Promise.all([
+      admin
+        .from("messages")
+        .select("conversation_id, content, created_at")
+        .in("conversation_id", convIds)
+        .order("created_at", { ascending: false })
+        .limit(recentLimit),
+      admin
+        .from("messages")
+        .select("conversation_id")
+        .in("conversation_id", convIds)
+        .eq("read", false)
+        .neq("sender_id", user.id),
+    ]);
 
-        const [{ data: latestMsg }, { count: unread }] = await Promise.all([
-          admin
-            .from("messages")
-            .select("content, created_at")
-            .eq("conversation_id", convId)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single(),
-          admin
-            .from("messages")
-            .select("id", { count: "exact", head: true })
-            .eq("conversation_id", convId)
-            .eq("read", false)
-            .neq("sender_id", user.id),
-        ]);
+    // Walk recent messages in created_at desc order and keep the first
+    // we see per conversation — that's the latest message for that conv.
+    const latestByConv = new Map<string, { content: string; created_at: string }>();
+    for (const m of latestMsgsRes.data ?? []) {
+      const cid = m.conversation_id as string;
+      if (!latestByConv.has(cid)) {
+        latestByConv.set(cid, { content: m.content as string, created_at: m.created_at as string });
+      }
+    }
 
-        return {
-          id: convId,
-          otherName: otherInfo.name,
-          otherRole: otherInfo.role,
-          otherUserId,
-          otherAvatarUrl: otherInfo.avatarUrl,
-          otherLocation: otherInfo.location,
-          otherWorker: otherInfo.worker,
-          otherBusiness: otherInfo.business,
-          lastMessage: latestMsg?.content || "",
-          lastMessageAt: latestMsg?.created_at || new Date().toISOString(),
-          unreadCount: unread ?? 0,
-        };
-      })
-    );
+    const unreadByConv = new Map<string, number>();
+    for (const m of unreadMsgsRes.data ?? []) {
+      const cid = m.conversation_id as string;
+      unreadByConv.set(cid, (unreadByConv.get(cid) ?? 0) + 1);
+    }
+
+    const conversations = convIds.map((convId) => {
+      const otherP = otherParticipants?.find((p) => p.conversation_id === convId);
+      const otherUserId = otherP?.user_id || "";
+      const otherInfo: OtherProfile = profiles[otherUserId] || {
+        name: "Unknown",
+        role: "User",
+        avatarUrl: null,
+        location: null,
+        worker: null,
+        business: null,
+      };
+      const latest = latestByConv.get(convId);
+      return {
+        id: convId,
+        otherName: otherInfo.name,
+        otherRole: otherInfo.role,
+        otherUserId,
+        otherAvatarUrl: otherInfo.avatarUrl,
+        otherLocation: otherInfo.location,
+        otherWorker: otherInfo.worker,
+        otherBusiness: otherInfo.business,
+        lastMessage: latest?.content || "",
+        lastMessageAt: latest?.created_at || new Date().toISOString(),
+        unreadCount: unreadByConv.get(convId) ?? 0,
+      };
+    });
 
     conversations.sort(
       (a, b) =>
