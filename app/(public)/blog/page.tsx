@@ -1,11 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { format } from "date-fns";
 import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 
 const BASE_URL = "https://www.mountainconnects.com";
+
+// Cache for 5 minutes. Blog posts publish/edit infrequently and the
+// list page is hit by all visitors, so this is one of the biggest
+// edge-cache wins on the site.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Blog | Mountain Connects",
@@ -28,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogListingPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data: posts } = await supabase
     .from("blog_posts")

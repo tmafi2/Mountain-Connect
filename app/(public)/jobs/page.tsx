@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { type SeedJob } from "@/lib/data/jobs";
 import JobsClient from "./JobsClient";
 
-export const dynamic = "force-dynamic";
+// Cache the rendered HTML for 2 minutes. Public job listings change
+// gradually; serving from edge cache makes the page feel instant.
+export const revalidate = 120;
 
 export const metadata = {
   title: "Find a Job | Mountain Connects",
@@ -15,7 +17,7 @@ export default async function FindAJobPage() {
   let jobs: SeedJob[] = [];
 
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     // Show every active job regardless of the business's verification status.
     // We still expose the verified state on each row so the UI can badge them.
     const { data } = await supabase
