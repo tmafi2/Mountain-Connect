@@ -13,18 +13,31 @@ export default async function SavedJobsPage() {
     redirect("/login");
   }
 
-  // Fetch saved jobs with nested relations
-  const { data } = await supabase
-    .from("saved_jobs")
-    .select(`id, job_post_id, created_at, job_posts(
-      title, description, requirements, salary_range, pay_amount, pay_currency,
-      position_type, category, accommodation_included, ski_pass_included, meal_perks,
-      visa_sponsorship, start_date, end_date, how_to_apply, application_email, application_url,
-      business_profiles(business_name, logo_url, verification_status),
-      resorts(name, country)
-    )`)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  // Fire saved-jobs and applied-jobs lookup in parallel — both only need
+  // user.id. The applications query inner-joins worker_profiles on user_id
+  // so we don't have to resolve the worker_profile row first; saves a
+  // round-trip on every visit to /saved-jobs. Also fixes a pre-existing
+  // typo: the SELECT was for `job_id` but the column on applications is
+  // `job_post_id`, so `appliedJobIds` was silently always empty.
+  const [savedRes, appsRes] = await Promise.all([
+    supabase
+      .from("saved_jobs")
+      .select(`id, job_post_id, created_at, job_posts(
+        title, description, requirements, salary_range, pay_amount, pay_currency,
+        position_type, category, accommodation_included, ski_pass_included, meal_perks,
+        visa_sponsorship, start_date, end_date, how_to_apply, application_email, application_url,
+        business_profiles(business_name, logo_url, verification_status),
+        resorts(name, country)
+      )`)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("applications")
+      .select("job_post_id, worker_profiles!inner(user_id)")
+      .eq("worker_profiles.user_id", user.id),
+  ]);
+
+  const data = savedRes.data;
 
   const savedJobs: SavedJob[] = (data || []).map((s: Record<string, unknown>) => {
     const jp = s.job_posts as Record<string, unknown> | null;
@@ -59,24 +72,9 @@ export default async function SavedJobsPage() {
     };
   });
 
-  // Fetch applied job IDs
-  let appliedJobIds: string[] = [];
-  const { data: wp } = await supabase
-    .from("worker_profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (wp) {
-    const { data: apps } = await supabase
-      .from("applications")
-      .select("job_id")
-      .eq("worker_id", wp.id);
-
-    if (apps) {
-      appliedJobIds = apps.map((a) => a.job_id);
-    }
-  }
+  const appliedJobIds: string[] = (appsRes.data || [])
+    .map((a) => a.job_post_id as string)
+    .filter(Boolean);
 
   return (
     <SavedJobsClient

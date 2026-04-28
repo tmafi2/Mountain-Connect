@@ -232,11 +232,24 @@ async function fetchListingsData(): Promise<{
 
     const businessVerified = bp.verification_status === "verified";
 
-    const { data: jobs } = await supabase
-      .from("job_posts")
-      .select("*, resorts(name, country)")
-      .eq("business_id", bp.id)
-      .order("created_at", { ascending: false });
+    // Fire jobs + applications in parallel. The applications query uses
+    // an inner join on job_posts to scope by business_id without needing
+    // the jobs query to resolve first — saves a round-trip.
+    const [jobsResult, appsResult] = await Promise.all([
+      supabase
+        .from("job_posts")
+        .select("*, resorts(name, country)")
+        .eq("business_id", bp.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("applications")
+        .select(
+          "*, worker_profiles(id, first_name, last_name, avatar_url, profile_photo_url, nationality, location_current, skills, years_seasonal_experience, languages, references), job_posts!inner(business_id)"
+        )
+        .eq("job_posts.business_id", bp.id),
+    ]);
+
+    const jobs = jobsResult.data;
 
     if (!jobs || jobs.length === 0) {
       return { listings: [], applicants: [], businessVerified };
@@ -263,12 +276,7 @@ async function fetchListingsData(): Promise<{
       };
     });
 
-    // Fetch applicants for all jobs
-    const jobIds = jobs.map((j: Record<string, unknown>) => j.id as string);
-    const { data: appData } = await supabase
-      .from("applications")
-      .select("*, worker_profiles(id, first_name, last_name, avatar_url, profile_photo_url, nationality, location_current, skills, years_seasonal_experience, languages, references)")
-      .in("job_post_id", jobIds);
+    const appData = appsResult.data;
 
     let applicants: ApplicantItem[] = [];
 
