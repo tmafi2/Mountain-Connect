@@ -23,7 +23,8 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
       title, description, pay_amount, pay_currency, salary_range, position_type, category,
       start_date, end_date, accommodation_included, created_at,
       business_profiles!inner(business_name, location),
-      resorts(name, country)
+      resorts(name, country),
+      nearby_towns(name, state, country)
     `)
     .eq("id", id)
     .single();
@@ -74,7 +75,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     .select(`
       *,
       business_profiles!inner(id, business_name, logo_url, verification_status, location, description, is_claimed),
-      resorts(id, name, country, legacy_id)
+      resorts(id, name, country, legacy_id),
+      nearby_towns(id, name, slug, state, country)
     `)
     .eq("id", id)
     .single();
@@ -85,6 +87,17 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
   const biz = job.business_profiles as any;
   const resort = job.resorts as any;
+  const town = job.nearby_towns as { id?: string; name?: string; slug?: string; state?: string; country?: string } | null;
+  // Lead with the town when the listing is town-based — that's the actual
+  // place of work / where the worker would commute from. Resort still gets
+  // shown as a "near …" subtitle below so candidates know which mountain
+  // the role is associated with.
+  const primaryLocation = town?.name
+    ? `${town.name}${town.state ? `, ${town.state}` : town.country ? `, ${town.country}` : ""}`
+    : resort?.name
+      ? `${resort.name}, ${resort.country}`
+      : biz?.location || "";
+  const nearResortLine = town?.name && resort?.name ? `near ${resort.name}` : null;
 
   // ── Fetch related jobs ──
   // First pull jobs at the same resort (up to 6), then top up from the same
@@ -184,8 +197,9 @@ export default async function JobDetailPage({ params }: JobPageProps) {
       "@type": "Place",
       address: {
         "@type": "PostalAddress",
-        addressLocality: biz?.location || resort?.name || "",
-        addressCountry: resort?.country || "",
+        addressLocality: town?.name || biz?.location || resort?.name || "",
+        addressRegion: town?.state || "",
+        addressCountry: town?.country || resort?.country || "",
       },
     },
     ...(job.category && { occupationalCategory: job.category }),
@@ -291,7 +305,10 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                     </svg>
-                    {resort?.name ? `${resort.name}, ${resort.country}` : biz?.location}
+                    {primaryLocation}
+                    {nearResortLine && (
+                      <span className="text-white/35"> · {nearResortLine}</span>
+                    )}
                   </p>
                 </div>
               </Link>
