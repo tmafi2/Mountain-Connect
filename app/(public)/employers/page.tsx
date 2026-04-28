@@ -1,8 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import EmployersClient from "./EmployersClient";
 import type { Business } from "./EmployersClient";
 
-export const dynamic = "force-dynamic";
+// Cache for 5 minutes — businesses change less often than jobs.
+export const revalidate = 300;
 
 export const metadata = {
   title: "Employers | Mountain Connects",
@@ -16,7 +17,7 @@ export default async function EmployersPage() {
   let legacyResortMap: Record<string, string> = {};
 
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
 
     // Run all independent queries in parallel
     const [bpsResult, allResortsResult] = await Promise.all([
