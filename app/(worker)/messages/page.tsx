@@ -182,7 +182,10 @@ function WorkerMessagesContent() {
     })();
   }, [activeConvId, currentUserId, scrollToBottom]);
 
-  // Poll for new messages every 3s (reliable fallback for Realtime)
+  // Realtime is the primary channel for new messages. This poll exists
+  // only as a slow safety net for cases where the websocket dropped
+  // silently — every 60s is plenty for a fallback. Was previously 10s
+  // which doubled up with Realtime on every message.
   useEffect(() => {
     if (!activeConvId || !currentUserId) return;
     const poll = async () => {
@@ -204,7 +207,7 @@ function WorkerMessagesContent() {
         });
       } catch {}
     };
-    const interval = setInterval(poll, 10000);
+    const interval = setInterval(poll, 60000);
     return () => clearInterval(interval);
   }, [activeConvId, currentUserId, scrollToBottom]);
 
