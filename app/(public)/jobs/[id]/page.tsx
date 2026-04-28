@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
     .eq("id", id)
     .single();
 
-  if (!job) return { title: "Job Not Found | Mountain Connects" };
+  if (!job) return { title: "Job Not Found" };
 
   const biz = job.business_profiles as any;
   const resort = job.resorts as any;
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
     : `${job.title} position at ${biz?.business_name}. Apply now on Mountain Connects.`;
 
   return {
-    title: `${title} | Mountain Connects`,
+    title,
     description,
     alternates: { canonical: `${BASE_URL}/jobs/${id}` },
     openGraph: {

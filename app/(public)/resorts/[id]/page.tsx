@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
   const { id } = await params;
   const resort = resorts.find((r) => r.id === id);
 
-  if (!resort) return { title: "Resort Not Found | Mountain Connects" };
+  if (!resort) return { title: "Resort Not Found" };
 
   const region = regions.find((r) => r.id === resort.region_id);
-  const title = `${resort.name} — Seasonal Jobs & Resort Guide | Mountain Connects`;
+  const title = `${resort.name} — Ski Resort Jobs & Worker Guide`;
   const description = resort.description
     ? resort.description.slice(0, 155) + (resort.description.length > 155 ? "..." : "")
     : `Find seasonal work at ${resort.name}, ${resort.country}. Jobs, housing, and resort info for seasonal workers.`;

@@ -52,6 +52,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${BASE_URL}/ski-resort-jobs`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.95,
+    },
+    {
       url: `${BASE_URL}/resorts`,
       lastModified: new Date(),
       changeFrequency: "weekly",
@@ -145,6 +151,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Country landing pages — long-tail variants of the head term
+  // "ski resort jobs" (e.g. "ski resort jobs Australia").
+  const skiJobCountrySlugs = [
+    "australia",
+    "new-zealand",
+    "canada",
+    "japan",
+    "usa",
+    "france",
+    "switzerland",
+    "austria",
+    "italy",
+    "andorra",
+    "argentina",
+    "chile",
+    "georgia",
+    "sweden",
+  ];
+  const skiJobCountryPages: MetadataRoute.Sitemap = skiJobCountrySlugs.map((slug) => ({
+    url: `${BASE_URL}/ski-resort-jobs/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+  }));
+
   // Region pages
   const regionPages: MetadataRoute.Sitemap = regionIds.map((id) => ({
     url: `${BASE_URL}/regions/${id}`,
@@ -188,6 +219,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticPages,
     ...resortPages,
+    ...skiJobCountryPages,
     ...regionPages,
     ...townPages,
     ...jobPages,

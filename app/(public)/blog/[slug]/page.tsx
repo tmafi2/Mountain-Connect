@@ -25,13 +25,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     .eq("status", "published")
     .single();
 
-  if (!post) return { title: "Post Not Found | Mountain Connects" };
+  if (!post) return { title: "Post Not Found" };
 
   const description = post.excerpt || (post.content ? post.content.slice(0, 155) + "..." : "Read this article on Mountain Connects.");
   const ogImage = post.hero_image_url || DEFAULT_OG_IMAGE;
 
   return {
-    title: `${post.title} | Mountain Connects Blog`,
+    title: { absolute: `${post.title} | Mountain Connects Blog` },
     description,
     alternates: { canonical: `${BASE_URL}/blog/${slug}` },
     openGraph: {

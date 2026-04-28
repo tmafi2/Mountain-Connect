@@ -11,11 +11,11 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
+    default: "Ski Resort Jobs — Seasonal Winter Work Worldwide | Mountain Connects",
     template: "%s | Mountain Connects",
   },
   description:
-    "Mountain Connects is the seasonal worker platform for ski resorts. Find winter jobs, staff accommodation, and work opportunities at resorts in Australia, New Zealand, Canada, Japan, Europe, and more.",
+    "Find ski resort jobs at 80+ resorts worldwide. Browse seasonal winter work — instructor, lift operator, hospitality, and more — with staff accommodation across Australia, New Zealand, Canada, Japan, and Europe.",
   applicationName: "Mountain Connects",
   keywords: [
     "Mountain Connects",
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     canonical: "https://www.mountainconnects.com",
   },
   openGraph: {
-    title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
+    title: "Ski Resort Jobs — Seasonal Winter Work Worldwide | Mountain Connects",
     description:
-      "The seasonal worker platform for ski resorts. Find winter jobs at ski resorts worldwide.",
+      "Find ski resort jobs at 80+ resorts worldwide. Seasonal winter work with staff accommodation.",
     url: "https://www.mountainconnects.com",
     siteName: "Mountain Connects",
     type: "website",
@@ -55,9 +55,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
+    title: "Ski Resort Jobs — Seasonal Winter Work Worldwide | Mountain Connects",
     description:
-      "The seasonal worker platform for ski resorts. Find winter jobs at ski resorts worldwide.",
+      "Find ski resort jobs at 80+ resorts worldwide. Seasonal winter work with staff accommodation.",
     images: [defaultOgImage.url],
   },
   robots: {

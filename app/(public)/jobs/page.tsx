@@ -7,9 +7,10 @@ import JobsClient from "./JobsClient";
 export const revalidate = 120;
 
 export const metadata = {
-  title: "Find a Job | Mountain Connects",
+  title: "Ski Resort Jobs Hiring Now",
   description:
-    "Browse seasonal job listings at ski resorts worldwide. Filter by location, role, perks, and more.",
+    "Browse open ski resort jobs across 80+ resorts in Australia, New Zealand, Canada, Japan, the US, and Europe. Filter by role, location, pay, housing, and visa support.",
+  alternates: { canonical: "https://www.mountainconnects.com/jobs" },
 };
 
 export default async function FindAJobPage() {

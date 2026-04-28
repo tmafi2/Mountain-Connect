@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: RegionPageProps): Promise<Met
   const { id } = await params;
   const region = regions.find((r) => r.id === id);
 
-  if (!region) return { title: "Region Not Found | Mountain Connects" };
+  if (!region) return { title: "Region Not Found" };
 
   const resortCount = resorts.filter((r) => r.region_id === id).length;
   const title = `Ski Resort Jobs in ${region.name}`;
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: RegionPageProps): Promise<Met
     : `${region.description} Explore seasonal work opportunities across ${region.name}.`;
 
   return {
-    title: `${title} | Mountain Connects`,
+    title,
     description: description.slice(0, 160),
     alternates: { canonical: `${BASE_URL}/regions/${id}` },
     openGraph: {

@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Explore Towns — Seasonal Worker Town Guides | Mountain Connects",
+  title: "Explore Ski Towns — Seasonal Worker Town Guides",
   description:
     "Discover the towns where seasonal ski workers live, eat, and socialise. Housing, transport, cost of living, and insider tips for every resort town.",
   alternates: { canonical: "https://www.mountainconnects.com/towns" },

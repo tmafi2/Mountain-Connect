@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "For Employers — Hire Seasonal Workers | Mountain Connects",
+  title: "For Employers — Hire Seasonal Workers",
   description:
     "Find verified seasonal workers for your ski resort business. Post jobs, manage applicants, and connect with experienced mountain workers worldwide.",
   alternates: { canonical: "https://www.mountainconnects.com/employers" },
