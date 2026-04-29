@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -179,6 +180,59 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
   // Count details to show in quick stats
   const activeJobCount = jobs?.length || 0;
 
+  // Build the highlights row — small coloured tiles right under the hero.
+  // We cap at 4 so the row stays tight; the order below is the priority order.
+  const perksLower = perks.map((p) => p.toLowerCase());
+  const hasPerk = (...keywords: string[]) => perksLower.some((p) => keywords.some((k) => p.includes(k)));
+  const highlights: { icon: string; value: string; label: string; tone: "green" | "amber" | "emerald" | "blue" | "orange" | "cyan" | "purple" }[] = [];
+  if (activeJobCount > 0) {
+    highlights.push({
+      icon: "💼",
+      value: `${activeJobCount} ${activeJobCount === 1 ? "role" : "roles"}`,
+      label: "Hiring now",
+      tone: "green",
+    });
+  }
+  if (reviewCount > 0) {
+    highlights.push({
+      icon: "⭐",
+      value: avgRating.toFixed(1),
+      label: `${reviewCount} review${reviewCount !== 1 ? "s" : ""}`,
+      tone: "amber",
+    });
+  }
+  if (hasPerk("housing", "accommodation")) {
+    highlights.push({ icon: "🏠", value: "Staff housing", label: "Included", tone: "emerald" });
+  }
+  if (hasPerk("ski pass", "snow pass", "lift pass")) {
+    highlights.push({ icon: "🎿", value: "Ski pass", label: "Included", tone: "blue" });
+  }
+  if (highlights.length < 4 && hasPerk("meal")) {
+    highlights.push({ icon: "🍽️", value: "Meals", label: "Included", tone: "orange" });
+  }
+  if (highlights.length < 4 && business.year_established) {
+    const years = new Date().getFullYear() - Number(business.year_established);
+    if (years >= 1) {
+      highlights.push({
+        icon: "🏔️",
+        value: `${years}+ yrs`,
+        label: "In business",
+        tone: "cyan",
+      });
+    }
+  }
+  const visibleHighlights = highlights.slice(0, 4);
+
+  const HIGHLIGHT_TONES: Record<string, string> = {
+    green: "border-green-200/70 bg-gradient-to-br from-green-50 to-green-100/30 text-green-900",
+    amber: "border-amber-200/70 bg-gradient-to-br from-amber-50 to-amber-100/40 text-amber-900",
+    emerald: "border-emerald-200/70 bg-gradient-to-br from-emerald-50 to-emerald-100/40 text-emerald-900",
+    blue: "border-blue-200/70 bg-gradient-to-br from-blue-50 to-blue-100/40 text-blue-900",
+    orange: "border-orange-200/70 bg-gradient-to-br from-orange-50 to-orange-100/40 text-orange-900",
+    cyan: "border-cyan-200/70 bg-gradient-to-br from-cyan-50 to-cyan-100/40 text-cyan-900",
+    purple: "border-purple-200/70 bg-gradient-to-br from-purple-50 to-purple-100/40 text-purple-900",
+  };
+
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -209,8 +263,8 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
 
       {/* ═══ HERO HEADER ═══════════════════════════════════ */}
       <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-white shadow-sm">
-        {/* Cover photo / banner — Facebook-style proportions */}
-        <div className="h-56 relative overflow-hidden sm:h-80">
+        {/* Cover photo / banner — purely visual, no text overlay */}
+        <div className="relative h-44 overflow-hidden sm:h-64">
           {business.cover_photo_url ? (
             <img
               src={business.cover_photo_url}
@@ -218,93 +272,102 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
               className="h-full w-full object-cover"
             />
           ) : (
-            <img
-              src="https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80"
-              alt="Mountain landscape"
-              className="h-full w-full object-cover"
-            />
+            <div className="h-full w-full bg-gradient-to-br from-primary via-primary to-secondary">
+              {/* Subtle layered shapes for visual interest when no cover photo */}
+              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-highlight/40 via-transparent to-transparent" />
+              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-highlight/60 via-transparent to-transparent" />
+            </div>
           )}
-          {/* Gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" />
+          {/* Soft fade at the bottom to ease the eye into the white header below */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/30 to-transparent" />
         </div>
 
         <div className="relative px-6 pb-6 sm:px-8 sm:pb-8">
-          {/* Logo — overlapping the cover photo */}
-          <div className="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end">
+          {/* Logo — still overlaps the cover, but the name now lives below on white */}
+          <div className="-mt-12 flex items-end gap-5 sm:-mt-14">
             {business.logo_url ? (
-              <img
-                src={business.logo_url}
-                alt={business.business_name}
-                className="h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-lg sm:h-28 sm:w-28"
-              />
+              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-lg sm:h-28 sm:w-28">
+                <Image
+                  src={business.logo_url}
+                  alt={business.business_name}
+                  width={224}
+                  height={224}
+                  quality={95}
+                  priority
+                  className="h-full w-full object-cover"
+                />
+              </div>
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-primary/10 text-3xl font-bold text-primary shadow-lg sm:h-28 sm:w-28">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-gradient-to-br from-primary to-secondary text-3xl font-bold text-white shadow-lg sm:h-28 sm:w-28">
                 {business.business_name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
               </div>
             )}
+          </div>
 
-            <div className="flex-1 pb-1">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold text-white sm:text-3xl" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.5), 0 0 12px rgba(0,0,0,0.3)" }}>{business.business_name}</h1>
-                {(business as Record<string, unknown>).tier === "enterprise" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                    ⭐ Enterprise Partner
-                  </span>
-                )}
-                {(business as Record<string, unknown>).tier === "premium" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                    👑 Premium Employer
-                  </span>
-                )}
-                {(business as Record<string, unknown>).tier === "standard" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                    ✓ Verified Employer
-                  </span>
-                )}
-                {isVerified ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Verified
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/30 px-3 py-1 text-xs font-medium text-foreground/50">
-                    Unverified
-                  </span>
-                )}
-              </div>
+          {/* Business name + tier/verification badges */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+              {business.business_name}
+            </h1>
+            {(business as Record<string, unknown>).tier === "enterprise" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                ⭐ Enterprise Partner
+              </span>
+            )}
+            {(business as Record<string, unknown>).tier === "premium" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                👑 Premium Employer
+              </span>
+            )}
+            {(business as Record<string, unknown>).tier === "standard" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                ✓ Verified Employer
+              </span>
+            )}
+            {isVerified ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/30 px-3 py-1 text-xs font-medium text-foreground/50">
+                Unverified
+              </span>
+            )}
+          </div>
 
-              {/* Location & Resort tags */}
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-white" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.3)" }}>
-                {(business.operates_in_town && nearbyTownName) || business.location || business.country ? (
-                  <span className="flex items-center gap-1.5">
-                    <svg className="h-3.5 w-3.5 shrink-0 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    {business.operates_in_town && nearbyTownName
-                      ? [nearbyTownName, business.country].filter(Boolean).join(", ")
-                      : [business.location, business.country].filter(Boolean).join(", ")}
-                  </span>
-                ) : null}
-                {business.year_established && (
-                  <span className="flex items-center gap-1.5">
-                    <svg className="h-3.5 w-3.5 shrink-0 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                    </svg>
-                    Est. {business.year_established}
-                  </span>
-                )}
-              </div>
-            </div>
+          {/* Location · Established — meta line */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground/60">
+            {(business.operates_in_town && nearbyTownName) || business.location || business.country ? (
+              <span className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                <span className="font-medium text-foreground/80">
+                  {business.operates_in_town && nearbyTownName
+                    ? [nearbyTownName, business.country].filter(Boolean).join(", ")
+                    : [business.location, business.country].filter(Boolean).join(", ")}
+                </span>
+              </span>
+            ) : null}
+            {business.year_established && (
+              <span className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <span className="font-medium text-foreground/80">Est. {business.year_established}</span>
+              </span>
+            )}
           </div>
 
           {/* Industries */}
           {industries.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {industries.map((ind: string) => (
-                <span key={ind} className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                <span key={ind} className="rounded-full bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary">
                   {INDUSTRY_LABELS[ind] || ind.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
                 </span>
               ))}
@@ -318,9 +381,9 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                 <Link
                   key={r.id}
                   href={`/resorts/${r.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-highlight/40 bg-highlight/5 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-highlight/15"
                 >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-3 w-3 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M3 7l9-4 9 4" />
                   </svg>
                   {r.name}
@@ -330,7 +393,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
           )}
 
           {/* Quick links row — Website + Socials */}
-          <div className="mt-4 flex flex-wrap gap-2.5">
+          <div className="mt-5 flex flex-wrap gap-2.5">
             {business.website && (
               <a
                 href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
@@ -430,92 +493,69 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
         </div>
       )}
 
+      {/* Highlights row — small coloured tiles giving the page a punchy
+           anchor moment of "what does this business offer?" at a glance */}
+      {visibleHighlights.length > 0 && (
+        <div className={`mt-6 grid gap-3 ${
+          visibleHighlights.length === 1 ? "grid-cols-1" :
+          visibleHighlights.length === 2 ? "grid-cols-2" :
+          visibleHighlights.length === 3 ? "grid-cols-2 sm:grid-cols-3" :
+          "grid-cols-2 sm:grid-cols-4"
+        }`}>
+          {visibleHighlights.map((h, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${HIGHLIGHT_TONES[h.tone]}`}
+            >
+              <span className="text-2xl leading-none">{h.icon}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold leading-tight">{h.value}</p>
+                <p className="text-[11px] font-medium opacity-70">{h.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ═══ CONTENT GRID ════════════════════════════════ */}
-      <div className="mt-8 grid gap-8 lg:grid-cols-3">
+      <div className="mt-10 grid gap-8 lg:grid-cols-3">
 
         {/* Main column */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-10">
 
-          {/* About */}
+          {/* About — editorial treatment, no card chrome */}
           {business.description && (
-            <section className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
-                <svg className="h-5 w-5 text-secondary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                </svg>
-                About
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-foreground/70 whitespace-pre-line">{business.description}</p>
-            </section>
-          )}
-
-          {/* Employee Perks */}
-          {perks.length > 0 && (
-            <section className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
-                <svg className="h-5 w-5 text-secondary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                </svg>
-                Employee Perks
-              </h2>
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {perks.map((perk) => (
-                  <div key={perk} className="flex items-center gap-2.5 rounded-xl bg-emerald-50/60 px-4 py-2.5">
-                    <span className="text-base">{PERK_ICONS[perk] || "✨"}</span>
-                    <span className="text-sm font-medium text-emerald-800">{perk}</span>
-                  </div>
-                ))}
+            <section>
+              <div className="flex items-center gap-3">
+                <span className="h-6 w-1 rounded-full bg-highlight" aria-hidden />
+                <h2 className="text-xl font-bold tracking-tight text-primary">About</h2>
               </div>
+              <p className="mt-4 text-base leading-relaxed text-foreground/75 whitespace-pre-line">
+                {business.description}
+              </p>
             </section>
           )}
 
-          {/* Photos */}
-          {photos && photos.length > 0 && (
-            <section className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
-                <svg className="h-5 w-5 text-secondary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v13.5A1.5 1.5 0 003.75 21z" />
-                </svg>
-                Photos
-                <span className="text-xs font-normal text-foreground/40">({photos.length})</span>
-              </h2>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {photos.map((photo) => (
-                  <div key={photo.id} className="group relative overflow-hidden rounded-xl border border-accent/30">
-                    <img
-                      src={photo.url}
-                      alt={photo.caption || business.business_name}
-                      className="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {photo.caption && (
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-2 pt-6">
-                        <p className="text-[10px] font-medium text-white/90 line-clamp-2">{photo.caption}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Open Positions */}
-          <section className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
-                <svg className="h-5 w-5 text-secondary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-                </svg>
-                Open Positions
+          {/* Open Positions — anchor section, tinted background to draw the eye */}
+          <section className="relative overflow-hidden rounded-2xl border border-secondary/15 bg-gradient-to-br from-secondary/[0.04] via-white to-highlight/[0.04] p-6 shadow-sm sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="h-6 w-1 rounded-full bg-secondary" aria-hidden />
+                <h2 className="text-xl font-bold tracking-tight text-primary">Open Positions</h2>
                 {activeJobCount > 0 && (
-                  <span className="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                    {activeJobCount}
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500" />
+                    </span>
+                    {activeJobCount} active {activeJobCount === 1 ? "role" : "roles"}
                   </span>
                 )}
-              </h2>
+              </div>
             </div>
 
             {!jobs || jobs.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-accent/50 bg-accent/5 p-8 text-center">
+              <div className="mt-5 rounded-xl border border-dashed border-accent/50 bg-white/70 p-8 text-center">
                 <svg className="mx-auto h-10 w-10 text-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
                 </svg>
@@ -523,28 +563,19 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                 <p className="mt-1 text-xs text-foreground/35">Check back later for new opportunities</p>
               </div>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-5 space-y-3">
                 {jobs.map((job) => (
                   <Link
                     key={job.id}
                     href={`/jobs/${job.id}`}
-                    className="group block rounded-xl border border-accent/30 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary/50 hover:shadow-md"
+                    className="group block rounded-xl border border-accent/40 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary/60 hover:shadow-md"
                   >
-                    <div className="flex items-start gap-3">
-                      {business.logo_url ? (
-                        <img src={business.logo_url} alt={business.business_name} className="h-10 w-10 shrink-0 rounded-lg border border-accent/30 object-cover" />
-                      ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-xs font-bold text-primary/60">
-                          {business.business_name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="font-semibold text-primary group-hover:text-secondary transition-colors">
                           {job.title}
                         </h3>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-foreground/50">
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-foreground/55">
                           {job.category && (
                             <span>
                               {job.category.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
@@ -574,44 +605,99 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                     </div>
 
                     {/* Job perks + dates */}
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      {job.accommodation_included && (
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">🏠 Accommodation</span>
-                      )}
-                      {job.ski_pass_included && (
-                        <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">🎿 Ski Pass</span>
-                      )}
-                      {job.meal_perks && (
-                        <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-[10px] font-semibold text-orange-700">🍽️ Meals</span>
-                      )}
-                      {job.start_date && (
-                        <span className="text-[10px] text-foreground/40">
-                          {new Date(job.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                          {job.end_date && ` – ${new Date(job.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
-                        </span>
-                      )}
-                    </div>
+                    {(job.accommodation_included || job.ski_pass_included || job.meal_perks || job.start_date) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {job.accommodation_included && (
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">🏠 Accommodation</span>
+                        )}
+                        {job.ski_pass_included && (
+                          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">🎿 Ski Pass</span>
+                        )}
+                        {job.meal_perks && (
+                          <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-[10px] font-semibold text-orange-700">🍽️ Meals</span>
+                        )}
+                        {job.start_date && (
+                          <span className="text-[10px] text-foreground/40">
+                            {new Date(job.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            {job.end_date && ` – ${new Date(job.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                          </span>
+                        )}
                       </div>
-                    </div>
+                    )}
                   </Link>
                 ))}
               </div>
             )}
           </section>
 
-          {/* Reviews */}
-          <section className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
-              <svg className="h-5 w-5 text-secondary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-              </svg>
-              Worker Reviews
+          {/* Employee Perks — soft emerald-tinted panel breaks up white monotony */}
+          {perks.length > 0 && (
+            <section className="rounded-2xl border border-emerald-200/40 bg-gradient-to-br from-emerald-50/50 via-white to-emerald-50/30 p-6 shadow-sm sm:p-7">
+              <div className="flex items-center gap-3">
+                <span className="h-6 w-1 rounded-full bg-emerald-500" aria-hidden />
+                <h2 className="text-xl font-bold tracking-tight text-primary">Employee Perks</h2>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {perks.map((perk) => (
+                  <span
+                    key={perk}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/70 bg-white px-3.5 py-1.5 text-sm font-medium text-emerald-800"
+                  >
+                    <span className="text-base leading-none">{PERK_ICONS[perk] || "✨"}</span>
+                    {perk}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Photos — first photo featured, rest as a tighter grid */}
+          {photos && photos.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3">
+                <span className="h-6 w-1 rounded-full bg-highlight" aria-hidden />
+                <h2 className="text-xl font-bold tracking-tight text-primary">Photos</h2>
+                <span className="text-sm font-normal text-foreground/40">({photos.length})</span>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {photos.map((photo, idx) => (
+                  <div
+                    key={photo.id}
+                    className={`group relative overflow-hidden rounded-xl border border-accent/30 ${
+                      idx === 0 ? "col-span-2 row-span-2 sm:col-span-2 sm:row-span-2" : ""
+                    }`}
+                  >
+                    <img
+                      src={photo.url}
+                      alt={photo.caption || business.business_name}
+                      className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                        idx === 0 ? "h-full min-h-[16rem]" : "h-32"
+                      }`}
+                    />
+                    {photo.caption && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2.5 pt-8">
+                        <p className="text-[11px] font-medium text-white/95 line-clamp-2">{photo.caption}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Reviews — soft amber-tinted panel when there are reviews */}
+          <section className={reviewCount > 0
+            ? "rounded-2xl border border-amber-200/40 bg-gradient-to-br from-amber-50/50 via-white to-amber-50/30 p-6 shadow-sm sm:p-7"
+            : ""}>
+            <div className="flex items-center gap-3">
+              <span className="h-6 w-1 rounded-full bg-amber-400" aria-hidden />
+              <h2 className="text-xl font-bold tracking-tight text-primary">Worker Reviews</h2>
               {reviewCount > 0 && (
-                <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                   {reviewCount}
                 </span>
               )}
-            </h2>
+            </div>
 
             {reviewCount === 0 ? (
               <div className="mt-4 rounded-xl border border-dashed border-accent/50 bg-accent/5 p-8 text-center">
@@ -710,234 +796,129 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
         {/* ═══ SIDEBAR ═══════════════════════════════════ */}
         <div className="space-y-6">
 
-          {/* Quick Info Card */}
-          <div className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/40">Quick Info</h3>
-            <div className="mt-4 space-y-4">
-              {reviewCount > 0 && (
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-                    <svg className="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground/40">Rating</p>
-                    <p className="text-sm font-medium text-primary">{avgRating.toFixed(1)} / 5 <span className="text-foreground/40 font-normal">({reviewCount} review{reviewCount !== 1 ? "s" : ""})</span></p>
-                  </div>
-                </div>
-              )}
-              {(business.location || business.country) && (
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                    <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground/40">Location</p>
-                    <p className="text-sm font-medium text-primary">{[business.location, business.country].filter(Boolean).join(", ")}</p>
-                  </div>
-                </div>
-              )}
-
-              {business.address && business.address !== business.location && (
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                    <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground/40">Address</p>
-                    <p className="text-sm font-medium text-primary">{business.address}</p>
-                  </div>
-                </div>
-              )}
-
-              {business.year_established && (
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                    <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground/40">Established</p>
-                    <p className="text-sm font-medium text-primary">{business.year_established}</p>
-                  </div>
-                </div>
-              )}
-
-              {industries.length > 0 && (
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                    <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground/40">Industry</p>
-                    <p className="text-sm font-medium text-primary">
-                      {industries.map((ind: string) => INDUSTRY_LABELS[ind] || ind.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())).join(", ")}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {business.operates_in_town && nearbyTownName ? (
-                <>
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                      <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75" />
+          {/* Rating snapshot — only shown when there are reviews */}
+          {reviewCount > 0 && (
+            <div className="rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold leading-none text-primary">{avgRating.toFixed(1)}</p>
+                  <div className="mt-1.5 flex justify-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg
+                        key={star}
+                        className={`h-3.5 w-3.5 ${star <= Math.round(avgRating) ? "text-amber-400" : "text-amber-100"}`}
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-foreground/40">Town</p>
-                      <p className="text-sm font-medium text-primary">{nearbyTownName}</p>
-                    </div>
-                  </div>
-                  {resortData.length > 0 && (
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                        <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M3 7l9-4 9 4" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-foreground/40">Services</p>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {resortData.map((r) => (
-                            <Link
-                              key={r.id}
-                              href={`/resorts/${r.id}`}
-                              className="text-sm font-medium text-secondary hover:underline"
-                            >
-                              {r.name}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : resortData.length > 0 ? (
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                    <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M3 7l9-4 9 4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground/40">Ski Resort{resortData.length !== 1 ? "s" : ""}</p>
-                    <div className="flex flex-wrap gap-1 mt-0.5">
-                      {resortData.map((r) => (
-                        <Link
-                          key={r.id}
-                          href={`/resorts/${r.id}`}
-                          className="text-sm font-medium text-secondary hover:underline"
-                        >
-                          {r.name}
-                        </Link>
-                      ))}
-                    </div>
+                    ))}
                   </div>
                 </div>
-              ) : null}
-
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/5">
-                  <svg className="h-4 w-4 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-foreground/40">Open Positions</p>
-                  <p className="text-sm font-medium text-primary">
-                    {activeJobCount > 0 ? (
-                      <span className="text-green-600">{activeJobCount} active listing{activeJobCount !== 1 ? "s" : ""}</span>
-                    ) : (
-                      <span className="text-foreground/50">None at the moment</span>
-                    )}
+                <div className="min-w-0 flex-1 border-l border-amber-200/80 pl-4">
+                  <p className="text-sm font-semibold text-primary">{recommendPct}% recommend</p>
+                  <p className="mt-0.5 text-xs text-foreground/55">
+                    based on {reviewCount} worker review{reviewCount !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Contact Card */}
           {(business.email || business.phone || business.address || business.website) && (
-            <div className="rounded-2xl border border-accent/30 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/40">Contact</h3>
-              <div className="mt-4 space-y-3">
+            <div className="rounded-2xl border border-accent/30 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="h-5 w-1 rounded-full bg-secondary" aria-hidden />
+                <h3 className="text-base font-bold tracking-tight text-primary">Get in touch</h3>
+              </div>
+              <div className="mt-4 space-y-2">
                 {business.email && (
                   <a
                     href={`mailto:${business.email}`}
-                    className="flex items-center gap-3 rounded-xl bg-accent/10 px-4 py-3 text-sm transition-colors hover:bg-accent/20"
+                    className="group flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary/5"
                   >
-                    <svg className="h-4 w-4 shrink-0 text-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                     </svg>
-                    <span className="text-primary font-medium truncate">{business.email}</span>
+                    <span className="truncate font-medium text-primary group-hover:text-secondary">{business.email}</span>
                   </a>
                 )}
                 {business.phone && (
                   <a
                     href={`tel:${business.phone}`}
-                    className="flex items-center gap-3 rounded-xl bg-accent/10 px-4 py-3 text-sm transition-colors hover:bg-accent/20"
+                    className="group flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary/5"
                   >
-                    <svg className="h-4 w-4 shrink-0 text-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                     </svg>
-                    <span className="text-primary font-medium">{business.phone}</span>
+                    <span className="font-medium text-primary group-hover:text-secondary">{business.phone}</span>
                   </a>
-                )}
-                {business.address && (
-                  <div className="flex items-start gap-3 rounded-xl bg-accent/10 px-4 py-3 text-sm">
-                    <svg className="h-4 w-4 shrink-0 text-foreground/40 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    <span className="text-primary font-medium">{business.address}</span>
-                  </div>
                 )}
                 {business.website && (
                   <a
                     href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-xl bg-accent/10 px-4 py-3 text-sm transition-colors hover:bg-accent/20"
+                    className="group flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary/5"
                   >
-                    <svg className="h-4 w-4 shrink-0 text-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                     </svg>
-                    <span className="text-primary font-medium truncate">{business.website.replace(/^https?:\/\//, "")}</span>
+                    <span className="truncate font-medium text-primary group-hover:text-secondary">{business.website.replace(/^https?:\/\//, "")}</span>
                   </a>
+                )}
+                {business.address && (
+                  <div className="flex items-start gap-3 px-2 py-2 text-sm">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                    <span className="font-medium text-foreground/80">{business.address}</span>
+                  </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Browse Jobs CTA */}
-          <div className="rounded-2xl border border-secondary/20 bg-gradient-to-br from-secondary/5 to-secondary/10 p-6 text-center">
-            <svg className="mx-auto h-8 w-8 text-secondary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <p className="mt-2 text-sm font-semibold text-primary">Looking for more jobs?</p>
-            <p className="mt-1 text-xs text-foreground/50">Browse all open positions across resorts</p>
-            <Link
-              href="/jobs"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-secondary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
-            >
-              Browse All Jobs
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
+          {/* Browse Jobs CTA — contextual based on resort/town when available */}
+          {(() => {
+            const ctaResort = resortData[0];
+            const ctaTown = business.operates_in_town && nearbyTownName ? nearbyTownName : null;
+            const ctaLabel = ctaTown
+              ? `More jobs in ${ctaTown}`
+              : ctaResort
+                ? `More jobs at ${ctaResort.name}`
+                : "Browse all jobs";
+            const ctaSub = ctaTown || ctaResort
+              ? "See other employers hiring nearby"
+              : "Browse all open positions across resorts";
+            const ctaHref = ctaResort ? `/resorts/${ctaResort.id}#jobs` : "/jobs";
+            return (
+              <div className="rounded-2xl border border-secondary/20 bg-gradient-to-br from-primary/[0.04] via-secondary/[0.04] to-highlight/[0.06] p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                    <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-primary">{ctaLabel}</p>
+                    <p className="text-xs text-foreground/55">{ctaSub}</p>
+                  </div>
+                </div>
+                <Link
+                  href={ctaHref}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
+                >
+                  Browse jobs
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
