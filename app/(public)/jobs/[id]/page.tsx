@@ -475,6 +475,65 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               </section>
             )}
 
+            {/* How to Apply — shows the apply instructions and direct contact
+                methods captured at import time. We render whenever any of the
+                three fields is populated so workers can see exactly how the
+                business wants to be contacted, in addition to the in-platform
+                Apply / Express Interest flow. */}
+            {(job.how_to_apply || job.application_email || job.application_url) && (
+              <section className="rounded-2xl border border-accent bg-white p-6 shadow-sm">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-primary">
+                  <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  </svg>
+                  How to Apply
+                </h2>
+
+                {job.how_to_apply && (
+                  <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/75">
+                    {job.how_to_apply}
+                  </p>
+                )}
+
+                {(job.application_email || job.application_url) && (
+                  <div className={`grid gap-3 ${job.how_to_apply ? "mt-4" : "mt-4"} ${
+                    job.application_email && job.application_url ? "sm:grid-cols-2" : "grid-cols-1"
+                  }`}>
+                    {job.application_email && (
+                      <a
+                        href={`mailto:${job.application_email}?subject=${encodeURIComponent(`Application: ${job.title}`)}`}
+                        className="group flex items-center gap-3 rounded-xl border border-accent bg-accent/10 px-4 py-3 text-sm transition-all hover:border-secondary/60 hover:bg-secondary/5"
+                      >
+                        <svg className="h-4 w-4 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                        </svg>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Email</p>
+                          <p className="truncate text-sm font-medium text-primary group-hover:text-secondary">{job.application_email}</p>
+                        </div>
+                      </a>
+                    )}
+                    {job.application_url && (
+                      <a
+                        href={job.application_url.startsWith("http") ? job.application_url : `https://${job.application_url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-center gap-3 rounded-xl border border-accent bg-accent/10 px-4 py-3 text-sm transition-all hover:border-secondary/60 hover:bg-secondary/5"
+                      >
+                        <svg className="h-4 w-4 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">Apply online</p>
+                          <p className="truncate text-sm font-medium text-primary group-hover:text-secondary">{job.application_url.replace(/^https?:\/\//, "")}</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Timeline / Meta */}
             <div className="rounded-2xl border border-accent bg-white p-6 shadow-sm">
               <h2 className="flex items-center gap-2 text-base font-semibold text-primary mb-4">
