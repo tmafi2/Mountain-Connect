@@ -69,10 +69,10 @@ Businesses can post listings regardless of verification state. Verification is a
 - **Nearby Towns:** Full feature — 50+ towns with detail pages, linked to resorts, job filtering by town
 - **Interviews:** Functional — invite, book, reschedule, cancel, missed-interview detection.
 - **Email notifications:** 30+ templates, Resend integration, branded masthead with logo + wordmark. Message notification trigger via DB.
-- **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently; first time aggregate EOIs hit 5 the business gets a nudge email; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
+- **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently. Nudge cadence (each gated by its own sent-at column, so at most one of each fires): first EOI ever → first-applicant email; aggregate EOIs hit 5 → 5-applicant nudge; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
 
 ## Migration Status
-All migrations applied through **00069** (`fix_worker_profile_names` — backfills missing first/last names from auth metadata and creates worker_profiles for orphan OAuth signups). Next migration number: **00070**.
+All migrations applied through **00070** (`first_applicant_email_trigger` — adds `first_applicant_email_sent_at` to gate the new first-EOI nudge for unclaimed businesses, with backfill so existing unclaimed businesses with prior EOIs don't get a delayed first-applicant email). Next migration number: **00071**.
 
 ## Important Conventions
 - Resort `id` in database is UUID. Static data uses `legacy_id` (text: "1", "2", etc.)

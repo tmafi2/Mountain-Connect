@@ -163,22 +163,46 @@ function WorkerSetup({
       return;
     }
 
-    // Create or update worker profile with onboarding answers
+    // Create or update worker profile with onboarding answers.
+    // Names live on the row already (written by /auth/callback or signup) — we
+    // intentionally don't pass first_name/last_name here so we never clobber
+    // them with NULL. For the rare legacy case where no row exists yet, fall
+    // back to an insert that pulls names from auth metadata.
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
 
-    const { error: profileError } = await supabase.from("worker_profiles").upsert(
-      {
+    const onboardingFields = {
+      bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
+      years_seasonal_experience: experience === "first_season" ? 0 : 1,
+      preferred_job_types: lookingForJob ? ["full_time"] : [],
+      housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
+      work_history: [],
+      contact_email: user.email || null,
+      timezone: detectedTimezone,
+    };
+
+    const { data: updated, error: profileError } = await supabase
+      .from("worker_profiles")
+      .update(onboardingFields)
+      .eq("user_id", user.id)
+      .select("id");
+
+    if (!profileError && (!updated || updated.length === 0)) {
+      const fullName = (user.user_metadata?.full_name as string | undefined) ?? "";
+      const [firstName = "", ...rest] = fullName.trim().split(/\s+/);
+      const lastName = rest.join(" ");
+      const { error: insertError } = await supabase.from("worker_profiles").insert({
         user_id: user.id,
-        bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
-        years_seasonal_experience: experience === "first_season" ? 0 : 1,
-        preferred_job_types: lookingForJob ? ["full_time"] : [],
-        housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
-        work_history: [],
-        contact_email: user.email || null,
-        timezone: detectedTimezone,
-      },
-      { onConflict: "user_id" }
-    );
+        first_name: firstName,
+        last_name: lastName,
+        ...onboardingFields,
+      });
+      if (insertError) {
+        console.error("Worker profile insert error:", insertError);
+        setOnboardingError(`Error saving profile: ${insertError.message}`);
+        setLoading(false);
+        return;
+      }
+    }
 
     if (profileError) {
       console.error("Worker profile upsert error:", profileError);
