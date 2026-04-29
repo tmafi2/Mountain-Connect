@@ -29,6 +29,7 @@ import { contractSignedEmail } from "./templates/contract-signed";
 import { importOutreachEmail } from "./templates/import-outreach";
 import { adminListingClaimedEmail } from "./templates/admin-listing-claimed";
 import { eoiThresholdNudgeEmail } from "./templates/eoi-threshold-nudge";
+import { firstApplicantNudgeEmail } from "./templates/first-applicant-nudge";
 import { claimLastChanceEmail } from "./templates/claim-last-chance";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
@@ -471,6 +472,24 @@ export async function sendEoiThresholdNudgeEmail(params: {
   const resend = getResendClient();
   if (!resend) return null;
   const { subject, html } = eoiThresholdNudgeEmail(params);
+  return resend.emails.send({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendFirstApplicantNudgeEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  claimUrl: string;
+}) {
+  const resend = getResendClient();
+  if (!resend) return null;
+  const { subject, html } = firstApplicantNudgeEmail(params);
   return resend.emails.send({
     from: TYLER_FROM_EMAIL,
     to: params.to,
