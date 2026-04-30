@@ -1,4 +1,4 @@
-import { getResendClient } from "./client";
+import { sendEmail } from "./client";
 import { interviewInviteEmail } from "./templates/interview-invite";
 import { interviewConfirmationEmail } from "./templates/interview-confirmation";
 import { interviewCancelledEmail } from "./templates/interview-cancelled";
@@ -43,11 +43,8 @@ export async function sendInterviewInviteEmail(params: {
   jobTitle: string;
   bookingUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
-
   const { subject, html } = interviewInviteEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -66,11 +63,8 @@ export async function sendInterviewConfirmationEmail(params: {
   timezone: string;
   interviewUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
-
   const { subject, html } = interviewConfirmationEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -87,11 +81,8 @@ export async function sendInterviewCancelledEmail(params: {
   startTime?: string;
   dashboardUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
-
   const { subject, html } = interviewCancelledEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -108,11 +99,8 @@ export async function sendBusinessNewJobEmail(params: {
   location: string;
   pay: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
-
   const { subject, html } = businessNewJobEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -121,11 +109,8 @@ export async function sendBusinessNewJobEmail(params: {
 }
 
 export async function sendWaitlistWorkerEmail(params: { to: string }) {
-  const resend = getResendClient();
-  if (!resend) return null;
-
   const { subject, html } = waitlistWorkerEmail({ email: params.to });
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -138,15 +123,12 @@ export async function sendWaitlistBusinessEmail(params: {
   businessName: string;
   resort: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
-
   const { subject, html } = waitlistBusinessEmail({
     email: params.to,
     businessName: params.businessName,
     resort: params.resort,
   });
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -163,10 +145,8 @@ export async function sendApplicationReceivedEmail(params: {
   businessName: string;
   jobUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = applicationReceivedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendApplicationStatusChangedEmail(params: {
@@ -177,10 +157,8 @@ export async function sendApplicationStatusChangedEmail(params: {
   newStatus: string;
   dashboardUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = applicationStatusChangedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendNewApplicantEmail(params: {
@@ -190,10 +168,8 @@ export async function sendNewApplicantEmail(params: {
   jobTitle: string;
   applicantsUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = newApplicantEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendBusinessVerifiedEmail(params: {
@@ -201,10 +177,8 @@ export async function sendBusinessVerifiedEmail(params: {
   businessName: string;
   dashboardUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = businessVerifiedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendBusinessUnverifiedEmail(params: {
@@ -213,10 +187,8 @@ export async function sendBusinessUnverifiedEmail(params: {
   reason?: string | null;
   dashboardUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = businessUnverifiedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendClaimLinkEmail(params: {
@@ -225,10 +197,8 @@ export async function sendClaimLinkEmail(params: {
   jobTitle: string;
   claimUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = claimLinkEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendListingClaimedEmail(params: {
@@ -236,10 +206,8 @@ export async function sendListingClaimedEmail(params: {
   businessName: string;
   dashboardUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = listingClaimedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendWelcomeWorkerEmail(params: {
@@ -247,10 +215,8 @@ export async function sendWelcomeWorkerEmail(params: {
   workerName: string;
   profileUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = welcomeWorkerEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendWelcomeBusinessEmail(params: {
@@ -258,10 +224,8 @@ export async function sendWelcomeBusinessEmail(params: {
   businessName: string;
   profileUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = welcomeBusinessEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendNewMessageEmail(params: {
@@ -271,10 +235,8 @@ export async function sendNewMessageEmail(params: {
   messagePreview: string;
   conversationUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = newMessageEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendJobAlertMatchEmail(params: {
@@ -288,10 +250,8 @@ export async function sendJobAlertMatchEmail(params: {
   jobUrl: string;
   alertsUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = jobAlertMatchEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendSupportReportConfirmationEmail(params: {
@@ -301,10 +261,8 @@ export async function sendSupportReportConfirmationEmail(params: {
   subject: string;
   reportId: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject: emailSubject, html } = supportReportReceivedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
 }
 
 export async function sendSupportReportAdminAlertEmail(params: {
@@ -317,10 +275,8 @@ export async function sendSupportReportAdminAlertEmail(params: {
   pageUrl: string | null;
   reportUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject: emailSubject, html } = supportReportAdminAlertEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject: emailSubject, html });
 }
 
 export async function sendLoginOtpEmail(params: {
@@ -328,10 +284,8 @@ export async function sendLoginOtpEmail(params: {
   userName: string;
   code: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = loginOtpEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendOnboardingReminderEmail(params: {
@@ -340,10 +294,8 @@ export async function sendOnboardingReminderEmail(params: {
   accountType: "worker" | "business";
   loginUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = onboardingReminderEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendApplicationWithdrawnEmail(params: {
@@ -353,10 +305,8 @@ export async function sendApplicationWithdrawnEmail(params: {
   jobTitle: string;
   applicantsUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = applicationWithdrawnEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendInstantInterviewRequestEmail(params: {
@@ -366,10 +316,8 @@ export async function sendInstantInterviewRequestEmail(params: {
   jobTitle: string;
   interviewUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = instantInterviewRequestEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendInstantInterviewDeclinedEmail(params: {
@@ -379,10 +327,8 @@ export async function sendInstantInterviewDeclinedEmail(params: {
   jobTitle: string;
   applicantsUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = instantInterviewDeclinedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendInstantInterviewRescheduledEmail(params: {
@@ -392,10 +338,8 @@ export async function sendInstantInterviewRescheduledEmail(params: {
   jobTitle: string;
   interviewsUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = instantInterviewRescheduledEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendContractSentEmail(params: {
@@ -405,10 +349,8 @@ export async function sendContractSentEmail(params: {
   jobTitle: string;
   contractUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = contractSentEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendContractSignedEmail(params: {
@@ -418,10 +360,8 @@ export async function sendContractSignedEmail(params: {
   jobTitle: string;
   applicantsUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = contractSignedEmail(params);
-  return resend.emails.send({ from: FROM_EMAIL, to: params.to, subject, html });
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
 
 export async function sendAdminListingClaimedEmail(params: {
@@ -431,10 +371,8 @@ export async function sendAdminListingClaimedEmail(params: {
   jobCount: number;
   adminBusinessUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = adminListingClaimedEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: FROM_EMAIL,
     to: params.to,
     subject,
@@ -450,10 +388,8 @@ export async function sendImportOutreachEmail(params: {
   claimUrl: string;
   eoiCount: number;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = importOutreachEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
     replyTo: TYLER_REPLY_TO,
@@ -469,10 +405,8 @@ export async function sendEoiThresholdNudgeEmail(params: {
   eoiCount: number;
   claimUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = eoiThresholdNudgeEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
     replyTo: TYLER_REPLY_TO,
@@ -487,10 +421,8 @@ export async function sendFirstApplicantNudgeEmail(params: {
   jobTitle: string;
   claimUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = firstApplicantNudgeEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
     replyTo: TYLER_REPLY_TO,
@@ -507,10 +439,8 @@ export async function sendClaimLastChanceEmail(params: {
   takedownDate: string;
   claimUrl: string;
 }) {
-  const resend = getResendClient();
-  if (!resend) return null;
   const { subject, html } = claimLastChanceEmail(params);
-  return resend.emails.send({
+  return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
     replyTo: TYLER_REPLY_TO,

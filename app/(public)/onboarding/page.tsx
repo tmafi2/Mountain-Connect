@@ -180,13 +180,20 @@ function WorkerSetup({
       timezone: detectedTimezone,
     };
 
-    const { data: updated, error: profileError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from("worker_profiles")
       .update(onboardingFields)
       .eq("user_id", user.id)
       .select("id");
 
-    if (!profileError && (!updated || updated.length === 0)) {
+    if (updateError) {
+      console.error("Worker profile update error:", updateError);
+      setOnboardingError(`Error saving profile: ${updateError.message}`);
+      setLoading(false);
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
       const fullName = (user.user_metadata?.full_name as string | undefined) ?? "";
       const [firstName = "", ...rest] = fullName.trim().split(/\s+/);
       const lastName = rest.join(" ");
@@ -202,13 +209,6 @@ function WorkerSetup({
         setLoading(false);
         return;
       }
-    }
-
-    if (profileError) {
-      console.error("Worker profile upsert error:", profileError);
-      setOnboardingError(`Error saving profile: ${profileError.message}`);
-      setLoading(false);
-      return;
     }
 
     // Send welcome email (non-blocking)
