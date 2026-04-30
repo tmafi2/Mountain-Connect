@@ -59,18 +59,50 @@ export default function SavedJobsClient({ initialSavedJobs, initialAppliedJobIds
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: wp } = await supabase.from("worker_profiles").select("id").eq("user_id", user.id).single();
+      const { data: wp } = await supabase
+        .from("worker_profiles")
+        .select("id, full_name, contact_email")
+        .eq("user_id", user.id)
+        .single();
       if (!wp) return;
 
-      await supabase.from("applications").insert({
-        job_id: job.job_post_id,
-        worker_id: wp.id,
-        status: "applied",
-      });
+      // Look up the job's business and route through the EOI flow when
+      // the listing hasn't been claimed yet — applications can't reach
+      // an unclaimed business, so write to expressions_of_interest
+      // instead so the data shows up in the claim-time dashboard.
+      const { data: jobRow } = await supabase
+        .from("job_posts")
+        .select("business_id, business_profiles!inner(is_claimed)")
+        .eq("id", job.job_post_id)
+        .single();
+      const isClaimed = (jobRow?.business_profiles as unknown as { is_claimed: boolean } | null)?.is_claimed;
 
-      setAppliedJobIds((prev) => new Set([...prev, job.job_post_id]));
-      setApplied(true);
-      setTimeout(() => setApplied(false), 3000);
+      if (isClaimed === false) {
+        const fullName =
+          (wp.full_name as string | null) ||
+          (user.user_metadata?.full_name as string | undefined) ||
+          (user.email?.split("@")[0] ?? "Mountain Connects worker");
+        const email = (wp.contact_email as string | null) || user.email!;
+        const res = await fetch(`/api/jobs/${job.job_post_id}/express-interest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: fullName, email }),
+        });
+        if (res.ok) {
+          setAppliedJobIds((prev) => new Set([...prev, job.job_post_id]));
+          setApplied(true);
+          setTimeout(() => setApplied(false), 3000);
+        }
+      } else {
+        await supabase.from("applications").insert({
+          job_post_id: job.job_post_id,
+          worker_id: wp.id,
+        });
+
+        setAppliedJobIds((prev) => new Set([...prev, job.job_post_id]));
+        setApplied(true);
+        setTimeout(() => setApplied(false), 3000);
+      }
     } catch (err) {
       console.error("Failed to apply:", err);
     }
