@@ -26,7 +26,7 @@ WITH ref_counts AS (
     r.created_at,
     (
       (SELECT COUNT(*) FROM public.resort_nearby_towns rnt WHERE rnt.resort_id = r.id) +
-      (SELECT COUNT(*) FROM public.business_profiles bp WHERE bp.resort_id = r.id::text) +
+      (SELECT COUNT(*) FROM public.business_profiles bp WHERE bp.resort_id = r.id) +
       (SELECT COUNT(*) FROM public.job_posts jp WHERE jp.resort_id = r.id)
     ) AS ref_total
   FROM public.resorts r
@@ -98,12 +98,10 @@ losers AS (
   WHERE r.legacy_id BETWEEN '57' AND '69'
     AND r.id <> w.id
 )
--- business_profiles.resort_id is a TEXT column that stores UUID
--- strings, so explicit casts on both sides are required.
 UPDATE public.business_profiles bp
-SET resort_id = l.winner_id::text
+SET resort_id = l.winner_id
 FROM losers l
-WHERE bp.resort_id = l.id::text;
+WHERE bp.resort_id = l.id;
 
 WITH winners AS (
   SELECT DISTINCT ON (legacy_id) r.id, r.legacy_id
