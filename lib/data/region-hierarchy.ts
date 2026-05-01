@@ -145,6 +145,7 @@ export const regionHierarchy: ContinentEntry[] = [
       {
         name: "Australia",
         resorts: [
+          { id: "70", name: "Charlotte's Pass" },
           { id: "51", name: "Falls Creek" },
           { id: "53", name: "Mt Hotham" },
           { id: "50", name: "Perisher" },
