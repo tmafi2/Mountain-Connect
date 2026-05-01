@@ -15,6 +15,10 @@
 BEGIN;
 
 -- Pick the winning row for each legacy_id in the duplicate range.
+-- Note: business_resorts.resort_id is TEXT and stores the legacy_id,
+-- not the UUID — both duplicate rows share the same legacy_id so
+-- business_resorts links don't need rewriting and don't affect the
+-- "which row has refs" decision.
 WITH ref_counts AS (
   SELECT
     r.id,
@@ -22,9 +26,8 @@ WITH ref_counts AS (
     r.created_at,
     (
       (SELECT COUNT(*) FROM public.resort_nearby_towns rnt WHERE rnt.resort_id = r.id) +
-      (SELECT COUNT(*) FROM public.business_profiles bp WHERE bp.resort_id = r.id) +
-      (SELECT COUNT(*) FROM public.job_posts jp WHERE jp.resort_id = r.id) +
-      (SELECT COUNT(*) FROM public.business_resorts br WHERE br.resort_id = r.id)
+      (SELECT COUNT(*) FROM public.business_profiles bp WHERE bp.resort_id = r.id::text) +
+      (SELECT COUNT(*) FROM public.job_posts jp WHERE jp.resort_id = r.id)
     ) AS ref_total
   FROM public.resorts r
   WHERE r.legacy_id BETWEEN '57' AND '69'
@@ -95,10 +98,12 @@ losers AS (
   WHERE r.legacy_id BETWEEN '57' AND '69'
     AND r.id <> w.id
 )
+-- business_profiles.resort_id is a TEXT column that stores UUID
+-- strings, so explicit casts on both sides are required.
 UPDATE public.business_profiles bp
-SET resort_id = l.winner_id
+SET resort_id = l.winner_id::text
 FROM losers l
-WHERE bp.resort_id = l.id;
+WHERE bp.resort_id = l.id::text;
 
 WITH winners AS (
   SELECT DISTINCT ON (legacy_id) r.id, r.legacy_id
@@ -120,29 +125,8 @@ SET resort_id = l.winner_id
 FROM losers l
 WHERE jp.resort_id = l.id;
 
-WITH winners AS (
-  SELECT DISTINCT ON (legacy_id) r.id, r.legacy_id
-  FROM public.resorts r
-  WHERE r.legacy_id BETWEEN '57' AND '69'
-  ORDER BY r.legacy_id,
-    (SELECT COUNT(*) FROM public.resort_nearby_towns rnt WHERE rnt.resort_id = r.id) DESC,
-    r.created_at ASC
-),
-losers AS (
-  SELECT r.id, w.id AS winner_id
-  FROM public.resorts r
-  JOIN winners w USING (legacy_id)
-  WHERE r.legacy_id BETWEEN '57' AND '69'
-    AND r.id <> w.id
-)
-UPDATE public.business_resorts br
-SET resort_id = l.winner_id
-FROM losers l
-WHERE br.resort_id = l.id
-  AND NOT EXISTS (
-    SELECT 1 FROM public.business_resorts x
-    WHERE x.resort_id = l.winner_id AND x.business_id = br.business_id
-  );
+-- business_resorts links by text legacy_id (not UUID) so duplicates
+-- there don't exist — both copies share the same legacy_id.
 
 -- Now drop the loser rows themselves.
 WITH winners AS (
