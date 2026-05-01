@@ -1055,7 +1055,7 @@ function JobDetailPanel({
       }
       const { data: wp } = await supabase
         .from("worker_profiles")
-        .select("id")
+        .select("id, full_name, contact_email")
         .eq("user_id", user.id)
         .single();
       if (!wp) {
@@ -1063,6 +1063,44 @@ function JobDetailPanel({
         setApplying(false);
         return;
       }
+
+      // If the business hasn't claimed their listing, applications can't
+      // reach them — instead route through the EOI flow so they show up
+      // in the claim-time dashboard once the business takes ownership.
+      // Mirrors the unclaimed branch in /jobs/[id]/JobApplyButton.tsx.
+      const { data: biz } = await supabase
+        .from("business_profiles")
+        .select("is_claimed")
+        .eq("id", job.business_id)
+        .single();
+
+      if (biz && biz.is_claimed === false) {
+        const fullName =
+          (wp.full_name as string | null) ||
+          (user.user_metadata?.full_name as string | undefined) ||
+          (user.email?.split("@")[0] ?? "Mountain Connects worker");
+        const email = (wp.contact_email as string | null) || user.email!;
+        const res = await fetch(`/api/jobs/${job.id}/express-interest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: fullName,
+            email,
+            message: coverLetter || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          setApplyError(data.error || "Could not submit. Try again.");
+          setApplying(false);
+          return;
+        }
+        setApplied(true);
+        setShowApplyForm(false);
+        setApplying(false);
+        return;
+      }
+
       const { error } = await supabase.from("applications").insert({
         job_post_id: job.id,
         worker_id: wp.id,

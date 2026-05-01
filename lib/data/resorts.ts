@@ -5373,4 +5373,24 @@ export const resorts: Resort[] = [
     avg_winter_temp_min_c: -25, avg_winter_temp_max_c: -12, snow_reliability: "medium", artificial_snow_coverage_pct: 70,
     is_verified: true,
   }),
+
+    createResort({
+    id: "70",
+    name: "Charlotte's Pass",
+    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    region_id: "9",
+    country: "Australia",
+    description:
+    "The highest village in Australia at 1,765m, located in Kosciuszko National Park. Charlotte's Pass is the smallest and most boutique of the four main NSW ski resorts — once snow falls, the road from Perisher closes and guests transfer in by snowcat. Quiet, family-friendly, with ski-in/ski-out access from every lodge. Closest town is Jindabyne, about 32km away via Kosciuszko Road.",
+    latitude: -36.4347,
+    longitude: 148.3315,
+    state_province: "New South Wales",
+    nearest_town: "Jindabyne",
+    website: "https://www.charlottepass.com.au",
+    base_elevation_m: 1765,
+    summit_elevation_m: 1940,
+    season_start: "2026-06-06",
+    season_end: "2026-10-04",
+    snow_reliability: "low",
+  }),
 ];
