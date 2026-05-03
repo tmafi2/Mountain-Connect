@@ -31,7 +31,7 @@ components/
   ui/          — NotificationBell, NotificationDropdown, ResortMap, Map
 
 supabase/
-  migrations/  — 00001 through 00065 (sequential, run in Supabase SQL Editor)
+  migrations/  — 00001 through 00072 (sequential, run in Supabase SQL Editor)
 ```
 
 ## Supabase Patterns
@@ -47,7 +47,7 @@ supabase/
 - `job_posts` — listings with nearby_town_id, how_to_apply, application_email/url
 - `applications` — worker applications to jobs
 - `interviews` — scheduling with status (invited, scheduled, completed, cancelled, missed, reschedule_requested)
-- `resorts` — 69 resorts with legacy_id text field for backward compat
+- `resorts` — 70 resorts with legacy_id text field for backward compat (UNIQUE constraint on legacy_id added in 00072)
 - `nearby_towns` — 50+ towns with 30+ detail fields
 - `resort_nearby_towns` — many-to-many join
 - `conversations`, `conversation_participants`, `messages` — messaging system
@@ -72,7 +72,9 @@ Businesses can post listings regardless of verification state. Verification is a
 - **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently. Nudge cadence (each gated by its own sent-at column, so at most one of each fires): first EOI ever → first-applicant email; aggregate EOIs hit 5 → 5-applicant nudge; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
 
 ## Migration Status
-All migrations applied through **00070** (`first_applicant_email_trigger` — adds `first_applicant_email_sent_at` to gate the new first-EOI nudge for unclaimed businesses, with backfill so existing unclaimed businesses with prior EOIs don't get a delayed first-applicant email). Next migration number: **00071**.
+All migrations applied through **00072** (`dedupe_canadian_resorts` — removes duplicate Canadian resort rows that snuck in via a re-run of 00029, reassigns `resort_nearby_towns` references to the kept rows, and adds a `UNIQUE` constraint on `resorts.legacy_id` so future re-seeds can't recreate the dupes). 00071 added Charlottes Pass linked to Jindabyne. Next migration number: **00073**.
+
+When adding a schema-touching migration, dry-run it against a fresh `supabase db reset` (or branch DB) before merging — recent dedup work needed three follow-up commits to fix text/UUID cast errors that would have surfaced locally.
 
 ## Important Conventions
 - Resort `id` in database is UUID. Static data uses `legacy_id` (text: "1", "2", etc.)
