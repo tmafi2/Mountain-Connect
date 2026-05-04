@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
+import { OUTREACH_SEQUENCE, STANDALONE_TEMPLATES } from "@/lib/outreach/sequence";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -140,13 +141,26 @@ export default function AdminOutreachPage() {
   /* ─── Send template ───────────────────────────────────── */
 
   async function sendTemplate(leadId: string, template: string) {
-    if (!confirm(`Send "${template}" to this lead?`)) return;
+    // sales-dropin lets the admin optionally personalise the greeting
+    // with the name of the person they spoke to in person. Skip the
+    // prompt for other templates that don't use this field.
+    let contactPersonName: string | undefined;
+    if (template === "sales-dropin") {
+      const input = prompt(
+        "Optional: name of the person you spoke to (leave blank to greet the team generically)",
+        ""
+      );
+      if (input === null) return; // cancelled
+      contactPersonName = input.trim() || undefined;
+    } else {
+      if (!confirm(`Send "${template}" to this lead?`)) return;
+    }
     setBusyId(leadId);
     try {
       const res = await fetch(`/api/admin/outreach/leads/${leadId}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template }),
+        body: JSON.stringify({ template, contactPersonName }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
@@ -229,6 +243,12 @@ export default function AdminOutreachPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/admin/outreach/templates"
+            className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
+          >
+            View templates →
+          </Link>
           <button
             type="button"
             disabled
@@ -569,7 +589,12 @@ function SendDropdown({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-accent bg-white py-1 shadow-lg">
+          <div className="absolute right-0 z-20 mt-1 w-64 rounded-xl border border-accent bg-white py-1 shadow-lg">
+            {OUTREACH_SEQUENCE.length > 0 && (
+              <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                Funnel sequence
+              </div>
+            )}
             {OUTREACH_SEQUENCE.map((s) => (
               <button
                 key={s.template}
@@ -583,6 +608,26 @@ function SendDropdown({
               >
                 <div className="font-medium text-primary">{s.template}</div>
                 <div className="text-[10px] text-foreground/50">{s.label}</div>
+              </button>
+            ))}
+            {STANDALONE_TEMPLATES.length > 0 && (
+              <div className="mt-1 border-t border-accent/40 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                Ad-hoc (manual only)
+              </div>
+            )}
+            {STANDALONE_TEMPLATES.map((s) => (
+              <button
+                key={s.template}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onSend(s.template);
+                }}
+                className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
+                title={s.label}
+              >
+                <div className="font-medium text-primary">{s.template}</div>
+                <div className="text-[10px] text-foreground/50">{s.description}</div>
               </button>
             ))}
           </div>

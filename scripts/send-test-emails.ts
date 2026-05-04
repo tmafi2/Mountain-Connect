@@ -6,6 +6,7 @@ import { firstApplicantNudgeEmail } from "../lib/email/templates/first-applicant
 import { eoiThresholdNudgeEmail } from "../lib/email/templates/eoi-threshold-nudge";
 import { claimLastChanceEmail } from "../lib/email/templates/claim-last-chance";
 import { winterOutreachEmail } from "../lib/email/templates/winter-outreach";
+import { salesDropinEmail } from "../lib/email/templates/sales-dropin";
 
 const TO = "tyler@mountainconnects.com";
 const FROM = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -47,6 +48,16 @@ const templates = [
       ctaUrl: `${BASE}/signup`,
       unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
       locationName: "Thredbo",
+    }),
+  },
+  {
+    name: "sales-dropin",
+    ...salesDropinEmail({
+      businessName: "Thredbo Alpine Village",
+      contactPersonName: "Sarah",
+      locationName: "Thredbo",
+      ctaUrl: `${BASE}/signup`,
+      unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
     }),
   },
 ];

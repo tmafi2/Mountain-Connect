@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendWinterOutreachEmail } from "@/lib/email/send";
-import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
+import { sendWinterOutreachEmail, sendSalesDropinEmail } from "@/lib/email/send";
+import { allManualTemplates } from "@/lib/outreach/sequence";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -31,7 +31,7 @@ export async function POST(
 
   const { id } = await params;
 
-  let body: { template?: string };
+  let body: { template?: string; contactPersonName?: string };
   try {
     body = await request.json();
   } catch {
@@ -40,7 +40,7 @@ export async function POST(
 
   const template = body.template?.trim();
   if (!template) return NextResponse.json({ error: "Missing template" }, { status: 400 });
-  if (!OUTREACH_SEQUENCE.find((s) => s.template === template)) {
+  if (!allManualTemplates().find((t) => t.template === template)) {
     return NextResponse.json({ error: "Unknown template" }, { status: 400 });
   }
 
@@ -80,6 +80,16 @@ export async function POST(
         ctaUrl,
         unsubscribeUrl,
         locationName,
+      });
+      sendResult = { id: result?.data?.id };
+    } else if (template === "sales-dropin") {
+      const result = await sendSalesDropinEmail({
+        to: lead.email,
+        businessName: lead.business_name,
+        contactPersonName: body.contactPersonName?.trim() || undefined,
+        locationName,
+        ctaUrl,
+        unsubscribeUrl,
       });
       sendResult = { id: result?.data?.id };
     } else {
