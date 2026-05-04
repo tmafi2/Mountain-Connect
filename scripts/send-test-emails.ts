@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import { firstApplicantNudgeEmail } from "../lib/email/templates/first-applicant-nudge";
 import { eoiThresholdNudgeEmail } from "../lib/email/templates/eoi-threshold-nudge";
 import { claimLastChanceEmail } from "../lib/email/templates/claim-last-chance";
+import { winterOutreachEmail } from "../lib/email/templates/winter-outreach";
 
 const TO = "tyler@mountainconnects.com";
 const FROM = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -37,6 +38,15 @@ const templates = [
       eoiCount: 7,
       takedownDate: "30 April 2026",
       claimUrl: `${BASE}/claim/abc-123-def-456`,
+    }),
+  },
+  {
+    name: "winter-outreach",
+    ...winterOutreachEmail({
+      businessName: "Thredbo Alpine Village",
+      ctaUrl: `${BASE}/signup`,
+      unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
+      locationName: "Thredbo",
     }),
   },
 ];
