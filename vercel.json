@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/unclaimed-dormancy-sweep",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/outreach-drip",
+      "schedule": "0 10 * * *"
     }
   ]
 }
