@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { OUTREACH_SEQUENCE, STANDALONE_TEMPLATES } from "@/lib/outreach/sequence";
 
@@ -576,8 +576,37 @@ function SendDropdown({
   onSend: (template: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click — uses a document listener instead of a
+  // full-screen overlay div. The overlay version was fighting the
+  // table's stacking context and swallowing clicks on the menu items.
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  function pick(template: string) {
+    setOpen(false);
+    onSend(template);
+  }
+
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <button
         type="button"
         disabled={disabled}
@@ -587,51 +616,42 @@ function SendDropdown({
         Send →
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-64 rounded-xl border border-accent bg-white py-1 shadow-lg">
-            {OUTREACH_SEQUENCE.length > 0 && (
-              <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
-                Funnel sequence
-              </div>
-            )}
-            {OUTREACH_SEQUENCE.map((s) => (
-              <button
-                key={s.template}
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  onSend(s.template);
-                }}
-                className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
-                title={s.label}
-              >
-                <div className="font-medium text-primary">{s.template}</div>
-                <div className="text-[10px] text-foreground/50">{s.label}</div>
-              </button>
-            ))}
-            {STANDALONE_TEMPLATES.length > 0 && (
-              <div className="mt-1 border-t border-accent/40 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
-                Ad-hoc (manual only)
-              </div>
-            )}
-            {STANDALONE_TEMPLATES.map((s) => (
-              <button
-                key={s.template}
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  onSend(s.template);
-                }}
-                className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
-                title={s.label}
-              >
-                <div className="font-medium text-primary">{s.template}</div>
-                <div className="text-[10px] text-foreground/50">{s.description}</div>
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-xl border border-accent bg-white py-1 shadow-lg">
+          {OUTREACH_SEQUENCE.length > 0 && (
+            <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+              Funnel sequence
+            </div>
+          )}
+          {OUTREACH_SEQUENCE.map((s) => (
+            <button
+              key={s.template}
+              type="button"
+              onClick={() => pick(s.template)}
+              className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
+              title={s.label}
+            >
+              <div className="font-medium text-primary">{s.template}</div>
+              <div className="text-[10px] text-foreground/50">{s.label}</div>
+            </button>
+          ))}
+          {STANDALONE_TEMPLATES.length > 0 && (
+            <div className="mt-1 border-t border-accent/40 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+              Ad-hoc (manual only)
+            </div>
+          )}
+          {STANDALONE_TEMPLATES.map((s) => (
+            <button
+              key={s.template}
+              type="button"
+              onClick={() => pick(s.template)}
+              className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
+              title={s.label}
+            >
+              <div className="font-medium text-primary">{s.template}</div>
+              <div className="text-[10px] text-foreground/50">{s.description}</div>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
