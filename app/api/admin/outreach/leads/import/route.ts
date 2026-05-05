@@ -156,36 +156,57 @@ export async function POST(request: Request) {
     }
     seenInBatch.add(email);
 
+    // Location lookup is intentionally forgiving — if a value lands in
+    // the "wrong" column (e.g. resort_name=Jindabyne, which is actually
+    // a town), we silently fall through to the other table rather than
+    // erroring. Only when the value matches NEITHER resorts nor towns
+    // do we surface an error so the admin can fix the typo.
     let resortId: string | null = null;
-    if (raw.resort_name?.trim()) {
-      const lookup = resortByName.get(raw.resort_name.trim().toLowerCase());
-      if (!lookup) {
-        results.push({
-          row: rowNum,
-          email,
-          business_name: businessName,
-          status: "error",
-          message: `Unknown resort_name "${raw.resort_name.trim()}"`,
-        });
-        return;
+    let townId: string | null = null;
+    let lookupError: string | null = null;
+
+    const rawResort = raw.resort_name?.trim();
+    if (rawResort) {
+      const key = rawResort.toLowerCase();
+      const r = resortByName.get(key);
+      if (r) {
+        resortId = r;
+      } else {
+        const t = townByName.get(key);
+        if (t) {
+          townId = t;
+        } else {
+          lookupError = `Unknown location "${rawResort}" (no matching resort or town)`;
+        }
       }
-      resortId = lookup;
     }
 
-    let townId: string | null = null;
-    if (raw.town_name?.trim()) {
-      const lookup = townByName.get(raw.town_name.trim().toLowerCase());
-      if (!lookup) {
-        results.push({
-          row: rowNum,
-          email,
-          business_name: businessName,
-          status: "error",
-          message: `Unknown town_name "${raw.town_name.trim()}"`,
-        });
-        return;
+    const rawTown = raw.town_name?.trim();
+    if (rawTown && !lookupError) {
+      const key = rawTown.toLowerCase();
+      const t = townByName.get(key);
+      if (t) {
+        townId = t;
+      } else {
+        const r = resortByName.get(key);
+        if (r) {
+          // Don't overwrite an explicit resort_name match from the row above.
+          if (!resortId) resortId = r;
+        } else {
+          lookupError = `Unknown location "${rawTown}" (no matching town or resort)`;
+        }
       }
-      townId = lookup;
+    }
+
+    if (lookupError) {
+      results.push({
+        row: rowNum,
+        email,
+        business_name: businessName,
+        status: "error",
+        message: lookupError,
+      });
+      return;
     }
 
     const placeholderIdx = results.length;

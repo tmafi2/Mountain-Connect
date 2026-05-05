@@ -1001,8 +1001,9 @@ function BulkImportModal({
           <h3 className="mt-1 text-lg font-bold text-primary">Import leads from CSV</h3>
           <p className="mt-1 text-xs text-foreground/55">
             Required columns: <code>email</code>, <code>business_name</code>. Optional:{" "}
-            <code>resort_name</code>, <code>town_name</code> (matched case-insensitively to your
-            resorts/towns), <code>notes</code>. Duplicates are skipped automatically.
+            <code>resort_name</code> or <code>town_name</code> (case-insensitive — either column
+            accepts either kind of location and the import figures out which it is),{" "}
+            <code>notes</code>. Duplicates are skipped automatically.
           </p>
           <button
             type="button"
