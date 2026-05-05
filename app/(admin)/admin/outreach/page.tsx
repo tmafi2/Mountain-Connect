@@ -73,6 +73,9 @@ export default function AdminOutreachPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
+  // Bulk import modal state
+  const [showImport, setShowImport] = useState(false);
+
   /* ─── Initial load ─────────────────────────────────────── */
 
   useEffect(() => {
@@ -235,6 +238,15 @@ export default function AdminOutreachPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      {showImport && (
+        <BulkImportModal
+          onClose={() => setShowImport(false)}
+          onImported={() => {
+            setShowImport(false);
+            void load();
+          }}
+        />
+      )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-primary sm:text-3xl">Outreach</h1>
@@ -251,9 +263,8 @@ export default function AdminOutreachPage() {
           </Link>
           <button
             type="button"
-            disabled
-            className="cursor-not-allowed rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/40"
-            title="Coming soon"
+            onClick={() => setShowImport(true)}
+            className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
           >
             Bulk import (CSV)
           </button>
@@ -721,5 +732,440 @@ function TemplateCard({
       </div>
       <span className="text-secondary opacity-0 transition-opacity group-hover:opacity-100">→</span>
     </button>
+  );
+}
+
+/* ─── Bulk import modal ──────────────────────────────────── */
+
+interface ImportRow {
+  row: number;
+  email?: string;
+  business_name?: string;
+  resort_name?: string | null;
+  town_name?: string | null;
+  notes?: string | null;
+}
+interface ImportResult {
+  row: number;
+  email: string;
+  business_name: string;
+  status: "created" | "skipped" | "error";
+  message?: string;
+  leadId?: string;
+}
+interface ImportSummary {
+  total: number;
+  created: number;
+  skipped: number;
+  errored: number;
+}
+
+const SAMPLE_CSV = [
+  "email,business_name,resort_name,town_name,notes",
+  "info@example.com.au,Example Hotel,Thredbo,,Met at the AGM",
+  "hello@somewhere.com.au,Somewhere Cafe,,Jindabyne,",
+  "team@otherbiz.com,Other Business,,,",
+].join("\n");
+
+/**
+ * Tiny CSV parser — handles quoted fields and escaped quotes ("") so
+ * cells can contain commas. Good enough for admin-controlled imports;
+ * we don't need a full spec-compliant parser.
+ */
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  const push = () => {
+    row.push(field);
+    field = "";
+  };
+  const finishRow = () => {
+    rows.push(row);
+    row = [];
+  };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      push();
+    } else if (c === "\n") {
+      push();
+      finishRow();
+    } else if (c === "\r") {
+      // ignore — \r\n handled by skipping \r and processing \n
+    } else {
+      field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    push();
+    finishRow();
+  }
+  return rows.filter((r) => r.length > 0 && !(r.length === 1 && r[0] === ""));
+}
+
+function rowsFromCSV(text: string): { rows: ImportRow[]; error?: string } {
+  const parsed = parseCSV(text);
+  if (parsed.length === 0) return { rows: [], error: "Empty file" };
+  const headers = parsed[0].map((h) => h.trim().toLowerCase());
+  const required = ["email", "business_name"];
+  const missing = required.filter((k) => !headers.includes(k));
+  if (missing.length > 0) {
+    return { rows: [], error: `Missing required column(s): ${missing.join(", ")}` };
+  }
+  const idx = (name: string) => headers.indexOf(name);
+  const iEmail = idx("email");
+  const iName = idx("business_name");
+  const iResort = idx("resort_name");
+  const iTown = idx("town_name");
+  const iNotes = idx("notes");
+
+  const rows: ImportRow[] = [];
+  for (let r = 1; r < parsed.length; r++) {
+    const cells = parsed[r];
+    const email = cells[iEmail]?.trim();
+    const name = cells[iName]?.trim();
+    if (!email && !name) continue; // skip blank lines silently
+    rows.push({
+      row: r + 1, // 1-indexed file row, matches what spreadsheet apps show
+      email,
+      business_name: name,
+      resort_name: iResort >= 0 ? cells[iResort]?.trim() || null : null,
+      town_name: iTown >= 0 ? cells[iTown]?.trim() || null : null,
+      notes: iNotes >= 0 ? cells[iNotes]?.trim() || null : null,
+    });
+  }
+  return { rows };
+}
+
+function BulkImportModal({
+  onClose,
+  onImported,
+}: {
+  onClose: () => void;
+  onImported: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parsedRows, setParsedRows] = useState<ImportRow[] | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [results, setResults] = useState<ImportResult[] | null>(null);
+  const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  // Lock body scroll while open + Escape closes.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setText(typeof reader.result === "string" ? reader.result : "");
+      // Reset preview/results so user re-runs preview on the new file.
+      setParsedRows(null);
+      setResults(null);
+      setSummary(null);
+      setParseError(null);
+      setServerError(null);
+    };
+    reader.readAsText(file);
+  }
+
+  async function preview() {
+    setParseError(null);
+    setServerError(null);
+    setResults(null);
+    setSummary(null);
+    const { rows, error } = rowsFromCSV(text);
+    if (error) {
+      setParseError(error);
+      setParsedRows(null);
+      return;
+    }
+    if (rows.length === 0) {
+      setParseError("No data rows found");
+      setParsedRows(null);
+      return;
+    }
+    setParsedRows(rows);
+    setPreviewing(true);
+    try {
+      const res = await fetch("/api/admin/outreach/leads/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows, dryRun: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setServerError(data.error || "Preview failed");
+      } else {
+        setResults(data.results);
+        setSummary(data.summary);
+      }
+    } catch (e) {
+      setServerError(e instanceof Error ? e.message : "Preview failed");
+    }
+    setPreviewing(false);
+  }
+
+  async function commit() {
+    if (!parsedRows) return;
+    setImporting(true);
+    setServerError(null);
+    try {
+      const res = await fetch("/api/admin/outreach/leads/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: parsedRows, dryRun: false }),
+      });
+      const data = await res.json();
+      if (!res.ok && !data.results) {
+        setServerError(data.error || "Import failed");
+      } else {
+        setResults(data.results);
+        setSummary(data.summary);
+        // Reload the parent list so newly created leads appear.
+        // Wait a beat so the admin sees the success summary first.
+        if (data.summary.created > 0) {
+          setTimeout(onImported, 1500);
+        }
+      }
+    } catch (e) {
+      setServerError(e instanceof Error ? e.message : "Import failed");
+    }
+    setImporting(false);
+  }
+
+  function downloadSample() {
+    const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "outreach-leads-sample.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // After a real import (not dryRun), summary.errored stays nonzero
+  // when some inserts failed. We use this to pick the closing CTA copy.
+  const importComplete =
+    results !== null &&
+    summary !== null &&
+    !previewing &&
+    !importing &&
+    (summary.created > 0 || summary.errored > 0);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 px-4 py-6 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-accent bg-white shadow-xl">
+        {/* Header */}
+        <div className="border-b border-accent/40 px-6 py-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+            Bulk import
+          </p>
+          <h3 className="mt-1 text-lg font-bold text-primary">Import leads from CSV</h3>
+          <p className="mt-1 text-xs text-foreground/55">
+            Required columns: <code>email</code>, <code>business_name</code>. Optional:{" "}
+            <code>resort_name</code>, <code>town_name</code> (matched case-insensitively to your
+            resorts/towns), <code>notes</code>. Duplicates are skipped automatically.
+          </p>
+          <button
+            type="button"
+            onClick={downloadSample}
+            className="mt-2 text-xs font-medium text-secondary hover:underline"
+          >
+            Download sample CSV
+          </button>
+        </div>
+
+        {/* Body — scrolls if results table grows */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {/* Step 1: file picker + paste */}
+          <div className="space-y-3">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFile}
+              className="block w-full text-sm text-foreground/70 file:mr-3 file:rounded-lg file:border file:border-accent file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary hover:file:bg-accent/10"
+            />
+            <p className="text-[11px] text-foreground/50">…or paste the CSV directly:</p>
+            <textarea
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                setParsedRows(null);
+                setResults(null);
+                setSummary(null);
+              }}
+              rows={6}
+              placeholder={SAMPLE_CSV}
+              className="input font-mono text-xs"
+            />
+          </div>
+
+          {/* Errors */}
+          {parseError && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {parseError}
+            </div>
+          )}
+          {serverError && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {serverError}
+            </div>
+          )}
+
+          {/* Summary */}
+          {summary && (
+            <div className="mt-5 grid grid-cols-4 gap-2 text-center">
+              <SummaryTile label="Total" value={summary.total} tone="gray" />
+              <SummaryTile label="To create" value={summary.created} tone="green" />
+              <SummaryTile label="Skipped" value={summary.skipped} tone="amber" />
+              <SummaryTile label="Errors" value={summary.errored} tone="red" />
+            </div>
+          )}
+
+          {/* Per-row results table */}
+          {results && results.length > 0 && (
+            <div className="mt-4 max-h-[40vh] overflow-y-auto rounded-xl border border-accent">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-accent/10 text-left text-[10px] uppercase tracking-wider text-foreground/50">
+                  <tr>
+                    <th className="px-3 py-2">Row</th>
+                    <th className="px-3 py-2">Business</th>
+                    <th className="px-3 py-2">Email</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Note</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-accent/40">
+                  {results.map((r, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 text-foreground/50">{r.row}</td>
+                      <td className="px-3 py-2 text-primary">{r.business_name}</td>
+                      <td className="px-3 py-2 text-foreground/70">{r.email}</td>
+                      <td className="px-3 py-2">
+                        <StatusPill status={r.status} />
+                      </td>
+                      <td className="px-3 py-2 text-foreground/55">{r.message ?? ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-wrap justify-between gap-2 border-t border-accent/40 bg-accent/5 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/10"
+          >
+            {importComplete ? "Close" : "Cancel"}
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={preview}
+              disabled={!text.trim() || previewing || importing}
+              className="rounded-lg border border-secondary bg-white px-4 py-2 text-sm font-semibold text-secondary hover:bg-secondary/5 disabled:opacity-50"
+            >
+              {previewing ? "Previewing…" : results ? "Re-preview" : "Preview"}
+            </button>
+            <button
+              type="button"
+              onClick={commit}
+              disabled={!parsedRows || !summary || summary.created === 0 || importing || importComplete}
+              className="rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white hover:bg-secondary-light disabled:opacity-50"
+            >
+              {importing
+                ? "Importing…"
+                : summary
+                  ? `Import ${summary.created} ${summary.created === 1 ? "lead" : "leads"}`
+                  : "Import"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "gray" | "green" | "amber" | "red";
+}) {
+  const tones: Record<string, string> = {
+    gray: "border-gray-200 bg-gray-50 text-gray-700",
+    green: "border-green-200 bg-green-50 text-green-900",
+    amber: "border-amber-200 bg-amber-50 text-amber-900",
+    red: "border-red-200 bg-red-50 text-red-900",
+  };
+  return (
+    <div className={`rounded-lg border px-2 py-2 ${tones[tone]}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{label}</p>
+      <p className="mt-0.5 text-lg font-bold">{value}</p>
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: "created" | "skipped" | "error" }) {
+  if (status === "created") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+        Will create
+      </span>
+    );
+  }
+  if (status === "skipped") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+        Skip
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+      Error
+    </span>
   );
 }
