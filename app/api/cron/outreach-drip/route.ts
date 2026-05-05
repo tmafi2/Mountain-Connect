@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendWinterOutreachEmail } from "@/lib/email/send";
+import {
+  sendWinterOutreachEmail,
+  sendWinterFollowup1Email,
+  sendWinterFollowup2Email,
+  sendWinterFollowup3Email,
+  sendWinterFollowupFinalEmail,
+} from "@/lib/email/send";
 import { OUTREACH_SEQUENCE, findNextStep } from "@/lib/outreach/sequence";
 
 const BASE_URL = "https://www.mountainconnects.com";
@@ -106,14 +112,27 @@ export async function GET(request: Request) {
 
     try {
       let resendId: string | undefined;
+      const common = {
+        to: lead.email as string,
+        businessName: lead.business_name as string,
+        ctaUrl,
+        unsubscribeUrl,
+        locationName,
+      };
       if (next.template === "winter-outreach") {
-        const r = await sendWinterOutreachEmail({
-          to: lead.email as string,
-          businessName: lead.business_name as string,
-          ctaUrl,
-          unsubscribeUrl,
-          locationName,
-        });
+        const r = await sendWinterOutreachEmail(common);
+        resendId = r?.data?.id;
+      } else if (next.template === "winter-followup-1") {
+        const r = await sendWinterFollowup1Email(common);
+        resendId = r?.data?.id;
+      } else if (next.template === "winter-followup-2") {
+        const r = await sendWinterFollowup2Email(common);
+        resendId = r?.data?.id;
+      } else if (next.template === "winter-followup-3") {
+        const r = await sendWinterFollowup3Email(common);
+        resendId = r?.data?.id;
+      } else if (next.template === "winter-followup-final") {
+        const r = await sendWinterFollowupFinalEmail(common);
         resendId = r?.data?.id;
       } else {
         // Add new template branches as templates land in the sequence.
