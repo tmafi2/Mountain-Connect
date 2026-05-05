@@ -54,7 +54,7 @@ export function winterFollowup1Email({
               ${greeting}
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              Following up on my note from last week — workers are actively browsing Mountain Connects for ${locationName ? `<strong style="color:#0a1e33;">${locationName}</strong>-area ` : ""}roles this season, and I didn't want you to miss the chance to be on their radar.
+              Following up on my last email — workers are actively browsing Mountain Connects for ${locationName ? `<strong style="color:#0a1e33;">${locationName}</strong>-area ` : ""}roles this season, and I didn't want you to miss the chance to be on their radar.
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
               Setting up a free profile for <strong style="color:#0a1e33;">${businessName}</strong> takes about two minutes — no listing required, no commitment, just a featured spot in front of workers looking right now.
@@ -77,7 +77,7 @@ export function winterFollowup1Email({
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
               <tr>
                 <td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:15px 36px;text-align:center;">
-                  <a href="${ctaUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Set up my profile (2 min) →</a>
+                  <a href="${ctaUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Set up my profile →</a>
                 </td>
               </tr>
             </table>
