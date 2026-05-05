@@ -76,6 +76,12 @@ export default function AdminOutreachPage() {
   // Bulk import modal state
   const [showImport, setShowImport] = useState(false);
 
+  // Bulk-select state — set of selected lead IDs and the bulk-send modal flag.
+  // Selection is cleared whenever filters change so we don't accidentally
+  // bulk-email rows the admin can no longer see.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkSend, setShowBulkSend] = useState(false);
+
   /* ─── Initial load ─────────────────────────────────────── */
 
   useEffect(() => {
@@ -234,6 +240,57 @@ export default function AdminOutreachPage() {
     return c;
   }, [leads]);
 
+  // Drop any selected IDs that no longer pass the current filters or that
+  // are no longer in the list (e.g. after a refresh post-bulk-send).
+  // Keeps the bulk-action bar honest about what's actually selected.
+  useEffect(() => {
+    const visible = new Set(filtered.map((l) => l.id));
+    setSelectedIds((prev) => {
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (visible.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [filtered]);
+
+  // Only ACTIVE filtered rows are bulk-sendable. The select-all checkbox
+  // and the count both reflect this so the admin doesn't get confused
+  // about why selecting "all" excluded signed_up/unsubscribed leads.
+  const bulkSendable = useMemo(() => filtered.filter((l) => l.status === "active"), [filtered]);
+  const allBulkSendableSelected =
+    bulkSendable.length > 0 && bulkSendable.every((l) => selectedIds.has(l.id));
+  const someBulkSendableSelected =
+    !allBulkSendableSelected && bulkSendable.some((l) => selectedIds.has(l.id));
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedIds((prev) => {
+      if (allBulkSendableSelected) {
+        const next = new Set(prev);
+        for (const l of bulkSendable) next.delete(l.id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const l of bulkSendable) next.add(l.id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
   /* ─── Render ─────────────────────────────────────────── */
 
   return (
@@ -246,6 +303,44 @@ export default function AdminOutreachPage() {
             void load();
           }}
         />
+      )}
+
+      {showBulkSend && (
+        <BulkSendModal
+          leadIds={[...selectedIds]}
+          onClose={() => setShowBulkSend(false)}
+          onSent={() => {
+            setShowBulkSend(false);
+            clearSelection();
+            void load();
+          }}
+        />
+      )}
+
+      {selectedIds.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-secondary/30 bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-medium text-primary">
+              {selectedIds.size} {selectedIds.size === 1 ? "lead" : "leads"} selected
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-lg border border-accent bg-white px-3 py-1.5 text-xs font-medium text-foreground/60 hover:bg-accent/10"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBulkSend(true)}
+                className="rounded-lg bg-secondary px-4 py-1.5 text-sm font-semibold text-white hover:bg-secondary-light"
+              >
+                Send to {selectedIds.size} →
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -432,6 +527,19 @@ export default function AdminOutreachPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-accent bg-accent/10 text-left text-xs uppercase tracking-wider text-foreground/50">
               <tr>
+                <th className="w-10 px-4 py-3 font-medium">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all active leads on this page"
+                    disabled={bulkSendable.length === 0}
+                    checked={allBulkSendableSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someBulkSendableSelected;
+                    }}
+                    onChange={toggleAll}
+                    className="h-4 w-4 cursor-pointer rounded border-accent text-secondary focus:ring-secondary/30"
+                  />
+                </th>
                 <th className="px-4 py-3 font-medium">Business</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Location</th>
@@ -444,13 +552,13 @@ export default function AdminOutreachPage() {
             <tbody className="divide-y divide-accent/40">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-foreground/40">
+                  <td colSpan={8} className="px-4 py-8 text-center text-foreground/40">
                     Loading…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-foreground/40">
+                  <td colSpan={8} className="px-4 py-8 text-center text-foreground/40">
                     {leads.length === 0 ? "No leads yet — click \"Add lead\" to get started." : "No leads match your filters."}
                   </td>
                 </tr>
@@ -460,7 +568,17 @@ export default function AdminOutreachPage() {
                   const location = lead.nearby_towns?.name || lead.resorts?.name || "—";
                   const isBusy = busyId === lead.id;
                   return (
-                    <tr key={lead.id} className="hover:bg-accent/5">
+                    <tr key={lead.id} className={`hover:bg-accent/5 ${selectedIds.has(lead.id) ? "bg-secondary/5" : ""}`}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${lead.business_name}`}
+                          disabled={lead.status !== "active"}
+                          checked={selectedIds.has(lead.id)}
+                          onChange={() => toggleOne(lead.id)}
+                          className="h-4 w-4 cursor-pointer rounded border-accent text-secondary focus:ring-secondary/30 disabled:cursor-not-allowed disabled:opacity-30"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-primary">{lead.business_name}</div>
                         {lead.notes && (
@@ -1149,6 +1267,234 @@ function SummaryTile({
       <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{label}</p>
       <p className="mt-0.5 text-lg font-bold">{value}</p>
     </div>
+  );
+}
+
+/* ─── Bulk send modal ──────────────────────────────────── */
+
+interface BulkOutcome {
+  leadId: string;
+  email: string;
+  business_name: string;
+  status: "sent" | "skipped" | "failed";
+  message?: string;
+  resendId?: string;
+}
+
+interface BulkSummary {
+  total: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+}
+
+function BulkSendModal({
+  leadIds,
+  onClose,
+  onSent,
+}: {
+  leadIds: string[];
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [outcomes, setOutcomes] = useState<BulkOutcome[] | null>(null);
+  const [summary, setSummary] = useState<BulkSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Lock body scroll + Escape closes — same pattern as the other modals.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  async function send() {
+    if (!picked) return;
+    if (!confirm(`Send "${picked}" to ${leadIds.length} ${leadIds.length === 1 ? "lead" : "leads"}?`)) return;
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/outreach/leads/bulk-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadIds, template: picked }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Bulk send failed");
+      setOutcomes(data.outcomes);
+      setSummary(data.summary);
+      // Auto-close + refresh after a beat so the admin sees the success summary first.
+      if (data.summary.sent > 0) setTimeout(onSent, 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bulk send failed");
+    }
+    setSending(false);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 px-4 py-6 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-accent bg-white shadow-xl">
+        <div className="border-b border-accent/40 px-6 py-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+            Bulk send
+          </p>
+          <h3 className="mt-1 text-lg font-bold text-primary">
+            Send the same email to {leadIds.length} {leadIds.length === 1 ? "lead" : "leads"}
+          </h3>
+          <p className="mt-1 text-xs text-foreground/55">
+            Funnel-sequence templates only. Once a lead receives one of these, the drip cron
+            handles the rest. Ad-hoc templates aren't available in bulk because they need
+            per-lead personalisation.
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {!outcomes ? (
+            <div className="space-y-2">
+              {OUTREACH_SEQUENCE.map((s) => (
+                <button
+                  key={s.template}
+                  type="button"
+                  onClick={() => setPicked(s.template)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                    picked === s.template
+                      ? "border-secondary bg-secondary/5 ring-1 ring-secondary"
+                      : "border-accent bg-white hover:border-secondary/60 hover:bg-secondary/5"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-primary">{s.template}</div>
+                    <div className="mt-0.5 text-xs text-foreground/55">{s.label}</div>
+                  </div>
+                  {picked === s.template && (
+                    <span className="text-xs font-semibold text-secondary">Selected</span>
+                  )}
+                </button>
+              ))}
+              {error && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {summary && (
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <BulkTile label="Total" value={summary.total} tone="gray" />
+                  <BulkTile label="Sent" value={summary.sent} tone="green" />
+                  <BulkTile label="Skipped" value={summary.skipped} tone="amber" />
+                  <BulkTile label="Failed" value={summary.failed} tone="red" />
+                </div>
+              )}
+              <div className="mt-4 max-h-[40vh] overflow-y-auto rounded-xl border border-accent">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-accent/10 text-left text-[10px] uppercase tracking-wider text-foreground/50">
+                    <tr>
+                      <th className="px-3 py-2">Business</th>
+                      <th className="px-3 py-2">Email</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-accent/40">
+                    {outcomes.map((o) => (
+                      <tr key={o.leadId}>
+                        <td className="px-3 py-2 text-primary">{o.business_name || "—"}</td>
+                        <td className="px-3 py-2 text-foreground/70">{o.email || "—"}</td>
+                        <td className="px-3 py-2">
+                          <BulkStatusPill status={o.status} />
+                        </td>
+                        <td className="px-3 py-2 text-foreground/55">{o.message ?? ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex flex-wrap justify-between gap-2 border-t border-accent/40 bg-accent/5 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/10"
+          >
+            {outcomes ? "Close" : "Cancel"}
+          </button>
+          {!outcomes && (
+            <button
+              type="button"
+              onClick={send}
+              disabled={!picked || sending}
+              className="rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white hover:bg-secondary-light disabled:opacity-50"
+            >
+              {sending ? "Sending…" : `Send to ${leadIds.length}`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "gray" | "green" | "amber" | "red";
+}) {
+  const tones: Record<string, string> = {
+    gray: "border-gray-200 bg-gray-50 text-gray-700",
+    green: "border-green-200 bg-green-50 text-green-900",
+    amber: "border-amber-200 bg-amber-50 text-amber-900",
+    red: "border-red-200 bg-red-50 text-red-900",
+  };
+  return (
+    <div className={`rounded-lg border px-2 py-2 ${tones[tone]}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{label}</p>
+      <p className="mt-0.5 text-lg font-bold">{value}</p>
+    </div>
+  );
+}
+
+function BulkStatusPill({ status }: { status: "sent" | "skipped" | "failed" }) {
+  if (status === "sent") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+        Sent
+      </span>
+    );
+  }
+  if (status === "skipped") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+        Skipped
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+      Failed
+    </span>
   );
 }
 
