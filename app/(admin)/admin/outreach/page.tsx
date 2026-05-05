@@ -479,6 +479,8 @@ export default function AdminOutreachPage() {
                               <SendDropdown
                                 disabled={isBusy}
                                 onSend={(t) => sendTemplate(lead.id, t)}
+                                leadName={lead.business_name}
+                                leadEmail={lead.email}
                               />
                               <button
                                 type="button"
@@ -571,31 +573,27 @@ function Field({ label, required, children }: { label: string; required?: boolea
 function SendDropdown({
   disabled,
   onSend,
+  leadName,
+  leadEmail,
 }: {
   disabled: boolean;
   onSend: (template: string) => void;
+  leadName: string;
+  leadEmail: string;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click — uses a document listener instead of a
-  // full-screen overlay div. The overlay version was fighting the
-  // table's stacking context and swallowing clicks on the menu items.
+  // Lock background scroll while the modal is open and close on Escape.
   useEffect(() => {
     if (!open) return;
-    function onDocClick(e: MouseEvent) {
-      if (!wrapperRef.current) return;
-      if (!wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onDocClick);
+      document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -606,53 +604,122 @@ function SendDropdown({
   }
 
   return (
-    <div ref={wrapperRef} className="relative">
+    <>
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
         className="rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-secondary-light disabled:opacity-50"
       >
         Send →
       </button>
+
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-xl border border-accent bg-white py-1 shadow-lg">
-          {OUTREACH_SEQUENCE.length > 0 && (
-            <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
-              Funnel sequence
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 px-4 py-6 backdrop-blur-sm"
+          onClick={(e) => {
+            // Click on the backdrop closes; clicks on the modal itself stop
+            // bubbling so they don't dismiss.
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-accent bg-white shadow-xl">
+            {/* Header */}
+            <div className="border-b border-accent/40 px-6 py-5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                Send email
+              </p>
+              <h3 className="mt-1 text-lg font-bold text-primary">{leadName}</h3>
+              <p className="text-xs text-foreground/50">{leadEmail}</p>
             </div>
-          )}
-          {OUTREACH_SEQUENCE.map((s) => (
-            <button
-              key={s.template}
-              type="button"
-              onClick={() => pick(s.template)}
-              className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
-              title={s.label}
-            >
-              <div className="font-medium text-primary">{s.template}</div>
-              <div className="text-[10px] text-foreground/50">{s.label}</div>
-            </button>
-          ))}
-          {STANDALONE_TEMPLATES.length > 0 && (
-            <div className="mt-1 border-t border-accent/40 px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
-              Ad-hoc (manual only)
+
+            {/* Funnel sequence options */}
+            {OUTREACH_SEQUENCE.length > 0 && (
+              <div className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-4 w-1 rounded-full bg-secondary" aria-hidden />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Funnel sequence
+                  </h4>
+                </div>
+                <p className="ml-3 mt-1 text-xs text-foreground/50">
+                  Sends this template now and starts the lead in the auto-drip.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {OUTREACH_SEQUENCE.map((s) => (
+                    <TemplateCard
+                      key={s.template}
+                      title={s.template}
+                      subtitle={s.label}
+                      onClick={() => pick(s.template)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Standalone options */}
+            {STANDALONE_TEMPLATES.length > 0 && (
+              <div className="border-t border-accent/40 bg-accent/5 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-4 w-1 rounded-full bg-amber-400" aria-hidden />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Ad-hoc (manual only)
+                  </h4>
+                </div>
+                <p className="ml-3 mt-1 text-xs text-foreground/50">
+                  One-off send. Drip cron will not auto-progress from these.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {STANDALONE_TEMPLATES.map((s) => (
+                    <TemplateCard
+                      key={s.template}
+                      title={s.template}
+                      subtitle={s.description}
+                      onClick={() => pick(s.template)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 border-t border-accent/40 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/10"
+              >
+                Cancel
+              </button>
             </div>
-          )}
-          {STANDALONE_TEMPLATES.map((s) => (
-            <button
-              key={s.template}
-              type="button"
-              onClick={() => pick(s.template)}
-              className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
-              title={s.label}
-            >
-              <div className="font-medium text-primary">{s.template}</div>
-              <div className="text-[10px] text-foreground/50">{s.description}</div>
-            </button>
-          ))}
+          </div>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+function TemplateCard({
+  title,
+  subtitle,
+  onClick,
+}: {
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center justify-between gap-3 rounded-xl border border-accent bg-white px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/60 hover:bg-secondary/5 hover:shadow-sm"
+    >
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-primary">{title}</div>
+        <div className="mt-0.5 text-xs text-foreground/55">{subtitle}</div>
+      </div>
+      <span className="text-secondary opacity-0 transition-opacity group-hover:opacity-100">→</span>
+    </button>
   );
 }
