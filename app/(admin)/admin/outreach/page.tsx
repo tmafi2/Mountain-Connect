@@ -867,6 +867,10 @@ function BulkImportModal({
   const [results, setResults] = useState<ImportResult[] | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  // True once an actual (non-dryRun) import has succeeded — used to lock
+  // the Import button so the same batch can't be committed twice. Reset
+  // to false on every preview so the user can iterate without reopening.
+  const [committed, setCommitted] = useState(false);
 
   // Lock body scroll while open + Escape closes.
   useEffect(() => {
@@ -894,6 +898,7 @@ function BulkImportModal({
       setSummary(null);
       setParseError(null);
       setServerError(null);
+      setCommitted(false);
     };
     reader.readAsText(file);
   }
@@ -903,6 +908,7 @@ function BulkImportModal({
     setServerError(null);
     setResults(null);
     setSummary(null);
+    setCommitted(false);
     const { rows, error } = rowsFromCSV(text);
     if (error) {
       setParseError(error);
@@ -951,6 +957,7 @@ function BulkImportModal({
       } else {
         setResults(data.results);
         setSummary(data.summary);
+        setCommitted(true);
         // Reload the parent list so newly created leads appear.
         // Wait a beat so the admin sees the success summary first.
         if (data.summary.created > 0) {
@@ -973,14 +980,10 @@ function BulkImportModal({
     URL.revokeObjectURL(url);
   }
 
-  // After a real import (not dryRun), summary.errored stays nonzero
-  // when some inserts failed. We use this to pick the closing CTA copy.
-  const importComplete =
-    results !== null &&
-    summary !== null &&
-    !previewing &&
-    !importing &&
-    (summary.created > 0 || summary.errored > 0);
+  // True only after a real (non-dryRun) import has been committed. Used
+  // to swap the Cancel button label to "Close" and to lock the Import
+  // button so the same batch can't be submitted twice.
+  const importComplete = committed;
 
   return (
     <div
