@@ -244,10 +244,10 @@ export default function AdminOutreachPage() {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/admin/outreach/templates"
+            href="/admin/outreach/campaign"
             className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
           >
-            View templates →
+            Campaign overview →
           </Link>
           <button
             type="button"

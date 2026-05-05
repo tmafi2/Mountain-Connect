@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendWinterOutreachEmail, sendSalesDropinEmail } from "@/lib/email/send";
+import {
+  sendWinterOutreachEmail,
+  sendWinterFollowup1Email,
+  sendWinterFollowup2Email,
+  sendWinterFollowup3Email,
+  sendWinterFollowupFinalEmail,
+  sendSalesDropinEmail,
+} from "@/lib/email/send";
 import { allManualTemplates } from "@/lib/outreach/sequence";
 
 const BASE_URL = "https://www.mountainconnects.com";
@@ -75,6 +82,42 @@ export async function POST(
   try {
     if (template === "winter-outreach") {
       const result = await sendWinterOutreachEmail({
+        to: lead.email,
+        businessName: lead.business_name,
+        ctaUrl,
+        unsubscribeUrl,
+        locationName,
+      });
+      sendResult = { id: result?.data?.id };
+    } else if (template === "winter-followup-1") {
+      const result = await sendWinterFollowup1Email({
+        to: lead.email,
+        businessName: lead.business_name,
+        ctaUrl,
+        unsubscribeUrl,
+        locationName,
+      });
+      sendResult = { id: result?.data?.id };
+    } else if (template === "winter-followup-2") {
+      const result = await sendWinterFollowup2Email({
+        to: lead.email,
+        businessName: lead.business_name,
+        ctaUrl,
+        unsubscribeUrl,
+        locationName,
+      });
+      sendResult = { id: result?.data?.id };
+    } else if (template === "winter-followup-3") {
+      const result = await sendWinterFollowup3Email({
+        to: lead.email,
+        businessName: lead.business_name,
+        ctaUrl,
+        unsubscribeUrl,
+        locationName,
+      });
+      sendResult = { id: result?.data?.id };
+    } else if (template === "winter-followup-final") {
+      const result = await sendWinterFollowupFinalEmail({
         to: lead.email,
         businessName: lead.business_name,
         ctaUrl,

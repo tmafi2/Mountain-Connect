@@ -32,6 +32,10 @@ import { eoiThresholdNudgeEmail } from "./templates/eoi-threshold-nudge";
 import { firstApplicantNudgeEmail } from "./templates/first-applicant-nudge";
 import { claimLastChanceEmail } from "./templates/claim-last-chance";
 import { winterOutreachEmail } from "./templates/winter-outreach";
+import { winterFollowup1Email } from "./templates/winter-followup-1";
+import { winterFollowup2Email } from "./templates/winter-followup-2";
+import { winterFollowup3Email } from "./templates/winter-followup-3";
+import { winterFollowupFinalEmail } from "./templates/winter-followup-final";
 import { salesDropinEmail } from "./templates/sales-dropin";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
@@ -459,6 +463,79 @@ export async function sendWinterOutreachEmail(params: {
   locationName?: string;
 }) {
   const { subject, html } = winterOutreachEmail(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendWinterFollowup1Email(params: {
+  to: string;
+  businessName: string;
+  ctaUrl: string;
+  unsubscribeUrl: string;
+  locationName?: string;
+  contactPersonName?: string;
+}) {
+  const { subject, html } = winterFollowup1Email(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendWinterFollowup2Email(params: {
+  to: string;
+  businessName: string;
+  ctaUrl: string;
+  unsubscribeUrl: string;
+  locationName?: string;
+  contactPersonName?: string;
+}) {
+  const { subject, html } = winterFollowup2Email(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendWinterFollowup3Email(params: {
+  to: string;
+  businessName: string;
+  ctaUrl: string;
+  unsubscribeUrl: string;
+  replyToEmail?: string;
+  locationName?: string;
+  contactPersonName?: string;
+}) {
+  const { subject, html } = winterFollowup3Email(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendWinterFollowupFinalEmail(params: {
+  to: string;
+  businessName: string;
+  ctaUrl: string;
+  unsubscribeUrl: string;
+  locationName?: string;
+  contactPersonName?: string;
+}) {
+  const { subject, html } = winterFollowupFinalEmail(params);
   return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,

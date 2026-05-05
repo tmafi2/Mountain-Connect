@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendWinterOutreachEmail, sendSalesDropinEmail } from "@/lib/email/send";
+import {
+  sendWinterOutreachEmail,
+  sendWinterFollowup1Email,
+  sendWinterFollowup2Email,
+  sendWinterFollowup3Email,
+  sendWinterFollowupFinalEmail,
+  sendSalesDropinEmail,
+} from "@/lib/email/send";
 import { allManualTemplates } from "@/lib/outreach/sequence";
 
 const SAMPLE_BASE_URL = "https://www.mountainconnects.com";
@@ -51,29 +58,34 @@ export async function POST(
   const ctaUrl = `${SAMPLE_BASE_URL}/signup`;
   const unsubscribeUrl = `${SAMPLE_BASE_URL}/unsubscribe/preview-token`;
 
+  const contactPersonName = body.contactPersonName?.trim() || undefined;
+  const common = { to, businessName, locationName, contactPersonName, ctaUrl, unsubscribeUrl };
+
   try {
-    if (name === "winter-outreach") {
-      const r = await sendWinterOutreachEmail({
-        to,
-        businessName,
-        locationName,
-        ctaUrl,
-        unsubscribeUrl,
-      });
-      return NextResponse.json({ success: true, resendId: r?.data?.id ?? null, sentTo: to });
+    let r;
+    switch (name) {
+      case "winter-outreach":
+        r = await sendWinterOutreachEmail(common);
+        break;
+      case "winter-followup-1":
+        r = await sendWinterFollowup1Email(common);
+        break;
+      case "winter-followup-2":
+        r = await sendWinterFollowup2Email(common);
+        break;
+      case "winter-followup-3":
+        r = await sendWinterFollowup3Email(common);
+        break;
+      case "winter-followup-final":
+        r = await sendWinterFollowupFinalEmail(common);
+        break;
+      case "sales-dropin":
+        r = await sendSalesDropinEmail(common);
+        break;
+      default:
+        return NextResponse.json({ error: `Template "${name}" has no send handler` }, { status: 500 });
     }
-    if (name === "sales-dropin") {
-      const r = await sendSalesDropinEmail({
-        to,
-        businessName,
-        contactPersonName: body.contactPersonName?.trim() || undefined,
-        locationName,
-        ctaUrl,
-        unsubscribeUrl,
-      });
-      return NextResponse.json({ success: true, resendId: r?.data?.id ?? null, sentTo: to });
-    }
-    return NextResponse.json({ error: `Template "${name}" has no send handler` }, { status: 500 });
+    return NextResponse.json({ success: true, resendId: r?.data?.id ?? null, sentTo: to });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 502 });

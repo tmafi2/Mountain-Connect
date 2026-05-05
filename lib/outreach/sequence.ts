@@ -48,9 +48,26 @@ export const OUTREACH_SEQUENCE: OutreachStep[] = [
     delayDaysAfterPrevious: 0,
     label: "Initial winter outreach (manual)",
   },
-  // Future follow-ups plug in here, e.g.:
-  // { template: "winter-followup-1", delayDaysAfterPrevious: 7,  label: "Follow-up #1" },
-  // { template: "winter-followup-2", delayDaysAfterPrevious: 14, label: "Follow-up #2 / final" },
+  {
+    template: "winter-followup-1",
+    delayDaysAfterPrevious: 3,
+    label: "Quick follow-up — bumping the inbox",
+  },
+  {
+    template: "winter-followup-2",
+    delayDaysAfterPrevious: 7,
+    label: "Workers near you — live demand pitch",
+  },
+  {
+    template: "winter-followup-3",
+    delayDaysAfterPrevious: 14,
+    label: "Want me to set you up? — friction removal",
+  },
+  {
+    template: "winter-followup-final",
+    delayDaysAfterPrevious: 14,
+    label: "Last note — graceful breakup",
+  },
 ];
 
 export const STANDALONE_TEMPLATES: StandaloneTemplate[] = [

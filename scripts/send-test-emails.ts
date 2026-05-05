@@ -6,6 +6,10 @@ import { firstApplicantNudgeEmail } from "../lib/email/templates/first-applicant
 import { eoiThresholdNudgeEmail } from "../lib/email/templates/eoi-threshold-nudge";
 import { claimLastChanceEmail } from "../lib/email/templates/claim-last-chance";
 import { winterOutreachEmail } from "../lib/email/templates/winter-outreach";
+import { winterFollowup1Email } from "../lib/email/templates/winter-followup-1";
+import { winterFollowup2Email } from "../lib/email/templates/winter-followup-2";
+import { winterFollowup3Email } from "../lib/email/templates/winter-followup-3";
+import { winterFollowupFinalEmail } from "../lib/email/templates/winter-followup-final";
 import { salesDropinEmail } from "../lib/email/templates/sales-dropin";
 
 const TO = "tyler@mountainconnects.com";
@@ -44,6 +48,42 @@ const templates = [
   {
     name: "winter-outreach",
     ...winterOutreachEmail({
+      businessName: "Thredbo Alpine Village",
+      ctaUrl: `${BASE}/signup`,
+      unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
+      locationName: "Thredbo",
+    }),
+  },
+  {
+    name: "winter-followup-1",
+    ...winterFollowup1Email({
+      businessName: "Thredbo Alpine Village",
+      ctaUrl: `${BASE}/signup`,
+      unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
+      locationName: "Thredbo",
+    }),
+  },
+  {
+    name: "winter-followup-2",
+    ...winterFollowup2Email({
+      businessName: "Thredbo Alpine Village",
+      ctaUrl: `${BASE}/signup`,
+      unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
+      locationName: "Thredbo",
+    }),
+  },
+  {
+    name: "winter-followup-3",
+    ...winterFollowup3Email({
+      businessName: "Thredbo Alpine Village",
+      ctaUrl: `${BASE}/signup`,
+      unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,
+      locationName: "Thredbo",
+    }),
+  },
+  {
+    name: "winter-followup-final",
+    ...winterFollowupFinalEmail({
       businessName: "Thredbo Alpine Village",
       ctaUrl: `${BASE}/signup`,
       unsubscribeUrl: `${BASE}/unsubscribe/test-token-abc123`,

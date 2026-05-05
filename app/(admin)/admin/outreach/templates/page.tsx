@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   OUTREACH_SEQUENCE,
   STANDALONE_TEMPLATES,
@@ -34,7 +35,21 @@ const ALL_TEMPLATES: TemplateMeta[] = [
 ];
 
 export default function AdminOutreachTemplatesPage() {
-  const [selected, setSelected] = useState<string>(ALL_TEMPLATES[0]?.template ?? "");
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8 text-sm text-foreground/40">Loading…</div>}>
+      <Inner />
+    </Suspense>
+  );
+}
+
+function Inner() {
+  const searchParams = useSearchParams();
+  // Optional ?template=name — used by the campaign overview to deep-link
+  // straight to a specific template's preview.
+  const initial = searchParams.get("template") ?? ALL_TEMPLATES[0]?.template ?? "";
+  const [selected, setSelected] = useState<string>(
+    ALL_TEMPLATES.find((t) => t.template === initial) ? initial : ALL_TEMPLATES[0]?.template ?? ""
+  );
   const [businessName, setBusinessName] = useState("Thredbo Alpine Village");
   const [locationName, setLocationName] = useState("Thredbo");
   const [contactPersonName, setContactPersonName] = useState("");

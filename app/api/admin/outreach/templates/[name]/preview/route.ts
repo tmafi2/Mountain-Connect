@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { winterOutreachEmail } from "@/lib/email/templates/winter-outreach";
+import { winterFollowup1Email } from "@/lib/email/templates/winter-followup-1";
+import { winterFollowup2Email } from "@/lib/email/templates/winter-followup-2";
+import { winterFollowup3Email } from "@/lib/email/templates/winter-followup-3";
+import { winterFollowupFinalEmail } from "@/lib/email/templates/winter-followup-final";
 import { salesDropinEmail } from "@/lib/email/templates/sales-dropin";
 import { allManualTemplates } from "@/lib/outreach/sequence";
 
@@ -36,18 +40,29 @@ export async function GET(
 
   let html: string;
   let subject: string;
+  const common = { businessName, locationName, contactPersonName, ctaUrl, unsubscribeUrl };
   if (name === "winter-outreach") {
-    const r = winterOutreachEmail({ businessName, locationName, ctaUrl, unsubscribeUrl });
+    const r = winterOutreachEmail(common);
+    html = r.html;
+    subject = r.subject;
+  } else if (name === "winter-followup-1") {
+    const r = winterFollowup1Email(common);
+    html = r.html;
+    subject = r.subject;
+  } else if (name === "winter-followup-2") {
+    const r = winterFollowup2Email(common);
+    html = r.html;
+    subject = r.subject;
+  } else if (name === "winter-followup-3") {
+    const r = winterFollowup3Email(common);
+    html = r.html;
+    subject = r.subject;
+  } else if (name === "winter-followup-final") {
+    const r = winterFollowupFinalEmail(common);
     html = r.html;
     subject = r.subject;
   } else if (name === "sales-dropin") {
-    const r = salesDropinEmail({
-      businessName,
-      contactPersonName,
-      locationName,
-      ctaUrl,
-      unsubscribeUrl,
-    });
+    const r = salesDropinEmail(common);
     html = r.html;
     subject = r.subject;
   } else {
