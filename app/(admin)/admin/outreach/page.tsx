@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
+import { OUTREACH_SEQUENCE, STANDALONE_TEMPLATES } from "@/lib/outreach/sequence";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -140,13 +141,26 @@ export default function AdminOutreachPage() {
   /* ─── Send template ───────────────────────────────────── */
 
   async function sendTemplate(leadId: string, template: string) {
-    if (!confirm(`Send "${template}" to this lead?`)) return;
+    // sales-dropin lets the admin optionally personalise the greeting
+    // with the name of the person they spoke to in person. Skip the
+    // prompt for other templates that don't use this field.
+    let contactPersonName: string | undefined;
+    if (template === "sales-dropin") {
+      const input = prompt(
+        "Optional: name of the person you spoke to (leave blank to greet the team generically)",
+        ""
+      );
+      if (input === null) return; // cancelled
+      contactPersonName = input.trim() || undefined;
+    } else {
+      if (!confirm(`Send "${template}" to this lead?`)) return;
+    }
     setBusyId(leadId);
     try {
       const res = await fetch(`/api/admin/outreach/leads/${leadId}/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template }),
+        body: JSON.stringify({ template, contactPersonName }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
@@ -229,6 +243,12 @@ export default function AdminOutreachPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/admin/outreach/templates"
+            className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
+          >
+            View templates →
+          </Link>
           <button
             type="button"
             disabled
@@ -459,6 +479,8 @@ export default function AdminOutreachPage() {
                               <SendDropdown
                                 disabled={isBusy}
                                 onSend={(t) => sendTemplate(lead.id, t)}
+                                leadName={lead.business_name}
+                                leadEmail={lead.email}
                               />
                               <button
                                 type="button"
@@ -551,43 +573,153 @@ function Field({ label, required, children }: { label: string; required?: boolea
 function SendDropdown({
   disabled,
   onSend,
+  leadName,
+  leadEmail,
 }: {
   disabled: boolean;
   onSend: (template: string) => void;
+  leadName: string;
+  leadEmail: string;
 }) {
   const [open, setOpen] = useState(false);
+
+  // Lock background scroll while the modal is open and close on Escape.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  function pick(template: string) {
+    setOpen(false);
+    onSend(template);
+  }
+
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
         className="rounded-lg bg-secondary px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-secondary-light disabled:opacity-50"
       >
         Send →
       </button>
+
       {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-accent bg-white py-1 shadow-lg">
-            {OUTREACH_SEQUENCE.map((s) => (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 px-4 py-6 backdrop-blur-sm"
+          onClick={(e) => {
+            // Click on the backdrop closes; clicks on the modal itself stop
+            // bubbling so they don't dismiss.
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-accent bg-white shadow-xl">
+            {/* Header */}
+            <div className="border-b border-accent/40 px-6 py-5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                Send email
+              </p>
+              <h3 className="mt-1 text-lg font-bold text-primary">{leadName}</h3>
+              <p className="text-xs text-foreground/50">{leadEmail}</p>
+            </div>
+
+            {/* Funnel sequence options */}
+            {OUTREACH_SEQUENCE.length > 0 && (
+              <div className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-4 w-1 rounded-full bg-secondary" aria-hidden />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Funnel sequence
+                  </h4>
+                </div>
+                <p className="ml-3 mt-1 text-xs text-foreground/50">
+                  Sends this template now and starts the lead in the auto-drip.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {OUTREACH_SEQUENCE.map((s) => (
+                    <TemplateCard
+                      key={s.template}
+                      title={s.template}
+                      subtitle={s.label}
+                      onClick={() => pick(s.template)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Standalone options */}
+            {STANDALONE_TEMPLATES.length > 0 && (
+              <div className="border-t border-accent/40 bg-accent/5 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-4 w-1 rounded-full bg-amber-400" aria-hidden />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    Ad-hoc (manual only)
+                  </h4>
+                </div>
+                <p className="ml-3 mt-1 text-xs text-foreground/50">
+                  One-off send. Drip cron will not auto-progress from these.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {STANDALONE_TEMPLATES.map((s) => (
+                    <TemplateCard
+                      key={s.template}
+                      title={s.template}
+                      subtitle={s.description}
+                      onClick={() => pick(s.template)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 border-t border-accent/40 px-6 py-4">
               <button
-                key={s.template}
                 type="button"
-                onClick={() => {
-                  setOpen(false);
-                  onSend(s.template);
-                }}
-                className="block w-full px-3 py-2 text-left text-xs hover:bg-accent/10"
-                title={s.label}
+                onClick={() => setOpen(false)}
+                className="rounded-lg border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/60 hover:bg-accent/10"
               >
-                <div className="font-medium text-primary">{s.template}</div>
-                <div className="text-[10px] text-foreground/50">{s.label}</div>
+                Cancel
               </button>
-            ))}
+            </div>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </>
+  );
+}
+
+function TemplateCard({
+  title,
+  subtitle,
+  onClick,
+}: {
+  title: string;
+  subtitle: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center justify-between gap-3 rounded-xl border border-accent bg-white px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-secondary/60 hover:bg-secondary/5 hover:shadow-sm"
+    >
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-primary">{title}</div>
+        <div className="mt-0.5 text-xs text-foreground/55">{subtitle}</div>
+      </div>
+      <span className="text-secondary opacity-0 transition-opacity group-hover:opacity-100">→</span>
+    </button>
   );
 }

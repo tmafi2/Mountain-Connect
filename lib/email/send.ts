@@ -32,6 +32,7 @@ import { eoiThresholdNudgeEmail } from "./templates/eoi-threshold-nudge";
 import { firstApplicantNudgeEmail } from "./templates/first-applicant-nudge";
 import { claimLastChanceEmail } from "./templates/claim-last-chance";
 import { winterOutreachEmail } from "./templates/winter-outreach";
+import { salesDropinEmail } from "./templates/sales-dropin";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -458,6 +459,24 @@ export async function sendWinterOutreachEmail(params: {
   locationName?: string;
 }) {
   const { subject, html } = winterOutreachEmail(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendSalesDropinEmail(params: {
+  to: string;
+  businessName: string;
+  contactPersonName?: string;
+  locationName?: string;
+  ctaUrl: string;
+  unsubscribeUrl: string;
+}) {
+  const { subject, html } = salesDropinEmail(params);
   return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
