@@ -31,3 +31,24 @@ export async function sendEmail(
   }
   return result.data;
 }
+
+// Batch send up to 100 emails in a single Resend API call. Avoids the
+// per-second rate limit when blasting to a large recipient list (the
+// per-recipient sendEmail() path quickly hits "Too many requests").
+// Throws if the whole batch is rejected; otherwise returns an array
+// of email IDs in the same order as the input. Caller is responsible
+// for chunking input into <= 100 entries.
+export async function sendEmailBatch(
+  params: CreateEmailOptions[]
+): Promise<{ id: string }[]> {
+  const client = getResendClient();
+  if (!client) return [];
+  if (params.length === 0) return [];
+  const result = await client.batch.send(params);
+  if (result.error) {
+    const err = result.error as { message?: string; name?: string };
+    const message = err.message || err.name || JSON.stringify(err);
+    throw new Error(`Resend batch: ${message}`);
+  }
+  return result.data?.data ?? [];
+}
