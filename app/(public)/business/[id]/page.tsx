@@ -117,9 +117,12 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     resortData = resorts || [];
   }
 
-  // Get nearby town name if business operates in a town
+  // Get nearby town name when the business has a town set. Per the
+  // platform rule, nearby_town_id presence trumps the resort link —
+  // setting a town means the business is in that town, regardless of
+  // the legacy operates_in_town flag.
   let nearbyTownName: string | null = null;
-  if (business.operates_in_town && business.nearby_town_id) {
+  if (business.nearby_town_id) {
     const { data: town } = await supabase
       .from("nearby_towns")
       .select("name")
@@ -240,11 +243,11 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     url: `${BASE_URL}/business/${id}`,
     ...(business.logo_url && { logo: business.logo_url }),
     ...(business.description && { description: business.description }),
-    ...((business.operates_in_town && nearbyTownName) || business.location) && {
+    ...((nearbyTownName) || business.location) && {
       address: {
         "@type": "PostalAddress",
         addressLocality:
-          (business.operates_in_town && nearbyTownName) || business.location,
+          (nearbyTownName) || business.location,
         ...(business.country && { addressCountry: business.country }),
       },
     },
@@ -340,14 +343,14 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
 
           {/* Location · Established — meta line */}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground/60">
-            {(business.operates_in_town && nearbyTownName) || business.location || business.country ? (
+            {(nearbyTownName) || business.location || business.country ? (
               <span className="flex items-center gap-1.5">
                 <svg className="h-4 w-4 shrink-0 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
                 <span className="font-medium text-foreground/80">
-                  {business.operates_in_town && nearbyTownName
+                  {nearbyTownName
                     ? [nearbyTownName, business.country].filter(Boolean).join(", ")
                     : [business.location, business.country].filter(Boolean).join(", ")}
                 </span>
@@ -884,7 +887,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
           {/* Browse Jobs CTA — contextual based on resort/town when available */}
           {(() => {
             const ctaResort = resortData[0];
-            const ctaTown = business.operates_in_town && nearbyTownName ? nearbyTownName : null;
+            const ctaTown = nearbyTownName ? nearbyTownName : null;
             const ctaLabel = ctaTown
               ? `More jobs in ${ctaTown}`
               : ctaResort

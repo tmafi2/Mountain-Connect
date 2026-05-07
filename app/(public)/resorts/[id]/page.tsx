@@ -7,6 +7,7 @@ import { formatPay } from "@/lib/utils/format-pay";
 
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
+import ResortBusinesses from "./ResortBusinesses";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
@@ -142,7 +143,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     description: string | null;
     distance_km: number | null;
   }[] = [];
-  let linkedBusinesses: {
+  type LinkedBusiness = {
     id: string;
     business_name: string;
     logo_url: string | null;
@@ -150,7 +151,12 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     location: string | null;
     verification_status: string | null;
     description: string | null;
-  }[] = [];
+    operates_in_town: boolean | null;
+    nearby_town_id: string | null;
+    nearby_town_name: string | null;
+  };
+  let atResortBusinesses: LinkedBusiness[] = [];
+  let nearbyBusinesses: LinkedBusiness[] = [];
   let realJobs: {
     id: string;
     title: string;
@@ -181,55 +187,142 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     }
 
     if (resortUuid) {
-      // Get businesses linked via business_resorts junction table
+      // Pull this resort's nearby towns first — we use the IDs to also
+      // surface businesses based in those towns (regardless of which
+      // resort they explicitly linked to). Sorted by distance so the
+      // "Nearby towns" hero row reads closest-first.
+      const { data: townRowsEarly } = await supabase
+        .from("resort_nearby_towns")
+        .select("distance_km, nearby_towns(id, name, slug, description)")
+        .eq("resort_id", resortUuid);
+
+      if (townRowsEarly) {
+        nearbyTowns = townRowsEarly
+          .map((row) => {
+            const t = row.nearby_towns as unknown as {
+              id: string;
+              name: string;
+              slug: string;
+              description: string | null;
+            };
+            return {
+              id: t.id,
+              name: t.name,
+              slug: t.slug,
+              description: t.description,
+              distance_km: row.distance_km,
+            };
+          })
+          .sort((a, b) => {
+            // Closest first; null distances sink to the bottom alphabetically.
+            if (a.distance_km == null && b.distance_km == null) return a.name.localeCompare(b.name);
+            if (a.distance_km == null) return 1;
+            if (b.distance_km == null) return -1;
+            return a.distance_km - b.distance_km;
+          });
+      }
+      const nearbyTownIds = nearbyTowns.map((t) => t.id);
+
+      // Build a name lookup so each "nearby" business can render a
+      // "Based in Jindabyne" pill without an extra round-trip per row.
+      const townNameById = new Map<string, string>();
+      for (const t of nearbyTowns) townNameById.set(t.id, t.name);
+
+      const BIZ_COLS =
+        "id, business_name, logo_url, industries, location, verification_status, description, operates_in_town, nearby_town_id";
+
+      // ── 1. Businesses linked to THIS resort (via FK or junction) ──
       const { data: bizResorts } = await supabase
         .from("business_resorts")
         .select("business_id")
         .eq("resort_id", resortUuid);
 
-      // Also get businesses with resort_id directly on their profile
       const { data: directBiz } = await supabase
         .from("business_profiles")
-        .select("id, business_name, logo_url, industries, location, verification_status, description")
+        .select(BIZ_COLS)
         .eq("resort_id", resortUuid);
 
-      // Merge both sources
       const bizIds = new Set<string>();
-      const allBusinesses: typeof linkedBusinesses = [];
-
+      const linkedToThisResort: LinkedBusiness[] = [];
       if (directBiz) {
-        for (const b of directBiz) {
+        for (const b of directBiz as LinkedBusiness[]) {
           if (!bizIds.has(b.id)) {
             bizIds.add(b.id);
-            allBusinesses.push(b);
+            linkedToThisResort.push(b);
           }
         }
       }
-
       if (bizResorts && bizResorts.length > 0) {
-        const junctionBizIds = bizResorts.map((br) => br.business_id).filter((bid) => !bizIds.has(bid));
+        const junctionBizIds = bizResorts
+          .map((br) => br.business_id)
+          .filter((bid) => !bizIds.has(bid));
         if (junctionBizIds.length > 0) {
           const { data: junctionBiz } = await supabase
             .from("business_profiles")
-            .select("id, business_name, logo_url, industries, location, verification_status, description")
+            .select(BIZ_COLS)
             .in("id", junctionBizIds);
           if (junctionBiz) {
-            for (const b of junctionBiz) {
+            for (const b of junctionBiz as LinkedBusiness[]) {
               if (!bizIds.has(b.id)) {
                 bizIds.add(b.id);
-                allBusinesses.push(b);
+                linkedToThisResort.push(b);
               }
             }
           }
         }
       }
 
-      // Sort: verified first, then alphabetically
-      linkedBusinesses = allBusinesses.sort((a, b) => {
-        if (a.verification_status === "verified" && b.verification_status !== "verified") return -1;
-        if (b.verification_status === "verified" && a.verification_status !== "verified") return 1;
-        return a.business_name.localeCompare(b.business_name);
+      // ── 2. Businesses based in any of THIS resort's nearby towns ──
+      // (regardless of their resort_id link). Lets a Jindabyne café
+      // surface on Thredbo, Perisher, AND Charlotte's Pass without
+      // each business having to manually link to all three.
+      // Rule (per spec): nearby_town_id presence is the source of
+      // truth. The legacy operates_in_town flag is no longer used —
+      // setting a town implies the business sits there.
+      let townScopedBiz: LinkedBusiness[] = [];
+      if (nearbyTownIds.length > 0) {
+        const { data: tBiz } = await supabase
+          .from("business_profiles")
+          .select(BIZ_COLS)
+          .in("nearby_town_id", nearbyTownIds);
+        if (tBiz) townScopedBiz = tBiz as LinkedBusiness[];
+      }
+
+      // ── Partition into atResort vs nearby ──
+      // Rule: any business with nearby_town_id set goes into "Other
+      // businesses nearby", regardless of which resort they linked to.
+      // Resort link is only used as a fallback when no town is set.
+      const seenIds = new Set<string>();
+      const annotate = (b: LinkedBusiness): LinkedBusiness => ({
+        ...b,
+        nearby_town_name: b.nearby_town_id ? townNameById.get(b.nearby_town_id) ?? null : null,
       });
+
+      for (const b of linkedToThisResort) {
+        if (seenIds.has(b.id)) continue;
+        seenIds.add(b.id);
+        const annotated = annotate(b);
+        if (b.nearby_town_id) {
+          nearbyBusinesses.push(annotated);
+        } else {
+          atResortBusinesses.push(annotated);
+        }
+      }
+      for (const b of townScopedBiz) {
+        if (seenIds.has(b.id)) continue;
+        seenIds.add(b.id);
+        nearbyBusinesses.push(annotate(b));
+      }
+
+      // Stable sort — verified first, then alphabetical.
+      const sortBiz = (arr: LinkedBusiness[]) =>
+        arr.sort((a, b) => {
+          if (a.verification_status === "verified" && b.verification_status !== "verified") return -1;
+          if (b.verification_status === "verified" && a.verification_status !== "verified") return 1;
+          return a.business_name.localeCompare(b.business_name);
+        });
+      atResortBusinesses = sortBiz(atResortBusinesses);
+      nearbyBusinesses = sortBiz(nearbyBusinesses);
 
       // Get real job posts for this resort
       const { data: jobs } = await supabase
@@ -274,29 +367,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
         }
       }
 
-      // Get nearby towns for this resort
-      const { data: townRows } = await supabase
-        .from("resort_nearby_towns")
-        .select("distance_km, nearby_towns(id, name, slug, description)")
-        .eq("resort_id", resortUuid);
-
-      if (townRows) {
-        nearbyTowns = townRows.map((row) => {
-          const t = row.nearby_towns as unknown as {
-            id: string;
-            name: string;
-            slug: string;
-            description: string | null;
-          };
-          return {
-            id: t.id,
-            name: t.name,
-            slug: t.slug,
-            description: t.description,
-            distance_km: row.distance_km,
-          };
-        });
-      }
+      // (nearby towns are fetched at the top of this block now — see above.)
     }
   } catch (err) {
     console.error("Failed to load resort data from Supabase:", err);
@@ -451,6 +522,71 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
         )}
       </div>
 
+      {/* Nearby towns — prominent row right under the stats so users
+          see the closest town(s) before they dig into the rest of the
+          page. Sorted closest-first by distance_km. Each card links
+          straight to the town's living-info / jobs page. */}
+      {nearbyTowns.length > 0 && (
+        <section className="mt-8 rounded-2xl border border-accent bg-gradient-to-br from-secondary/5 via-white to-highlight/5 p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50">
+                Nearby town{nearbyTowns.length === 1 ? "" : "s"}
+              </p>
+              <h2 className="mt-1 text-lg font-bold text-primary">
+                Where workers live near {resort.name}
+              </h2>
+            </div>
+            <p className="text-xs text-foreground/55">
+              Closest first — click to see jobs &amp; living info.
+            </p>
+          </div>
+
+          <div
+            className={`mt-4 grid gap-3 ${
+              nearbyTowns.length === 1
+                ? "grid-cols-1"
+                : nearbyTowns.length === 2
+                  ? "grid-cols-1 sm:grid-cols-2"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
+            {nearbyTowns.map((t) => (
+              <Link
+                key={t.id}
+                href={`/towns/${t.slug}`}
+                className="group flex items-start gap-3 rounded-xl border border-accent bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-secondary/60 hover:shadow-md"
+              >
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-secondary/20 to-highlight/20 text-xl"
+                  aria-hidden
+                >
+                  🏘️
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-primary group-hover:text-secondary">
+                      {t.name}
+                    </p>
+                    {t.distance_km != null && (
+                      <span className="rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-medium text-foreground/60">
+                        {t.distance_km}km away
+                      </span>
+                    )}
+                  </div>
+                  {t.description && (
+                    <p className="mt-1 line-clamp-2 text-xs text-foreground/55">{t.description}</p>
+                  )}
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-secondary opacity-0 transition-opacity group-hover:opacity-100">
+                    Visit {t.name} →
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Main Content Grid */}
       <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-3">
         {/* Left Column — Main Content */}
@@ -603,72 +739,20 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                   </div>
                 )}
 
-                {/* Linked Businesses (from Supabase) */}
-                {linkedBusinesses.length > 0 && (
-                  <div>
-                    <p className="mb-3 text-sm font-medium text-foreground/60">
-                      Businesses at {resort.name}
-                    </p>
-                    <div className="space-y-2">
-                      {linkedBusinesses.map((biz) => {
-                        const isVerified = biz.verification_status === "verified";
-                        return (
-                          <Link
-                            key={biz.id}
-                            href={`/business/${biz.id}`}
-                            className={`group flex items-center gap-3 rounded-lg border p-3 transition-all hover:shadow-sm ${
-                              isVerified
-                                ? "border-accent bg-white hover:border-secondary"
-                                : "border-accent/60 bg-accent/5 hover:border-accent"
-                            }`}
-                          >
-                            {biz.logo_url ? (
-                              <img src={biz.logo_url} alt={biz.business_name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                            ) : (
-                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                                isVerified ? "bg-primary/10 text-primary" : "bg-accent/20 text-foreground/40"
-                              }`}>
-                                {biz.business_name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className={`text-sm font-semibold truncate ${
-                                  isVerified ? "text-primary group-hover:text-secondary" : "text-foreground/60"
-                                }`}>
-                                  {biz.business_name}
-                                </p>
-                                {isVerified ? (
-                                  <span className="shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
-                                    Verified
-                                  </span>
-                                ) : (
-                                  <span className="shrink-0 rounded-full bg-accent/30 px-1.5 py-0.5 text-[10px] font-medium text-foreground/40">
-                                    Unverified
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-foreground/50 truncate">
-                                {Array.isArray(biz.industries) && biz.industries.length > 0
-                                  ? biz.industries.map((ind: string) => {
-                                      const label = ind.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
-                                      return label;
-                                    }).join(", ")
-                                  : biz.location || ""}
-                              </p>
-                            </div>
-                            <svg className="h-4 w-4 shrink-0 text-foreground/30 group-hover:text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
+                {/* Linked Businesses (from Supabase) — split into "at
+                    resort" vs "nearby" with a verified-only toggle.
+                    Lives in a client component so the toggle state can
+                    flip between the two without a round-trip. */}
+                {(atResortBusinesses.length > 0 || nearbyBusinesses.length > 0) && (
+                  <ResortBusinesses
+                    resortName={resort.name}
+                    atResort={atResortBusinesses}
+                    nearby={nearbyBusinesses}
+                  />
                 )}
 
                 {/* Fallback: Main Employers from static data */}
-                {linkedBusinesses.length === 0 && resort.main_employers && (
+                {atResortBusinesses.length === 0 && nearbyBusinesses.length === 0 && resort.main_employers && (
                   <div>
                     <p className="mb-2 text-sm font-medium text-foreground/60">
                       Main Employers
