@@ -59,7 +59,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "1",
     name: "Whistler Blackcomb",
-    banner_image_url: "https://images.unsplash.com/photo-1731445289819-ed2efbdb9d83?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -147,7 +147,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "11",
     name: "Banff / Lake Louise",
-    banner_image_url: "https://images.unsplash.com/photo-1610906592995-1852b86452b9?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -238,7 +238,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "15",
     name: "Revelstoke",
-    banner_image_url: "https://images.unsplash.com/photo-1610394295702-00b39272459d?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -328,7 +328,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "5",
     name: "Vail",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-5fc219569c50?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -418,7 +418,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "16",
     name: "Aspen Snowmass",
-    banner_image_url: "https://images.unsplash.com/photo-1618774659391-7e75004a11b7?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -509,7 +509,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "17",
     name: "Breckenridge",
-    banner_image_url: "https://images.unsplash.com/photo-1606666334434-4c24739144a5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -599,7 +599,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "18",
     name: "Jackson Hole",
-    banner_image_url: "https://images.unsplash.com/photo-1606666334400-8c0cbe58cbd8?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -690,7 +690,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "19",
     name: "Park City",
-    banner_image_url: "https://images.unsplash.com/photo-1698323200139-c14df11612ac?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -781,7 +781,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "20",
     name: "Big Sky",
-    banner_image_url: "https://images.unsplash.com/photo-1582641637614-3f446aa083fa?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -871,7 +871,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "21",
     name: "Steamboat Springs",
-    banner_image_url: "https://images.unsplash.com/photo-1589496145106-2af25f7c8c1d?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -961,7 +961,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "22",
     name: "Stowe",
-    banner_image_url: "https://images.unsplash.com/photo-1696912161244-f3774bcb4964?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "10",
     country: "USA",
     description:
@@ -1052,7 +1052,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "23",
     name: "Telluride",
-    banner_image_url: "https://images.unsplash.com/photo-1696912161455-6e948f3572c5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1142,7 +1142,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "24",
     name: "Sun Valley",
-    banner_image_url: "https://images.unsplash.com/photo-1709506531620-6195c890ef10?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1230,7 +1230,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "25",
     name: "Mammoth Mountain",
-    banner_image_url: "https://images.unsplash.com/photo-1647966233050-a4b640d89fc6?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1320,7 +1320,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "26",
     name: "Crested Butte",
-    banner_image_url: "https://images.unsplash.com/photo-1707045611662-d3e7cee046b9?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1413,7 +1413,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "2",
     name: "Chamonix Mont-Blanc",
-    banner_image_url: "https://images.unsplash.com/photo-1701358232769-998897181fba?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1497,7 +1497,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "27",
     name: "Val d'Isère",
-    banner_image_url: "https://images.unsplash.com/photo-1636581563868-d5322a0360f7?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1589,7 +1589,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "28",
     name: "Val Thorens",
-    banner_image_url: "https://images.unsplash.com/photo-1673965918877-82154906042b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1681,7 +1681,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "29",
     name: "Méribel",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-d93dc8c9723e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1773,7 +1773,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "30",
     name: "Courchevel",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-a7e6aaea6495?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1868,7 +1868,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "31",
     name: "Morzine / Avoriaz",
-    banner_image_url: "https://images.unsplash.com/photo-1665859223778-25a4e39b259e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1963,7 +1963,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "32",
     name: "Les Arcs / La Plagne",
-    banner_image_url: "https://images.unsplash.com/photo-1692869344214-c45779feb9be?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -2058,7 +2058,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "4",
     name: "Zermatt",
-    banner_image_url: "https://images.unsplash.com/photo-1676048746226-113269dd8084?w=1200&q=80",
+    banner_image_url: "/resorts/countries/switzerland.jpg",
     region_id: "1",
     country: "Switzerland",
     description:
@@ -2139,7 +2139,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "33",
     name: "Verbier",
-    banner_image_url: "https://images.unsplash.com/photo-1676048746230-0c11ed158c78?w=1200&q=80",
+    banner_image_url: "/resorts/countries/switzerland.jpg",
     region_id: "1",
     country: "Switzerland",
     description:
@@ -2232,7 +2232,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "34",
     name: "St. Moritz",
-    banner_image_url: "https://images.unsplash.com/photo-1644335785854-2acd1f649fc0?w=1200&q=80",
+    banner_image_url: "/resorts/countries/switzerland.jpg",
     region_id: "1",
     country: "Switzerland",
     description:
@@ -2328,7 +2328,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "35",
     name: "St. Anton am Arlberg",
-    banner_image_url: "https://images.unsplash.com/photo-1635721980613-684353ae88dd?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2421,7 +2421,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "36",
     name: "Kitzbühel",
-    banner_image_url: "https://images.unsplash.com/photo-1548075263-f345eba55f65?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2515,7 +2515,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "37",
     name: "Ischgl",
-    banner_image_url: "https://images.unsplash.com/photo-1640093339706-3d40d8f0a4ab?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2608,7 +2608,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "38",
     name: "Sölden",
-    banner_image_url: "https://images.unsplash.com/photo-1681719940438-2363caac70ad?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2703,7 +2703,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "39",
     name: "Mayrhofen",
-    banner_image_url: "https://images.unsplash.com/photo-1710197094645-f3c606391039?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2800,7 +2800,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "40",
     name: "Livigno",
-    banner_image_url: "https://images.unsplash.com/photo-1710197232572-13e1ace07d16?w=1200&q=80",
+    banner_image_url: "/resorts/countries/italy.jpg",
     region_id: "1",
     country: "Italy",
     description:
@@ -2894,7 +2894,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "41",
     name: "Cortina d'Ampezzo",
-    banner_image_url: "https://images.unsplash.com/photo-1715534098660-2978255e70b7?w=1200&q=80",
+    banner_image_url: "/resorts/countries/italy.jpg",
     region_id: "1",
     country: "Italy",
     description:
@@ -2987,7 +2987,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "42",
     name: "Cervinia",
-    banner_image_url: "https://images.unsplash.com/photo-1759313591414-a96b5dfa020c?w=1200&q=80",
+    banner_image_url: "/resorts/countries/italy.jpg",
     region_id: "1",
     country: "Italy",
     description:
@@ -3083,7 +3083,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "3",
     name: "Niseko United",
-    banner_image_url: "https://images.unsplash.com/photo-1548777123-e216912df7d8?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3164,7 +3164,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "43",
     name: "Hakuba Valley",
-    banner_image_url: "https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3260,7 +3260,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "44",
     name: "Rusutsu",
-    banner_image_url: "https://images.unsplash.com/photo-1771387293792-29e483a570aa?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3349,7 +3349,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "45",
     name: "Furano",
-    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3438,7 +3438,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "46",
     name: "Nozawa Onsen",
-    banner_image_url: "https://images.unsplash.com/photo-1767352140607-845a696cc39b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3530,7 +3530,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "47",
     name: "Myoko Kogen",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685989-2d424e4ed88a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3620,7 +3620,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "48",
     name: "Shiga Kogen",
-    banner_image_url: "https://images.unsplash.com/photo-1773679472203-15255d505456?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3710,7 +3710,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "49",
     name: "Naeba",
-    banner_image_url: "https://images.unsplash.com/photo-1675710048439-51e9ccf40129?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3803,7 +3803,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "50",
     name: "Perisher",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -3896,7 +3896,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "51",
     name: "Falls Creek",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685966-fb7e53b023d5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -3988,7 +3988,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "52",
     name: "Thredbo",
-    banner_image_url: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -4082,7 +4082,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "53",
     name: "Mt Hotham",
-    banner_image_url: "https://images.unsplash.com/photo-1615783236357-e175d2bff905?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -4177,7 +4177,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "7",
     name: "The Remarkables",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -4272,7 +4272,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "54",
     name: "Mt Hutt",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -4367,7 +4367,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "6",
     name: "Valle Nevado",
-    banner_image_url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/chile.jpg",
     region_id: "5",
     country: "Chile",
     description:
@@ -4460,7 +4460,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "55",
     name: "Cerro Catedral",
-    banner_image_url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80",
+    banner_image_url: "/resorts/countries/argentina.jpg",
     region_id: "5",
     country: "Argentina",
     description:
@@ -4557,7 +4557,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "56",
     name: "Portillo",
-    banner_image_url: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80",
+    banner_image_url: "/resorts/countries/chile.jpg",
     region_id: "5",
     country: "Chile",
     description:
@@ -4653,7 +4653,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "8",
     name: "Åre",
-    banner_image_url: "https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=1200&q=80",
+    banner_image_url: "/resorts/countries/sweden.jpg",
     region_id: "4",
     country: "Sweden",
     description:
@@ -4747,7 +4747,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "9",
     name: "Gudauri",
-    banner_image_url: "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200&q=80",
+    banner_image_url: "/resorts/countries/georgia.jpg",
     region_id: "7",
     country: "Georgia",
     description:
@@ -4840,7 +4840,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "10",
     name: "Grandvalira",
-    banner_image_url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/andorra.jpg",
     region_id: "8",
     country: "Andorra",
     description:
@@ -4943,7 +4943,7 @@ export const resorts: Resort[] = [
     state_province: "British Columbia",
     nearest_town: "Sun Peaks Village",
     website: "https://www.sunpeaksresort.com",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1728, num_runs: 137, runs_green: 14, runs_blue: 58, runs_black: 52, runs_double_black: 13,
     vertical_drop_m: 882, base_elevation_m: 1200, summit_elevation_m: 2080, num_lifts: 13,
     lift_types: { gondolas: 1, chairlifts: 7, surface_lifts: 5 },
@@ -4977,7 +4977,7 @@ export const resorts: Resort[] = [
     state_province: "British Columbia",
     nearest_town: "Big White Village",
     website: "https://www.bigwhite.com",
-    banner_image_url: "https://images.unsplash.com/photo-1477601263568-180e2c6d046e?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1147, num_runs: 118, runs_green: 18, runs_blue: 40, runs_black: 42, runs_double_black: 18,
     vertical_drop_m: 777, base_elevation_m: 1508, summit_elevation_m: 2319, num_lifts: 16,
     lift_types: { gondolas: 0, chairlifts: 5, surface_lifts: 11 },
@@ -5011,7 +5011,7 @@ export const resorts: Resort[] = [
     state_province: "British Columbia",
     nearest_town: "Silver Star Village",
     website: "https://www.skisilverstar.com",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 520, num_runs: 132, runs_green: 20, runs_blue: 50, runs_black: 40, runs_double_black: 22,
     vertical_drop_m: 760, base_elevation_m: 1155, summit_elevation_m: 1915, num_lifts: 12,
     lift_types: { gondolas: 1, chairlifts: 5, surface_lifts: 6 },
@@ -5045,7 +5045,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Lake Louise Village",
     website: "https://www.skilouise.com",
-    banner_image_url: "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1700, num_runs: 145, runs_green: 25, runs_blue: 45, runs_black: 47, runs_double_black: 28,
     vertical_drop_m: 991, base_elevation_m: 1645, summit_elevation_m: 2637, num_lifts: 10,
     lift_types: { gondolas: 1, chairlifts: 6, surface_lifts: 3 },
@@ -5079,7 +5079,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Banff",
     website: "https://www.skibanff.com",
-    banner_image_url: "https://images.unsplash.com/photo-1610906592995-1852b86452b9?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1358, num_runs: 137, runs_green: 20, runs_blue: 36, runs_black: 46, runs_double_black: 35,
     vertical_drop_m: 1070, base_elevation_m: 1660, summit_elevation_m: 2730, num_lifts: 12,
     lift_types: { gondolas: 1, chairlifts: 8, surface_lifts: 3 },
@@ -5113,7 +5113,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Kananaskis Village",
     website: "https://www.skinakiska.com",
-    banner_image_url: "https://images.unsplash.com/photo-1520443240718-fce21901db79?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 400, num_runs: 71, runs_green: 16, runs_blue: 29, runs_black: 20, runs_double_black: 6,
     vertical_drop_m: 735, base_elevation_m: 1525, summit_elevation_m: 2260, num_lifts: 6,
     lift_types: { gondolas: 0, chairlifts: 4, surface_lifts: 2 },
@@ -5147,7 +5147,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Jasper",
     website: "https://www.skimarmot.com",
-    banner_image_url: "https://images.unsplash.com/photo-1610394295702-00b39272459d?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 688, num_runs: 91, runs_green: 28, runs_blue: 35, runs_black: 20, runs_double_black: 8,
     vertical_drop_m: 914, base_elevation_m: 1698, summit_elevation_m: 2612, num_lifts: 7,
     lift_types: { gondolas: 0, chairlifts: 5, surface_lifts: 2 },
@@ -5181,7 +5181,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Mont-Tremblant Village",
     website: "https://www.tremblant.ca",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-5fc219569c50?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 305, num_runs: 102, runs_green: 18, runs_blue: 32, runs_black: 32, runs_double_black: 20,
     vertical_drop_m: 645, base_elevation_m: 230, summit_elevation_m: 875, num_lifts: 14,
     lift_types: { gondolas: 1, chairlifts: 9, surface_lifts: 4 },
@@ -5215,7 +5215,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Baie-Saint-Paul",
     website: "https://www.lemassif.com",
-    banner_image_url: "https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 200, num_runs: 53, runs_green: 9, runs_blue: 16, runs_black: 19, runs_double_black: 9,
     vertical_drop_m: 770, base_elevation_m: 30, summit_elevation_m: 800, num_lifts: 5,
     lift_types: { gondolas: 0, chairlifts: 3, surface_lifts: 2 },
@@ -5249,7 +5249,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Beaupré",
     website: "https://www.mont-sainte-anne.com",
-    banner_image_url: "https://images.unsplash.com/photo-1606666334434-4c24739144a5?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 200, num_runs: 71, runs_green: 15, runs_blue: 28, runs_black: 22, runs_double_black: 6,
     vertical_drop_m: 625, base_elevation_m: 175, summit_elevation_m: 800, num_lifts: 8,
     lift_types: { gondolas: 1, chairlifts: 4, surface_lifts: 3 },
@@ -5283,7 +5283,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Stoneham-et-Tewkesbury",
     website: "https://www.ski-stoneham.com",
-    banner_image_url: "https://images.unsplash.com/photo-1418985991508-e47386d96a71?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 150, num_runs: 42, runs_green: 9, runs_blue: 13, runs_black: 15, runs_double_black: 5,
     vertical_drop_m: 420, base_elevation_m: 250, summit_elevation_m: 670, num_lifts: 8,
     lift_types: { gondolas: 0, chairlifts: 4, surface_lifts: 4 },
@@ -5317,7 +5317,7 @@ export const resorts: Resort[] = [
     state_province: "Ontario",
     nearest_town: "Collingwood",
     website: "https://www.bluemountain.ca",
-    banner_image_url: "https://images.unsplash.com/photo-1565992441121-4367c2967103?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 100, num_runs: 43, runs_green: 10, runs_blue: 18, runs_black: 12, runs_double_black: 3,
     vertical_drop_m: 220, base_elevation_m: 180, summit_elevation_m: 400, num_lifts: 15,
     lift_types: { gondolas: 0, chairlifts: 7, surface_lifts: 8 },
@@ -5351,7 +5351,7 @@ export const resorts: Resort[] = [
     state_province: "Manitoba",
     nearest_town: "Russell",
     website: "https://www.asessippi.com",
-    banner_image_url: "https://images.unsplash.com/photo-1582641637614-3f446aa083fa?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 40, num_runs: 25, runs_green: 8, runs_blue: 9, runs_black: 6, runs_double_black: 2,
     vertical_drop_m: 150, base_elevation_m: 490, summit_elevation_m: 640, num_lifts: 4,
     lift_types: { gondolas: 0, chairlifts: 2, surface_lifts: 2 },
@@ -5377,7 +5377,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "70",
     name: "Charlotte's Pass",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -5399,6 +5399,7 @@ export const resorts: Resort[] = [
   // ============================================
   createResort({
     id: "71", name: "Selwyn Snow Resort", region_id: "9", country: "Australia",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "New South Wales", nearest_town: "Adaminaby",
     description: "Family-friendly resort in the NSW Snowy Mountains popular for first-timers and learners. Smaller, gentler terrain than Thredbo or Perisher with lower lift prices. Closer to Adaminaby than Jindabyne.",
     latitude: -35.85, longitude: 148.78,
@@ -5407,16 +5408,96 @@ export const resorts: Resort[] = [
     website: "https://www.selwynsnow.com.au",
   }),
   createResort({
-    id: "72", name: "Mt Buller", region_id: "9", country: "Australia",
-    state_province: "Victoria", nearest_town: "Mansfield",
-    description: "The most accessible major resort from Melbourne (about 3 hours by road), Mt Buller has 80+ runs across 300 hectares with a vibrant alpine village. Popular for day-trippers and full-season visitors alike.",
-    latitude: -37.146, longitude: 146.435,
-    base_elevation_m: 1390, summit_elevation_m: 1790,
-    season_start: "2026-06-06", season_end: "2026-10-04", snow_reliability: "medium",
+    id: "72",
+    name: "Mt Buller",
+    banner_image_url: "/resorts/countries/australia.jpg",
+    region_id: "9",
+    country: "Australia",
+    description:
+      "The most accessible major resort from Melbourne (about 3 hours by road), Mt Buller is Victoria's largest single-mountain ski area with 300 hectares of terrain across 80+ runs. The alpine village sits at 1,600m and has the highest lift capacity of any Australian resort. Popular with both day-trippers from Melbourne and full-season seasonal workers. Mansfield (45 min down the mountain) is the gateway town for off-mountain accommodation.",
+    latitude: -37.146,
+    longitude: 146.435,
+    state_province: "Victoria",
+    nearest_town: "Mansfield",
     website: "https://www.mtbuller.com.au",
+    skiable_terrain_ha: 300,
+    num_runs: 80,
+    runs_green: 20,
+    runs_blue: 35,
+    runs_black: 19,
+    runs_double_black: 6,
+    vertical_drop_m: 400,
+    base_elevation_m: 1390,
+    summit_elevation_m: 1790,
+    num_lifts: 22,
+    lift_types: { gondolas: 0, chairlifts: 8, surface_lifts: 14 },
+    snowfall_avg_cm: 200,
+    season_start: "2026-06-06",
+    season_end: "2026-10-04",
+    main_employers: [
+      "Buller Ski Lifts",
+      "Mt Buller Ski School",
+      "Breathtaker Hotel & Spa",
+      "Arlberg Hotel",
+      "Duck Inn",
+      "Kooroora Hotel",
+      "Village restaurants, bars, and retail outlets",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Hotel / Lodge Staff",
+      "Kitchen Staff / Chef",
+      "Bartender / Server",
+      "Rental Shop Staff",
+      "Snowmaker",
+      "Guest Services",
+      "Retail Sales",
+    ],
+    estimated_seasonal_staff: "1,500–2,000",
+    languages_required: ["English"],
+    visa_requirements:
+      "International workers typically require a Working Holiday Visa (subclass 417 or 462). Mt Buller is in a 'specified regional area' in Victoria, so seasonal work here can count towards second-year WHV eligibility.",
+    recruitment_timeline:
+      "Buller Ski Lifts and the ski school begin hiring in March–April for the June season opening. Hospitality hires through April–May. Instructor roles require APSI certification (or equivalent international certs). Jobs advertised on Mt Buller's careers page and Australian ski industry boards.",
+    staff_housing_available: true,
+    staff_housing_capacity: 600,
+    staff_housing_avg_rent: "AUD $150–$240/week shared",
+    cost_of_living_weekly: "AUD $300–$450 (housing, food, transport)",
+    public_transport:
+      "Mt Buller Bus Lines from Melbourne and Mansfield (winter service). The mountain road requires chains during snow conditions. The village itself is compact and walkable; over-snow transport runs at night.",
+    staff_perks: [
+      "Free or discounted season pass",
+      "Staff meals at some employers",
+      "Pro deals on gear",
+      "Staff social events",
+      "Compact ski-in/ski-out village",
+    ],
+    apres_scene:
+      "The Kooroora Hotel ('the Koo') is the iconic seasonal-worker pub — live music, rowdy nights, a rite of passage for Buller staff. The Duck Inn is a popular second-spot. ABOM Bar and Buller Bar offer more relaxed après. The Breathtaker has an upmarket lounge bar. Tight-knit staff community given the village's small footprint.",
+    outdoor_activities: [
+      "Cross-country skiing (Mt Stirling adjacent)",
+      "Snowshoeing",
+      "Tobogganing",
+      "Mountain biking in summer (Mt Buller Bike Park)",
+      "Hiking",
+      "Fishing in the Delatite River",
+    ],
+    healthcare_access:
+      "Mt Buller Medical Centre operates during the ski season. Mansfield District Hospital (45 min). Wangaratta and Shepparton hospitals (2 hrs) for major care. Helicopter retrieval available.",
+    shops_and_services:
+      "Village has a small IGA supermarket, ski/board rental shops, gear retailers, and basic services. Mansfield (45 min) has full supermarket, pharmacy, banks, and shopping for larger needs.",
+    international_community_size:
+      "Medium — solid seasonal worker community drawing from Australia, the UK, Ireland, Japan, and South America. Smaller international footprint than NZ or Canadian resorts but a tight, social staff scene.",
+    avg_winter_temp_min_c: -3,
+    avg_winter_temp_max_c: 5,
+    snow_reliability: "medium",
+    artificial_snow_coverage_pct: 30,
+    is_verified: true,
   }),
   createResort({
     id: "73", name: "Mount Stirling", region_id: "9", country: "Australia",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Victoria", nearest_town: "Mansfield",
     description: "A backcountry and Nordic-focused area adjacent to Mt Buller. Limited lift access; best for cross-country, snowshoeing, and experienced skiers seeking quieter off-piste terrain.",
     latitude: -37.131, longitude: 146.490,
@@ -5426,6 +5507,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "74", name: "Mount Baw Baw", region_id: "9", country: "Australia",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Victoria", nearest_town: "Noojee",
     description: "Victoria's most southerly resort and the closest to Melbourne (about 2.5 hours). Small and family-oriented with a relaxed vibe and limited but accessible terrain.",
     latitude: -37.835, longitude: 146.272,
@@ -5435,6 +5517,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "75", name: "Lake Mountain", region_id: "9", country: "Australia",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Victoria", nearest_town: "Marysville",
     description: "Cross-country and snow-play focused with very limited downhill terrain. The closest snow area to Melbourne — best for tobogganing, snowshoeing, and Nordic skiing during peak winter.",
     latitude: -37.500, longitude: 145.880,
@@ -5444,6 +5527,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "76", name: "Mount Mawson", region_id: "9", country: "Australia",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Tasmania", nearest_town: "Hobart",
     description: "A small volunteer-run club field in Mount Field National Park, Tasmania. Limited lift infrastructure and weather-dependent — open only when snow is sufficient.",
     latitude: -42.689, longitude: 146.586,
@@ -5453,6 +5537,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "77", name: "Ben Lomond", region_id: "9", country: "Australia",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Tasmania", nearest_town: "Launceston",
     description: "Tasmania's largest ski area inside Ben Lomond National Park. Six lifts servicing terrain for beginners through intermediates. About 60 km from Launceston.",
     latitude: -41.555, longitude: 147.660,
@@ -5465,34 +5550,264 @@ export const resorts: Resort[] = [
   // NEW ZEALAND — additions (Otago, Canterbury, Manawatu-Whanganui)
   // ============================================
   createResort({
-    id: "78", name: "Coronet Peak", region_id: "6", country: "New Zealand",
-    state_province: "Otago", nearest_town: "Queenstown",
-    description: "Queenstown's closest mountain (about 20 minutes from town) with 280 ha of varied terrain. Famous for night skiing on Fridays and Saturdays and panoramic views over Lake Wakatipu.",
-    latitude: -44.920, longitude: 168.737,
-    base_elevation_m: 1187, summit_elevation_m: 1649,
-    season_start: "2026-06-13", season_end: "2026-10-04", snow_reliability: "medium",
+    id: "78",
+    name: "Coronet Peak",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
+    region_id: "6",
+    country: "New Zealand",
+    description:
+      "Queenstown's closest mountain — about 20 minutes from town centre — with 280 hectares of varied terrain across rolling alpine bowls. Coronet Peak is famous for its Friday and Saturday night skiing operations under floodlights, with panoramic views over Lake Wakatipu and The Remarkables. Operated by NZSki alongside The Remarkables and Mt Hutt, so most staff have multi-mountain access. Workers live in Queenstown rather than on-mountain.",
+    latitude: -44.920,
+    longitude: 168.737,
+    state_province: "Otago",
+    nearest_town: "Queenstown",
     website: "https://www.coronetpeak.co.nz",
+    skiable_terrain_ha: 280,
+    num_runs: 41,
+    runs_green: 10,
+    runs_blue: 18,
+    runs_black: 10,
+    runs_double_black: 3,
+    vertical_drop_m: 462,
+    base_elevation_m: 1187,
+    summit_elevation_m: 1649,
+    num_lifts: 8,
+    lift_types: { gondolas: 0, chairlifts: 4, surface_lifts: 4 },
+    snowfall_avg_cm: 200,
+    season_start: "2026-06-13",
+    season_end: "2026-10-04",
+    main_employers: [
+      "NZSki (operates Coronet Peak, The Remarkables, Mt Hutt)",
+      "Coronet Peak Snow Sports School",
+      "On-mountain F&B (NZSki)",
+      "Queenstown-based hotels and hospitality (workers commute)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Snowmaker",
+      "Grooming Operator",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Retail Sales",
+    ],
+    estimated_seasonal_staff: "300–450 (Coronet Peak only); ~1,200 across NZSki",
+    languages_required: ["English"],
+    visa_requirements:
+      "Working Holiday Visa is the standard route — NZ has agreements with 45+ countries (Australia, UK, Germany, France, Argentina, USA, Canada, etc.). NZSki sponsors specific Essential Skills Work Visas for instructors and senior staff. Most under-30s arrive on a WHV.",
+    recruitment_timeline:
+      "NZSki opens applications in February–March for the June season. Instructor positions require NZSIA / NZSSA certification (or equivalent). Lift, F&B, and rental hiring runs through April–May with late hires in May–June. Apply via the NZSki careers portal.",
+    staff_housing_available: false,
+    staff_housing_capacity: null,
+    staff_housing_avg_rent: "Workers live in Queenstown — NZD $250–$400/week shared room",
+    cost_of_living_weekly: "NZD $450–$650 (Queenstown rents are some of NZ's highest)",
+    public_transport:
+      "NZSki runs free staff and guest shuttles from central Queenstown to Coronet Peak (20 min). Orbus public buses cover Queenstown and surrounding suburbs. Most staff carpool or use the resort shuttle.",
+    staff_perks: [
+      "Free season pass valid at Coronet Peak, The Remarkables, and Mt Hutt",
+      "Staff meals on-mountain",
+      "Pro deals on gear and apparel",
+      "Reciprocal pass benefits at partner resorts",
+      "Staff social events",
+    ],
+    apres_scene:
+      "Après happens in Queenstown rather than on-mountain since staff commute back to town. The Cow, Ferg's, World Bar, Atlas Beer Café, and the lakefront bars on Marine Parade are seasonal-worker fixtures. Queenstown's nightlife is among the best in the southern hemisphere — bars open late, lots of live music.",
+    outdoor_activities: [
+      "Backcountry skiing in the Wakatipu Basin",
+      "Mountain biking (Queenstown Bike Park in summer)",
+      "Bungee jumping (Kawarau Bridge)",
+      "Skydiving",
+      "Hiking (Ben Lomond, Routeburn Track)",
+      "Jet boating on the Shotover and Dart rivers",
+    ],
+    healthcare_access:
+      "Lakes District Hospital in Frankton (10 min from Queenstown). Multiple GP clinics and pharmacies in central Queenstown. Helicopter retrieval to Dunedin Hospital (3 hrs by road) for major trauma.",
+    shops_and_services:
+      "Full Queenstown infrastructure — multiple supermarkets (New World, Pak'nSave, Countdown), banks, pharmacies, large gear shops (Outside Sports, Torpedo7, Kathmandu), restaurants of every cuisine, and 24/7 services in town.",
+    international_community_size:
+      "Very large — Queenstown is one of the most international working-holiday destinations on earth. Strong Argentinian, Brazilian, British, Irish, German, and Canadian seasonal communities. English is the working language but Spanish and Portuguese are very common in town.",
+    avg_winter_temp_min_c: -4,
+    avg_winter_temp_max_c: 5,
+    snow_reliability: "medium",
+    artificial_snow_coverage_pct: 40,
+    is_verified: true,
   }),
   createResort({
-    id: "79", name: "Cardrona", region_id: "6", country: "New Zealand",
-    state_province: "Otago", nearest_town: "Wanaka",
-    description: "Family-friendly resort with terrain for all levels and a world-class terrain park. The Cardrona Hotel base village is iconic. About 50 minutes from Queenstown or 30 minutes from Wanaka.",
-    latitude: -44.874, longitude: 168.952,
-    base_elevation_m: 1670, summit_elevation_m: 1860,
-    season_start: "2026-06-13", season_end: "2026-10-18", snow_reliability: "medium",
+    id: "79",
+    name: "Cardrona",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
+    region_id: "6",
+    country: "New Zealand",
+    description:
+      "One of New Zealand's premier ski resorts, Cardrona spans 400+ hectares between Wanaka and Queenstown. Famous for its world-class terrain parks, halfpipes, and freeski/snowboard scene — host of the Winter Games NZ and a regular FIS World Cup venue. Family-friendly groomers sit alongside expert chutes off the McDougall ridge. About 50 minutes from Queenstown or 30 minutes from Wanaka by road. Owned and operated by RealNZ.",
+    latitude: -44.874,
+    longitude: 168.952,
+    state_province: "Otago",
+    nearest_town: "Wanaka",
     website: "https://www.cardrona.com",
+    skiable_terrain_ha: 400,
+    num_runs: 60,
+    runs_green: 15,
+    runs_blue: 18,
+    runs_black: 18,
+    runs_double_black: 9,
+    vertical_drop_m: 600,
+    base_elevation_m: 1670,
+    summit_elevation_m: 1860,
+    num_lifts: 11,
+    lift_types: { gondolas: 1, chairlifts: 5, surface_lifts: 5 },
+    snowfall_avg_cm: 290,
+    season_start: "2026-06-13",
+    season_end: "2026-10-18",
+    main_employers: [
+      "Cardrona Alpine Resort (RealNZ)",
+      "Cardrona Snow Sports School",
+      "On-mountain F&B (RealNZ)",
+      "Wanaka and Queenstown hotels and hospitality (workers commute)",
+      "Cardrona Hotel (historic pub at the base of the access road)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Terrain Park Crew",
+      "Lift Operator",
+      "Snowmaker",
+      "Grooming Operator",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Retail Sales",
+    ],
+    estimated_seasonal_staff: "700–1,000",
+    languages_required: ["English"],
+    visa_requirements:
+      "Working Holiday Visa is the standard route — NZ has agreements with 45+ countries. Cardrona sponsors Essential Skills Work Visas for senior instructors, park crew, and specialised roles. Most under-30 international hires arrive on a WHV.",
+    recruitment_timeline:
+      "Cardrona opens applications in February for the June season. Instructor and park crew positions require NZSIA / NZSSA / equivalent certification. Lift, F&B, and rental hiring through March–May. Apply via the Cardrona careers page.",
+    staff_housing_available: true,
+    staff_housing_capacity: 200,
+    staff_housing_avg_rent: "NZD $200–$320/week shared (limited on-mountain housing); workers in Wanaka pay NZD $250–$400/week",
+    cost_of_living_weekly: "NZD $400–$600 (Wanaka cheaper than Queenstown)",
+    public_transport:
+      "Cardrona runs daily staff and guest shuttles from Wanaka and Queenstown. The Crown Range road requires chains in winter and is occasionally closed. Most staff carpool or use the resort shuttle; many staff base themselves in Wanaka.",
+    staff_perks: [
+      "Free season pass at Cardrona and sister mountain Treble Cone",
+      "Staff meals on-mountain",
+      "Pro deals on gear and apparel",
+      "Reciprocal benefits at partner resorts",
+      "Staff park sessions and social events",
+    ],
+    apres_scene:
+      "The historic Cardrona Hotel at the base of the access road is iconic — a pub since 1863, popular for end-of-day beers. Most staff socialising happens in Wanaka, where Lalaland, Water Bar, Gin & Raspberry, and Ode are seasonal-worker favourites. Wanaka has a slightly more laid-back vibe than Queenstown but still a strong nightlife scene.",
+    outdoor_activities: [
+      "Backcountry skiing and ski touring in the Pisa Range",
+      "Mountain biking (Wanaka Bike Park, Sticky Forest)",
+      "Hiking (Roy's Peak, Mount Aspiring National Park)",
+      "Climbing",
+      "Lake Wanaka watersports in summer",
+      "Skydiving",
+    ],
+    healthcare_access:
+      "Wanaka Medical Centre and Aspiring Medical for GP care. Lakes District Hospital in Frankton (1 hr) for emergency care. Helicopter retrieval to Dunedin Hospital for major trauma.",
+    shops_and_services:
+      "Wanaka has full town infrastructure — New World and Foursquare supermarkets, banks, pharmacies, gear shops (Outside Sports, MT Outdoors), restaurants, cafés. Queenstown (1 hr via Crown Range) for larger needs.",
+    international_community_size:
+      "Large — strong Argentinian, Brazilian, British, German, and Canadian park-and-instructor scene. English is the working language. The freeski/snowboard culture attracts a global community of riders and coaches each winter.",
+    avg_winter_temp_min_c: -5,
+    avg_winter_temp_max_c: 4,
+    snow_reliability: "medium",
+    artificial_snow_coverage_pct: 50,
+    is_verified: true,
   }),
   createResort({
-    id: "80", name: "Treble Cone", region_id: "6", country: "New Zealand",
-    state_province: "Otago", nearest_town: "Wanaka",
-    description: "The largest ski area in the South Island with 550 ha and the longest vertical drop in NZ (700 m). Steep, scenic, and challenging. About 30 minutes from Wanaka.",
-    latitude: -44.633, longitude: 168.897,
-    base_elevation_m: 1260, summit_elevation_m: 1960,
-    season_start: "2026-06-27", season_end: "2026-09-27", snow_reliability: "medium",
+    id: "80",
+    name: "Treble Cone",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
+    region_id: "6",
+    country: "New Zealand",
+    description:
+      "The largest ski area in the South Island with 550 hectares of terrain and New Zealand's longest vertical drop at 700m. Treble Cone is famous for steep off-piste, two large alpine basins (Home Basin and Saddle Basin), and unmatched views over Lake Wanaka and the Southern Alps. Mostly intermediate-to-advanced terrain. Sister mountain to Cardrona under RealNZ. About 30 minutes from Wanaka up a winding access road.",
+    latitude: -44.633,
+    longitude: 168.897,
+    state_province: "Otago",
+    nearest_town: "Wanaka",
     website: "https://www.treblecone.com",
+    skiable_terrain_ha: 550,
+    num_runs: 36,
+    runs_green: 4,
+    runs_blue: 16,
+    runs_black: 11,
+    runs_double_black: 5,
+    vertical_drop_m: 700,
+    base_elevation_m: 1260,
+    summit_elevation_m: 1960,
+    num_lifts: 4,
+    lift_types: { gondolas: 0, chairlifts: 2, surface_lifts: 2 },
+    snowfall_avg_cm: 250,
+    season_start: "2026-06-27",
+    season_end: "2026-09-27",
+    main_employers: [
+      "Treble Cone Ski Area (RealNZ)",
+      "Treble Cone Snow Sports School",
+      "On-mountain F&B (RealNZ)",
+      "Wanaka hotels and hospitality (workers commute)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Grooming Operator",
+      "Patroller",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+    ],
+    estimated_seasonal_staff: "200–300",
+    languages_required: ["English"],
+    visa_requirements:
+      "Working Holiday Visa is the standard route — NZ has agreements with 45+ countries. RealNZ sponsors Essential Skills Work Visas for senior instructors and specialised roles. Most under-30 international hires arrive on a WHV.",
+    recruitment_timeline:
+      "RealNZ opens applications in February–March for the late-June Treble Cone opening (later than most NZ resorts because of the higher base). Instructor positions require NZSIA / NZSSA / equivalent certification. Lift, F&B, and rental hiring through April–May.",
+    staff_housing_available: false,
+    staff_housing_capacity: null,
+    staff_housing_avg_rent: "Workers live in Wanaka — NZD $250–$400/week shared room",
+    cost_of_living_weekly: "NZD $400–$600 (Wanaka cheaper than Queenstown)",
+    public_transport:
+      "Treble Cone runs daily staff and guest shuttles from Wanaka. The access road requires chains and 4WD in poor conditions. Most staff carpool or use the resort shuttle.",
+    staff_perks: [
+      "Free season pass at Treble Cone and sister mountain Cardrona",
+      "Staff meals on-mountain",
+      "Pro deals on gear and apparel",
+      "Reciprocal benefits at partner resorts",
+      "Steep-skiing access on staff days",
+    ],
+    apres_scene:
+      "Limited on-mountain — most staff après happens in Wanaka. Lalaland, Water Bar, Gin & Raspberry, and Ode are seasonal-worker favourites. Wanaka's compact lakefront makes staff socialising easy. The Cardrona Hotel is a regular detour on the drive home.",
+    outdoor_activities: [
+      "Backcountry skiing in the Harris Mountains",
+      "Mountain biking (Wanaka Bike Park, Sticky Forest)",
+      "Hiking (Roy's Peak, Mount Aspiring National Park)",
+      "Climbing",
+      "Lake Wanaka watersports in summer",
+      "Skydiving",
+    ],
+    healthcare_access:
+      "Wanaka Medical Centre and Aspiring Medical for GP care. Lakes District Hospital in Frankton (1 hr) for emergency care. Helicopter retrieval to Dunedin Hospital for major trauma.",
+    shops_and_services:
+      "Wanaka has full town infrastructure — New World and Foursquare supermarkets, banks, pharmacies, gear shops, restaurants, cafés. Queenstown (1 hr via Crown Range) for larger needs.",
+    international_community_size:
+      "Medium — smaller staff base than Cardrona but draws a steep-skiing-focused international community, especially Argentinian, French, and North American skiers and patrollers. English is the working language.",
+    avg_winter_temp_min_c: -6,
+    avg_winter_temp_max_c: 3,
+    snow_reliability: "medium",
+    artificial_snow_coverage_pct: 5,
+    is_verified: true,
   }),
   createResort({
     id: "81", name: "Porters", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "A relaxed Canterbury resort an hour from Christchurch. Family-friendly with terrain across all levels and a strong learner-area focus.",
     latitude: -43.272, longitude: 171.652,
@@ -5502,6 +5817,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "82", name: "Mount Olympus", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Canterbury club field with classic nutcracker tow lifts and superb off-piste terrain. Volunteer-run, basic facilities, character in spades. About 2 hours from Christchurch.",
     latitude: -43.225, longitude: 171.683,
@@ -5510,6 +5826,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "83", name: "Mount Cheeseman", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Family-oriented club field in the Craigieburn Range with two T-bar lifts and a gentle alpine bowl. About 2 hours from Christchurch.",
     latitude: -43.158, longitude: 171.661,
@@ -5518,6 +5835,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "84", name: "Broken River", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Iconic Canterbury club field reached by an hour of walking from the car park. Steep terrain, deep snow, and zero crowds — a favourite of advanced skiers and snowboarders.",
     latitude: -43.180, longitude: 171.620,
@@ -5526,6 +5844,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "85", name: "Craigieburn", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Steep, advanced terrain in the Craigieburn Range with three nutcracker tows. Famous for powder days and a no-frills authentic Kiwi club-field experience.",
     latitude: -43.135, longitude: 171.717,
@@ -5534,6 +5853,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "86", name: "Temple Basin", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Arthur's Pass",
     description: "Hike-in club field reached by an hour's walk from the road in Arthur's Pass National Park. No groomers — pure backcountry-style terrain for committed skiers.",
     latitude: -42.881, longitude: 171.523,
@@ -5542,6 +5862,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "87", name: "Hanmer Springs", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Hanmer Springs",
     description: "Small, low-key family ski area near the Hanmer Springs alpine village (famed for its hot pools). Limited terrain but a great combo of skiing + soaking.",
     latitude: -42.520, longitude: 172.835,
@@ -5550,6 +5871,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "88", name: "Mount Lyford", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Kaikoura",
     description: "A relaxed, family-friendly ski area between Kaikoura and Hanmer Springs. Beginner-friendly with intermediate terrain and a quieter feel than the bigger commercial fields.",
     latitude: -42.620, longitude: 173.000,
@@ -5557,15 +5879,97 @@ export const resorts: Resort[] = [
     website: "https://www.mtlyford.co.nz",
   }),
   createResort({
-    id: "89", name: "Whakapapa", region_id: "6", country: "New Zealand",
-    state_province: "Manawatu-Whanganui", nearest_town: "National Park Village",
-    description: "New Zealand's largest ski area, on the slopes of active volcano Mount Ruapehu. 550 hectares of terrain across the north-western face of the volcano. About 4.5 hours from Auckland.",
-    latitude: -39.250, longitude: 175.560,
-    base_elevation_m: 1620, summit_elevation_m: 2300, snow_reliability: "medium",
+    id: "89",
+    name: "Whakapapa",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
+    region_id: "6",
+    country: "New Zealand",
+    description:
+      "New Zealand's largest ski area, on the slopes of active volcano Mount Ruapehu in Tongariro National Park (a UNESCO dual World Heritage site). Whakapapa spans 550 hectares across the north-western face of the volcano with an iconic learner area at Happy Valley. About 4.5 hours from Auckland and the most accessible major resort to the North Island's biggest population centre. Operated by Ruapehu Alpine Lifts.",
+    latitude: -39.250,
+    longitude: 175.560,
+    state_province: "Manawatu-Whanganui",
+    nearest_town: "National Park Village",
     website: "https://www.whakapapa.com",
+    skiable_terrain_ha: 550,
+    num_runs: 65,
+    runs_green: 25,
+    runs_blue: 15,
+    runs_black: 17,
+    runs_double_black: 8,
+    vertical_drop_m: 680,
+    base_elevation_m: 1620,
+    summit_elevation_m: 2300,
+    num_lifts: 13,
+    lift_types: { gondolas: 1, chairlifts: 5, surface_lifts: 7 },
+    snowfall_avg_cm: 300,
+    season_start: "2026-06-27",
+    season_end: "2026-10-25",
+    main_employers: [
+      "Ruapehu Alpine Lifts",
+      "Whakapapa Snow Sports School",
+      "On-mountain F&B (RAL)",
+      "Skotel Alpine Resort",
+      "Bayview Chateau Tongariro",
+      "Tongariro National Park accommodation providers",
+      "National Park Village hospitality",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Patroller",
+      "Grooming Operator",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Hotel Reception / Housekeeping",
+      "Retail Sales",
+    ],
+    estimated_seasonal_staff: "400–600",
+    languages_required: ["English"],
+    visa_requirements:
+      "Working Holiday Visa is the standard route — NZ has agreements with 45+ countries. Ruapehu Alpine Lifts sponsors Essential Skills Work Visas for senior instructors and specialised roles. Most under-30 international hires arrive on a WHV.",
+    recruitment_timeline:
+      "RAL opens applications in February–April for the late-June season opening. Instructor positions require NZSIA / NZSSA / equivalent certification. Lift, F&B, and rental hiring through April–June. Apply via the Whakapapa careers page.",
+    staff_housing_available: true,
+    staff_housing_capacity: 100,
+    staff_housing_avg_rent: "NZD $180–$280/week shared in National Park Village or Ohakune",
+    cost_of_living_weekly: "NZD $350–$500 (cheapest of the major NZ resorts)",
+    public_transport:
+      "Limited public transport — Intercity buses to National Park Village from Auckland and Wellington. RAL runs staff shuttles from National Park Village to Whakapapa during the season. Most staff have cars or carpool. SH48 mountain access road requires chains in winter conditions.",
+    staff_perks: [
+      "Free season pass valid at Whakapapa and sister mountain Turoa",
+      "Staff meals on-mountain",
+      "Pro deals on gear and apparel",
+      "National Park location with hiking, MTB, and waterfalls in summer",
+      "Staff social events",
+    ],
+    apres_scene:
+      "Lower-key than the Queenstown resorts. The Knoll Ridge Café (highest café in NZ) for end-of-day drinks on-mountain. National Park Village has a few pubs (The Park Hotel, Schnapps Bar). Ohakune (an hour south) is the main social hub, with Powderkeg, Utopia, and the Big Carrot for après nights.",
+    outdoor_activities: [
+      "Tongariro Alpine Crossing (one of NZ's great day hikes)",
+      "Backcountry ski touring on Ruapehu",
+      "Mountain biking (Old Coach Road)",
+      "Whitewater kayaking on the Whanganui",
+      "Trout fishing",
+      "Climbing",
+    ],
+    healthcare_access:
+      "GP services in Ohakune (1 hr) and Taumarunui (1 hr). Whanganui Hospital (2 hrs) for emergency care. Helicopter retrieval available. Volcanic activity monitoring is taken seriously — the mountain is currently active.",
+    shops_and_services:
+      "National Park Village has a small store and basic services. Ohakune (1 hr south) has Four Square supermarket, gear shops, restaurants, pharmacies. Taupo (2 hrs north) for major shopping and services.",
+    international_community_size:
+      "Medium — smaller and more family-oriented than the Queenstown/Wanaka resorts but a friendly staff scene. Strong domestic NZ presence with international hires from the UK, Argentina, Brazil, and Japan. English is the working language.",
+    avg_winter_temp_min_c: -3,
+    avg_winter_temp_max_c: 4,
+    snow_reliability: "medium",
+    artificial_snow_coverage_pct: 10,
+    is_verified: true,
   }),
   createResort({
     id: "90", name: "Tukino", region_id: "6", country: "New Zealand",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Manawatu-Whanganui", nearest_town: "Waiouru",
     description: "A remote club field on the eastern flank of Mount Ruapehu, accessed by 4WD. Two tow lifts, basic facilities, fantastic untracked terrain on good days.",
     latitude: -39.320, longitude: 175.660,
@@ -5573,27 +5977,185 @@ export const resorts: Resort[] = [
     website: "https://www.tukino.co.nz",
   }),
   createResort({
-    id: "91", name: "Turoa", region_id: "6", country: "New Zealand",
-    state_province: "Manawatu-Whanganui", nearest_town: "Ohakune",
-    description: "Sister resort to Whakapapa on the southern slopes of Mount Ruapehu, with NZ's longest vertical drop (722 m). Open into October most years. Ohakune is the gateway town.",
-    latitude: -39.300, longitude: 175.510,
-    base_elevation_m: 1600, summit_elevation_m: 2322, snow_reliability: "medium",
+    id: "91",
+    name: "Turoa",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
+    region_id: "6",
+    country: "New Zealand",
+    description:
+      "Sister resort to Whakapapa on the southern slopes of Mount Ruapehu, with New Zealand's longest single-lift vertical drop at 722m. Turoa runs deep into October most years and has the highest summit-accessible terrain in NZ. Operated by Ruapehu Alpine Lifts and shares a season pass with Whakapapa. Ohakune — a vibrant little ski town — is the gateway and the main hub for staff and après life.",
+    latitude: -39.300,
+    longitude: 175.510,
+    state_province: "Manawatu-Whanganui",
+    nearest_town: "Ohakune",
     website: "https://www.mtruapehu.com/winter/turoa",
+    skiable_terrain_ha: 500,
+    num_runs: 30,
+    runs_green: 5,
+    runs_blue: 14,
+    runs_black: 8,
+    runs_double_black: 3,
+    vertical_drop_m: 722,
+    base_elevation_m: 1600,
+    summit_elevation_m: 2322,
+    num_lifts: 9,
+    lift_types: { gondolas: 0, chairlifts: 4, surface_lifts: 5 },
+    snowfall_avg_cm: 280,
+    season_start: "2026-06-27",
+    season_end: "2026-10-25",
+    main_employers: [
+      "Ruapehu Alpine Lifts",
+      "Turoa Snow Sports School",
+      "On-mountain F&B (RAL)",
+      "Powderhorn Chateau (Ohakune)",
+      "Ruapehu Country Lodge",
+      "Ohakune hospitality (pubs, restaurants, lodges)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Patroller",
+      "Grooming Operator",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Hotel Reception / Housekeeping",
+    ],
+    estimated_seasonal_staff: "300–450",
+    languages_required: ["English"],
+    visa_requirements:
+      "Working Holiday Visa is the standard route — NZ has agreements with 45+ countries. RAL sponsors Essential Skills Work Visas for senior instructors and specialised roles. Most under-30 international hires arrive on a WHV.",
+    recruitment_timeline:
+      "RAL opens applications in February–April for the late-June Turoa opening. Instructor positions require NZSIA / NZSSA / equivalent certification. Lift, F&B, and rental hiring through April–June.",
+    staff_housing_available: true,
+    staff_housing_capacity: 80,
+    staff_housing_avg_rent: "NZD $160–$260/week shared in Ohakune",
+    cost_of_living_weekly: "NZD $350–$500 (Ohakune is one of the cheapest NZ ski towns)",
+    public_transport:
+      "Intercity buses serve Ohakune. RAL runs staff shuttles from Ohakune to Turoa during the season. Many staff have cars or carpool. The Ohakune Mountain Road requires chains in winter conditions.",
+    staff_perks: [
+      "Free season pass valid at Turoa and sister mountain Whakapapa",
+      "Staff meals on-mountain",
+      "Pro deals on gear and apparel",
+      "Long season — late-July to mid-October prime conditions",
+      "Staff social events",
+    ],
+    apres_scene:
+      "Ohakune punches well above its weight. The Powderkeg (in the Powderhorn) is the iconic Ruapehu après bar, packed with staff and guests every winter night. Utopia, the Bearing Point, and the Big Carrot are also popular. Ohakune has a strong seasonal-worker culture for a town its size.",
+    outdoor_activities: [
+      "Backcountry ski touring on Ruapehu",
+      "Tongariro Alpine Crossing (1 hr drive)",
+      "Mountain biking (Old Coach Road, Ohakune Mountain Road descent)",
+      "Whitewater rafting on the Tongariro and Whanganui",
+      "Trout fishing",
+      "Climbing",
+    ],
+    healthcare_access:
+      "Ohakune Health Centre for GP services. Whanganui Hospital (1.5 hrs) and Palmerston North Hospital (2 hrs) for emergency care. Helicopter retrieval available. Volcanic activity on Ruapehu is monitored continuously.",
+    shops_and_services:
+      "Ohakune has Four Square supermarket, gear shops (Snow Centre, TCB), pharmacies, restaurants, cafés, and a small but lively main street. Taupo (2 hrs north) for larger shopping needs.",
+    international_community_size:
+      "Medium — friendly mid-sized staff scene. Strong domestic NZ presence with international hires from the UK, Argentina, Brazil, and Japan. Smaller community than Queenstown but very tight-knit. English is the working language.",
+    avg_winter_temp_min_c: -4,
+    avg_winter_temp_max_c: 3,
+    snow_reliability: "medium",
+    artificial_snow_coverage_pct: 5,
+    is_verified: true,
   }),
 
   // ============================================
   // JAPAN — additions (Hokkaido & Honshu)
   // ============================================
   createResort({
-    id: "92", name: "Kiroro", region_id: "3", country: "Japan",
-    state_province: "Hokkaido", nearest_town: "Otaru",
-    description: "Hokkaido powder resort about an hour from Sapporo, famed for an annual snowfall of around 21 m. Quieter than Niseko with two interconnected mountains and an upmarket base village.",
-    latitude: 43.103, longitude: 140.967,
-    base_elevation_m: 570, summit_elevation_m: 1180, snow_reliability: "high",
+    id: "92",
+    name: "Kiroro",
+    banner_image_url: "/resorts/countries/japan.jpg",
+    region_id: "3",
+    country: "Japan",
+    description:
+      "Hokkaido powder resort about an hour from Sapporo and 30 minutes from Otaru, famed for an average annual snowfall of around 21m — among the highest in Japan. Two interconnected peaks (Asari and Nagamine) and 23 runs across 100+ hectares. Quieter than Niseko with an upmarket base village (Club Med Kiroro Peak and Yu Kiroro). Owner-operator: PCP Kiroro.",
+    latitude: 43.103,
+    longitude: 140.967,
+    state_province: "Hokkaido",
+    nearest_town: "Otaru",
     website: "https://www.kiroro.co.jp",
+    skiable_terrain_ha: 115,
+    num_runs: 23,
+    runs_green: 8,
+    runs_blue: 8,
+    runs_black: 5,
+    runs_double_black: 2,
+    vertical_drop_m: 610,
+    base_elevation_m: 570,
+    summit_elevation_m: 1180,
+    num_lifts: 9,
+    lift_types: { gondolas: 1, chairlifts: 6, surface_lifts: 2 },
+    snowfall_avg_cm: 2100,
+    season_start: "2026-12-01",
+    season_end: "2027-05-05",
+    main_employers: [
+      "Kiroro Resort (PCP Kiroro)",
+      "Club Med Kiroro Peak",
+      "Club Med Kiroro Grand",
+      "Yu Kiroro (luxury condos)",
+      "Kiroro Snow Sports School",
+      "On-mountain F&B and rental shops",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor (English-speaking)",
+      "Lift Operator",
+      "Hotel / Resort Staff",
+      "Kitchen Staff / Chef",
+      "Bartender / Server",
+      "Rental Shop Staff",
+      "Guest Services",
+      "Housekeeping",
+      "Childcare (kids' clubs)",
+    ],
+    estimated_seasonal_staff: "500–800",
+    languages_required: ["English", "Japanese (helpful, not always required)"],
+    visa_requirements:
+      "Working Holiday Visa is the most common route for under-30s — Japan has agreements with Australia, NZ, Canada, UK, France, Germany, Korea, and many others. Specialist roles (instructors, senior chefs) may be sponsored on Specialist in Humanities work visas. Club Med often sponsors international hires directly.",
+    recruitment_timeline:
+      "Major employers (Club Med, Kiroro Resort) start hiring in July–August for the December opening. Instructor positions through ski schools fill September–October. Late hires possible in November but accommodation gets scarce.",
+    staff_housing_available: true,
+    staff_housing_capacity: 300,
+    staff_housing_avg_rent: "JPY ¥30,000–¥55,000/month shared (often subsidised by employer; equivalent to USD $200–$370)",
+    cost_of_living_weekly: "JPY ¥18,000–¥30,000 (USD $120–$200) — cheap once on-mountain since meals often included",
+    public_transport:
+      "Resort shuttle from JR Otaru station and from New Chitose Airport (Sapporo). No public bus service on the mountain road — staff are on resort shuttles or carpool. Train + shuttle is the standard staff commute.",
+    staff_perks: [
+      "Free or discounted season pass",
+      "Staff meals at major employers (Club Med all-inclusive includes staff)",
+      "Onsen access at Kiroro hotels",
+      "Pro deals on gear",
+      "Connecting Niseko reciprocal access on some staff passes",
+    ],
+    apres_scene:
+      "Quieter than Niseko. Most après happens inside the Club Med and Kiroro hotel bars (lobby bar, Mountain Side Bar). Some staff trips to Niseko (1 hr) for bigger nightlife. The Otaru side road has small izakayas and ramen shops.",
+    outdoor_activities: [
+      "Cat skiing in side-country",
+      "Snowshoeing",
+      "Onsen day trips around Hokkaido",
+      "Sapporo (1 hr) for nightlife and food",
+      "Niseko (1 hr) for cross-resort skiing on staff days",
+    ],
+    healthcare_access:
+      "Otaru General Hospital (30 min). Sapporo for major care (1 hr). On-mountain first-aid clinic during operating hours. Pharmacy in Otaru.",
+    shops_and_services:
+      "Limited at the resort itself. Otaru (30 min) for supermarkets, banks, pharmacies, and restaurants. Sapporo (1 hr) for major shopping (department stores, electronics, international food).",
+    international_community_size:
+      "Medium — strong Australian, British, and French staff presence (especially through Club Med). Smaller and quieter international scene than Niseko but tight-knit. Working English is widely used among staff.",
+    avg_winter_temp_min_c: -10,
+    avg_winter_temp_max_c: -2,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 5,
+    is_verified: true,
   }),
   createResort({
     id: "93", name: "Okunakayama Kogen", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Mid-sized Iwate resort with reliable Tohoku-region powder. Quieter than the Hokkaido and Nagano resorts; popular with Japanese domestic skiers.",
     latitude: 39.970, longitude: 140.980,
@@ -5601,6 +6163,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "94", name: "Madarao Kogen", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Nagano", nearest_town: "Iiyama",
     description: "Connected to Tangram resort to form Madarao Tangram. Famous for its ungroomed tree-skiing zones — a powder hound favourite within easy reach of Hakuba (about 90 minutes away).",
     latitude: 36.840, longitude: 138.310,
@@ -5609,6 +6172,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "95", name: "Appi Kogen", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "One of Tohoku's biggest resorts with 21 long, well-groomed runs and reliable snow from December through April. Has long been a favourite for Japanese family skiing.",
     latitude: 40.070, longitude: 140.920,
@@ -5617,6 +6181,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "96", name: "Shizukuishi", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Resort on Mount Iwate, about 30 minutes from Morioka. Hosted the 1993 Alpine World Ski Championships. Long groomers and a panoramic top section.",
     latitude: 39.745, longitude: 140.957,
@@ -5625,6 +6190,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "97", name: "Karuizawa", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Nagano", nearest_town: "Karuizawa",
     description: "Closest resort to Tokyo (about 75 min by Shinkansen), known for early-season snowmaking and an upmarket alpine town with shopping and onsens. Smaller terrain footprint but very accessible.",
     latitude: 36.367, longitude: 138.620,
@@ -5633,6 +6199,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "98", name: "Hakkaisan", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Niigata", nearest_town: "Minamiuonuma",
     description: "Steep terrain on Mount Hakkai in the Niigata snowbelt. Famous for its 5-km Yuzawa-side run and reliable deep powder; about 90 min from Tokyo by Shinkansen.",
     latitude: 37.100, longitude: 138.928,
@@ -5641,6 +6208,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "99", name: "Manza Onsen", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Gunma", nearest_town: "Tsumagoi",
     description: "High-altitude resort (1800 m base) on Mount Shirane with one of the highest onsen in Japan. Reliable cold dry powder; small but uncrowded terrain.",
     latitude: 36.620, longitude: 138.500,
@@ -5649,6 +6217,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "100", name: "Hachimantai", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "A lightly-trafficked Tohoku resort surrounded by hot springs and old-growth beech forests. Great for tree skiing; access from Morioka.",
     latitude: 39.970, longitude: 140.940,
@@ -5656,6 +6225,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "101", name: "Hakkoda", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Aomori", nearest_town: "Aomori",
     description: "Legendary off-piste destination in northern Honshu, famed for its juhyo (snow monsters) and waist-deep powder. Single ropeway accessing huge ungroomed terrain — for committed skiers only.",
     latitude: 40.660, longitude: 140.850,
@@ -5664,6 +6234,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "102", name: "Tazawako", region_id: "3", country: "Japan",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Akita", nearest_town: "Senboku",
     description: "Akita resort overlooking Lake Tazawa, Japan's deepest lake. A mid-sized terrain footprint with reliable Tohoku snow and a low-key local feel.",
     latitude: 39.720, longitude: 140.780,
@@ -5675,61 +6246,544 @@ export const resorts: Resort[] = [
   // USA — additions (CO, UT, CA)
   // ============================================
   createResort({
-    id: "103", name: "Snowbird", region_id: "2", country: "USA",
-    state_province: "Utah", nearest_town: "Salt Lake City",
-    description: "Steep, deep-powder resort in Little Cottonwood Canyon, 45 min from Salt Lake City. 2500 acres dominated by expert terrain; long season — usually well into May.",
-    latitude: 40.582, longitude: -111.656,
-    base_elevation_m: 2365, summit_elevation_m: 3353,
-    season_start: "2026-11-21", season_end: "2027-05-23", snow_reliability: "high",
+    id: "103",
+    name: "Snowbird",
+    banner_image_url: "/resorts/countries/usa.jpg",
+    region_id: "2",
+    country: "USA",
+    description:
+      "Steep, deep-powder resort in Little Cottonwood Canyon, 45 minutes from Salt Lake City and 30 minutes from the international airport. 2,500 acres dominated by expert terrain — Snowbird's reputation for relentless steeps, narrow chutes, and 'the greatest snow on earth' draws hardcore skiers from around the world. Connected to neighbouring Alta via the Mineral Basin link (single-resort pass available). Long season usually runs well into May. Owned by the Cumming family.",
+    latitude: 40.582,
+    longitude: -111.656,
+    state_province: "Utah",
+    nearest_town: "Salt Lake City",
     website: "https://www.snowbird.com",
+    skiable_terrain_ha: 1011,
+    num_runs: 169,
+    runs_green: 22,
+    runs_blue: 65,
+    runs_black: 50,
+    runs_double_black: 32,
+    vertical_drop_m: 988,
+    base_elevation_m: 2365,
+    summit_elevation_m: 3353,
+    num_lifts: 14,
+    lift_types: { gondolas: 1, chairlifts: 11, surface_lifts: 2 },
+    snowfall_avg_cm: 1300,
+    season_start: "2026-11-21",
+    season_end: "2027-05-23",
+    main_employers: [
+      "Snowbird Ski & Summer Resort",
+      "Cliff Lodge & Spa",
+      "The Lodge at Snowbird",
+      "The Inn at Snowbird",
+      "Iron Blosam Lodge",
+      "Snowbird Ski School",
+      "On-mountain F&B (multiple restaurants and bars)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Patroller",
+      "Housekeeping",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Snowmaker",
+      "Grooming Operator",
+    ],
+    estimated_seasonal_staff: "1,200–1,800",
+    languages_required: ["English"],
+    visa_requirements:
+      "International workers usually arrive on J-1 Exchange Visitor visas (Work & Travel) for 4-month seasonal roles, or H-2B for longer-term hires. Snowbird participates in J-1 programs through agencies like CIEE, InterExchange, and CCUSA. Australians can also apply for E-3 visas; PSIA-certified instructors sometimes sponsored on H-2B.",
+    recruitment_timeline:
+      "Snowbird begins hiring in August for the November opening. J-1 placement agencies match candidates from June–September. Most lift, F&B, and housekeeping roles fill by October. Instructors require PSIA / AASI certification. Apply through Snowbird's careers page.",
+    staff_housing_available: true,
+    staff_housing_capacity: 350,
+    staff_housing_avg_rent: "USD $400–$700/month shared (employer-subsidised on-mountain housing)",
+    cost_of_living_weekly: "USD $300–$500 (Salt Lake City prices for off-mountain workers)",
+    public_transport:
+      "UTA Ski Bus runs from Salt Lake City to Snowbird daily during winter. Free Cottonwood Canyon shuttles between Snowbird base areas. The canyon road requires traction-controlled tires or chains during heavy snow; UDOT periodically closes the canyon for avalanche control. Most staff live in Salt Lake City or in Snowbird employee housing.",
+    staff_perks: [
+      "Free season pass (Snowbird + Alta on certain pass tiers)",
+      "Staff meals at on-mountain F&B",
+      "Pro deals on gear",
+      "Discounted lodging for friends & family",
+      "Free yoga and gym access at Cliff Spa",
+      "Reciprocal benefits at partner resorts",
+    ],
+    apres_scene:
+      "The Tram Club and El Chanate at the Cliff Lodge are après-ski staples. The General Gritts hotel deli and Forklift restaurant are popular post-ski. Salt Lake City (45 min) has a robust nightlife scene — staff often head into town for bigger nights. Utah's beer/liquor laws are quirky but don't stop the scene.",
+    outdoor_activities: [
+      "Backcountry skiing in the Wasatch (some of the best in North America)",
+      "Snowshoeing and Nordic skiing",
+      "Tram-served summer hiking",
+      "Mountain biking",
+      "Climbing in Little Cottonwood Canyon (granite trad classics)",
+      "Hot pots at Diamond Fork (1.5 hrs)",
+    ],
+    healthcare_access:
+      "Snowbird Medical Clinic on-mountain during ski season. Intermountain Medical Center in Murray (45 min) for major emergencies. University of Utah Hospital in SLC (45 min). Pharmacies in Cottonwood Heights and SLC.",
+    shops_and_services:
+      "On-mountain shops cover essentials (small market, gear retail, ski tuning). Cottonwood Heights and Sandy (40 min down-canyon) for full-service supermarkets, pharmacies, banks. Salt Lake City (45 min) for everything.",
+    international_community_size:
+      "Medium-large — strong J-1 international community, particularly from Argentina, Brazil, Chile, the UK, Australia, and Eastern Europe. Tight-knit on-mountain staff scene and a bigger international community in Salt Lake City. English is the working language.",
+    avg_winter_temp_min_c: -10,
+    avg_winter_temp_max_c: -2,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 5,
+    is_verified: true,
   }),
   createResort({
-    id: "104", name: "Beaver Creek", region_id: "2", country: "USA",
-    state_province: "Colorado", nearest_town: "Avon",
-    description: "Upscale Vail-owned resort 10 minutes from Vail Village. Known for impeccable grooming, ski-in/ski-out luxury lodging, and an extensive learner-friendly mid-mountain.",
-    latitude: 39.605, longitude: -106.522,
-    base_elevation_m: 2255, summit_elevation_m: 3488,
-    season_start: "2026-11-26", season_end: "2027-04-11", snow_reliability: "high",
+    id: "104",
+    name: "Beaver Creek",
+    banner_image_url: "/resorts/countries/usa.jpg",
+    region_id: "2",
+    country: "USA",
+    description:
+      "Upscale Vail Resorts-owned resort 10 minutes from Vail Village in Colorado's Eagle County. 1,800 acres of impeccably groomed terrain across three villages — Beaver Creek Village, Bachelor Gulch, and Arrowhead. Known for ski-in/ski-out luxury lodging, an extensive learner-friendly mid-mountain (Buckaroo Express gondola), the famous Birds of Prey World Cup downhill course, and the daily 3pm chocolate-chip cookie tradition. Part of the Epic Pass network.",
+    latitude: 39.605,
+    longitude: -106.522,
+    state_province: "Colorado",
+    nearest_town: "Avon",
     website: "https://www.beavercreek.com",
+    skiable_terrain_ha: 729,
+    num_runs: 150,
+    runs_green: 29,
+    runs_blue: 56,
+    runs_black: 39,
+    runs_double_black: 26,
+    vertical_drop_m: 1233,
+    base_elevation_m: 2255,
+    summit_elevation_m: 3488,
+    num_lifts: 25,
+    lift_types: { gondolas: 1, chairlifts: 17, surface_lifts: 7 },
+    snowfall_avg_cm: 813,
+    season_start: "2026-11-26",
+    season_end: "2027-04-11",
+    main_employers: [
+      "Vail Resorts (operates Beaver Creek)",
+      "Park Hyatt Beaver Creek",
+      "The Ritz-Carlton, Bachelor Gulch",
+      "Beaver Creek Lodge",
+      "Pines Lodge",
+      "Beaver Creek Ski & Snowboard School (Vail Resorts)",
+      "Village restaurants, bars, and luxury retail",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Housekeeping",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services / Concierge",
+      "Snowmaker",
+      "Grooming Operator",
+      "Resort Ambassador",
+    ],
+    estimated_seasonal_staff: "1,800–2,500",
+    languages_required: ["English", "Spanish (helpful)"],
+    visa_requirements:
+      "International workers usually arrive on J-1 Exchange Visitor visas (Work & Travel) for 4-month seasonal roles, or H-2B for longer-term hires. Vail Resorts runs the EpicSeasonal program, partnering with major J-1 sponsor agencies (CIEE, InterExchange, CCUSA, GeoVisions). Australians can apply for E-3 visas; PSIA-certified instructors sometimes sponsored on H-2B.",
+    recruitment_timeline:
+      "Vail Resorts begins recruiting in May–June for the November opening — earlier than most US resorts. J-1 placement agencies match candidates from May through September. Most lift, F&B, and housekeeping roles fill by October. Instructors require PSIA / AASI certification.",
+    staff_housing_available: true,
+    staff_housing_capacity: 600,
+    staff_housing_avg_rent: "USD $500–$900/month shared (Vail Resorts subsidised housing in Avon, Edwards, and Eagle)",
+    cost_of_living_weekly: "USD $400–$600 (Eagle Valley is one of the more expensive US ski regions)",
+    public_transport:
+      "ECO Transit free regional bus connects Avon, Beaver Creek, Vail, Eagle, and Edwards. Beaver Creek village shuttle. Eagle County Regional Airport (EGE) is 30 min away — direct flights from major US cities in winter. Denver International Airport is 2 hours by I-70 (chains required during storms).",
+    staff_perks: [
+      "Free Epic Pass (valid at 80+ resorts worldwide)",
+      "Staff meals at some employers",
+      "Pro deals on gear and apparel",
+      "Discounted lodging at sister resorts",
+      "Wellness benefits and gym access",
+      "Free or discounted lessons",
+    ],
+    apres_scene:
+      "Coyote Café and the Dusty Boot Saloon are après staples in Beaver Creek Village. Park Hyatt's 8100 Mountainside Bar & Grill for slightly more upmarket. Avon (10 min down-valley) has the Westin and Bob's Place. Most staff socialising spreads across Avon and Edwards. The bigger Vail Village nightlife scene is 10 min away.",
+    outdoor_activities: [
+      "Backcountry skiing in the Sawatch and Gore Ranges",
+      "Snowshoeing and Nordic skiing",
+      "Hot springs at Glenwood and Iron Mountain (1 hr)",
+      "Mountain biking in summer",
+      "Hiking the Eagle's Loop and surrounding trails",
+      "Fly fishing on the Eagle River",
+    ],
+    healthcare_access:
+      "Beaver Creek Medical Center on-mountain during ski season. Vail Health (Vail) and Vail Health Edwards for hospital care (10–15 min). Pharmacies in Avon and Edwards. Helicopter retrieval to Denver for major trauma.",
+    shops_and_services:
+      "Beaver Creek Village has upmarket boutique retail and dining. Avon (10 min) has City Market, Walmart, banks, pharmacies, and a full-service grocery scene. Edwards and Eagle for additional shopping.",
+    international_community_size:
+      "Large — strong J-1 community especially from Argentina, Brazil, Chile, Peru, the UK, Australia, and South Africa. Vail Resorts is one of the largest seasonal employers of international workers in the US. English is the working language; Spanish widely spoken in housekeeping and F&B.",
+    avg_winter_temp_min_c: -12,
+    avg_winter_temp_max_c: -2,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 35,
+    is_verified: true,
   }),
   createResort({
-    id: "105", name: "Palisades Tahoe", region_id: "2", country: "USA",
-    state_province: "California", nearest_town: "Olympic Valley",
-    description: "Combined Squaw Valley + Alpine Meadows resort on Lake Tahoe's north shore — host of the 1960 Winter Olympics. 6,000 acres connected by gondola; famously consistent late-season snow.",
-    latitude: 39.197, longitude: -120.236,
-    base_elevation_m: 1890, summit_elevation_m: 2758,
-    season_start: "2026-11-26", season_end: "2027-05-30", snow_reliability: "high",
+    id: "105",
+    name: "Palisades Tahoe",
+    banner_image_url: "/resorts/countries/usa.jpg",
+    region_id: "2",
+    country: "USA",
+    description:
+      "Combined Squaw Valley + Alpine Meadows resort on Lake Tahoe's north shore — host of the 1960 Winter Olympics. 6,000 acres of connected terrain via the Base-to-Base Gondola, with views over Lake Tahoe from many lifts. Famous for steep extreme terrain (KT-22, the Fingers, Headwall) and a dense cluster of US ski legends. Owned by Alterra Mountain Company; Ikon Pass partner. Renamed from Squaw Valley to Palisades in 2021.",
+    latitude: 39.197,
+    longitude: -120.236,
+    state_province: "California",
+    nearest_town: "Olympic Valley",
     website: "https://www.palisadestahoe.com",
+    skiable_terrain_ha: 2428,
+    num_runs: 270,
+    runs_green: 67,
+    runs_blue: 122,
+    runs_black: 50,
+    runs_double_black: 31,
+    vertical_drop_m: 868,
+    base_elevation_m: 1890,
+    summit_elevation_m: 2758,
+    num_lifts: 42,
+    lift_types: { gondolas: 4, chairlifts: 30, surface_lifts: 8 },
+    snowfall_avg_cm: 1067,
+    season_start: "2026-11-26",
+    season_end: "2027-05-30",
+    main_employers: [
+      "Alterra Mountain Company (Palisades Tahoe operations)",
+      "Everline Resort & Spa (Olympic Valley)",
+      "PlumpJack Inn",
+      "The Village at Palisades Tahoe",
+      "Palisades Tahoe Ski & Ride School",
+      "Olympic Valley and Tahoe City restaurants and bars",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Patroller",
+      "Housekeeping",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Snowmaker",
+      "Grooming Operator",
+    ],
+    estimated_seasonal_staff: "2,000–3,000",
+    languages_required: ["English", "Spanish (helpful)"],
+    visa_requirements:
+      "International workers usually arrive on J-1 Exchange Visitor visas (Work & Travel) for 4-month seasonal roles, or H-2B for longer-term hires. Alterra runs J-1 partnerships with CIEE, InterExchange, CCUSA, and others. Australians can apply for E-3 visas; PSIA/AASI-certified instructors sometimes sponsored on H-2B.",
+    recruitment_timeline:
+      "Palisades begins recruiting in July–August for the November opening. J-1 placement matches finalised by September–October. Most lift, F&B, and housekeeping roles fill by October. Instructors require PSIA / AASI certification.",
+    staff_housing_available: true,
+    staff_housing_capacity: 400,
+    staff_housing_avg_rent: "USD $600–$1,000/month shared (employer housing in Truckee and surrounds; very tight market off-mountain)",
+    cost_of_living_weekly: "USD $400–$650 (Tahoe is one of the more expensive US ski regions)",
+    public_transport:
+      "TART (Tahoe Truckee Area Regional Transit) free buses serve North Lake Tahoe in winter. Free Palisades shuttle within Olympic Valley. Reno-Tahoe International Airport is 45 min by car. I-80 access from Sacramento (2 hrs) and the Bay Area (3.5 hrs); chain control common during storms.",
+    staff_perks: [
+      "Free Ikon Pass (valid at 50+ resorts worldwide)",
+      "Staff meals at some employers",
+      "Pro deals on gear and apparel",
+      "Discounted lodging at Alterra sister resorts",
+      "Free or discounted lessons",
+      "Lake Tahoe access (beach, paddleboarding) on summer staff days",
+    ],
+    apres_scene:
+      "Le Chamois ('the Chammy') is Palisades' most iconic après bar — beers and pizza after KT-22 laps. Auld Dubliner in the Village. Plumpjack Café for upmarket dining. Truckee (15 min) has a strong food/bar scene (Bar of America, FiftyFifty Brewing). Tahoe City (15 min) has Bridgetender, Pete'n'Peters. Reno (45 min) for big nights out.",
+    outdoor_activities: [
+      "Backcountry skiing in the Sierra Nevada",
+      "Snowshoeing and Nordic skiing",
+      "Lake Tahoe sports (kayaking, paddleboarding, swimming) in summer",
+      "Mountain biking (Truckee Bike Park, Northstar)",
+      "Climbing at Donner Summit",
+      "Hot springs at Sierra Hot Springs and Grover Hot Springs",
+    ],
+    healthcare_access:
+      "Tahoe Forest Hospital in Truckee (15 min) — full-service hospital. Palisades Medical Clinic on-mountain during ski season. Renown Regional Medical Center in Reno (45 min) for major care. Helicopter retrieval available.",
+    shops_and_services:
+      "The Village at Palisades has retail, restaurants, and rental shops. Truckee (15 min) has full supermarkets (Safeway, Save Mart), banks, pharmacies, and gear shops. Tahoe City (15 min) and Reno (45 min) for additional needs.",
+    international_community_size:
+      "Large — strong J-1 community especially from Argentina, Brazil, Chile, the UK, Australia, and Eastern Europe. Tahoe has been a destination for ski-bum culture for decades and the international scene is well-established. English is the working language; Spanish widely spoken in housekeeping and F&B.",
+    avg_winter_temp_min_c: -8,
+    avg_winter_temp_max_c: 0,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 25,
+    is_verified: true,
   }),
   createResort({
-    id: "106", name: "Heavenly", region_id: "2", country: "USA",
-    state_province: "California", nearest_town: "South Lake Tahoe",
-    description: "Straddles California / Nevada on Lake Tahoe's south shore with views over the lake from every chair. 4,800 acres and a vibrant casino-village base.",
-    latitude: 38.935, longitude: -119.940,
-    base_elevation_m: 2003, summit_elevation_m: 3060,
-    season_start: "2026-11-21", season_end: "2027-04-18", snow_reliability: "high",
+    id: "106",
+    name: "Heavenly",
+    banner_image_url: "/resorts/countries/usa.jpg",
+    region_id: "2",
+    country: "USA",
+    description:
+      "Straddles California and Nevada on Lake Tahoe's south shore with unmatched views over the lake from nearly every chair. 4,800 acres of varied terrain across two states. The Stateline base village sits at the foot of the Heavenly Gondola and connects directly to the Nevada-side casino strip — making Heavenly the most accessible Tahoe resort for nightlife. Owned by Vail Resorts; Epic Pass partner.",
+    latitude: 38.935,
+    longitude: -119.940,
+    state_province: "California",
+    nearest_town: "South Lake Tahoe",
     website: "https://www.skiheavenly.com",
+    skiable_terrain_ha: 1942,
+    num_runs: 97,
+    runs_green: 19,
+    runs_blue: 43,
+    runs_black: 26,
+    runs_double_black: 9,
+    vertical_drop_m: 1067,
+    base_elevation_m: 2003,
+    summit_elevation_m: 3060,
+    num_lifts: 28,
+    lift_types: { gondolas: 1, chairlifts: 19, surface_lifts: 8 },
+    snowfall_avg_cm: 914,
+    season_start: "2026-11-21",
+    season_end: "2027-04-18",
+    main_employers: [
+      "Vail Resorts (operates Heavenly)",
+      "Hard Rock Hotel & Casino Lake Tahoe",
+      "Bally's Lake Tahoe",
+      "Harrah's Lake Tahoe",
+      "Hilton Vacation Club Lake Tahoe Resort",
+      "Heavenly Ski & Snowboard School (Vail Resorts)",
+      "Stateline casino F&B operations",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Casino F&B (Stateline)",
+      "Hotel Staff",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Snowmaker",
+      "Grooming Operator",
+    ],
+    estimated_seasonal_staff: "1,500–2,200",
+    languages_required: ["English", "Spanish (helpful)"],
+    visa_requirements:
+      "International workers usually arrive on J-1 Exchange Visitor visas (Work & Travel) for 4-month seasonal roles, or H-2B for longer-term hires. Vail Resorts runs the EpicSeasonal program through major J-1 sponsors. Australians can apply for E-3 visas; PSIA/AASI-certified instructors sometimes sponsored on H-2B.",
+    recruitment_timeline:
+      "Vail Resorts begins recruiting in May–June for the November opening. J-1 placements through major agencies (CIEE, InterExchange, CCUSA, GeoVisions) finalise by September–October. Most lift, F&B, and housekeeping roles fill by October. Instructors require PSIA / AASI certification.",
+    staff_housing_available: true,
+    staff_housing_capacity: 350,
+    staff_housing_avg_rent: "USD $500–$900/month shared (Vail Resorts subsidised housing in South Lake Tahoe and surrounds)",
+    cost_of_living_weekly: "USD $400–$600 (South Lake is more affordable than the North Shore)",
+    public_transport:
+      "BlueGo public buses around South Lake Tahoe. Free Heavenly shuttle from key village stops. Reno-Tahoe International Airport is 80 min by car (chain control common in winter). Most staff don't need cars — Stateline is walkable and the gondola is in the village.",
+    staff_perks: [
+      "Free Epic Pass (valid at 80+ resorts worldwide)",
+      "Staff meals at some employers",
+      "Pro deals on gear and apparel",
+      "Discounted lodging at sister resorts",
+      "Wellness benefits and gym access",
+      "Casino entertainment access (free shows, etc.)",
+    ],
+    apres_scene:
+      "Tamarack Lodge and Café Blue at Heavenly Village for direct-from-the-gondola après. The Stateline casinos (Hard Rock, Bally's, Harrah's) for nightlife — concerts, clubs, late-night dining. McP's Taphouse and Brewer's at Lake Tahoe for craft beer. South Lake Tahoe has the best ski-town nightlife after Reno.",
+    outdoor_activities: [
+      "Backcountry skiing in Desolation Wilderness",
+      "Snowshoeing and Nordic skiing",
+      "Lake Tahoe sports (paddleboarding, kayaking, beach) in summer",
+      "Mountain biking",
+      "Hiking the Tahoe Rim Trail",
+      "Casinos and gaming (Stateline)",
+    ],
+    healthcare_access:
+      "Barton Memorial Hospital in South Lake Tahoe — full-service hospital. Heavenly Medical Clinic on-mountain during ski season. Renown Regional in Reno (1.5 hrs) for major care. Pharmacies in South Lake Tahoe.",
+    shops_and_services:
+      "Heavenly Village has retail and restaurants. South Lake Tahoe has full supermarkets (Safeway, Raley's, Grocery Outlet), Target, banks, pharmacies, and gear shops. Reno (1.5 hrs) for major shopping.",
+    international_community_size:
+      "Large — strong J-1 community especially from Argentina, Brazil, Chile, Eastern Europe, the UK, and Australia. Vail Resorts is one of the largest seasonal employers of international workers in the US, and Heavenly's casino-side hospitality scene also draws international staff. English is the working language; Spanish widely spoken in housekeeping and F&B.",
+    avg_winter_temp_min_c: -8,
+    avg_winter_temp_max_c: 1,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 70,
+    is_verified: true,
   }),
 
   // ============================================
   // CANADA — additions (BC)
   // ============================================
   createResort({
-    id: "107", name: "Kicking Horse", region_id: "2", country: "Canada",
-    state_province: "British Columbia", nearest_town: "Golden",
-    description: "Famously steep BC interior resort with the 4th-highest vertical drop in North America (1260 m). 85% of terrain is intermediate or expert; little for beginners.",
-    latitude: 51.300, longitude: -117.050,
-    base_elevation_m: 1190, summit_elevation_m: 2450,
-    season_start: "2026-12-12", season_end: "2027-04-11", snow_reliability: "high",
+    id: "107",
+    name: "Kicking Horse",
+    banner_image_url: "/resorts/countries/canada.jpg",
+    region_id: "2",
+    country: "Canada",
+    description:
+      "Famously steep BC interior resort with the 4th-highest vertical drop in North America at 1,260m. 2,800+ acres of terrain across four alpine bowls and 120+ inbounds chutes. 85% of the mountain is intermediate or expert — little for beginners but a legendary destination for advanced skiers and freeriders. The Eagle's Eye restaurant at the top of the Golden Eagle Express gondola is the highest in Canada. Located in the Purcell Mountains above Golden, BC.",
+    latitude: 51.300,
+    longitude: -117.050,
+    state_province: "British Columbia",
+    nearest_town: "Golden",
     website: "https://www.kickinghorseresort.com",
+    skiable_terrain_ha: 1133,
+    num_runs: 129,
+    runs_green: 12,
+    runs_blue: 25,
+    runs_black: 50,
+    runs_double_black: 42,
+    vertical_drop_m: 1260,
+    base_elevation_m: 1190,
+    summit_elevation_m: 2450,
+    num_lifts: 5,
+    lift_types: { gondolas: 1, chairlifts: 3, surface_lifts: 1 },
+    snowfall_avg_cm: 750,
+    season_start: "2026-12-12",
+    season_end: "2027-04-11",
+    main_employers: [
+      "Kicking Horse Mountain Resort (RCR — Resorts of the Canadian Rockies)",
+      "Eagle's Eye Restaurant",
+      "Copper Horse Lodge",
+      "Vagabond Lodge",
+      "Kicking Horse Snow Sports School",
+      "Golden hospitality (lodges, restaurants, cafés)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Patroller",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Snowmaker",
+      "Grooming Operator",
+      "Hotel Reception / Housekeeping",
+    ],
+    estimated_seasonal_staff: "300–500",
+    languages_required: ["English", "French (helpful)"],
+    visa_requirements:
+      "International workers typically arrive on Working Holiday Visas (IEC). Canada has IEC agreements with Australia, UK, Ireland, France, Germany, Japan, and many other countries. Some specialised roles (instructors, senior chefs) sponsored on LMIA-backed work permits.",
+    recruitment_timeline:
+      "Kicking Horse begins hiring in August–September for the December opening. Most lift, F&B, and housekeeping roles fill by October–November. Instructor positions require CSIA/CASI certification (or equivalent international certs). Apply through the Kicking Horse and RCR careers pages.",
+    staff_housing_available: true,
+    staff_housing_capacity: 100,
+    staff_housing_avg_rent: "CAD $500–$800/month shared (limited on-mountain; most staff live in Golden, CAD $600–$1,000/month)",
+    cost_of_living_weekly: "CAD $300–$450 (Golden cheaper than Whistler/Banff)",
+    public_transport:
+      "No regular public transit between Golden and the resort. The resort runs a guest shuttle. Most staff have cars or carpool — the access road is well-maintained but requires winter tires. Calgary International Airport is 3 hrs east via Trans-Canada Highway 1.",
+    staff_perks: [
+      "Free season pass at Kicking Horse",
+      "Reciprocal benefits at RCR sister resorts (Fernie, Nakiska, Stoneham, Mont-Sainte-Anne)",
+      "Staff meals at some employers",
+      "Pro deals on gear",
+      "Steep-skiing access on staff days",
+      "Free first-aid and avalanche awareness training",
+    ],
+    apres_scene:
+      "Eagle's Eye at the top of the gondola for sunset drinks. Whitetooth Bistro and Peaks Grill at the base. Golden's town centre (15 min) is the main social hub — Whitetooth Brewing, the Mad Trapper, Wolf's Den, and the historic Golden Hotel. Smaller scene than Whistler or Banff but tight-knit.",
+    outdoor_activities: [
+      "Backcountry skiing in the Purcells (world-class)",
+      "Heli-skiing with CMH and Purcell Heli-skiing",
+      "Cat skiing",
+      "Ice climbing",
+      "Mountain biking (Kicking Horse Bike Park in summer)",
+      "Whitewater rafting on the Kicking Horse River",
+    ],
+    healthcare_access:
+      "Golden & District Hospital in Golden (15 min). Rocky Mountain General in Invermere (1.5 hrs) and Foothills Medical Centre in Calgary (3 hrs) for major care. Helicopter retrieval available. On-mountain ski patrol clinic during operations.",
+    shops_and_services:
+      "Kicking Horse base village has limited retail and a small market. Golden has IGA and Save-On-Foods supermarkets, banks, pharmacies, gear shops (Selkirk Source for Sports), and a strong restaurant scene for a small town. Calgary (3 hrs) for major shopping.",
+    international_community_size:
+      "Medium — strong Australian, British, and French staff presence. Smaller and quieter than Whistler/Banff but a tight, freeride-focused community. English is the working language.",
+    avg_winter_temp_min_c: -15,
+    avg_winter_temp_max_c: -3,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 5,
+    is_verified: true,
   }),
   createResort({
-    id: "108", name: "Fernie", region_id: "2", country: "Canada",
-    state_province: "British Columbia", nearest_town: "Fernie",
-    description: "Five alpine bowls and 142 trails in the Lizard Range. Known for huge annual snowfall (around 9 m) and laid-back vibe. The Fernie town has heritage architecture and a strong ski-bum culture.",
-    latitude: 49.460, longitude: -115.080,
-    base_elevation_m: 1067, summit_elevation_m: 2134,
-    season_start: "2026-12-05", season_end: "2027-04-18", snow_reliability: "high",
+    id: "108",
+    name: "Fernie",
+    banner_image_url: "/resorts/countries/canada.jpg",
+    region_id: "2",
+    country: "Canada",
+    description:
+      "Five alpine bowls and 142 trails across 2,500 acres in the Lizard Range of southeast BC. Fernie is known for huge annual snowfall (around 9m), excellent tree skiing, and a refreshingly laid-back vibe. The historic town of Fernie sits 5 km from the resort with heritage 1900s architecture, a strong ski-bum culture, and one of the best small-town brewery scenes in the Canadian Rockies. Owned by Resorts of the Canadian Rockies (RCR).",
+    latitude: 49.460,
+    longitude: -115.080,
+    state_province: "British Columbia",
+    nearest_town: "Fernie",
     website: "https://www.skifernie.com",
+    skiable_terrain_ha: 1011,
+    num_runs: 142,
+    runs_green: 22,
+    runs_blue: 41,
+    runs_black: 50,
+    runs_double_black: 29,
+    vertical_drop_m: 1067,
+    base_elevation_m: 1067,
+    summit_elevation_m: 2134,
+    num_lifts: 10,
+    lift_types: { gondolas: 0, chairlifts: 7, surface_lifts: 3 },
+    snowfall_avg_cm: 900,
+    season_start: "2026-12-05",
+    season_end: "2027-04-18",
+    main_employers: [
+      "Fernie Alpine Resort (RCR)",
+      "Lizard Creek Lodge",
+      "Snow Creek Lodge",
+      "Cornerstone Lodge",
+      "Fernie Snow Sports School",
+      "Fernie town hospitality (lodges, brewpubs, restaurants)",
+    ],
+    common_jobs: [
+      "Ski/Snowboard Instructor",
+      "Lift Operator",
+      "Patroller",
+      "Kitchen Staff / Line Cook",
+      "Bartender / Server",
+      "Rental Shop Technician",
+      "Guest Services",
+      "Snowmaker",
+      "Grooming Operator",
+      "Hotel Reception / Housekeeping",
+    ],
+    estimated_seasonal_staff: "600–900",
+    languages_required: ["English"],
+    visa_requirements:
+      "International workers typically arrive on Working Holiday Visas (IEC). Canada has IEC agreements with Australia, UK, Ireland, France, Germany, Japan, and many other countries. Some specialised roles (instructors, senior chefs) sponsored on LMIA-backed work permits. Fernie has a well-established Aussie and Kiwi staff pipeline.",
+    recruitment_timeline:
+      "Fernie begins hiring in August–September for the December opening. Most lift, F&B, and housekeeping roles fill by October–November. Instructor positions require CSIA/CASI certification. Apply through the Fernie Alpine Resort and RCR careers pages.",
+    staff_housing_available: true,
+    staff_housing_capacity: 200,
+    staff_housing_avg_rent: "CAD $550–$850/month shared (limited on-mountain; town housing CAD $600–$1,000/month)",
+    cost_of_living_weekly: "CAD $300–$450 (Fernie is relatively affordable)",
+    public_transport:
+      "BC Transit Fernie service runs a town-to-resort shuttle in winter. The resort base is 5 km from town — many staff carpool or use the shuttle. Calgary International Airport is 3 hrs east via Highway 3. The town itself is walkable with a compact main street.",
+    staff_perks: [
+      "Free season pass at Fernie",
+      "Reciprocal benefits at RCR sister resorts (Kicking Horse, Nakiska, Stoneham, Mont-Sainte-Anne)",
+      "Staff meals at some employers",
+      "Pro deals on gear",
+      "Strong staff social calendar",
+      "Free first-aid and avalanche awareness training",
+    ],
+    apres_scene:
+      "Iconic Fernie après. The Griz Bar at the base of the resort is a long-time favourite. In town, the Fernie Brewing Co taproom, Pub Bar & Grill, Loaf Bakery, and Last Chance Saloon. The Rusty Edge and the historic Royal Hotel for live music. Town's compact size means everyone runs into each other — the seasonal worker community is one of the tightest in BC.",
+    outdoor_activities: [
+      "Backcountry skiing in the Lizard Range and Flathead",
+      "Cat skiing with Island Lake Lodge and Fernie Wilderness Adventures",
+      "Snowmobiling",
+      "Mountain biking (Fernie is a top-tier MTB destination in summer)",
+      "Fly fishing on the Elk River",
+      "Ice climbing in Cody Caves",
+    ],
+    healthcare_access:
+      "Elk Valley Hospital in Fernie (5 min from resort). Foothills Medical Centre in Calgary (3 hrs) for major trauma. Helicopter retrieval available. On-mountain ski patrol clinic during operations.",
+    shops_and_services:
+      "Fernie town has Save-On-Foods and Overwaitea supermarkets, banks, pharmacies, multiple gear shops (Edge of the World, Straight Line), restaurants, cafés, and the famous Polar Peek Books. Calgary (3 hrs) or Cranbrook (1 hr) for major shopping.",
+    international_community_size:
+      "Large — exceptionally strong Australian, British, and Irish staff presence. Fernie's Aussie/Kiwi seasonal worker community is legendary; the resort and town actively cater to it. Smaller scale than Whistler but more concentrated and social. English is the working language.",
+    avg_winter_temp_min_c: -13,
+    avg_winter_temp_max_c: -3,
+    snow_reliability: "high",
+    artificial_snow_coverage_pct: 30,
+    is_verified: true,
   }),
 ];

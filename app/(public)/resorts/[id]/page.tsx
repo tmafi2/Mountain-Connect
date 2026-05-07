@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
@@ -7,6 +6,8 @@ import { formatPay } from "@/lib/utils/format-pay";
 
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
+import { ResortBanner } from "@/components/ResortBanner";
+import { flagForCountry } from "@/lib/resort-banner";
 import ResortBusinesses from "./ResortBusinesses";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
@@ -492,7 +493,10 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
       <div className="mt-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-primary">{resort.name}</h1>
+            <h1 className="text-4xl font-bold text-primary">
+              <span className="mr-2" aria-hidden="true">{flagForCountry(resort.country)}</span>
+              {resort.name}
+            </h1>
             <p className="mt-2 text-lg text-foreground/70">
               {[resort.nearest_town, resort.state_province, resort.country]
                 .filter(Boolean)
@@ -528,24 +532,10 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
         </div>
       </div>
 
-      {/* Banner Image */}
+      {/* Banner */}
       <div className="mt-6 relative h-72 overflow-hidden rounded-xl">
-        {resort.banner_image_url ? (
-          <>
-            <Image
-              src={resort.banner_image_url}
-              alt={resort.name}
-              fill
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent" />
-          </>
-        ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/20 border border-accent">
-            <span className="text-foreground/40">Resort photos coming soon</span>
-          </div>
-        )}
+        <ResortBanner country={resort.country} className="h-full w-full" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent" />
       </div>
 
       {/* Quick Stats Bar */}
