@@ -29,8 +29,6 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
     : `View open roles, perks, and reviews at ${business.business_name}${business.location ? ` in ${business.location}` : ""}. Seasonal ski resort jobs on Mountain Connects.`;
   const description = rawDesc.length > 160 ? rawDesc.slice(0, 157) + "..." : rawDesc;
 
-  const ogImage = business.logo_url || `${BASE_URL}/opengraph-image.jpg`;
-
   return {
     title,
     description,
@@ -41,13 +39,14 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
       url: `${BASE_URL}/business/${id}`,
       siteName: "Mountain Connects",
       type: "profile",
-      images: [{ url: ogImage, alt: business.business_name }],
+      // Image auto-supplied by opengraph-image.tsx in this segment —
+      // branded card with the business name reads consistently across
+      // shares, regardless of whether the business has a logo uploaded.
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImage],
     },
   };
 }
@@ -254,6 +253,33 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     ...(socialLinks && Object.values(socialLinks).filter(Boolean).length > 0 && {
       sameAs: Object.values(socialLinks).filter(Boolean),
     }),
+    // AggregateRating — only emitted when reviews exist. Eligible for
+    // the ★★★★☆ 4.5/5 rich snippet under the search result link.
+    ...(reviewCount > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: Number(avgRating.toFixed(2)),
+        reviewCount,
+        bestRating: 5,
+        worstRating: 1,
+      },
+    }),
+  };
+
+  // BreadcrumbList — Home → Employers → {Business name}.
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+      { "@type": "ListItem", position: 2, name: "Employers", item: `${BASE_URL}/employers` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: business.business_name,
+        item: `${BASE_URL}/business/${id}`,
+      },
+    ],
   };
 
   return (
@@ -261,6 +287,10 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+    />
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
     />
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
 

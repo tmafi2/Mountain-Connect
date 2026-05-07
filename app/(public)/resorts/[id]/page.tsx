@@ -39,7 +39,9 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
       url: `${BASE_URL}/resorts/${id}`,
       siteName: "Mountain Connects",
       type: "website",
-      ...(resort.banner_image_url && { images: [{ url: resort.banner_image_url, width: 1200, height: 630 }] }),
+      // Image is auto-supplied by opengraph-image.tsx in this segment
+      // — branded card with the resort name reads better in shares
+      // than a generic Unsplash banner.
     },
     twitter: {
       card: "summary_large_image",
@@ -409,8 +411,63 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     resort.snow_reliability ||
     resort.artificial_snow_coverage_pct !== null;
 
+  // BreadcrumbList — Home → Explore → {Region} → {Resort name}.
+  // Tracks the visible breadcrumb so the search snippet matches what
+  // a user clicks through to.
+  const breadcrumbItems = [
+    { name: "Home", url: BASE_URL },
+    { name: "Explore", url: `${BASE_URL}/explore` },
+    ...(region
+      ? [{ name: region.name, url: `${BASE_URL}/regions/${region.id}` }]
+      : []),
+    { name: resort.name, url: `${BASE_URL}/resorts/${id}` },
+  ];
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: breadcrumbItems.map((b, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: b.name,
+      item: b.url,
+    })),
+  };
+
+  // Place JSON-LD — a resort is a destination, not just a page. Helps
+  // Google understand the entity and surface the location in maps /
+  // knowledge-panel results when the resort is searched by name.
+  const placeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name: resort.name,
+    url: `${BASE_URL}/resorts/${id}`,
+    ...(resort.description && { description: resort.description }),
+    ...(resort.banner_image_url && { image: resort.banner_image_url }),
+    address: {
+      "@type": "PostalAddress",
+      ...(resort.nearest_town && { addressLocality: resort.nearest_town }),
+      ...(resort.state_province && { addressRegion: resort.state_province }),
+      ...(resort.country && { addressCountry: resort.country }),
+    },
+    ...(resort.latitude !== null && resort.longitude !== null && {
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: resort.latitude,
+        longitude: resort.longitude,
+      },
+    }),
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(placeJsonLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-foreground/60">
         <Link href="/explore" className="hover:text-primary">
