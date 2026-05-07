@@ -31,7 +31,7 @@ components/
   ui/          — NotificationBell, NotificationDropdown, ResortMap, Map
 
 supabase/
-  migrations/  — 00001 through 00072 (sequential, run in Supabase SQL Editor)
+  migrations/  — 00001 through 00074 (sequential, run in Supabase SQL Editor)
 ```
 
 ## Supabase Patterns
@@ -43,7 +43,7 @@ supabase/
 ## Key Database Tables
 - `users` — auth users with role (worker, business_owner, admin)
 - `worker_profiles` — worker details, skills, availability, contact_email
-- `business_profiles` — business details, verification_status, resort_id, operates_in_town
+- `business_profiles` — business details, verification_status, resort_id, nearby_town_id (source of truth for where the business is — trumps the resort link; auto-stamped from `location` text by trigger added in 00074. Legacy `operates_in_town` flag kept for backward compat but no longer gates display logic)
 - `job_posts` — listings with nearby_town_id, how_to_apply, application_email/url
 - `applications` — worker applications to jobs
 - `interviews` — scheduling with status (invited, scheduled, completed, cancelled, missed, reschedule_requested)
@@ -72,7 +72,7 @@ Businesses can post listings regardless of verification state. Verification is a
 - **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently. Nudge cadence (each gated by its own sent-at column, so at most one of each fires): first EOI ever → first-applicant email; aggregate EOIs hit 5 → 5-applicant nudge; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
 
 ## Migration Status
-All migrations applied through **00072** (`dedupe_canadian_resorts` — removes duplicate Canadian resort rows that snuck in via a re-run of 00029, reassigns `resort_nearby_towns` references to the kept rows, and adds a `UNIQUE` constraint on `resorts.legacy_id` so future re-seeds can't recreate the dupes). 00071 added Charlottes Pass linked to Jindabyne. Next migration number: **00073**.
+All migrations applied through **00074** (`business_profile_town_autoresolve` — adds a BEFORE INSERT OR UPDATE trigger on `business_profiles` that auto-stamps `nearby_town_id` from the `location` text when the FK is null, mirroring `lib/data/resolve-town.ts`. Belt-and-braces enforcement of the platform rule that nearby_town_id is the source of truth for "where the business is", regardless of which write path touches the row). 00073 added the `outreach_leads` and `outreach_sends` tables for the admin email-campaign feature plus the auto-flip trigger that marks a lead as `signed_up` when a matching `business_profiles` row is inserted. Next migration number: **00075**.
 
 When adding a schema-touching migration, dry-run it against a fresh `supabase db reset` (or branch DB) before merging — recent dedup work needed three follow-up commits to fix text/UUID cast errors that would have surfaced locally.
 
