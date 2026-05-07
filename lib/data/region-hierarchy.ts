@@ -4,6 +4,11 @@
 // Wales, Victoria, Tasmania for Australia; Queenstown, Wanaka,
 // Canterbury, Ruapehu for New Zealand). Countries without state
 // values render as a flat alphabetical list (the previous default).
+//
+// Continent order is intentional — Australia / New Zealand sits
+// first since this platform's primary audience is southern-hemisphere
+// seasonal workers; Asia, North America, Europe, and South America
+// follow.
 
 export interface ResortEntry {
   id: string;
@@ -27,6 +32,56 @@ export interface ContinentEntry {
 }
 
 export const regionHierarchy: ContinentEntry[] = [
+  {
+    name: "Australia / New Zealand",
+    countries: [
+      {
+        name: "Australia",
+        resorts: [
+          // New South Wales
+          { id: "70", name: "Charlotte's Pass", state: "New South Wales" },
+          { id: "50", name: "Perisher", state: "New South Wales" },
+          { id: "71", name: "Selwyn Snow Resort", state: "New South Wales" },
+          { id: "52", name: "Thredbo", state: "New South Wales" },
+          // Victoria
+          { id: "51", name: "Falls Creek", state: "Victoria" },
+          { id: "75", name: "Lake Mountain", state: "Victoria" },
+          { id: "74", name: "Mount Baw Baw", state: "Victoria" },
+          { id: "53", name: "Mt Hotham", state: "Victoria" },
+          { id: "72", name: "Mt Buller", state: "Victoria" },
+          { id: "73", name: "Mount Stirling", state: "Victoria" },
+          // Tasmania
+          { id: "77", name: "Ben Lomond", state: "Tasmania" },
+          { id: "76", name: "Mount Mawson", state: "Tasmania" },
+        ],
+      },
+      {
+        name: "New Zealand",
+        resorts: [
+          // Queenstown
+          { id: "78", name: "Coronet Peak", state: "Queenstown" },
+          { id: "7", name: "The Remarkables", state: "Queenstown" },
+          // Wanaka
+          { id: "79", name: "Cardrona", state: "Wanaka" },
+          { id: "80", name: "Treble Cone", state: "Wanaka" },
+          // Canterbury
+          { id: "84", name: "Broken River", state: "Canterbury" },
+          { id: "85", name: "Craigieburn", state: "Canterbury" },
+          { id: "87", name: "Hanmer Springs", state: "Canterbury" },
+          { id: "83", name: "Mount Cheeseman", state: "Canterbury" },
+          { id: "88", name: "Mount Lyford", state: "Canterbury" },
+          { id: "82", name: "Mount Olympus", state: "Canterbury" },
+          { id: "54", name: "Mt Hutt", state: "Canterbury" },
+          { id: "81", name: "Porters", state: "Canterbury" },
+          { id: "86", name: "Temple Basin", state: "Canterbury" },
+          // Ruapehu
+          { id: "90", name: "Tukino", state: "Ruapehu" },
+          { id: "91", name: "Turoa", state: "Ruapehu" },
+          { id: "89", name: "Whakapapa", state: "Ruapehu" },
+        ],
+      },
+    ],
+  },
   {
     name: "Asia",
     countries: [
@@ -59,67 +114,6 @@ export const regionHierarchy: ContinentEntry[] = [
           { id: "48", name: "Shiga Kogen", state: "Nagano" },
           // Honshu (Gunma)
           { id: "99", name: "Manza Onsen", state: "Gunma" },
-        ],
-      },
-    ],
-  },
-  {
-    name: "Europe",
-    countries: [
-      {
-        name: "Andorra",
-        resorts: [
-          { id: "10", name: "Grandvalira" },
-        ],
-      },
-      {
-        name: "Austria",
-        resorts: [
-          { id: "37", name: "Ischgl" },
-          { id: "36", name: "Kitzbühel" },
-          { id: "39", name: "Mayrhofen" },
-          { id: "38", name: "Sölden" },
-          { id: "35", name: "St. Anton am Arlberg" },
-        ],
-      },
-      {
-        name: "France",
-        resorts: [
-          { id: "2", name: "Chamonix Mont-Blanc" },
-          { id: "30", name: "Courchevel" },
-          { id: "32", name: "Les Arcs / La Plagne" },
-          { id: "29", name: "Méribel" },
-          { id: "31", name: "Morzine / Avoriaz" },
-          { id: "27", name: "Val d'Isère" },
-          { id: "28", name: "Val Thorens" },
-        ],
-      },
-      {
-        name: "Georgia",
-        resorts: [
-          { id: "9", name: "Gudauri" },
-        ],
-      },
-      {
-        name: "Italy",
-        resorts: [
-          { id: "42", name: "Cervinia" },
-          { id: "41", name: "Cortina d'Ampezzo" },
-          { id: "40", name: "Livigno" },
-        ],
-      },
-      {
-        name: "Sweden",
-        resorts: [
-          { id: "8", name: "Åre" },
-        ],
-      },
-      {
-        name: "Switzerland",
-        resorts: [
-          { id: "34", name: "St. Moritz" },
-          { id: "33", name: "Verbier" },
-          { id: "4", name: "Zermatt" },
         ],
       },
     ],
@@ -186,51 +180,62 @@ export const regionHierarchy: ContinentEntry[] = [
     ],
   },
   {
-    name: "Australia / New Zealand",
+    name: "Europe",
     countries: [
       {
-        name: "Australia",
+        name: "Andorra",
         resorts: [
-          // New South Wales
-          { id: "70", name: "Charlotte's Pass", state: "New South Wales" },
-          { id: "50", name: "Perisher", state: "New South Wales" },
-          { id: "71", name: "Selwyn Snow Resort", state: "New South Wales" },
-          { id: "52", name: "Thredbo", state: "New South Wales" },
-          // Victoria
-          { id: "51", name: "Falls Creek", state: "Victoria" },
-          { id: "75", name: "Lake Mountain", state: "Victoria" },
-          { id: "74", name: "Mount Baw Baw", state: "Victoria" },
-          { id: "53", name: "Mt Hotham", state: "Victoria" },
-          { id: "72", name: "Mt Buller", state: "Victoria" },
-          { id: "73", name: "Mount Stirling", state: "Victoria" },
-          // Tasmania
-          { id: "77", name: "Ben Lomond", state: "Tasmania" },
-          { id: "76", name: "Mount Mawson", state: "Tasmania" },
+          { id: "10", name: "Grandvalira" },
         ],
       },
       {
-        name: "New Zealand",
+        name: "Austria",
         resorts: [
-          // Queenstown
-          { id: "78", name: "Coronet Peak", state: "Queenstown" },
-          { id: "7", name: "The Remarkables", state: "Queenstown" },
-          // Wanaka
-          { id: "79", name: "Cardrona", state: "Wanaka" },
-          { id: "80", name: "Treble Cone", state: "Wanaka" },
-          // Canterbury
-          { id: "84", name: "Broken River", state: "Canterbury" },
-          { id: "85", name: "Craigieburn", state: "Canterbury" },
-          { id: "87", name: "Hanmer Springs", state: "Canterbury" },
-          { id: "83", name: "Mount Cheeseman", state: "Canterbury" },
-          { id: "88", name: "Mount Lyford", state: "Canterbury" },
-          { id: "82", name: "Mount Olympus", state: "Canterbury" },
-          { id: "54", name: "Mt Hutt", state: "Canterbury" },
-          { id: "81", name: "Porters", state: "Canterbury" },
-          { id: "86", name: "Temple Basin", state: "Canterbury" },
-          // Ruapehu
-          { id: "90", name: "Tukino", state: "Ruapehu" },
-          { id: "91", name: "Turoa", state: "Ruapehu" },
-          { id: "89", name: "Whakapapa", state: "Ruapehu" },
+          { id: "37", name: "Ischgl" },
+          { id: "36", name: "Kitzbühel" },
+          { id: "39", name: "Mayrhofen" },
+          { id: "38", name: "Sölden" },
+          { id: "35", name: "St. Anton am Arlberg" },
+        ],
+      },
+      {
+        name: "France",
+        resorts: [
+          { id: "2", name: "Chamonix Mont-Blanc" },
+          { id: "30", name: "Courchevel" },
+          { id: "32", name: "Les Arcs / La Plagne" },
+          { id: "29", name: "Méribel" },
+          { id: "31", name: "Morzine / Avoriaz" },
+          { id: "27", name: "Val d'Isère" },
+          { id: "28", name: "Val Thorens" },
+        ],
+      },
+      {
+        name: "Georgia",
+        resorts: [
+          { id: "9", name: "Gudauri" },
+        ],
+      },
+      {
+        name: "Italy",
+        resorts: [
+          { id: "42", name: "Cervinia" },
+          { id: "41", name: "Cortina d'Ampezzo" },
+          { id: "40", name: "Livigno" },
+        ],
+      },
+      {
+        name: "Sweden",
+        resorts: [
+          { id: "8", name: "Åre" },
+        ],
+      },
+      {
+        name: "Switzerland",
+        resorts: [
+          { id: "34", name: "St. Moritz" },
+          { id: "33", name: "Verbier" },
+          { id: "4", name: "Zermatt" },
         ],
       },
     ],

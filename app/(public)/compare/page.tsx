@@ -6,6 +6,7 @@ import Link from "next/link";
 import { resorts } from "@/lib/data/resorts";
 import type { Resort } from "@/types/database";
 import { ResortBanner } from "@/components/ResortBanner";
+import { flagForCountry } from "@/lib/resort-banner";
 import { createClient } from "@/lib/supabase/client";
 
 /* ─── helpers ─────────────────────────────────────────────── */
@@ -215,6 +216,7 @@ function CompareContent() {
                 />
                 <div className="min-w-0">
                   <Link href={`/resorts/${r.id}`} className="truncate text-sm font-bold text-primary hover:text-secondary transition-colors">
+                    <span className="mr-1" aria-hidden="true">{flagForCountry(r.country)}</span>
                     {r.name}
                   </Link>
                   <p className="truncate text-xs text-foreground/40">

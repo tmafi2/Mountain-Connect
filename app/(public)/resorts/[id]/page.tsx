@@ -7,6 +7,7 @@ import { formatPay } from "@/lib/utils/format-pay";
 import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
 import { ResortBanner } from "@/components/ResortBanner";
+import { flagForCountry } from "@/lib/resort-banner";
 import ResortBusinesses from "./ResortBusinesses";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
@@ -492,7 +493,10 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
       <div className="mt-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-primary">{resort.name}</h1>
+            <h1 className="text-4xl font-bold text-primary">
+              <span className="mr-2" aria-hidden="true">{flagForCountry(resort.country)}</span>
+              {resort.name}
+            </h1>
             <p className="mt-2 text-lg text-foreground/70">
               {[resort.nearest_town, resort.state_province, resort.country]
                 .filter(Boolean)
