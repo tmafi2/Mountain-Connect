@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { logAdminAction } from "@/lib/audit/log";
 import { notifyGoogleIndexing } from "@/lib/seo/google-indexing";
+import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -138,7 +139,7 @@ export async function PATCH(
     // has claimed their listing they own these fields.
     const { data: business } = await admin
       .from("business_profiles")
-      .select("id, is_claimed")
+      .select("id, is_claimed, nearby_town_id")
       .eq("id", existingJob.business_id)
       .single();
 
@@ -150,6 +151,19 @@ export async function PATCH(
         country: typeof country === "string" ? country.trim() || null : undefined,
         resort_id: resortId,
       };
+
+      // Stamp nearby_town_id if currently NULL — prefer the explicit
+      // value the admin picked for the job, fall back to inferring
+      // from the location text. Never overwrite an existing FK.
+      if (!business.nearby_town_id) {
+        const inferred =
+          (typeof nearbyTownId === "string" && nearbyTownId) ||
+          (typeof location === "string"
+            ? await resolveTownIdFromLocation(admin, location)
+            : null);
+        if (inferred) businessUpdate.nearby_town_id = inferred;
+      }
+
       Object.keys(businessUpdate).forEach((k) => businessUpdate[k] === undefined && delete businessUpdate[k]);
 
       if (Object.keys(businessUpdate).length > 0) {

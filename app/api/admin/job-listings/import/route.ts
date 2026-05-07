@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
 
@@ -126,15 +127,29 @@ export async function POST(request: Request) {
   // Find-or-create the business profile shell by email (same pattern as
   // the manual admin import). If already claimed, we attach to it but
   // never overwrite claimed data.
+  // Inferred nearby_town_id — only set when the location text exactly
+  // matches a known nearby town. Mirrors the manual admin import so
+  // both pipelines stamp the FK correctly at insert time.
+  const inferredTownId = await resolveTownIdFromLocation(admin, location);
+
   let businessId: string;
   const { data: existingBiz } = await admin
     .from("business_profiles")
-    .select("id, is_claimed")
+    .select("id, is_claimed, nearby_town_id")
     .eq("email", businessEmail)
     .maybeSingle();
 
   if (existingBiz) {
     businessId = existingBiz.id;
+    // Same backfill behaviour as the manual route — only stamp the FK
+    // if it's currently NULL, never overwrite an explicit value.
+    if (!existingBiz.nearby_town_id && inferredTownId) {
+      await admin
+        .from("business_profiles")
+        .update({ nearby_town_id: inferredTownId })
+        .eq("id", existingBiz.id)
+        .is("nearby_town_id", null);
+    }
   } else {
     const { data: newBiz, error: bizErr } = await admin
       .from("business_profiles")
@@ -145,6 +160,7 @@ export async function POST(request: Request) {
         location: location || null,
         country: country || null,
         resort_id: resortId || null,
+        nearby_town_id: inferredTownId,
         verification_status: "unverified",
         is_claimed: false,
       })
