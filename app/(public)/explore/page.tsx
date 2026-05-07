@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy, type ResortEntry } from "@/lib/data/region-hierarchy";
-import { countrySlug } from "@/lib/resort-banner";
+import { countrySlug, flagForCountry } from "@/lib/resort-banner";
 import { ResortBanner } from "@/components/ResortBanner";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
@@ -883,6 +883,7 @@ function ExploreContent() {
                             {/* Content */}
                             <div className="p-5">
                               <h4 className="text-base font-bold text-primary transition-colors group-hover:text-secondary">
+                                <span className="mr-1.5" aria-hidden="true">{flagForCountry(resort.country)}</span>
                                 {resort.name}
                               </h4>
                               <p className="mt-1 text-sm text-foreground/50">

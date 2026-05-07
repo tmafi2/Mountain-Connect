@@ -47,3 +47,25 @@ export function gradientForCountry(country: string | null | undefined): string {
 export function countrySlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-");
 }
+
+export const countryFlags: Record<string, string> = {
+  Andorra: "🇦🇩",
+  Argentina: "🇦🇷",
+  Australia: "🇦🇺",
+  Austria: "🇦🇹",
+  Canada: "🇨🇦",
+  Chile: "🇨🇱",
+  France: "🇫🇷",
+  Georgia: "🇬🇪",
+  Italy: "🇮🇹",
+  Japan: "🇯🇵",
+  "New Zealand": "🇳🇿",
+  Sweden: "🇸🇪",
+  Switzerland: "🇨🇭",
+  USA: "🇺🇸",
+};
+
+export function flagForCountry(country: string | null | undefined): string {
+  if (!country) return "";
+  return countryFlags[country] ?? "";
+}
