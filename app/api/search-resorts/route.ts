@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resorts as staticResorts } from "@/lib/data/resorts";
 
+// Escape characters that break a PostgREST .or() filter expression
+// (commas separate clauses, parens group them) plus the LIKE-pattern
+// wildcards so they match literally inside an ilike() filter.
+function escapeOrFilterValue(input: string): string {
+  return input
+    .slice(0, 80)
+    .replace(/([\\%_])/g, "\\$1")
+    .replace(/[(),:*]/g, " ")
+    .trim();
+}
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() || "";
   const all = req.nextUrl.searchParams.get("all"); // ?all=1 returns every resort
@@ -19,7 +30,11 @@ export async function GET(req: NextRequest) {
       query = query.limit(200);
     } else if (q.length >= 1) {
       // Search by name or country
-      query = query.or(`name.ilike.%${q}%,country.ilike.%${q}%`).limit(15);
+      const safeQuery = escapeOrFilterValue(q);
+      if (safeQuery.length === 0) return NextResponse.json([]);
+      query = query
+        .or(`name.ilike.%${safeQuery}%,country.ilike.%${safeQuery}%`)
+        .limit(15);
     } else {
       return NextResponse.json([]);
     }
