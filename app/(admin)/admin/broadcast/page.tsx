@@ -20,12 +20,38 @@ interface Summary {
 
 export default function AdminBroadcastPage() {
   const [areaKey, setAreaKey] = useState(BROADCAST_AREAS[0]?.key ?? "");
-  const [busy, setBusy] = useState<"test" | "live" | null>(null);
+  const [busy, setBusy] = useState<"test" | "live" | "retry" | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const area = BROADCAST_AREAS.find((a) => a.key === areaKey);
+  const failedEmails = outcomes
+    .filter((o) => o.status === "failed")
+    .map((o) => o.email);
+
+  async function postBroadcast(payload: {
+    testOnly?: boolean;
+    retryEmails?: string[];
+  }) {
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/broadcast/area-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ areaKey, ...payload }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error ?? `Request failed (${res.status})`);
+        return null;
+      }
+      return body as { summary: Summary; outcomes: Outcome[] };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return null;
+    }
+  }
 
   async function send(testOnly: boolean) {
     if (!area) return;
@@ -36,27 +62,39 @@ export default function AdminBroadcastPage() {
       if (!ok) return;
     }
     setBusy(testOnly ? "test" : "live");
-    setError(null);
     setSummary(null);
     setOutcomes([]);
-    try {
-      const res = await fetch("/api/admin/broadcast/area-jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ areaKey, testOnly }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        setError(body.error ?? `Request failed (${res.status})`);
-        return;
-      }
+    const body = await postBroadcast({ testOnly });
+    if (body) {
       setSummary(body.summary);
       setOutcomes(body.outcomes ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(null);
     }
+    setBusy(null);
+  }
+
+  async function retryFailed() {
+    if (!area || failedEmails.length === 0) return;
+    const ok = window.confirm(
+      `Retry sending to ${failedEmails.length} failed address${failedEmails.length === 1 ? "" : "es"}? Already-successful recipients will not be re-emailed.`
+    );
+    if (!ok) return;
+    setBusy("retry");
+    const body = await postBroadcast({ retryEmails: failedEmails });
+    if (body) {
+      // Merge the new outcomes back over the previous failures so the
+      // UI reflects which retries succeeded.
+      const updated = new Map(outcomes.map((o) => [o.email, o]));
+      for (const o of body.outcomes ?? []) updated.set(o.email, o);
+      const next = Array.from(updated.values());
+      setOutcomes(next);
+      setSummary({
+        ...(summary ?? body.summary),
+        sent: next.filter((o) => o.status === "sent").length,
+        failed: next.filter((o) => o.status === "failed").length,
+        total: next.length,
+      });
+    }
+    setBusy(null);
   }
 
   return (
@@ -123,9 +161,23 @@ export default function AdminBroadcastPage() {
           </div>
         )}
 
-        {outcomes.filter((o) => o.status === "failed").length > 0 && (
+        {failedEmails.length > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-            <p className="mb-2 font-semibold">Failed sends:</p>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="font-semibold">
+                Failed sends ({failedEmails.length}):
+              </p>
+              <button
+                type="button"
+                onClick={retryFailed}
+                disabled={busy !== null}
+                className="rounded-md border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+              >
+                {busy === "retry"
+                  ? "Retrying…"
+                  : `Resend to ${failedEmails.length} failed`}
+              </button>
+            </div>
             <ul className="space-y-1">
               {outcomes
                 .filter((o) => o.status === "failed")
