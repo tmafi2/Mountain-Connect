@@ -526,7 +526,11 @@ export default function CompanyProfilePage() {
     const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     updateData.resort_id = form.resort_id && isUuid(form.resort_id) ? form.resort_id : null;
     updateData.operates_in_town = form.operates_in_town;
-    updateData.nearby_town_id = form.operates_in_town && form.nearby_town_id ? form.nearby_town_id : null;
+    // Per platform rule: nearby_town_id presence is the source of truth
+    // for "where the business is". Save the FK whenever a town is picked
+    // — don't gate it on the legacy operates_in_town flag, which used
+    // to require both checkbox + selection and was easy to miss.
+    updateData.nearby_town_id = form.nearby_town_id || null;
 
     console.log("Saving profile:", currentProfileId, "data:", updateData);
 
