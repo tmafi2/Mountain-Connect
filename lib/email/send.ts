@@ -37,6 +37,7 @@ import { winterFollowup2Email } from "./templates/winter-followup-2";
 import { winterFollowup3Email } from "./templates/winter-followup-3";
 import { winterFollowupFinalEmail } from "./templates/winter-followup-final";
 import { salesDropinEmail } from "./templates/sales-dropin";
+import { areaJobsUpdateEmail } from "./templates/area-jobs-update";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -560,5 +561,37 @@ export async function sendSalesDropinEmail(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+  });
+}
+
+export async function sendAreaJobsUpdateEmail(params: {
+  to: string;
+  workerName: string;
+  areaName: string;
+  jobs: Array<{
+    title: string;
+    businessName: string;
+    location: string;
+    pay: string;
+    jobUrl: string;
+  }>;
+  browseUrl: string;
+}) {
+  const { subject, html, text } = areaJobsUpdateEmail(params);
+  // Sent from Tyler's personal-looking address with a real Reply-To,
+  // a plain-text alternative, and a List-Unsubscribe header. Combined
+  // those signal "transactional/personal" rather than "bulk
+  // marketing", which keeps Gmail from filing the email under
+  // Promotions.
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+    text,
+    headers: {
+      "List-Unsubscribe": "<mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe>",
+    },
   });
 }
