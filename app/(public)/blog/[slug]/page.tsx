@@ -68,13 +68,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const author = post.users as unknown as { full_name: string; avatar_url: string | null } | null;
   const authorName = post.author_name || author?.full_name || "Mountain Connects";
 
-  // JSON-LD structured data
-  const jsonLd = {
+  // JSON-LD structured data — BlogPosting is a subtype of Article so
+  // it's eligible for the Article rich-result snippet. Publisher.logo
+  // is required by Google for "Top Stories" eligibility; skip the
+  // image field entirely when there's no hero image (Google rejects
+  // null/undefined values rather than ignoring them).
+  const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
     description: post.excerpt || post.content?.slice(0, 155),
-    image: post.hero_image_url || undefined,
     datePublished: post.published_at,
     dateModified: post.updated_at,
     author: {
@@ -85,8 +88,29 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       "@type": "Organization",
       name: "Mountain Connects",
       url: BASE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${BASE_URL}/images/email-logo.png`,
+      },
     },
     mainEntityOfPage: `${BASE_URL}/blog/${slug}`,
+  };
+  if (post.hero_image_url) jsonLd.image = post.hero_image_url;
+
+  // BreadcrumbList — Home → Blog → {Post title}.
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${BASE_URL}/blog` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: post.title,
+        item: `${BASE_URL}/blog/${slug}`,
+      },
+    ],
   };
 
   return (
@@ -94,6 +118,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <article className="mx-auto max-w-3xl px-4 py-12 sm:px-6">

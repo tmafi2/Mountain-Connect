@@ -40,7 +40,6 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
 }
 
 /* ── SEO metadata ──────────────────────────────────────────── */
-const DEFAULT_OG_IMAGE = "/og-default.png";
 const BASE_URL = "https://www.mountainconnects.com";
 
 export async function generateMetadata({ params }: TownPageProps): Promise<Metadata> {
@@ -81,7 +80,6 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
     if (description.length > 160) description = description.slice(0, 157) + "...";
   }
 
-  const ogImage = town.hero_image_url || DEFAULT_OG_IMAGE;
   const canonicalUrl = `${BASE_URL}/towns/${town.slug}`;
 
   return {
@@ -93,14 +91,13 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
       description,
       url: canonicalUrl,
       type: "website",
-      images: [{ url: ogImage, alt: `${town.name} town guide` }],
+      // Image auto-supplied by opengraph-image.tsx in this segment.
       siteName: "Mountain Connects",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImage],
     },
   };
 }
