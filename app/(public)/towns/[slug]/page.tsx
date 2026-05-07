@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ResortMap from "@/components/ui/ResortMap";
+import TownBusinesses from "./TownBusinesses";
 import type { Metadata } from "next";
 
 interface TownPageProps {
@@ -188,11 +189,13 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
     jobCount = count ?? 0;
   }
 
-  // Also count jobs from town-based businesses
+  // Also count jobs from town-based businesses, AND surface those
+  // businesses themselves in their own section below.
+  // Per platform rule, nearby_town_id presence is the source of truth
+  // — the legacy operates_in_town flag is no longer required.
   const { data: townBiz } = await supabase
     .from("business_profiles")
-    .select("id")
-    .eq("operates_in_town", true)
+    .select("id, business_name, logo_url, industries, location, verification_status")
     .eq("nearby_town_id", town.id);
 
   if (townBiz && townBiz.length > 0) {
@@ -203,6 +206,14 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
       .eq("status", "active");
     jobCount += townJobCount ?? 0;
   }
+
+  // Verified first, then alphabetical — matches the resort page sort
+  // so a worker browsing both pages sees a consistent ordering.
+  const townBusinesses = (townBiz ?? []).slice().sort((a, b) => {
+    if (a.verification_status === "verified" && b.verification_status !== "verified") return -1;
+    if (b.verification_status === "verified" && a.verification_status !== "verified") return 1;
+    return a.business_name.localeCompare(b.business_name);
+  });
 
   const hasAccommodation = town.staff_housing_available || town.avg_rent_weekly || town.housing_demand || town.temporary_stay_options;
   const hasTransport = town.public_transport_to_resort || town.parking_availability || town.distance_to_airport || town.road_conditions;
@@ -470,6 +481,22 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
                       </p>
                     )}
                   </InfoCard>
+                </div>
+              </section>
+            )}
+
+            {/* Businesses based in this town. Pulls every business
+                whose nearby_town_id matches this town — surfaces them
+                here as their primary location, even if they linked to
+                a resort like Thredbo when signing up. */}
+            {townBusinesses.length > 0 && (
+              <section>
+                <SectionHeading>Businesses in {town.name}</SectionHeading>
+                <p className="mt-2 text-sm text-foreground/60">
+                  Operating from {town.name} — verified businesses shown by default.
+                </p>
+                <div className="mt-4">
+                  <TownBusinesses townName={town.name} businesses={townBusinesses} />
                 </div>
               </section>
             )}

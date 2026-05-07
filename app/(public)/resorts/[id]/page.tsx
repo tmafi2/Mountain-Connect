@@ -276,20 +276,22 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
       // (regardless of their resort_id link). Lets a Jindabyne café
       // surface on Thredbo, Perisher, AND Charlotte's Pass without
       // each business having to manually link to all three.
+      // Rule (per spec): nearby_town_id presence is the source of
+      // truth. The legacy operates_in_town flag is no longer used —
+      // setting a town implies the business sits there.
       let townScopedBiz: LinkedBusiness[] = [];
       if (nearbyTownIds.length > 0) {
         const { data: tBiz } = await supabase
           .from("business_profiles")
           .select(BIZ_COLS)
-          .eq("operates_in_town", true)
           .in("nearby_town_id", nearbyTownIds);
         if (tBiz) townScopedBiz = tBiz as LinkedBusiness[];
       }
 
       // ── Partition into atResort vs nearby ──
-      // Rule (per spec): operates_in_town = true means the business
-      // physically sits in a nearby town, not at the resort. So those
-      // go into the "Other businesses nearby" section, NOT "at resort".
+      // Rule: any business with nearby_town_id set goes into "Other
+      // businesses nearby", regardless of which resort they linked to.
+      // Resort link is only used as a fallback when no town is set.
       const seenIds = new Set<string>();
       const annotate = (b: LinkedBusiness): LinkedBusiness => ({
         ...b,
@@ -300,7 +302,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
         if (seenIds.has(b.id)) continue;
         seenIds.add(b.id);
         const annotated = annotate(b);
-        if (b.operates_in_town === true && b.nearby_town_id) {
+        if (b.nearby_town_id) {
           nearbyBusinesses.push(annotated);
         } else {
           atResortBusinesses.push(annotated);
