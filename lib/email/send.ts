@@ -577,11 +577,21 @@ export async function sendAreaJobsUpdateEmail(params: {
   }>;
   browseUrl: string;
 }) {
-  const { subject, html } = areaJobsUpdateEmail(params);
+  const { subject, html, text } = areaJobsUpdateEmail(params);
+  // Sent from Tyler's personal-looking address with a real Reply-To,
+  // a plain-text alternative, and a List-Unsubscribe header. Combined
+  // those signal "transactional/personal" rather than "bulk
+  // marketing", which keeps Gmail from filing the email under
+  // Promotions.
   return sendEmail({
-    from: FROM_EMAIL,
+    from: TYLER_FROM_EMAIL,
     to: params.to,
+    replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    text,
+    headers: {
+      "List-Unsubscribe": "<mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe>",
+    },
   });
 }
