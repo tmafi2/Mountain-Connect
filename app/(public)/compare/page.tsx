@@ -3,9 +3,9 @@
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { resorts } from "@/lib/data/resorts";
 import type { Resort } from "@/types/database";
+import { ResortBanner } from "@/components/ResortBanner";
 import { createClient } from "@/lib/supabase/client";
 
 /* ─── helpers ─────────────────────────────────────────────── */
@@ -208,13 +208,11 @@ function CompareContent() {
           {selected.map((r) => (
             <div key={r.id} className={`${colWidth} min-w-0`}>
               <div className="flex items-center gap-3">
-                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-accent/20">
-                  {r.banner_image_url ? (
-                    <Image src={r.banner_image_url} alt={r.name} fill className="object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-lg">⛷</div>
-                  )}
-                </div>
+                <ResortBanner
+                  country={r.country}
+                  showSilhouette={false}
+                  className="h-12 w-12 flex-shrink-0 rounded-xl"
+                />
                 <div className="min-w-0">
                   <Link href={`/resorts/${r.id}`} className="truncate text-sm font-bold text-primary hover:text-secondary transition-colors">
                     {r.name}

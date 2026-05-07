@@ -7,6 +7,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy, type ResortEntry } from "@/lib/data/region-hierarchy";
+import { countrySlug } from "@/lib/resort-banner";
+import { ResortBanner } from "@/components/ResortBanner";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const GlobeComponent = dynamic(() => import("@/components/globe/Globe"), {
@@ -784,14 +786,25 @@ function ExploreContent() {
               <div className="mt-8 space-y-10">
                 {continent.countries.map((country) => (
                   <div key={country.name}>
-                    {/* Country label */}
-                    <div className="mb-4 flex items-center gap-2">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-secondary">
-                        {country.name}
-                      </h3>
-                      <span className="text-xs text-foreground/30">
-                        {country.resorts.length} {country.resorts.length === 1 ? "resort" : "resorts"}
-                      </span>
+                    {/* Country page break — uses the per-country
+                        cover photo as a section divider. */}
+                    <div className="relative mb-6 h-32 overflow-hidden rounded-2xl md:h-40">
+                      <Image
+                        src={`/resorts/countries/${countrySlug(country.name)}.jpg`}
+                        alt={country.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 1200px"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-5 py-4">
+                        <h3 className="text-xl font-extrabold text-white drop-shadow md:text-2xl">
+                          {country.name}
+                        </h3>
+                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                          {country.resorts.length} {country.resorts.length === 1 ? "resort" : "resorts"}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Resort cards — grouped under state sub-region
@@ -828,21 +841,11 @@ function ExploreContent() {
                             className="group relative overflow-hidden rounded-2xl border border-accent/30 bg-white transition-all hover-lift"
                           >
                             {/* Image header */}
-                            <div className="relative h-36 overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10">
-                              {resort.banner_image_url ? (
-                                <Image
-                                  src={resort.banner_image_url}
-                                  alt={resort.name}
-                                  fill
-                                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center">
-                                  <svg className="h-10 w-10 text-secondary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                </div>
-                              )}
+                            <div className="relative h-36 overflow-hidden">
+                              <ResortBanner
+                                country={resort.country}
+                                className="h-full w-full transition-transform duration-500 group-hover:scale-110"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
 
                               {/* Compare checkbox */}
