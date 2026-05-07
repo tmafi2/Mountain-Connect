@@ -5399,6 +5399,7 @@ export const resorts: Resort[] = [
   // ============================================
   createResort({
     id: "71", name: "Selwyn Snow Resort", region_id: "9", country: "Australia",
+    banner_image_url: "https://images.unsplash.com/photo-1771707685966-fb7e53b023d5?w=1200&q=80",
     state_province: "New South Wales", nearest_town: "Adaminaby",
     description: "Family-friendly resort in the NSW Snowy Mountains popular for first-timers and learners. Smaller, gentler terrain than Thredbo or Perisher with lower lift prices. Closer to Adaminaby than Jindabyne.",
     latitude: -35.85, longitude: 148.78,
@@ -5496,6 +5497,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "73", name: "Mount Stirling", region_id: "9", country: "Australia",
+    banner_image_url: "https://images.unsplash.com/photo-1771707685966-fb7e53b023d5?w=1200&q=80",
     state_province: "Victoria", nearest_town: "Mansfield",
     description: "A backcountry and Nordic-focused area adjacent to Mt Buller. Limited lift access; best for cross-country, snowshoeing, and experienced skiers seeking quieter off-piste terrain.",
     latitude: -37.131, longitude: 146.490,
@@ -5505,6 +5507,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "74", name: "Mount Baw Baw", region_id: "9", country: "Australia",
+    banner_image_url: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&q=80",
     state_province: "Victoria", nearest_town: "Noojee",
     description: "Victoria's most southerly resort and the closest to Melbourne (about 2.5 hours). Small and family-oriented with a relaxed vibe and limited but accessible terrain.",
     latitude: -37.835, longitude: 146.272,
@@ -5514,6 +5517,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "75", name: "Lake Mountain", region_id: "9", country: "Australia",
+    banner_image_url: "https://images.unsplash.com/photo-1615783236357-e175d2bff905?w=1200&q=80",
     state_province: "Victoria", nearest_town: "Marysville",
     description: "Cross-country and snow-play focused with very limited downhill terrain. The closest snow area to Melbourne — best for tobogganing, snowshoeing, and Nordic skiing during peak winter.",
     latitude: -37.500, longitude: 145.880,
@@ -5523,6 +5527,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "76", name: "Mount Mawson", region_id: "9", country: "Australia",
+    banner_image_url: "https://images.unsplash.com/photo-1615783236357-e175d2bff905?w=1200&q=80",
     state_province: "Tasmania", nearest_town: "Hobart",
     description: "A small volunteer-run club field in Mount Field National Park, Tasmania. Limited lift infrastructure and weather-dependent — open only when snow is sufficient.",
     latitude: -42.689, longitude: 146.586,
@@ -5532,6 +5537,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "77", name: "Ben Lomond", region_id: "9", country: "Australia",
+    banner_image_url: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&q=80",
     state_province: "Tasmania", nearest_town: "Launceston",
     description: "Tasmania's largest ski area inside Ben Lomond National Park. Six lifts servicing terrain for beginners through intermediates. About 60 km from Launceston.",
     latitude: -41.555, longitude: 147.660,
@@ -5801,6 +5807,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "81", name: "Porters", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "A relaxed Canterbury resort an hour from Christchurch. Family-friendly with terrain across all levels and a strong learner-area focus.",
     latitude: -43.272, longitude: 171.652,
@@ -5810,6 +5817,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "82", name: "Mount Olympus", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Canterbury club field with classic nutcracker tow lifts and superb off-piste terrain. Volunteer-run, basic facilities, character in spades. About 2 hours from Christchurch.",
     latitude: -43.225, longitude: 171.683,
@@ -5818,6 +5826,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "83", name: "Mount Cheeseman", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Family-oriented club field in the Craigieburn Range with two T-bar lifts and a gentle alpine bowl. About 2 hours from Christchurch.",
     latitude: -43.158, longitude: 171.661,
@@ -5826,6 +5835,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "84", name: "Broken River", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Iconic Canterbury club field reached by an hour of walking from the car park. Steep terrain, deep snow, and zero crowds — a favourite of advanced skiers and snowboarders.",
     latitude: -43.180, longitude: 171.620,
@@ -5834,6 +5844,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "85", name: "Craigieburn", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Steep, advanced terrain in the Craigieburn Range with three nutcracker tows. Famous for powder days and a no-frills authentic Kiwi club-field experience.",
     latitude: -43.135, longitude: 171.717,
@@ -5842,6 +5853,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "86", name: "Temple Basin", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Arthur's Pass",
     description: "Hike-in club field reached by an hour's walk from the road in Arthur's Pass National Park. No groomers — pure backcountry-style terrain for committed skiers.",
     latitude: -42.881, longitude: 171.523,
@@ -5850,6 +5862,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "87", name: "Hanmer Springs", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Hanmer Springs",
     description: "Small, low-key family ski area near the Hanmer Springs alpine village (famed for its hot pools). Limited terrain but a great combo of skiing + soaking.",
     latitude: -42.520, longitude: 172.835,
@@ -5858,6 +5871,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "88", name: "Mount Lyford", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
     state_province: "Canterbury", nearest_town: "Kaikoura",
     description: "A relaxed, family-friendly ski area between Kaikoura and Hanmer Springs. Beginner-friendly with intermediate terrain and a quieter feel than the bigger commercial fields.",
     latitude: -42.620, longitude: 173.000,
@@ -5955,6 +5969,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "90", name: "Tukino", region_id: "6", country: "New Zealand",
+    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
     state_province: "Manawatu-Whanganui", nearest_town: "Waiouru",
     description: "A remote club field on the eastern flank of Mount Ruapehu, accessed by 4WD. Two tow lifts, basic facilities, fantastic untracked terrain on good days.",
     latitude: -39.320, longitude: 175.660,
@@ -6055,7 +6070,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "92",
     name: "Kiroro",
-    banner_image_url: "https://images.unsplash.com/photo-1608889335941-32ac5f2041b9?w=1200&q=80",
+    banner_image_url: "https://images.unsplash.com/photo-1771387293792-29e483a570aa?w=1200&q=80",
     region_id: "3",
     country: "Japan",
     description:
@@ -6140,6 +6155,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "93", name: "Okunakayama Kogen", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1200&q=80",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Mid-sized Iwate resort with reliable Tohoku-region powder. Quieter than the Hokkaido and Nagano resorts; popular with Japanese domestic skiers.",
     latitude: 39.970, longitude: 140.980,
@@ -6147,6 +6163,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "94", name: "Madarao Kogen", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
     state_province: "Nagano", nearest_town: "Iiyama",
     description: "Connected to Tangram resort to form Madarao Tangram. Famous for its ungroomed tree-skiing zones — a powder hound favourite within easy reach of Hakuba (about 90 minutes away).",
     latitude: 36.840, longitude: 138.310,
@@ -6155,6 +6172,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "95", name: "Appi Kogen", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1767352140607-845a696cc39b?w=1200&q=80",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "One of Tohoku's biggest resorts with 21 long, well-groomed runs and reliable snow from December through April. Has long been a favourite for Japanese family skiing.",
     latitude: 40.070, longitude: 140.920,
@@ -6163,6 +6181,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "96", name: "Shizukuishi", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1771707685989-2d424e4ed88a?w=1200&q=80",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Resort on Mount Iwate, about 30 minutes from Morioka. Hosted the 1993 Alpine World Ski Championships. Long groomers and a panoramic top section.",
     latitude: 39.745, longitude: 140.957,
@@ -6171,6 +6190,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "97", name: "Karuizawa", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1773679472203-15255d505456?w=1200&q=80",
     state_province: "Nagano", nearest_town: "Karuizawa",
     description: "Closest resort to Tokyo (about 75 min by Shinkansen), known for early-season snowmaking and an upmarket alpine town with shopping and onsens. Smaller terrain footprint but very accessible.",
     latitude: 36.367, longitude: 138.620,
@@ -6179,6 +6199,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "98", name: "Hakkaisan", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1675710048439-51e9ccf40129?w=1200&q=80",
     state_province: "Niigata", nearest_town: "Minamiuonuma",
     description: "Steep terrain on Mount Hakkai in the Niigata snowbelt. Famous for its 5-km Yuzawa-side run and reliable deep powder; about 90 min from Tokyo by Shinkansen.",
     latitude: 37.100, longitude: 138.928,
@@ -6187,6 +6208,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "99", name: "Manza Onsen", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1548777123-e216912df7d8?w=1200&q=80",
     state_province: "Gunma", nearest_town: "Tsumagoi",
     description: "High-altitude resort (1800 m base) on Mount Shirane with one of the highest onsen in Japan. Reliable cold dry powder; small but uncrowded terrain.",
     latitude: 36.620, longitude: 138.500,
@@ -6195,6 +6217,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "100", name: "Hachimantai", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1200&q=80",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "A lightly-trafficked Tohoku resort surrounded by hot springs and old-growth beech forests. Great for tree skiing; access from Morioka.",
     latitude: 39.970, longitude: 140.940,
@@ -6202,6 +6225,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "101", name: "Hakkoda", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
     state_province: "Aomori", nearest_town: "Aomori",
     description: "Legendary off-piste destination in northern Honshu, famed for its juhyo (snow monsters) and waist-deep powder. Single ropeway accessing huge ungroomed terrain — for committed skiers only.",
     latitude: 40.660, longitude: 140.850,
@@ -6210,6 +6234,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "102", name: "Tazawako", region_id: "3", country: "Japan",
+    banner_image_url: "https://images.unsplash.com/photo-1767352140607-845a696cc39b?w=1200&q=80",
     state_province: "Akita", nearest_town: "Senboku",
     description: "Akita resort overlooking Lake Tazawa, Japan's deepest lake. A mid-sized terrain footprint with reliable Tohoku snow and a low-key local feel.",
     latitude: 39.720, longitude: 140.780,
