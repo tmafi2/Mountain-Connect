@@ -1,25 +1,39 @@
 // Per-country gradient palette used as the background of every resort
 // banner (explore cards, compare thumbnails, detail-page hero) until
-// per-resort photos are supplied. Gradients lean alpine/cool and are
-// chosen so the dark mountain-silhouette overlay reads cleanly on top.
+// per-resort photos are supplied. Colours are drawn from each
+// country's national flag so resorts visually group by country.
 
 export const countryGradients: Record<string, string> = {
-  Andorra: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #60a5fa 100%)",
-  Argentina: "linear-gradient(135deg, #1e1b4b 0%, #3730a3 55%, #38bdf8 100%)",
-  Australia: "linear-gradient(135deg, #1e293b 0%, #b45309 60%, #f59e0b 100%)",
-  Austria: "linear-gradient(135deg, #064e3b 0%, #047857 55%, #34d399 100%)",
-  Canada: "linear-gradient(135deg, #1e1b4b 0%, #047857 60%, #10b981 100%)",
-  Chile: "linear-gradient(135deg, #450a0a 0%, #c2410c 55%, #f97316 100%)",
-  France: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 55%, #93c5fd 100%)",
-  Georgia: "linear-gradient(135deg, #3b0764 0%, #a16207 55%, #f59e0b 100%)",
-  Italy: "linear-gradient(135deg, #0c1e3e 0%, #c2410c 55%, #fb923c 100%)",
-  Japan: "linear-gradient(135deg, #1e1b4b 0%, #be185d 55%, #f9a8d4 100%)",
+  // Blue / yellow / red
+  Andorra: "linear-gradient(135deg, #10069F 0%, #FECB05 50%, #D52B1E 100%)",
+  // Light blue / white / light blue
+  Argentina:
+    "linear-gradient(135deg, #74ACDF 0%, #F6F6F6 50%, #74ACDF 100%)",
+  // Blue / white / red (Union Jack scheme)
+  Australia: "linear-gradient(135deg, #00247D 0%, #FFFFFF 50%, #E4002B 100%)",
+  // Red / white / red
+  Austria: "linear-gradient(135deg, #ED2939 0%, #FFFFFF 50%, #ED2939 100%)",
+  // Red / white / red (Maple leaf)
+  Canada: "linear-gradient(135deg, #D52B1E 0%, #FFFFFF 50%, #D52B1E 100%)",
+  // White / blue / red
+  Chile: "linear-gradient(135deg, #FFFFFF 0%, #0033A0 50%, #DA291C 100%)",
+  // Blue / white / red (Tricolore)
+  France: "linear-gradient(135deg, #002395 0%, #FFFFFF 50%, #ED2939 100%)",
+  // White / red (Five-cross flag)
+  Georgia: "linear-gradient(135deg, #FFFFFF 0%, #FF0000 100%)",
+  // Green / white / red
+  Italy: "linear-gradient(135deg, #008C45 0%, #FFFFFF 50%, #CD212A 100%)",
+  // White / red (Hinomaru)
+  Japan: "linear-gradient(135deg, #FFFFFF 0%, #BC002D 100%)",
+  // Blue / red / white (Union Jack + Southern Cross)
   "New Zealand":
-    "linear-gradient(135deg, #0f3a3a 0%, #047857 55%, #6ee7b7 100%)",
-  Sweden: "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 45%, #fbbf24 100%)",
-  Switzerland:
-    "linear-gradient(135deg, #7f1d1d 0%, #b91c1c 55%, #fca5a5 100%)",
-  USA: "linear-gradient(135deg, #0c1e3e 0%, #1e40af 55%, #22d3ee 100%)",
+    "linear-gradient(135deg, #00247D 0%, #CC142B 50%, #FFFFFF 100%)",
+  // Blue / yellow (Nordic cross)
+  Sweden: "linear-gradient(135deg, #006AA7 0%, #FECC00 100%)",
+  // Red / white (Swiss cross)
+  Switzerland: "linear-gradient(135deg, #DA291C 0%, #FFFFFF 100%)",
+  // Red / white / blue (Stars and Stripes)
+  USA: "linear-gradient(135deg, #B22234 0%, #FFFFFF 50%, #3C3B6E 100%)",
 };
 
 export const defaultGradient =
