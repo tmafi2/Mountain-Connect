@@ -59,7 +59,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "1",
     name: "Whistler Blackcomb",
-    banner_image_url: "https://images.unsplash.com/photo-1731445289819-ed2efbdb9d83?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -147,7 +147,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "11",
     name: "Banff / Lake Louise",
-    banner_image_url: "https://images.unsplash.com/photo-1610906592995-1852b86452b9?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -238,7 +238,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "15",
     name: "Revelstoke",
-    banner_image_url: "https://images.unsplash.com/photo-1610394295702-00b39272459d?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -328,7 +328,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "5",
     name: "Vail",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-5fc219569c50?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -418,7 +418,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "16",
     name: "Aspen Snowmass",
-    banner_image_url: "https://images.unsplash.com/photo-1618774659391-7e75004a11b7?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -509,7 +509,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "17",
     name: "Breckenridge",
-    banner_image_url: "https://images.unsplash.com/photo-1606666334434-4c24739144a5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -599,7 +599,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "18",
     name: "Jackson Hole",
-    banner_image_url: "https://images.unsplash.com/photo-1606666334400-8c0cbe58cbd8?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -690,7 +690,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "19",
     name: "Park City",
-    banner_image_url: "https://images.unsplash.com/photo-1698323200139-c14df11612ac?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -781,7 +781,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "20",
     name: "Big Sky",
-    banner_image_url: "https://images.unsplash.com/photo-1582641637614-3f446aa083fa?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -871,7 +871,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "21",
     name: "Steamboat Springs",
-    banner_image_url: "https://images.unsplash.com/photo-1589496145106-2af25f7c8c1d?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -961,7 +961,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "22",
     name: "Stowe",
-    banner_image_url: "https://images.unsplash.com/photo-1696912161244-f3774bcb4964?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "10",
     country: "USA",
     description:
@@ -1052,7 +1052,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "23",
     name: "Telluride",
-    banner_image_url: "https://images.unsplash.com/photo-1696912161455-6e948f3572c5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1142,7 +1142,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "24",
     name: "Sun Valley",
-    banner_image_url: "https://images.unsplash.com/photo-1709506531620-6195c890ef10?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1230,7 +1230,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "25",
     name: "Mammoth Mountain",
-    banner_image_url: "https://images.unsplash.com/photo-1647966233050-a4b640d89fc6?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1320,7 +1320,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "26",
     name: "Crested Butte",
-    banner_image_url: "https://images.unsplash.com/photo-1707045611662-d3e7cee046b9?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -1413,7 +1413,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "2",
     name: "Chamonix Mont-Blanc",
-    banner_image_url: "https://images.unsplash.com/photo-1701358232769-998897181fba?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1497,7 +1497,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "27",
     name: "Val d'Isère",
-    banner_image_url: "https://images.unsplash.com/photo-1636581563868-d5322a0360f7?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1589,7 +1589,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "28",
     name: "Val Thorens",
-    banner_image_url: "https://images.unsplash.com/photo-1673965918877-82154906042b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1681,7 +1681,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "29",
     name: "Méribel",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-d93dc8c9723e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1773,7 +1773,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "30",
     name: "Courchevel",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-a7e6aaea6495?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1868,7 +1868,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "31",
     name: "Morzine / Avoriaz",
-    banner_image_url: "https://images.unsplash.com/photo-1665859223778-25a4e39b259e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -1963,7 +1963,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "32",
     name: "Les Arcs / La Plagne",
-    banner_image_url: "https://images.unsplash.com/photo-1692869344214-c45779feb9be?w=1200&q=80",
+    banner_image_url: "/resorts/countries/france.jpg",
     region_id: "1",
     country: "France",
     description:
@@ -2058,7 +2058,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "4",
     name: "Zermatt",
-    banner_image_url: "https://images.unsplash.com/photo-1676048746226-113269dd8084?w=1200&q=80",
+    banner_image_url: "/resorts/countries/switzerland.jpg",
     region_id: "1",
     country: "Switzerland",
     description:
@@ -2139,7 +2139,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "33",
     name: "Verbier",
-    banner_image_url: "https://images.unsplash.com/photo-1676048746230-0c11ed158c78?w=1200&q=80",
+    banner_image_url: "/resorts/countries/switzerland.jpg",
     region_id: "1",
     country: "Switzerland",
     description:
@@ -2232,7 +2232,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "34",
     name: "St. Moritz",
-    banner_image_url: "https://images.unsplash.com/photo-1644335785854-2acd1f649fc0?w=1200&q=80",
+    banner_image_url: "/resorts/countries/switzerland.jpg",
     region_id: "1",
     country: "Switzerland",
     description:
@@ -2328,7 +2328,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "35",
     name: "St. Anton am Arlberg",
-    banner_image_url: "https://images.unsplash.com/photo-1635721980613-684353ae88dd?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2421,7 +2421,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "36",
     name: "Kitzbühel",
-    banner_image_url: "https://images.unsplash.com/photo-1548075263-f345eba55f65?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2515,7 +2515,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "37",
     name: "Ischgl",
-    banner_image_url: "https://images.unsplash.com/photo-1640093339706-3d40d8f0a4ab?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2608,7 +2608,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "38",
     name: "Sölden",
-    banner_image_url: "https://images.unsplash.com/photo-1681719940438-2363caac70ad?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2703,7 +2703,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "39",
     name: "Mayrhofen",
-    banner_image_url: "https://images.unsplash.com/photo-1710197094645-f3c606391039?w=1200&q=80",
+    banner_image_url: "/resorts/countries/austria.jpg",
     region_id: "1",
     country: "Austria",
     description:
@@ -2800,7 +2800,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "40",
     name: "Livigno",
-    banner_image_url: "https://images.unsplash.com/photo-1710197232572-13e1ace07d16?w=1200&q=80",
+    banner_image_url: "/resorts/countries/italy.jpg",
     region_id: "1",
     country: "Italy",
     description:
@@ -2894,7 +2894,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "41",
     name: "Cortina d'Ampezzo",
-    banner_image_url: "https://images.unsplash.com/photo-1715534098660-2978255e70b7?w=1200&q=80",
+    banner_image_url: "/resorts/countries/italy.jpg",
     region_id: "1",
     country: "Italy",
     description:
@@ -2987,7 +2987,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "42",
     name: "Cervinia",
-    banner_image_url: "https://images.unsplash.com/photo-1759313591414-a96b5dfa020c?w=1200&q=80",
+    banner_image_url: "/resorts/countries/italy.jpg",
     region_id: "1",
     country: "Italy",
     description:
@@ -3083,7 +3083,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "3",
     name: "Niseko United",
-    banner_image_url: "https://images.unsplash.com/photo-1548777123-e216912df7d8?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3164,7 +3164,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "43",
     name: "Hakuba Valley",
-    banner_image_url: "https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3260,7 +3260,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "44",
     name: "Rusutsu",
-    banner_image_url: "https://images.unsplash.com/photo-1771387293792-29e483a570aa?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3349,7 +3349,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "45",
     name: "Furano",
-    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3438,7 +3438,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "46",
     name: "Nozawa Onsen",
-    banner_image_url: "https://images.unsplash.com/photo-1767352140607-845a696cc39b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3530,7 +3530,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "47",
     name: "Myoko Kogen",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685989-2d424e4ed88a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3620,7 +3620,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "48",
     name: "Shiga Kogen",
-    banner_image_url: "https://images.unsplash.com/photo-1773679472203-15255d505456?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3710,7 +3710,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "49",
     name: "Naeba",
-    banner_image_url: "https://images.unsplash.com/photo-1675710048439-51e9ccf40129?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -3803,7 +3803,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "50",
     name: "Perisher",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -3896,7 +3896,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "51",
     name: "Falls Creek",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685966-fb7e53b023d5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -3988,7 +3988,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "52",
     name: "Thredbo",
-    banner_image_url: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -4082,7 +4082,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "53",
     name: "Mt Hotham",
-    banner_image_url: "https://images.unsplash.com/photo-1615783236357-e175d2bff905?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -4177,7 +4177,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "7",
     name: "The Remarkables",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -4272,7 +4272,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "54",
     name: "Mt Hutt",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -4367,7 +4367,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "6",
     name: "Valle Nevado",
-    banner_image_url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/chile.jpg",
     region_id: "5",
     country: "Chile",
     description:
@@ -4460,7 +4460,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "55",
     name: "Cerro Catedral",
-    banner_image_url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80",
+    banner_image_url: "/resorts/countries/argentina.jpg",
     region_id: "5",
     country: "Argentina",
     description:
@@ -4557,7 +4557,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "56",
     name: "Portillo",
-    banner_image_url: "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&q=80",
+    banner_image_url: "/resorts/countries/chile.jpg",
     region_id: "5",
     country: "Chile",
     description:
@@ -4653,7 +4653,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "8",
     name: "Åre",
-    banner_image_url: "https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=1200&q=80",
+    banner_image_url: "/resorts/countries/sweden.jpg",
     region_id: "4",
     country: "Sweden",
     description:
@@ -4747,7 +4747,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "9",
     name: "Gudauri",
-    banner_image_url: "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200&q=80",
+    banner_image_url: "/resorts/countries/georgia.jpg",
     region_id: "7",
     country: "Georgia",
     description:
@@ -4840,7 +4840,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "10",
     name: "Grandvalira",
-    banner_image_url: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/andorra.jpg",
     region_id: "8",
     country: "Andorra",
     description:
@@ -4943,7 +4943,7 @@ export const resorts: Resort[] = [
     state_province: "British Columbia",
     nearest_town: "Sun Peaks Village",
     website: "https://www.sunpeaksresort.com",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1728, num_runs: 137, runs_green: 14, runs_blue: 58, runs_black: 52, runs_double_black: 13,
     vertical_drop_m: 882, base_elevation_m: 1200, summit_elevation_m: 2080, num_lifts: 13,
     lift_types: { gondolas: 1, chairlifts: 7, surface_lifts: 5 },
@@ -4977,7 +4977,7 @@ export const resorts: Resort[] = [
     state_province: "British Columbia",
     nearest_town: "Big White Village",
     website: "https://www.bigwhite.com",
-    banner_image_url: "https://images.unsplash.com/photo-1477601263568-180e2c6d046e?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1147, num_runs: 118, runs_green: 18, runs_blue: 40, runs_black: 42, runs_double_black: 18,
     vertical_drop_m: 777, base_elevation_m: 1508, summit_elevation_m: 2319, num_lifts: 16,
     lift_types: { gondolas: 0, chairlifts: 5, surface_lifts: 11 },
@@ -5011,7 +5011,7 @@ export const resorts: Resort[] = [
     state_province: "British Columbia",
     nearest_town: "Silver Star Village",
     website: "https://www.skisilverstar.com",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 520, num_runs: 132, runs_green: 20, runs_blue: 50, runs_black: 40, runs_double_black: 22,
     vertical_drop_m: 760, base_elevation_m: 1155, summit_elevation_m: 1915, num_lifts: 12,
     lift_types: { gondolas: 1, chairlifts: 5, surface_lifts: 6 },
@@ -5045,7 +5045,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Lake Louise Village",
     website: "https://www.skilouise.com",
-    banner_image_url: "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1700, num_runs: 145, runs_green: 25, runs_blue: 45, runs_black: 47, runs_double_black: 28,
     vertical_drop_m: 991, base_elevation_m: 1645, summit_elevation_m: 2637, num_lifts: 10,
     lift_types: { gondolas: 1, chairlifts: 6, surface_lifts: 3 },
@@ -5079,7 +5079,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Banff",
     website: "https://www.skibanff.com",
-    banner_image_url: "https://images.unsplash.com/photo-1610906592995-1852b86452b9?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 1358, num_runs: 137, runs_green: 20, runs_blue: 36, runs_black: 46, runs_double_black: 35,
     vertical_drop_m: 1070, base_elevation_m: 1660, summit_elevation_m: 2730, num_lifts: 12,
     lift_types: { gondolas: 1, chairlifts: 8, surface_lifts: 3 },
@@ -5113,7 +5113,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Kananaskis Village",
     website: "https://www.skinakiska.com",
-    banner_image_url: "https://images.unsplash.com/photo-1520443240718-fce21901db79?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 400, num_runs: 71, runs_green: 16, runs_blue: 29, runs_black: 20, runs_double_black: 6,
     vertical_drop_m: 735, base_elevation_m: 1525, summit_elevation_m: 2260, num_lifts: 6,
     lift_types: { gondolas: 0, chairlifts: 4, surface_lifts: 2 },
@@ -5147,7 +5147,7 @@ export const resorts: Resort[] = [
     state_province: "Alberta",
     nearest_town: "Jasper",
     website: "https://www.skimarmot.com",
-    banner_image_url: "https://images.unsplash.com/photo-1610394295702-00b39272459d?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 688, num_runs: 91, runs_green: 28, runs_blue: 35, runs_black: 20, runs_double_black: 8,
     vertical_drop_m: 914, base_elevation_m: 1698, summit_elevation_m: 2612, num_lifts: 7,
     lift_types: { gondolas: 0, chairlifts: 5, surface_lifts: 2 },
@@ -5181,7 +5181,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Mont-Tremblant Village",
     website: "https://www.tremblant.ca",
-    banner_image_url: "https://images.unsplash.com/photo-1548873903-5fc219569c50?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 305, num_runs: 102, runs_green: 18, runs_blue: 32, runs_black: 32, runs_double_black: 20,
     vertical_drop_m: 645, base_elevation_m: 230, summit_elevation_m: 875, num_lifts: 14,
     lift_types: { gondolas: 1, chairlifts: 9, surface_lifts: 4 },
@@ -5215,7 +5215,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Baie-Saint-Paul",
     website: "https://www.lemassif.com",
-    banner_image_url: "https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 200, num_runs: 53, runs_green: 9, runs_blue: 16, runs_black: 19, runs_double_black: 9,
     vertical_drop_m: 770, base_elevation_m: 30, summit_elevation_m: 800, num_lifts: 5,
     lift_types: { gondolas: 0, chairlifts: 3, surface_lifts: 2 },
@@ -5249,7 +5249,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Beaupré",
     website: "https://www.mont-sainte-anne.com",
-    banner_image_url: "https://images.unsplash.com/photo-1606666334434-4c24739144a5?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 200, num_runs: 71, runs_green: 15, runs_blue: 28, runs_black: 22, runs_double_black: 6,
     vertical_drop_m: 625, base_elevation_m: 175, summit_elevation_m: 800, num_lifts: 8,
     lift_types: { gondolas: 1, chairlifts: 4, surface_lifts: 3 },
@@ -5283,7 +5283,7 @@ export const resorts: Resort[] = [
     state_province: "Quebec",
     nearest_town: "Stoneham-et-Tewkesbury",
     website: "https://www.ski-stoneham.com",
-    banner_image_url: "https://images.unsplash.com/photo-1418985991508-e47386d96a71?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 150, num_runs: 42, runs_green: 9, runs_blue: 13, runs_black: 15, runs_double_black: 5,
     vertical_drop_m: 420, base_elevation_m: 250, summit_elevation_m: 670, num_lifts: 8,
     lift_types: { gondolas: 0, chairlifts: 4, surface_lifts: 4 },
@@ -5317,7 +5317,7 @@ export const resorts: Resort[] = [
     state_province: "Ontario",
     nearest_town: "Collingwood",
     website: "https://www.bluemountain.ca",
-    banner_image_url: "https://images.unsplash.com/photo-1565992441121-4367c2967103?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 100, num_runs: 43, runs_green: 10, runs_blue: 18, runs_black: 12, runs_double_black: 3,
     vertical_drop_m: 220, base_elevation_m: 180, summit_elevation_m: 400, num_lifts: 15,
     lift_types: { gondolas: 0, chairlifts: 7, surface_lifts: 8 },
@@ -5351,7 +5351,7 @@ export const resorts: Resort[] = [
     state_province: "Manitoba",
     nearest_town: "Russell",
     website: "https://www.asessippi.com",
-    banner_image_url: "https://images.unsplash.com/photo-1582641637614-3f446aa083fa?w=1600&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     skiable_terrain_ha: 40, num_runs: 25, runs_green: 8, runs_blue: 9, runs_black: 6, runs_double_black: 2,
     vertical_drop_m: 150, base_elevation_m: 490, summit_elevation_m: 640, num_lifts: 4,
     lift_types: { gondolas: 0, chairlifts: 2, surface_lifts: 2 },
@@ -5377,7 +5377,7 @@ export const resorts: Resort[] = [
     createResort({
     id: "70",
     name: "Charlotte's Pass",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -5399,7 +5399,7 @@ export const resorts: Resort[] = [
   // ============================================
   createResort({
     id: "71", name: "Selwyn Snow Resort", region_id: "9", country: "Australia",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685966-fb7e53b023d5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "New South Wales", nearest_town: "Adaminaby",
     description: "Family-friendly resort in the NSW Snowy Mountains popular for first-timers and learners. Smaller, gentler terrain than Thredbo or Perisher with lower lift prices. Closer to Adaminaby than Jindabyne.",
     latitude: -35.85, longitude: 148.78,
@@ -5410,7 +5410,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "72",
     name: "Mt Buller",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     region_id: "9",
     country: "Australia",
     description:
@@ -5497,7 +5497,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "73", name: "Mount Stirling", region_id: "9", country: "Australia",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685966-fb7e53b023d5?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Victoria", nearest_town: "Mansfield",
     description: "A backcountry and Nordic-focused area adjacent to Mt Buller. Limited lift access; best for cross-country, snowshoeing, and experienced skiers seeking quieter off-piste terrain.",
     latitude: -37.131, longitude: 146.490,
@@ -5507,7 +5507,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "74", name: "Mount Baw Baw", region_id: "9", country: "Australia",
-    banner_image_url: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Victoria", nearest_town: "Noojee",
     description: "Victoria's most southerly resort and the closest to Melbourne (about 2.5 hours). Small and family-oriented with a relaxed vibe and limited but accessible terrain.",
     latitude: -37.835, longitude: 146.272,
@@ -5517,7 +5517,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "75", name: "Lake Mountain", region_id: "9", country: "Australia",
-    banner_image_url: "https://images.unsplash.com/photo-1615783236357-e175d2bff905?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Victoria", nearest_town: "Marysville",
     description: "Cross-country and snow-play focused with very limited downhill terrain. The closest snow area to Melbourne — best for tobogganing, snowshoeing, and Nordic skiing during peak winter.",
     latitude: -37.500, longitude: 145.880,
@@ -5527,7 +5527,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "76", name: "Mount Mawson", region_id: "9", country: "Australia",
-    banner_image_url: "https://images.unsplash.com/photo-1615783236357-e175d2bff905?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Tasmania", nearest_town: "Hobart",
     description: "A small volunteer-run club field in Mount Field National Park, Tasmania. Limited lift infrastructure and weather-dependent — open only when snow is sufficient.",
     latitude: -42.689, longitude: 146.586,
@@ -5537,7 +5537,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "77", name: "Ben Lomond", region_id: "9", country: "Australia",
-    banner_image_url: "https://images.unsplash.com/photo-1605540436563-5bca919ae766?w=1200&q=80",
+    banner_image_url: "/resorts/countries/australia.jpg",
     state_province: "Tasmania", nearest_town: "Launceston",
     description: "Tasmania's largest ski area inside Ben Lomond National Park. Six lifts servicing terrain for beginners through intermediates. About 60 km from Launceston.",
     latitude: -41.555, longitude: 147.660,
@@ -5552,7 +5552,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "78",
     name: "Coronet Peak",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -5637,7 +5637,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "79",
     name: "Cardrona",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -5724,7 +5724,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "80",
     name: "Treble Cone",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -5807,7 +5807,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "81", name: "Porters", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "A relaxed Canterbury resort an hour from Christchurch. Family-friendly with terrain across all levels and a strong learner-area focus.",
     latitude: -43.272, longitude: 171.652,
@@ -5817,7 +5817,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "82", name: "Mount Olympus", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Canterbury club field with classic nutcracker tow lifts and superb off-piste terrain. Volunteer-run, basic facilities, character in spades. About 2 hours from Christchurch.",
     latitude: -43.225, longitude: 171.683,
@@ -5826,7 +5826,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "83", name: "Mount Cheeseman", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Family-oriented club field in the Craigieburn Range with two T-bar lifts and a gentle alpine bowl. About 2 hours from Christchurch.",
     latitude: -43.158, longitude: 171.661,
@@ -5835,7 +5835,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "84", name: "Broken River", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Iconic Canterbury club field reached by an hour of walking from the car park. Steep terrain, deep snow, and zero crowds — a favourite of advanced skiers and snowboarders.",
     latitude: -43.180, longitude: 171.620,
@@ -5844,7 +5844,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "85", name: "Craigieburn", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Christchurch",
     description: "Steep, advanced terrain in the Craigieburn Range with three nutcracker tows. Famous for powder days and a no-frills authentic Kiwi club-field experience.",
     latitude: -43.135, longitude: 171.717,
@@ -5853,7 +5853,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "86", name: "Temple Basin", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Arthur's Pass",
     description: "Hike-in club field reached by an hour's walk from the road in Arthur's Pass National Park. No groomers — pure backcountry-style terrain for committed skiers.",
     latitude: -42.881, longitude: 171.523,
@@ -5862,7 +5862,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "87", name: "Hanmer Springs", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Hanmer Springs",
     description: "Small, low-key family ski area near the Hanmer Springs alpine village (famed for its hot pools). Limited terrain but a great combo of skiing + soaking.",
     latitude: -42.520, longitude: 172.835,
@@ -5871,7 +5871,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "88", name: "Mount Lyford", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Canterbury", nearest_town: "Kaikoura",
     description: "A relaxed, family-friendly ski area between Kaikoura and Hanmer Springs. Beginner-friendly with intermediate terrain and a quieter feel than the bigger commercial fields.",
     latitude: -42.620, longitude: 173.000,
@@ -5881,7 +5881,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "89",
     name: "Whakapapa",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -5969,7 +5969,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "90", name: "Tukino", region_id: "6", country: "New Zealand",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     state_province: "Manawatu-Whanganui", nearest_town: "Waiouru",
     description: "A remote club field on the eastern flank of Mount Ruapehu, accessed by 4WD. Two tow lifts, basic facilities, fantastic untracked terrain on good days.",
     latitude: -39.320, longitude: 175.660,
@@ -5979,7 +5979,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "91",
     name: "Turoa",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/new-zealand.jpg",
     region_id: "6",
     country: "New Zealand",
     description:
@@ -6070,7 +6070,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "92",
     name: "Kiroro",
-    banner_image_url: "https://images.unsplash.com/photo-1771387293792-29e483a570aa?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     region_id: "3",
     country: "Japan",
     description:
@@ -6155,7 +6155,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "93", name: "Okunakayama Kogen", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Mid-sized Iwate resort with reliable Tohoku-region powder. Quieter than the Hokkaido and Nagano resorts; popular with Japanese domestic skiers.",
     latitude: 39.970, longitude: 140.980,
@@ -6163,7 +6163,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "94", name: "Madarao Kogen", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Nagano", nearest_town: "Iiyama",
     description: "Connected to Tangram resort to form Madarao Tangram. Famous for its ungroomed tree-skiing zones — a powder hound favourite within easy reach of Hakuba (about 90 minutes away).",
     latitude: 36.840, longitude: 138.310,
@@ -6172,7 +6172,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "95", name: "Appi Kogen", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1767352140607-845a696cc39b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "One of Tohoku's biggest resorts with 21 long, well-groomed runs and reliable snow from December through April. Has long been a favourite for Japanese family skiing.",
     latitude: 40.070, longitude: 140.920,
@@ -6181,7 +6181,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "96", name: "Shizukuishi", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1771707685989-2d424e4ed88a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Resort on Mount Iwate, about 30 minutes from Morioka. Hosted the 1993 Alpine World Ski Championships. Long groomers and a panoramic top section.",
     latitude: 39.745, longitude: 140.957,
@@ -6190,7 +6190,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "97", name: "Karuizawa", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1773679472203-15255d505456?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Nagano", nearest_town: "Karuizawa",
     description: "Closest resort to Tokyo (about 75 min by Shinkansen), known for early-season snowmaking and an upmarket alpine town with shopping and onsens. Smaller terrain footprint but very accessible.",
     latitude: 36.367, longitude: 138.620,
@@ -6199,7 +6199,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "98", name: "Hakkaisan", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1675710048439-51e9ccf40129?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Niigata", nearest_town: "Minamiuonuma",
     description: "Steep terrain on Mount Hakkai in the Niigata snowbelt. Famous for its 5-km Yuzawa-side run and reliable deep powder; about 90 min from Tokyo by Shinkansen.",
     latitude: 37.100, longitude: 138.928,
@@ -6208,7 +6208,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "99", name: "Manza Onsen", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1548777123-e216912df7d8?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Gunma", nearest_town: "Tsumagoi",
     description: "High-altitude resort (1800 m base) on Mount Shirane with one of the highest onsen in Japan. Reliable cold dry powder; small but uncrowded terrain.",
     latitude: 36.620, longitude: 138.500,
@@ -6217,7 +6217,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "100", name: "Hachimantai", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1517299321609-52687d1bc55a?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "A lightly-trafficked Tohoku resort surrounded by hot springs and old-growth beech forests. Great for tree skiing; access from Morioka.",
     latitude: 39.970, longitude: 140.940,
@@ -6225,7 +6225,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "101", name: "Hakkoda", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1542640244-7e672d6cef4e?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Aomori", nearest_town: "Aomori",
     description: "Legendary off-piste destination in northern Honshu, famed for its juhyo (snow monsters) and waist-deep powder. Single ropeway accessing huge ungroomed terrain — for committed skiers only.",
     latitude: 40.660, longitude: 140.850,
@@ -6234,7 +6234,7 @@ export const resorts: Resort[] = [
   }),
   createResort({
     id: "102", name: "Tazawako", region_id: "3", country: "Japan",
-    banner_image_url: "https://images.unsplash.com/photo-1767352140607-845a696cc39b?w=1200&q=80",
+    banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Akita", nearest_town: "Senboku",
     description: "Akita resort overlooking Lake Tazawa, Japan's deepest lake. A mid-sized terrain footprint with reliable Tohoku snow and a low-key local feel.",
     latitude: 39.720, longitude: 140.780,
@@ -6248,7 +6248,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "103",
     name: "Snowbird",
-    banner_image_url: "https://images.unsplash.com/photo-1606818616331-f8b00b1da94f?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -6338,7 +6338,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "104",
     name: "Beaver Creek",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -6428,7 +6428,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "105",
     name: "Palisades Tahoe",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -6517,7 +6517,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "106",
     name: "Heavenly",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/usa.jpg",
     region_id: "2",
     country: "USA",
     description:
@@ -6611,7 +6611,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "107",
     name: "Kicking Horse",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
@@ -6700,7 +6700,7 @@ export const resorts: Resort[] = [
   createResort({
     id: "108",
     name: "Fernie",
-    banner_image_url: "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80",
+    banner_image_url: "/resorts/countries/canada.jpg",
     region_id: "2",
     country: "Canada",
     description:
