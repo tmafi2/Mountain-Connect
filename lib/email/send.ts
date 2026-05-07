@@ -37,6 +37,7 @@ import { winterFollowup2Email } from "./templates/winter-followup-2";
 import { winterFollowup3Email } from "./templates/winter-followup-3";
 import { winterFollowupFinalEmail } from "./templates/winter-followup-final";
 import { salesDropinEmail } from "./templates/sales-dropin";
+import { areaJobsUpdateEmail } from "./templates/area-jobs-update";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -558,6 +559,28 @@ export async function sendSalesDropinEmail(params: {
     from: TYLER_FROM_EMAIL,
     to: params.to,
     replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+export async function sendAreaJobsUpdateEmail(params: {
+  to: string;
+  workerName: string;
+  areaName: string;
+  jobs: Array<{
+    title: string;
+    businessName: string;
+    location: string;
+    pay: string;
+    jobUrl: string;
+  }>;
+  browseUrl: string;
+}) {
+  const { subject, html } = areaJobsUpdateEmail(params);
+  return sendEmail({
+    from: FROM_EMAIL,
+    to: params.to,
     subject,
     html,
   });
