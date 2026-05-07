@@ -236,10 +236,31 @@ export default function RegionsDropdown({
                 </button>
               ))}
 
-            {/* Level 3: Resorts */}
-            {selectedCountry &&
-              (selectedCountry.resorts.length > 0 ? (
-                selectedCountry.resorts.map((resort) => (
+            {/* Level 3: Resorts — grouped under state sub-region
+                headings when ResortEntry.state is set on at least one
+                row. Falls back to a flat list otherwise (matches the
+                /explore page behaviour for countries without state). */}
+            {selectedCountry && (() => {
+              if (selectedCountry.resorts.length === 0) {
+                return (
+                  <div className="px-4 py-6 text-center text-sm text-foreground/40">
+                    No resorts listed yet.
+                    <br />
+                    Check back soon!
+                  </div>
+                );
+              }
+              const groups = new Map<string, typeof selectedCountry.resorts>();
+              for (const r of selectedCountry.resorts) {
+                const key = r.state ?? "";
+                const arr = groups.get(key) ?? [];
+                arr.push(r);
+                groups.set(key, arr);
+              }
+              const hasStates = [...groups.keys()].some((k) => k !== "");
+
+              if (!hasStates) {
+                return selectedCountry.resorts.map((resort) => (
                   <button
                     key={resort.id}
                     onClick={() => handleResortClick(resort.id)}
@@ -248,14 +269,31 @@ export default function RegionsDropdown({
                     <span className="text-xs text-secondary">⛷</span>
                     <span>{resort.name}</span>
                   </button>
-                ))
-              ) : (
-                <div className="px-4 py-6 text-center text-sm text-foreground/40">
-                  No resorts listed yet.
-                  <br />
-                  Check back soon!
+                ));
+              }
+
+              return [...groups.entries()].map(([state, group], idx) => (
+                <div key={state || "_flat"}>
+                  {state && (
+                    <div
+                      className={`px-4 pb-1 ${idx === 0 ? "pt-2" : "pt-3"} text-[10px] font-bold uppercase tracking-wider text-foreground/40`}
+                    >
+                      {state}
+                    </div>
+                  )}
+                  {group.map((resort) => (
+                    <button
+                      key={resort.id}
+                      onClick={() => handleResortClick(resort.id)}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary/10 hover:text-primary"
+                    >
+                      <span className="text-xs text-secondary">⛷</span>
+                      <span>{resort.name}</span>
+                    </button>
+                  ))}
                 </div>
-              ))}
+              ));
+            })()}
           </div>
         </div>
       )}

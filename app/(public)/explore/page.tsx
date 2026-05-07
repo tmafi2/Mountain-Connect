@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { resorts } from "@/lib/data/resorts";
-import { regionHierarchy } from "@/lib/data/region-hierarchy";
+import { regionHierarchy, type ResortEntry } from "@/lib/data/region-hierarchy";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const GlobeComponent = dynamic(() => import("@/components/globe/Globe"), {
@@ -794,9 +794,31 @@ function ExploreContent() {
                       </span>
                     </div>
 
-                    {/* Resort cards */}
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {country.resorts.map((entry) => {
+                    {/* Resort cards — grouped under state sub-region
+                        headings when ResortEntry.state is set (AU, NZ,
+                        JP, US, CA). Countries without state values
+                        render as a single flat grid (the historical
+                        behaviour for Europe + South America). */}
+                    {(() => {
+                      const groups = new Map<string, ResortEntry[]>();
+                      for (const r of country.resorts) {
+                        const key = r.state ?? "";
+                        const arr = groups.get(key) ?? [];
+                        arr.push(r);
+                        groups.set(key, arr);
+                      }
+                      const hasStates = [...groups.keys()].some((k) => k !== "");
+                      return (
+                        <div className={hasStates ? "space-y-7" : ""}>
+                          {[...groups.entries()].map(([state, group]) => (
+                            <div key={state || "_flat"}>
+                              {hasStates && state && (
+                                <h4 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-foreground/40">
+                                  {state}
+                                </h4>
+                              )}
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {group.map((entry) => {
                         const resort = resortMap.get(entry.id);
                         if (!resort) return null;
                         return (
@@ -931,8 +953,13 @@ function ExploreContent() {
                             </div>
                           </Link>
                         );
-                      })}
-                    </div>
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
