@@ -1,4 +1,4 @@
-import { sendEmail } from "./client";
+import { sendEmail, sendEmailBatch } from "./client";
 import { interviewInviteEmail } from "./templates/interview-invite";
 import { interviewConfirmationEmail } from "./templates/interview-confirmation";
 import { interviewCancelledEmail } from "./templates/interview-cancelled";
@@ -594,4 +594,49 @@ export async function sendAreaJobsUpdateEmail(params: {
       "List-Unsubscribe": "<mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe>",
     },
   });
+}
+
+// Bulk variant of sendAreaJobsUpdateEmail using Resend's batch API.
+// Each recipient gets a personalised greeting (their first name) but
+// shares the same area/jobs/browseUrl. Resend caps batches at 100, so
+// the caller is responsible for slicing into chunks of <= 100.
+//
+// Resend's batch.send is a single API call that either fully succeeds
+// or fully fails — there is no per-recipient validation in the
+// synchronous response. The caller treats batch-success as
+// per-recipient success, and on batch failure marks every recipient
+// in that chunk as failed.
+export async function sendAreaJobsUpdateEmailBatch(params: {
+  recipients: Array<{ email: string; workerName: string }>;
+  areaName: string;
+  jobs: Array<{
+    title: string;
+    businessName: string;
+    location: string;
+    pay: string;
+    jobUrl: string;
+  }>;
+  browseUrl: string;
+}): Promise<{ id: string }[]> {
+  const entries = params.recipients.map((r) => {
+    const { subject, html, text } = areaJobsUpdateEmail({
+      workerName: r.workerName,
+      areaName: params.areaName,
+      jobs: params.jobs,
+      browseUrl: params.browseUrl,
+    });
+    return {
+      from: TYLER_FROM_EMAIL,
+      to: r.email,
+      replyTo: TYLER_REPLY_TO,
+      subject,
+      html,
+      text,
+      headers: {
+        "List-Unsubscribe":
+          "<mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe>",
+      },
+    };
+  });
+  return sendEmailBatch(entries);
 }
