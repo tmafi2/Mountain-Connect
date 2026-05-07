@@ -796,12 +796,15 @@ function ExploreContent() {
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 1200px"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-5 py-4">
-                        <h3 className="text-xl font-extrabold text-white drop-shadow md:text-2xl">
+                      <div className="absolute inset-0 bg-black/35" />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+                        <h3
+                          className="text-2xl font-extrabold tracking-tight text-white md:text-3xl"
+                          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}
+                        >
                           {country.name}
                         </h3>
-                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                        <span className="mt-2 rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
                           {country.resorts.length} {country.resorts.length === 1 ? "resort" : "resorts"}
                         </span>
                       </div>
