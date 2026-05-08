@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     // Fetch the new job details
     const { data: job } = await supabase
       .from("job_posts")
-      .select("id, title, category, position_type, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, urgently_hiring, pay_amount, pay_currency, salary_range, business_profiles(business_name, location, country), resorts(name)")
+      .select("id, title, category, position_type, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, urgently_hiring, pay_amount, pay_currency, salary_range, business_profiles(business_name, location, country), resorts(name), business_venues(name, is_primary)")
       .eq("id", jobId)
       .single();
 
@@ -41,6 +41,14 @@ export async function POST(request: Request) {
 
     const business = job.business_profiles as unknown as { business_name: string; location: string; country: string } | null;
     const resort = job.resorts as unknown as { name: string } | null;
+    const venue = job.business_venues as unknown as { name: string; is_primary: boolean } | null;
+    // Show "{Venue} ({Business})" when the job lives at a non-primary
+    // venue so workers can tell which establishment is hiring even
+    // though the alert itself still matches at the business level.
+    const businessLabel =
+      venue && !venue.is_primary && business
+        ? `${venue.name} (${business.business_name})`
+        : business?.business_name || "a resort business";
 
     let matched = 0;
 
@@ -89,7 +97,7 @@ export async function POST(request: Request) {
             userId: alert.user_id,
             type: "job_alert_match",
             title: "New job matches your alert",
-            message: `${job.title} at ${business?.business_name || "a resort"} matches your "${alert.name}" alert.`,
+            message: `${job.title} at ${businessLabel} matches your "${alert.name}" alert.`,
             link: `/jobs/${job.id}`,
             metadata: { job_id: job.id, alert_id: alert.id },
           });
@@ -110,7 +118,7 @@ export async function POST(request: Request) {
               workerName: workerProfile?.first_name || "there",
               alertName: alert.name,
               jobTitle: job.title,
-              businessName: business?.business_name || "a resort business",
+              businessName: businessLabel,
               location: business?.location || "",
               pay: payDisplay,
               jobUrl: `https://www.mountainconnects.com/jobs/${job.id}`,

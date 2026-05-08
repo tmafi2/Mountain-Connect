@@ -44,7 +44,8 @@ supabase/
 - `users` — auth users with role (worker, business_owner, admin)
 - `worker_profiles` — worker details, skills, availability, contact_email
 - `business_profiles` — business details, verification_status, resort_id, nearby_town_id (source of truth for where the business is — trumps the resort link; auto-stamped from `location` text by trigger added in 00074. Legacy `operates_in_town` flag kept for backward compat but no longer gates display logic)
-- `job_posts` — listings with nearby_town_id, how_to_apply, application_email/url
+- `business_venues` — establishments under each business (added in 00076). One row per venue, with name/slug/description/location/resort_id/nearby_town_id/logo/cover/contact + an `is_primary` boolean (one primary per business, partial unique index). The primary venue mirrors the business's own data and is auto-created for every existing/new business. Verification is at the business level, not per-venue.
+- `job_posts` — listings with nearby_town_id, venue_id (FK to business_venues, nullable for backward compat but populated for every active job since 00076), how_to_apply, application_email/url
 - `applications` — worker applications to jobs
 - `interviews` — scheduling with status (invited, scheduled, completed, cancelled, missed, reschedule_requested)
 - `resorts` — 70 resorts with legacy_id text field for backward compat (UNIQUE constraint on legacy_id added in 00072)
@@ -66,13 +67,14 @@ Businesses can post listings regardless of verification state. Verification is a
 
 ## Current Feature Status
 - **Messaging:** Live — realtime conversations between workers and businesses. RLS policies, DB triggers, and unread-count hooks all wired up.
+- **Business Venues:** Live — single business owners can list multiple establishments (e.g. a pub AND a bar) under one account, each with its own location/resort/town/logo/cover photo. Manage at `/business/venues`. Job posting offers a venue dropdown only when the business has 2+ venues. Public business pages (`/business/{id}`) render a "Venues" section when applicable, and each venue has its own URL (`/business/{id}/{venue-slug}`). Job listings and emails (application, interview, alert match) surface "{Venue} ({Business})" when a job is at a non-primary venue, falling back to just the business name otherwise. Worker follows + reviews are still business-scoped per the design call. Admin sees the venue list on `/admin/businesses`.
 - **Nearby Towns:** Full feature — 50+ towns with detail pages, linked to resorts, job filtering by town
 - **Interviews:** Functional — invite, book, reschedule, cancel, missed-interview detection.
 - **Email notifications:** 30+ templates, Resend integration, branded masthead with logo + wordmark. Message notification trigger via DB.
 - **Claim flow:** Admin-imported listings go live as unclaimed shells with a claim_token. Anonymous EOIs queue silently. Nudge cadence (each gated by its own sent-at column, so at most one of each fires): first EOI ever → first-applicant email; aggregate EOIs hit 5 → 5-applicant nudge; day-14 last-chance warning fires from cron; day-21 takedown flips active job posts to inactive. Cron: `/api/cron/unclaimed-dormancy-sweep`, daily 09:00 UTC.
 
 ## Migration Status
-All migrations applied through **00075** (`add_missing_resorts` — adds 38 new resorts across AU/NZ/JP/US/CA and renames the existing combined "Queenstown / The Remarkables" entry at legacy_id 7 to just "The Remarkables", with Coronet Peak added as a peer. AU and NZ resorts split into state sub-regions on `/explore` and the Regions header dropdown via the optional `state` field on `lib/data/region-hierarchy.ts:ResortEntry`). 00074 added the auto-resolve trigger that stamps `business_profiles.nearby_town_id` from the location text. 00073 added the `outreach_leads` and `outreach_sends` tables for the admin email-campaign feature. Next migration number: **00076**.
+All migrations applied through **00076** (`business_venues` — introduces a first-class venues concept beneath each `business_profile` so a single operator can list distinct establishments under one account. Backfills one primary venue per existing business mirroring its location/resort/town/logo/cover photo, and links every existing job_post to its business's primary venue via a new `venue_id` column. RLS policies let the owning business CRUD their venues; admins have full access. The site continues to work without UI changes — venues become first-class once the business-portal venues UI ships in a follow-up). 00075 added 38 new resorts. 00074 added the auto-resolve trigger that stamps `business_profiles.nearby_town_id` from the location text. 00073 added the `outreach_leads` and `outreach_sends` tables for the admin email-campaign feature. Next migration number: **00077**.
 
 When adding a schema-touching migration, dry-run it against a fresh `supabase db reset` (or branch DB) before merging — recent dedup work needed three follow-up commits to fix text/UUID cast errors that would have surfaced locally.
 

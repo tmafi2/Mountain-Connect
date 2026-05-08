@@ -1,7 +1,19 @@
 import type { JobPost } from "@/types/database";
 
 /* ─── Extended job type for the seed data ─────────────────── */
-export interface SeedJob extends JobPost {
+// venue_id is omitted from the seed shape — it was added in
+// migration 00076 and seed data predates it; live job_posts queried
+// from Supabase always include it.
+export interface SeedJob extends Omit<JobPost, "venue_id"> {
+  venue_id?: string | null;
+  /** Venue display name surfaced on cards when the job lives at a
+   *  non-primary venue. Only set on rows hydrated from Supabase. */
+  venue_name?: string | null;
+  /** Slug used to deep-link to the venue page. */
+  venue_slug?: string | null;
+  /** True when the job's venue is the business's primary venue —
+   *  surfacing the venue label is then redundant. */
+  venue_is_primary?: boolean | null;
   business_name: string;
   business_verified: boolean;
   business_logo_url: string | null;

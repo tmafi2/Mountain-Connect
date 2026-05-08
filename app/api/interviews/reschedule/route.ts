@@ -79,9 +79,17 @@ export async function POST(request: NextRequest) {
 
   const { data: job } = await admin
     .from("job_posts")
-    .select("title")
+    .select("title, business_venues(name, is_primary)")
     .eq("id", interview.applications?.job_post_id)
     .single();
+  const venue = job?.business_venues as
+    | { name: string; is_primary: boolean }
+    | null
+    | undefined;
+  const businessLabel =
+    venue && !venue.is_primary
+      ? `${venue.name} (${business.business_name})`
+      : business.business_name;
 
   const workerName = workerProfile
     ? [workerProfile.first_name, workerProfile.last_name].filter(Boolean).join(" ") || "there"
@@ -96,7 +104,7 @@ export async function POST(request: NextRequest) {
       userId: workerProfile.user_id,
       type: "interview_rescheduled",
       title: "Interview Rescheduled",
-      message: `${business.business_name} has asked to reschedule your interview for ${jobTitle}. Please select a new time.`,
+      message: `${businessLabel} has asked to reschedule your interview for ${jobTitle}. Please select a new time.`,
       link: bookingUrl,
       metadata: { interview_id },
     });
@@ -107,7 +115,7 @@ export async function POST(request: NextRequest) {
       sendInterviewInviteEmail({
         to: workerUser.email,
         workerName,
-        businessName: business.business_name,
+        businessName: businessLabel,
         jobTitle,
         bookingUrl,
       }).catch((err) => console.error("Failed to send reschedule email:", err));

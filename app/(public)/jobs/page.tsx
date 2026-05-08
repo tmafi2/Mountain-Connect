@@ -24,7 +24,7 @@ export default async function FindAJobPage() {
     const { data } = await supabase
       .from("job_posts")
       .select(
-        "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country), nearby_towns(name, slug)"
+        "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country), nearby_towns(name, slug), business_venues(name, slug, is_primary)"
       )
       .eq("status", "active");
 
@@ -39,6 +39,11 @@ export default async function FindAJobPage() {
         const nearbyTown = j.nearby_towns as {
           name: string;
           slug: string;
+        } | null;
+        const venue = j.business_venues as {
+          name: string;
+          slug: string;
+          is_primary: boolean;
         } | null;
         const posType = (j.position_type as string) || "full_time";
 
@@ -87,6 +92,10 @@ export default async function FindAJobPage() {
           application_url: (j.application_url as string) || null,
           featured_until: (j.featured_until as string) || null,
           applications_count: 0,
+          venue_id: (j.venue_id as string) || null,
+          venue_name: venue?.name ?? null,
+          venue_slug: venue?.slug ?? null,
+          venue_is_primary: venue?.is_primary ?? null,
         };
       });
     }

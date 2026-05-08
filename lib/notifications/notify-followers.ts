@@ -9,6 +9,11 @@ import { sendBusinessNewJobEmail } from "@/lib/email/send";
 export async function notifyFollowersNewJob(params: {
   businessId: string;
   businessName: string;
+  /** Display name of the venue this job is posted at, when the venue
+   *  isn't the business's primary one. The notification + email will
+   *  include "{venueName} ({businessName})" instead of just the
+   *  business so the worker can tell which establishment is hiring. */
+  venueName?: string | null;
   jobTitle: string;
   jobUrl: string;
   location: string;
@@ -37,6 +42,10 @@ export async function notifyFollowersNewJob(params: {
 
   if (!followers || followers.length === 0) return;
 
+  const businessLabel = params.venueName
+    ? `${params.venueName} (${params.businessName})`
+    : params.businessName;
+
   // Create notifications and send emails for each follower
   const promises = followers.map(async (follower) => {
     const worker = follower.worker as unknown as {
@@ -52,8 +61,8 @@ export async function notifyFollowersNewJob(params: {
     await createNotification({
       userId: worker.user_id,
       type: "business_new_job",
-      title: `New job at ${params.businessName}`,
-      message: `${params.businessName} just posted "${params.jobTitle}". Be one of the first to apply!`,
+      title: `New job at ${businessLabel}`,
+      message: `${businessLabel} just posted "${params.jobTitle}". Be one of the first to apply!`,
       link: params.jobUrl,
     });
 
@@ -63,7 +72,7 @@ export async function notifyFollowersNewJob(params: {
       await sendBusinessNewJobEmail({
         to: userData.user.email,
         workerName: worker.first_name || "there",
-        businessName: params.businessName,
+        businessName: businessLabel,
         jobTitle: params.jobTitle,
         jobUrl: params.jobUrl,
         location: params.location,

@@ -22,10 +22,10 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Fetch job details + business info
+    // Fetch job details + business info + venue (when set + non-primary)
     const { data: job } = await supabase
       .from("job_posts")
-      .select("title, business_id, business_profiles(business_name, email, user_id)")
+      .select("title, business_id, business_profiles(business_name, email, user_id), business_venues(name, is_primary)")
       .eq("id", jobId)
       .single();
 
@@ -52,6 +52,17 @@ export async function POST(request: Request) {
       email: string | null;
       user_id: string;
     };
+    const venue = job.business_venues as unknown as {
+      name: string;
+      is_primary: boolean;
+    } | null;
+    // Show "{Venue} ({Business})" only when the venue is a non-primary
+    // establishment — primary-venue jobs read just as the business so
+    // we avoid the redundant parenthetical.
+    const businessLabel =
+      venue && !venue.is_primary
+        ? `${venue.name} (${business.business_name})`
+        : business.business_name;
 
     const workerName = [worker.first_name, worker.last_name].filter(Boolean).join(" ") || "there";
     const jobUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://mountainconnects.com"}/jobs/${jobId}`;
@@ -67,7 +78,7 @@ export async function POST(request: Request) {
           to: workerUser.user.email,
           workerName,
           jobTitle: job.title,
-          businessName: business.business_name,
+          businessName: businessLabel,
           jobUrl,
         }).catch((err) => console.error("Failed to send application-received email:", err))
       );
@@ -78,7 +89,7 @@ export async function POST(request: Request) {
       emailPromises.push(
         sendNewApplicantEmail({
           to: business.email,
-          businessName: business.business_name,
+          businessName: businessLabel,
           workerName,
           jobTitle: job.title,
           applicantsUrl,

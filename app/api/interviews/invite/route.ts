@@ -56,12 +56,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Interview already exists for this application" }, { status: 409 });
   }
 
-  // Get job info
+  // Get job info — also pull the venue so the email can mention
+  // which establishment the interview is for when it's not the
+  // business's primary venue.
   const { data: job } = await admin
     .from("job_posts")
-    .select("title")
+    .select("title, business_venues(name, is_primary)")
     .eq("id", application.job_post_id)
     .single();
+  const venue = job?.business_venues as
+    | { name: string; is_primary: boolean }
+    | null
+    | undefined;
+  const businessLabel =
+    venue && !venue.is_primary
+      ? `${venue.name} (${business.business_name})`
+      : business.business_name;
 
   // Get worker profile + user info
   const { data: workerProfile } = await admin
@@ -111,11 +121,11 @@ export async function POST(request: NextRequest) {
     userId: workerProfile.user_id,
     type: "interview_invited",
     title: "Interview Invitation",
-    message: `${business.business_name} has invited you to interview for ${jobTitle}. Click to book a time slot.`,
+    message: `${businessLabel} has invited you to interview for ${jobTitle}. Click to book a time slot.`,
     link: bookingUrl,
     metadata: {
       interview_id: interview.id,
-      business_name: business.business_name,
+      business_name: businessLabel,
       job_title: jobTitle,
     },
   });
@@ -125,7 +135,7 @@ export async function POST(request: NextRequest) {
     sendInterviewInviteEmail({
       to: workerUser.email,
       workerName,
-      businessName: business.business_name,
+      businessName: businessLabel,
       jobTitle,
       bookingUrl,
     }).catch((err) => console.error("Failed to send invite email:", err));

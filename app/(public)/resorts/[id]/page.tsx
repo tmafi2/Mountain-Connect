@@ -165,6 +165,8 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     title: string;
     business_name: string;
     business_verified: boolean;
+    business_logo_url: string | null;
+    venue_name: string | null;
     category: string | null;
     position_type: string | null;
     pay_amount: string | null;
@@ -335,7 +337,8 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
           accommodation_included, ski_pass_included, start_date,
           status, business_id,
           business_profiles(business_name, verification_status, logo_url),
-          nearby_towns(name)
+          nearby_towns(name),
+          business_venues(name, is_primary)
         `)
         .eq("resort_id", resortUuid)
         .eq("status", "active")
@@ -351,12 +354,14 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
 
           const biz = job.business_profiles as any;
           const nearbyTown = (job as any).nearby_towns as { name: string } | null;
+          const venue = (job as any).business_venues as { name: string; is_primary: boolean } | null;
           realJobs.push({
             id: job.id,
             title: job.title,
             business_name: biz?.business_name || "Unknown",
             business_verified: biz?.verification_status === "verified",
             business_logo_url: biz?.logo_url || null,
+            venue_name: venue && !venue.is_primary ? venue.name : null,
             category: job.category,
             position_type: job.position_type,
             pay_amount: job.pay_amount,
@@ -1025,6 +1030,11 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                         </h3>
                         <p className="mt-1 text-sm text-foreground">
                           {job.business_name}
+                          {job.venue_name && (
+                            <span className="ml-2 rounded-md bg-secondary/10 px-1.5 py-0.5 text-[11px] font-semibold text-secondary">
+                              {job.venue_name}
+                            </span>
+                          )}
                           {job.business_verified && (
                             <span className="ml-2 text-xs text-green-600">
                               &#10003; Verified
