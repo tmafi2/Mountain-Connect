@@ -140,14 +140,27 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     if (resort) resortData = [resort];
   }
 
-  // Get active job listings
+  // Get active job listings — also pull the venue so each job card
+  // can surface "this role is at the {venue name}" when the business
+  // has multiple venues.
   const { data: jobs } = await supabase
     .from("job_posts")
-    .select("id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, meal_perks, start_date, end_date, status, description, nearby_towns(name)")
+    .select("id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, meal_perks, start_date, end_date, status, description, venue_id, nearby_towns(name), business_venues(id, name, slug, is_primary)")
     .eq("business_id", id)
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(20);
+
+  // Get all venues for this business — used to render a "Venues"
+  // section when the business runs more than one establishment.
+  const { data: venues } = await supabase
+    .from("business_venues")
+    .select("id, name, slug, location, logo_url, cover_photo_url, is_primary")
+    .eq("business_id", id)
+    .order("is_primary", { ascending: false })
+    .order("name");
+  const venueList = venues ?? [];
+  const showVenues = venueList.length > 1;
 
   // Get business photos
   const { data: photos } = await supabase
@@ -569,6 +582,65 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
             </section>
           )}
 
+          {/* Venues — only render when the business runs more than one
+              establishment. Single-venue businesses don't surface this. */}
+          {showVenues && (
+            <section>
+              <div className="flex items-center gap-3">
+                <span className="h-6 w-1 rounded-full bg-secondary" aria-hidden />
+                <h2 className="text-xl font-bold tracking-tight text-primary">
+                  Venues
+                </h2>
+                <span className="rounded-full bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary">
+                  {venueList.length}
+                </span>
+              </div>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {venueList.map((v) => {
+                  const venueLogo = v.logo_url || business.logo_url;
+                  return (
+                    <li key={v.id}>
+                      <Link
+                        href={`/business/${id}/${v.slug}`}
+                        className="flex items-center gap-3 rounded-xl border border-accent/30 bg-white p-3 transition hover:border-secondary/40 hover:bg-secondary/[0.03]"
+                      >
+                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-accent/30 bg-accent/10">
+                          {venueLogo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={venueLogo}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-base">
+                              🏔️
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 truncate text-sm font-bold text-primary">
+                            {v.name}
+                            {v.is_primary && (
+                              <span className="rounded-full bg-secondary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-secondary">
+                                Primary
+                              </span>
+                            )}
+                          </p>
+                          {v.location && (
+                            <p className="truncate text-xs text-foreground/50">
+                              {v.location}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
           {/* Open Positions — anchor section, tinted background to draw the eye */}
           <section className="relative overflow-hidden rounded-2xl border border-secondary/15 bg-gradient-to-br from-secondary/[0.04] via-white to-highlight/[0.04] p-6 shadow-sm sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -628,6 +700,16 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                               <span>Based in {(job as any).nearby_towns.name}</span>
                             </>
                           )}
+                          {showVenues &&
+                            (job as any).business_venues?.name &&
+                            !(job as any).business_venues.is_primary && (
+                              <>
+                                <span className="h-3 w-px bg-foreground/20" />
+                                <span className="font-semibold text-secondary">
+                                  At {(job as any).business_venues.name}
+                                </span>
+                              </>
+                            )}
                         </div>
                       </div>
                       {job.pay_amount && (
