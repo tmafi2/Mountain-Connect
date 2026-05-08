@@ -73,6 +73,9 @@ export default function AdminBusinessesPage() {
   const [verifyReason, setVerifyReason] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [selectedVenues, setSelectedVenues] = useState<
+    { id: string; name: string; slug: string; location: string | null; is_primary: boolean }[]
+  >([]);
 
   useEffect(() => {
     async function load() {
@@ -105,6 +108,25 @@ export default function AdminBusinessesPage() {
       setResortName(data?.name || null);
     })();
   }, [selected?.resort_id]);
+
+  // Fetch venues for the selected business so admin can audit each
+  // establishment they operate.
+  useEffect(() => {
+    if (!selected?.id) {
+      setSelectedVenues([]);
+      return;
+    }
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("business_venues")
+        .select("id, name, slug, location, is_primary")
+        .eq("business_id", selected.id)
+        .order("is_primary", { ascending: false })
+        .order("name");
+      setSelectedVenues(data ?? []);
+    })();
+  }, [selected?.id]);
 
   const filtered = useMemo(() => {
     let results = [...businesses];
@@ -406,6 +428,40 @@ export default function AdminBusinessesPage() {
                 <InfoItem label="Slug" value={selected.slug} />
                 <InfoItem label="Profile ID" value={selected.id} mono />
                 <InfoItem label="User ID" value={selected.user_id} mono />
+              </div>
+
+              {/* Venues */}
+              <div className="mt-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40 mb-2">
+                  Venues ({selectedVenues.length})
+                </p>
+                {selectedVenues.length === 0 ? (
+                  <p className="text-xs text-foreground/40">
+                    No venues yet — primary venue should auto-create on next login.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {selectedVenues.map((v) => (
+                      <li
+                        key={v.id}
+                        className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/30 bg-white px-3 py-2 text-xs"
+                      >
+                        <span className="font-semibold text-primary">{v.name}</span>
+                        {v.is_primary && (
+                          <span className="rounded-full bg-secondary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
+                            Primary
+                          </span>
+                        )}
+                        {v.location && (
+                          <span className="text-foreground/50">· {v.location}</span>
+                        )}
+                        <span className="ml-auto font-mono text-[10px] text-foreground/40">
+                          /{v.slug}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               {/* Industries */}
