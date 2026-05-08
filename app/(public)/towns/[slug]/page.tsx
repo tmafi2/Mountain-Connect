@@ -160,23 +160,27 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
 
   // Fetch live jobs from linked resorts
   let jobCount = 0;
-  let jobs: { id: string; title: string; business_name: string; category: string | null; resort_name: string }[] = [];
+  let jobs: { id: string; title: string; business_name: string; venue_name: string | null; category: string | null; resort_name: string }[] = [];
   if (resortIds.length > 0) {
     const { data: jobData } = await supabase
       .from("job_posts")
-      .select("id, title, category, resort_id, business_profiles(business_name), resorts(name)")
+      .select("id, title, category, resort_id, business_profiles(business_name), resorts(name), business_venues(name, is_primary)")
       .in("resort_id", resortIds)
       .eq("status", "active")
       .limit(6);
 
     if (jobData) {
-      jobs = jobData.map((j) => ({
-        id: j.id,
-        title: j.title,
-        category: j.category,
-        business_name: (j.business_profiles as unknown as { business_name: string })?.business_name || "Unknown",
-        resort_name: (j.resorts as unknown as { name: string })?.name || "",
-      }));
+      jobs = jobData.map((j) => {
+        const venue = j.business_venues as unknown as { name: string; is_primary: boolean } | null;
+        return {
+          id: j.id,
+          title: j.title,
+          category: j.category,
+          business_name: (j.business_profiles as unknown as { business_name: string })?.business_name || "Unknown",
+          venue_name: venue && !venue.is_primary ? venue.name : null,
+          resort_name: (j.resorts as unknown as { name: string })?.name || "",
+        };
+      });
     }
     const { count } = await supabase
       .from("job_posts")
@@ -453,7 +457,13 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
                           >
                             <div>
                               <p className="text-sm font-semibold text-primary">{j.title}</p>
-                              <p className="text-xs text-foreground/50">{j.business_name} &middot; {j.resort_name}</p>
+                              <p className="text-xs text-foreground/50">
+                                {j.business_name}
+                                {j.venue_name && (
+                                  <span className="ml-1 text-secondary">· {j.venue_name}</span>
+                                )}
+                                {" "}&middot; {j.resort_name}
+                              </p>
                             </div>
                             {j.category && (
                               <span className="shrink-0 rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-medium text-secondary">
