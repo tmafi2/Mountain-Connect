@@ -260,6 +260,25 @@ export interface BusinessFollower {
   created_at: string;
 }
 
+export interface BusinessVenue {
+  id: string;
+  business_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  location: string | null;
+  resort_id: string | null;
+  nearby_town_id: string | null;
+  logo_url: string | null;
+  cover_photo_url: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  is_primary: boolean;
+  created_at: string;
+  updated_at: string | null;
+}
+
 export interface Region {
   id: string;
   name: string;
@@ -357,6 +376,7 @@ export interface JobPost {
   id: string;
   business_id: string;
   resort_id: string;
+  venue_id: string | null;
   title: string;
   description: string;
   requirements: string | null;
