@@ -948,6 +948,11 @@ function JobCard({
 
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-foreground">
                   <span className="font-medium">{job.business_name}</span>
+                  {job.venue_name && job.venue_is_primary === false && (
+                    <span className="rounded-md bg-secondary/10 px-1.5 py-0.5 text-[11px] font-semibold text-secondary">
+                      {job.venue_name}
+                    </span>
+                  )}
                   {job.business_verified && (
                     <span className="text-xs text-blue-500" title="Verified business">
                       &#10003; Verified
@@ -1162,6 +1167,11 @@ function JobDetailPanel({
               <span className="text-sm font-medium text-foreground group-hover:text-secondary transition-colors">
                 {job.business_name}
               </span>
+              {job.venue_name && job.venue_is_primary === false && job.venue_slug && (
+                <span className="ml-1 rounded-md bg-secondary/10 px-2 py-0.5 text-xs font-semibold text-secondary">
+                  at {job.venue_name}
+                </span>
+              )}
               {job.business_verified && (
                 <span className="text-xs text-blue-500">&#10003; Verified</span>
               )}
