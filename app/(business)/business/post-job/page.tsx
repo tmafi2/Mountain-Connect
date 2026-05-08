@@ -127,6 +127,8 @@ export default function PostJobPage() {
   const [showTemplateNameModal, setShowTemplateNameModal] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [venues, setVenues] = useState<{ id: string; name: string; is_primary: boolean }[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [businessVerified, setBusinessVerified] = useState(false);
   const [inLaunchLoc, setInLaunchLoc] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -193,6 +195,21 @@ export default function PostJobPage() {
         .single();
       if (bp) {
         setBusinessId(bp.id);
+
+        // Load venues for this business — pre-select the primary
+        // venue so single-venue businesses don't notice the field.
+        const { data: venueRows } = await supabase
+          .from("business_venues")
+          .select("id, name, is_primary")
+          .eq("business_id", bp.id)
+          .order("is_primary", { ascending: false })
+          .order("name");
+        if (venueRows && venueRows.length > 0) {
+          setVenues(venueRows);
+          const primary = venueRows.find((v) => v.is_primary) ?? venueRows[0];
+          setSelectedVenueId(primary.id);
+        }
+
         setBusinessVerified(bp.verification_status === "verified");
         const tier = (bp.tier || "free") as BusinessTier;
         setBusinessTier(tier);
@@ -325,6 +342,7 @@ export default function PostJobPage() {
     return {
       business_id: businessId!,
       resort_id: selectedResortId!,
+      venue_id: selectedVenueId,
       title: form.title.trim(),
       description: form.description.trim(),
       requirements: form.requirements.trim() || null,
@@ -659,6 +677,26 @@ export default function PostJobPage() {
               className={inputClass}
             />
           </div>
+
+          {venues.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-foreground">
+                Venue <span className="text-foreground/40">(which establishment is hiring?)</span>
+              </label>
+              <select
+                value={selectedVenueId ?? ""}
+                onChange={(e) => setSelectedVenueId(e.target.value || null)}
+                className={inputClass}
+              >
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                    {v.is_primary ? " (primary)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

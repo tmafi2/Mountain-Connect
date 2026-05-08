@@ -11,6 +11,7 @@ const demoListings: ListingItem[] = [
     id: "j1",
     title: "Ski Instructor — All Levels",
     resort: "Whistler Blackcomb",
+    venue: null,
     location: "Whistler, Canada",
     status: "active",
     pay: "CAD $22–30/hr + tips",
@@ -26,6 +27,7 @@ const demoListings: ListingItem[] = [
     id: "j2",
     title: "Bartender — Apres Ski Bar",
     resort: "Garibaldi Lift Co.",
+    venue: null,
     location: "Whistler, Canada",
     status: "active",
     pay: "CAD $17/hr + tips",
@@ -41,6 +43,7 @@ const demoListings: ListingItem[] = [
     id: "j3",
     title: "Housekeeping Team Member",
     resort: "Fairmont Chateau Whistler",
+    venue: null,
     location: "Whistler, Canada",
     status: "active",
     pay: "CAD $19/hr",
@@ -56,6 +59,7 @@ const demoListings: ListingItem[] = [
     id: "j4",
     title: "Chef de Partie",
     resort: "Le Refuge Alpine",
+    venue: null,
     location: "Chamonix, France",
     status: "paused",
     pay: "\u20AC2,400/month",
@@ -71,6 +75,7 @@ const demoListings: ListingItem[] = [
     id: "j5",
     title: "Lift Operator",
     resort: "Vail Mountain Resort",
+    venue: null,
     location: "Vail, USA",
     status: "closed",
     pay: "USD $18–20/hr",
@@ -238,7 +243,7 @@ async function fetchListingsData(): Promise<{
     const [jobsResult, appsResult] = await Promise.all([
       supabase
         .from("job_posts")
-        .select("*, resorts(name, country)")
+        .select("*, resorts(name, country), business_venues(id, name, is_primary)")
         .eq("business_id", bp.id)
         .order("created_at", { ascending: false }),
       supabase
@@ -258,11 +263,16 @@ async function fetchListingsData(): Promise<{
     // Map jobs to ListingItem format
     const listings: ListingItem[] = jobs.map((j: Record<string, unknown>) => {
       const resort = j.resorts as { name: string; country: string } | null;
+      const venue = j.business_venues as { name: string; is_primary: boolean } | null;
       const posType = j.position_type === "full_time" ? "Full-time" : j.position_type === "part_time" ? "Part-time" : "Casual";
       return {
         id: j.id as string,
         title: j.title as string,
         resort: resort?.name || "",
+        // Only surface a venue label when it's a non-primary venue —
+        // primary-venue jobs are functionally equivalent to "the
+        // business" and would just clutter the listing card.
+        venue: venue && !venue.is_primary ? venue.name : null,
         location: resort ? `${resort.name}, ${resort.country}` : "",
         status: (j.status as string) as "active" | "paused" | "closed" | "draft",
         pay: (j.pay_amount as string) ? `${(j.pay_currency as string) || "AUD"} $${j.pay_amount as string}` : (j.salary_range as string) || "",

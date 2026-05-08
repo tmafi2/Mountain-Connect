@@ -21,6 +21,7 @@ export interface ListingItem {
   id: string;
   title: string;
   resort: string;
+  venue: string | null;
   location: string;
   status: "active" | "paused" | "closed" | "draft";
   pay: string;
@@ -461,6 +462,11 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
                       )}
                     </div>
                     <p className="mt-1 text-sm text-foreground/60">
+                      {listing.venue && (
+                        <span className="mr-1.5 rounded-md bg-secondary/10 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-secondary">
+                          {listing.venue}
+                        </span>
+                      )}
                       {listing.resort} &middot; {listing.location}
                     </p>
                   </div>
