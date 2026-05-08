@@ -44,7 +44,8 @@ supabase/
 - `users` — auth users with role (worker, business_owner, admin)
 - `worker_profiles` — worker details, skills, availability, contact_email
 - `business_profiles` — business details, verification_status, resort_id, nearby_town_id (source of truth for where the business is — trumps the resort link; auto-stamped from `location` text by trigger added in 00074. Legacy `operates_in_town` flag kept for backward compat but no longer gates display logic)
-- `job_posts` — listings with nearby_town_id, how_to_apply, application_email/url
+- `business_venues` — establishments under each business (added in 00076). One row per venue, with name/slug/description/location/resort_id/nearby_town_id/logo/cover/contact + an `is_primary` boolean (one primary per business, partial unique index). The primary venue mirrors the business's own data and is auto-created for every existing/new business. Verification is at the business level, not per-venue.
+- `job_posts` — listings with nearby_town_id, venue_id (FK to business_venues, nullable for backward compat but populated for every active job since 00076), how_to_apply, application_email/url
 - `applications` — worker applications to jobs
 - `interviews` — scheduling with status (invited, scheduled, completed, cancelled, missed, reschedule_requested)
 - `resorts` — 70 resorts with legacy_id text field for backward compat (UNIQUE constraint on legacy_id added in 00072)
@@ -66,6 +67,7 @@ Businesses can post listings regardless of verification state. Verification is a
 
 ## Current Feature Status
 - **Messaging:** Live — realtime conversations between workers and businesses. RLS policies, DB triggers, and unread-count hooks all wired up.
+- **Business Venues:** Live — single business owners can list multiple establishments (e.g. a pub AND a bar) under one account, each with its own location/resort/town/logo/cover photo. Manage at `/business/venues`. Job posting offers a venue dropdown only when the business has 2+ venues. Public business pages (`/business/{id}`) render a "Venues" section when applicable, and each venue has its own URL (`/business/{id}/{venue-slug}`). Job listings and emails (application, interview, alert match) surface "{Venue} ({Business})" when a job is at a non-primary venue, falling back to just the business name otherwise. Worker follows + reviews are still business-scoped per the design call. Admin sees the venue list on `/admin/businesses`.
 - **Nearby Towns:** Full feature — 50+ towns with detail pages, linked to resorts, job filtering by town
 - **Interviews:** Functional — invite, book, reschedule, cancel, missed-interview detection.
 - **Email notifications:** 30+ templates, Resend integration, branded masthead with logo + wordmark. Message notification trigger via DB.
