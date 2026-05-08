@@ -399,6 +399,15 @@ export default function PostJobPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId: newJob.id, type: "URL_UPDATED" }),
       }).catch((err) => console.error("Failed to notify Google indexing:", err));
+
+      // Notify business followers — venue context is resolved
+      // server-side. Non-blocking so a slow follower fan-out doesn't
+      // delay the redirect to manage-listings.
+      fetch("/api/jobs/notify-followers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: newJob.id }),
+      }).catch((err) => console.error("Failed to notify followers:", err));
     }
 
     router.push("/business/manage-listings");
