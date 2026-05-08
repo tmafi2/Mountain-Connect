@@ -55,9 +55,10 @@ CREATE INDEX IF NOT EXISTS idx_job_posts_venue
   ON public.job_posts(venue_id);
 
 -- ─── 3. Backfill: one primary venue per existing business ─────────
--- Resolve resort UUIDs from business_profiles.resort_id, which is
--- legacy text (e.g. "52" → resorts.legacy_id = '52'). Falls back to
--- NULL if the legacy_id can't be matched.
+-- business_profiles.resort_id is a live UUID FK to resorts.id in
+-- production (despite migration 00010 declaring it text — the
+-- column was migrated to uuid before 00072 which already used it
+-- as a uuid). Copy it through directly.
 INSERT INTO public.business_venues (
   business_id, name, slug, description, location, resort_id,
   nearby_town_id, logo_url, cover_photo_url, phone, email, website,
@@ -77,8 +78,7 @@ SELECT
   ),
   bp.description,
   bp.location,
-  -- bp.resort_id is text holding a legacy_id; resolve to the live UUID.
-  (SELECT r.id FROM public.resorts r WHERE r.legacy_id = bp.resort_id LIMIT 1),
+  bp.resort_id::uuid,
   bp.nearby_town_id,
   bp.logo_url,
   bp.cover_photo_url,
