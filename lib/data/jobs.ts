@@ -1,7 +1,11 @@
 import type { JobPost } from "@/types/database";
 
 /* ─── Extended job type for the seed data ─────────────────── */
-export interface SeedJob extends JobPost {
+// venue_id is omitted from the seed shape — it was added in
+// migration 00076 and seed data predates it; live job_posts queried
+// from Supabase always include it.
+export interface SeedJob extends Omit<JobPost, "venue_id"> {
+  venue_id?: string | null;
   business_name: string;
   business_verified: boolean;
   business_logo_url: string | null;
