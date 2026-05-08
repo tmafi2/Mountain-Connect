@@ -78,38 +78,37 @@ export default async function VenuePage({ params }: VenuePageProps) {
   const logo = venue.logo_url || business.logo_url;
   const cover = venue.cover_photo_url || business.cover_photo_url;
 
-  // Resort + town display names.
-  let resortName: string | null = null;
-  if (venue.resort_id) {
-    const { data: r } = await supabase
-      .from("resorts")
-      .select("name")
-      .eq("id", venue.resort_id)
-      .maybeSingle();
-    resortName = r?.name ?? null;
-  }
-  let townName: string | null = null;
-  if (venue.nearby_town_id) {
-    const { data: t } = await supabase
-      .from("nearby_towns")
-      .select("name")
-      .eq("id", venue.nearby_town_id)
-      .maybeSingle();
-    townName = t?.name ?? null;
-  }
+  // Resort + town display names + active jobs in parallel — three
+  // independent queries that previously ran sequentially.
+  const [resortRes, townRes, jobsRes] = await Promise.all([
+    venue.resort_id
+      ? supabase
+          .from("resorts")
+          .select("name")
+          .eq("id", venue.resort_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    venue.nearby_town_id
+      ? supabase
+          .from("nearby_towns")
+          .select("name")
+          .eq("id", venue.nearby_town_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("job_posts")
+      .select(
+        "id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, meal_perks, status, created_at, resorts(name)"
+      )
+      .eq("business_id", id)
+      .eq("venue_id", venue.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false }),
+  ]);
 
-  // Active jobs at this specific venue.
-  const { data: jobs } = await supabase
-    .from("job_posts")
-    .select(
-      "id, title, category, position_type, pay_amount, pay_currency, accommodation_included, ski_pass_included, meal_perks, status, created_at, resorts(name)"
-    )
-    .eq("business_id", id)
-    .eq("venue_id", venue.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
-
-  const activeJobs = jobs ?? [];
+  const resortName = resortRes.data?.name ?? null;
+  const townName = townRes.data?.name ?? null;
+  const activeJobs = jobsRes.data ?? [];
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">

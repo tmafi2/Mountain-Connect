@@ -53,6 +53,13 @@ function slugify(input: string): string {
     .replace(/\s+/g, "-");
 }
 
+// Fallback slug for names that slugify to empty (e.g. "©", emoji-only,
+// or non-ASCII-only names). Matches the migration's bp.id::text fallback
+// pattern so DB and UI agree on what to write.
+function fallbackSlug(): string {
+  return `venue-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function BusinessVenuesPage() {
   const router = useRouter();
   const [businessId, setBusinessId] = useState<string | null>(null);
@@ -63,6 +70,8 @@ export default function BusinessVenuesPage() {
   const [editing, setEditing] = useState<Partial<Venue> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -104,17 +113,42 @@ export default function BusinessVenuesPage() {
 
   function openCreate() {
     setEditing({ ...EMPTY_VENUE });
+    setLogoFile(null);
+    setCoverFile(null);
     setError(null);
   }
 
   function openEdit(v: Venue) {
     setEditing({ ...v });
+    setLogoFile(null);
+    setCoverFile(null);
     setError(null);
   }
 
   function closeForm() {
     setEditing(null);
+    setLogoFile(null);
+    setCoverFile(null);
     setError(null);
+  }
+
+  async function uploadVenueImage(
+    supabase: ReturnType<typeof createClient>,
+    bucket: "avatars" | "business-photos",
+    file: File,
+    venueId: string
+  ): Promise<string | null> {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${businessId}/venues/${venueId}/${bucket === "avatars" ? "logo" : "cover"}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { upsert: true });
+    if (upErr) {
+      console.error(`Venue ${bucket} upload error:`, upErr);
+      return null;
+    }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return `${data.publicUrl}?t=${Date.now()}`;
   }
 
   async function save() {
@@ -126,11 +160,18 @@ export default function BusinessVenuesPage() {
     const supabase = createClient();
     setSaving(true);
     setError(null);
-    const slug = (editing.slug || "").trim() || slugify(editing.name);
-    const payload = {
+
+    // Slug resolution: trust user input first, then slugify the name,
+    // and finally fall back to a stable random suffix when the name
+    // slugifies to empty (e.g. emoji-only or pure non-ASCII names).
+    const slugCandidate =
+      (editing.slug || "").trim() ||
+      slugify(editing.name) ||
+      fallbackSlug();
+    const payload: Record<string, unknown> = {
       business_id: businessId,
       name: editing.name.trim(),
-      slug,
+      slug: slugCandidate,
       description: editing.description?.trim() || null,
       location: editing.location?.trim() || null,
       resort_id: editing.resort_id || null,
@@ -142,6 +183,7 @@ export default function BusinessVenuesPage() {
       website: editing.website?.trim() || null,
     };
 
+    let venueIdAfterSave: string | null = null;
     if (editing.id) {
       const { error: err } = await supabase
         .from("business_venues")
@@ -152,20 +194,45 @@ export default function BusinessVenuesPage() {
         setSaving(false);
         return;
       }
+      venueIdAfterSave = editing.id;
     } else {
       const isFirstVenue = venues.length === 0;
-      const { error: err } = await supabase
+      const { data: inserted, error: err } = await supabase
         .from("business_venues")
-        .insert({ ...payload, is_primary: isFirstVenue });
+        .insert({ ...payload, is_primary: isFirstVenue })
+        .select("id")
+        .single();
       if (err) {
         setError(err.message);
         setSaving(false);
         return;
       }
+      venueIdAfterSave = inserted?.id ?? null;
     }
+
+    // File uploads — done after the venue exists so the storage path
+    // can include the venue id. Update the row with the resulting
+    // public URLs.
+    if (venueIdAfterSave && (logoFile || coverFile)) {
+      const updates: Record<string, string> = {};
+      if (logoFile) {
+        const url = await uploadVenueImage(supabase, "avatars", logoFile, venueIdAfterSave);
+        if (url) updates.logo_url = url;
+      }
+      if (coverFile) {
+        const url = await uploadVenueImage(supabase, "business-photos", coverFile, venueIdAfterSave);
+        if (url) updates.cover_photo_url = url;
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("business_venues").update(updates).eq("id", venueIdAfterSave);
+      }
+    }
+
     await refresh();
     setSaving(false);
     setEditing(null);
+    setLogoFile(null);
+    setCoverFile(null);
   }
 
   async function refresh() {
@@ -201,17 +268,14 @@ export default function BusinessVenuesPage() {
   async function makePrimary(v: Venue) {
     if (!businessId || v.is_primary) return;
     const supabase = createClient();
-    // Unset existing primary first — partial unique index would
-    // otherwise reject the new primary while another one exists.
-    await supabase
-      .from("business_venues")
-      .update({ is_primary: false })
-      .eq("business_id", businessId)
-      .eq("is_primary", true);
-    const { error: err } = await supabase
-      .from("business_venues")
-      .update({ is_primary: true })
-      .eq("id", v.id);
+    // Atomic flip via the swap_primary_venue RPC — single statement
+    // so the partial unique index sees a consistent state at the end.
+    // Replaces the previous two-step UPDATE that left the business
+    // primary-less if the second write failed.
+    const { error: err } = await supabase.rpc("swap_primary_venue", {
+      p_business_id: businessId,
+      p_venue_id: v.id,
+    });
     if (err) {
       setError(err.message);
       return;
@@ -448,24 +512,70 @@ export default function BusinessVenuesPage() {
                 />
               </Field>
 
-              <Field label="Logo URL">
-                <input
-                  type="url"
-                  value={editing.logo_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, logo_url: e.target.value })}
-                  className="w-full rounded-lg border border-accent/40 px-3 py-2"
-                  placeholder="https://"
-                />
+              <Field label="Logo">
+                <div className="space-y-2">
+                  {editing.logo_url && !logoFile && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={editing.logo_url}
+                      alt="Current logo"
+                      className="h-16 w-16 rounded-lg border border-accent/30 object-cover"
+                    />
+                  )}
+                  {logoFile && (
+                    <p className="text-xs text-foreground/60">
+                      New file selected: <span className="font-mono">{logoFile.name}</span>
+                    </p>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+                    className="block w-full text-xs text-foreground/70 file:mr-3 file:rounded-md file:border-0 file:bg-secondary/10 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-secondary hover:file:bg-secondary/20"
+                  />
+                  {!logoFile && (
+                    <input
+                      type="url"
+                      value={editing.logo_url ?? ""}
+                      onChange={(e) => setEditing({ ...editing, logo_url: e.target.value })}
+                      className="w-full rounded-lg border border-accent/40 px-3 py-2 text-xs"
+                      placeholder="…or paste an existing URL"
+                    />
+                  )}
+                </div>
               </Field>
 
-              <Field label="Cover photo URL">
-                <input
-                  type="url"
-                  value={editing.cover_photo_url ?? ""}
-                  onChange={(e) => setEditing({ ...editing, cover_photo_url: e.target.value })}
-                  className="w-full rounded-lg border border-accent/40 px-3 py-2"
-                  placeholder="https://"
-                />
+              <Field label="Cover photo">
+                <div className="space-y-2">
+                  {editing.cover_photo_url && !coverFile && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={editing.cover_photo_url}
+                      alt="Current cover"
+                      className="h-20 w-full rounded-lg border border-accent/30 object-cover"
+                    />
+                  )}
+                  {coverFile && (
+                    <p className="text-xs text-foreground/60">
+                      New file selected: <span className="font-mono">{coverFile.name}</span>
+                    </p>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+                    className="block w-full text-xs text-foreground/70 file:mr-3 file:rounded-md file:border-0 file:bg-secondary/10 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-secondary hover:file:bg-secondary/20"
+                  />
+                  {!coverFile && (
+                    <input
+                      type="url"
+                      value={editing.cover_photo_url ?? ""}
+                      onChange={(e) => setEditing({ ...editing, cover_photo_url: e.target.value })}
+                      className="w-full rounded-lg border border-accent/40 px-3 py-2 text-xs"
+                      placeholder="…or paste an existing URL"
+                    />
+                  )}
+                </div>
               </Field>
             </div>
 
