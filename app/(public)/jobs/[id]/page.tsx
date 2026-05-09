@@ -353,7 +353,15 @@ export default async function JobDetailPage({ params }: JobPageProps) {
             source={source}
           />
         )}
-        <div className="grid gap-8 lg:grid-cols-3">
+        {/* grid-cols-1 is explicit on purpose — without it, the grid
+            falls back to grid-auto-columns: auto on mobile and any
+            unbreakable inline content (e.g. a long Facebook tracking
+            URL in 'How to Apply') stretches the column to fit it,
+            blowing the entire page out to several thousand pixels
+            wide. With grid-cols-1 each column is minmax(0, 1fr) and
+            the truncate / break-word styling on inner content kicks
+            in correctly. */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
 
           {/* ── Main Column ─────────────────────────────── */}
           <div className="lg:col-span-2 space-y-8">
@@ -509,8 +517,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                 )}
 
                 {(job.application_email || job.application_url) && (
-                  <div className={`grid gap-3 ${job.how_to_apply ? "mt-4" : "mt-4"} ${
-                    job.application_email && job.application_url ? "sm:grid-cols-2" : "grid-cols-1"
+                  <div className={`mt-4 grid grid-cols-1 gap-3 ${
+                    job.application_email && job.application_url ? "sm:grid-cols-2" : ""
                   }`}>
                     {job.application_email && (
                       <a
