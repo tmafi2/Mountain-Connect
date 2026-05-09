@@ -638,8 +638,11 @@ function BusinessSetup({
   const [resortQuery, setResortQuery] = useState("");
   const [allResorts, setAllResorts] = useState<{ id: string; name: string; country: string }[]>([]);
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
-  const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
-  const [selectedResortName, setSelectedResortName] = useState("");
+  // Multi-resort: the first entry is treated as the business's
+  // primary resort. Order matters — first added = primary.
+  const [selectedResorts, setSelectedResorts] = useState<
+    { id: string; name: string; country: string }[]
+  >([]);
 
   // Check if a string is a valid UUID
   const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
@@ -765,8 +768,15 @@ function BusinessSetup({
       .eq("user_id", user.id)
       .single();
 
-    // Only include resort_id if it's a valid UUID (DB column may be uuid type)
-    const safeResortId = selectedResortId && isUuid(selectedResortId) ? selectedResortId : null;
+    // First selected resort is the business's primary; the rest get
+    // tagged via the business_resorts join table and an auto-created
+    // venue per additional resort.
+    const validResorts = selectedResorts.filter((r) => isUuid(r.id));
+    const primaryResort = validResorts[0] ?? null;
+    const secondaryResorts = validResorts.slice(1);
+    const safeResortId = primaryResort?.id ?? null;
+
+    let businessProfileId: string | null = existingProfile?.id ?? null;
 
     if (existingProfile) {
       const { error: updateError } = await supabase
@@ -793,27 +803,75 @@ function BusinessSetup({
     } else {
       const bizTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
 
-      const { error: profileError } = await supabase.from("business_profiles").insert({
-        user_id: user.id,
-        business_name: businessName,
-        industries: industries,
-        website: website || null,
-        address: address || null,
-        location: location || null,
-        country: country || null,
-        resort_id: safeResortId,
-        logo_url: logoUrl,
-        email: user.email ?? null,
-        is_verified: false,
-        verification_status: "pending_review",
-        timezone: bizTimezone,
-      });
+      const { data: inserted, error: profileError } = await supabase
+        .from("business_profiles")
+        .insert({
+          user_id: user.id,
+          business_name: businessName,
+          industries: industries,
+          website: website || null,
+          address: address || null,
+          location: location || null,
+          country: country || null,
+          resort_id: safeResortId,
+          logo_url: logoUrl,
+          email: user.email ?? null,
+          is_verified: false,
+          verification_status: "pending_review",
+          timezone: bizTimezone,
+        })
+        .select("id")
+        .single();
 
       if (profileError) {
         console.error("Business profile insert error:", profileError);
         setOnboardingError(`Error saving profile: ${profileError.message}`);
         setLoading(false);
         return;
+      }
+      businessProfileId = inserted?.id ?? null;
+    }
+
+    // Multi-resort wire-up — runs whether the profile is fresh or
+    // updating, so businesses can add resorts later by re-running
+    // onboarding without orphaning the existing rows.
+    if (businessProfileId && validResorts.length > 0) {
+      // 1. business_resorts join — one row per selected resort.
+      // Idempotent: upsert by (business_id, resort_id) keeps re-runs
+      // from duplicating tags.
+      await supabase.from("business_resorts").upsert(
+        validResorts.map((r, idx) => ({
+          business_id: businessProfileId!,
+          resort_id: r.id,
+          is_primary: idx === 0,
+        })),
+        { onConflict: "business_id,resort_id" }
+      );
+
+      // 2. Auto-create a venue at each non-primary resort. The
+      // primary venue is handled by the AFTER-INSERT trigger from
+      // migration 00077.
+      for (const r of secondaryResorts) {
+        const baseSlug = `${businessName} ${r.name}`
+          .toLowerCase()
+          .replace(/[^a-z0-9 -]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
+        const slug = baseSlug || `venue-${Math.random().toString(36).slice(2, 10)}`;
+
+        // Upsert by (business_id, slug) so a duplicate run on
+        // existing data is a no-op rather than a UNIQUE error.
+        await supabase.from("business_venues").upsert(
+          {
+            business_id: businessProfileId,
+            name: `${businessName} — ${r.name}`,
+            slug,
+            resort_id: r.id,
+            is_primary: false,
+          },
+          { onConflict: "business_id,slug" }
+        );
       }
     }
 
@@ -1127,7 +1185,43 @@ function BusinessSetup({
               <label htmlFor="bizResort" className="block text-sm font-medium text-foreground/70">
                 Associated Resort
               </label>
-              <p className="mt-0.5 text-xs text-foreground/40">Link your business to a ski resort on our platform</p>
+              <p className="mt-0.5 text-xs text-foreground/40">
+                Link your business to one or more ski resorts. The first resort you pick is treated as your primary location.
+              </p>
+
+              {/* Selected resorts as removable chips. The first chip
+                  is marked as primary; the rest become additional
+                  venues at signup. */}
+              {selectedResorts.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedResorts.map((r, idx) => (
+                    <span
+                      key={r.id}
+                      className="inline-flex items-center gap-2 rounded-full bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary"
+                    >
+                      {idx === 0 && (
+                        <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                          Primary
+                        </span>
+                      )}
+                      {r.name}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedResorts((prev) => prev.filter((p) => p.id !== r.id))
+                        }
+                        className="rounded-full p-0.5 hover:bg-secondary/20"
+                        aria-label={`Remove ${r.name}`}
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="relative">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-0.5 pointer-events-none">
                   <svg className="h-4 w-4 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1137,82 +1231,68 @@ function BusinessSetup({
                 <input
                   id="bizResort"
                   type="text"
-                  value={resortSearchOpen ? resortQuery : selectedResortName || resortQuery}
+                  value={resortQuery}
                   onChange={(e) => {
                     setResortQuery(e.target.value);
                     if (!resortSearchOpen) setResortSearchOpen(true);
                   }}
-                  placeholder="Search resorts..."
+                  placeholder={
+                    selectedResorts.length === 0
+                      ? "Search resorts..."
+                      : "Add another resort..."
+                  }
                   className="mt-1.5 w-full rounded-xl border-2 border-accent bg-white pl-10 pr-4 py-3 text-sm text-primary placeholder-foreground/30 transition-all focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20"
                   onFocus={() => setResortSearchOpen(true)}
                   onBlur={() => setTimeout(() => setResortSearchOpen(false), 200)}
                 />
-                {selectedResortId && !resortSearchOpen && (
+                {selectedResorts.length > 0 && !resortSearchOpen && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    Linked
+                    {selectedResorts.length} {selectedResorts.length === 1 ? "linked" : "linked"}
                   </span>
-                )}
-                {!selectedResortId && !resortSearchOpen && (
-                  <svg className="absolute right-3.5 top-1/2 -translate-y-1/2 mt-0.5 h-4 w-4 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
                 )}
               </div>
               {resortSearchOpen && (
                 <div className="absolute z-20 mt-1 w-full rounded-xl border-2 border-accent bg-white shadow-xl max-h-56 overflow-y-auto">
-                  {/* Clear selection option */}
-                  {selectedResortId && (
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 border-b border-accent/50 px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 transition-colors"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setSelectedResortName("");
-                        setSelectedResortId(null);
-                        setResortQuery("");
-                        setResortSearchOpen(false);
-                      }}
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Clear selection
-                    </button>
-                  )}
                   {filteredResorts.length > 0 ? (
-                    filteredResorts.map((r) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-                          selectedResortId === r.id
-                            ? "bg-secondary/10 text-secondary"
-                            : "hover:bg-accent/20 text-foreground"
-                        }`}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setSelectedResortName(r.name);
-                          setSelectedResortId(r.id);
-                          setResortQuery("");
-                          setResortSearchOpen(false);
-                        }}
-                      >
-                        <svg className={`h-4 w-4 shrink-0 ${selectedResortId === r.id ? "text-secondary" : "text-foreground/30"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-primary">{r.name}</span>
-                        </div>
-                        <span className="shrink-0 text-xs text-foreground/40">{r.country}</span>
-                        {selectedResortId === r.id && (
-                          <svg className="h-4 w-4 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    filteredResorts.map((r) => {
+                      const alreadySelected = selectedResorts.some((s) => s.id === r.id);
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          disabled={alreadySelected}
+                          className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
+                            alreadySelected
+                              ? "cursor-not-allowed bg-accent/10 text-foreground/40"
+                              : "hover:bg-accent/20 text-foreground"
+                          }`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            if (alreadySelected) return;
+                            setSelectedResorts((prev) => [
+                              ...prev,
+                              { id: r.id, name: r.name, country: r.country },
+                            ]);
+                            setResortQuery("");
+                          }}
+                        >
+                          <svg className={`h-4 w-4 shrink-0 ${alreadySelected ? "text-foreground/30" : "text-foreground/40"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                        )}
-                      </button>
-                    ))
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium">{r.name}</span>
+                          </div>
+                          <span className="shrink-0 text-xs text-foreground/40">{r.country}</span>
+                          {alreadySelected && (
+                            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                              Added
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
                   ) : (
                     <div className="px-4 py-6 text-center text-sm text-foreground/40">
                       <svg className="mx-auto mb-2 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1318,10 +1398,10 @@ function BusinessSetup({
                   {address}
                 </p>
               )}
-              {selectedResortName && (
+              {selectedResorts.length > 0 && (
                 <p className="flex items-center gap-2 text-xs text-foreground/50">
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
-                  {selectedResortName}
+                  {selectedResorts.map((r) => r.name).join(", ")}
                 </p>
               )}
               {website && (
