@@ -829,7 +829,16 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
                     <button
                       key={job.id}
                       type="button"
-                      onClick={() => setSelectedJob(selectedJob?.id === job.id ? null : job)}
+                      onClick={() => {
+                        // Mobile: route to the proper /jobs/[id] page
+                        // (the side-panel UX is desktop-only). Tablet
+                        // and up keep the in-place panel.
+                        if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+                          router.push(`/jobs/${job.id}`);
+                          return;
+                        }
+                        setSelectedJob(selectedJob?.id === job.id ? null : job);
+                      }}
                       className={`w-full rounded-lg border bg-white px-4 py-3 text-left text-sm transition-all hover:shadow-sm ${
                         selectedJob?.id === job.id
                           ? "border-primary ring-1 ring-primary/20"
@@ -860,11 +869,20 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
                     isSelected={selectedJob?.id === job.id}
                     isSaved={savedJobIds.has(job.id)}
                     onToggleSave={() => toggleSaveJob(job.id)}
-                    onClick={() =>
+                    onClick={() => {
+                      // Mobile: route to the proper /jobs/[id] page
+                      // — the side-panel was getting cramped on
+                      // small screens. Tablet and up keep the
+                      // in-place panel for the multi-job browse
+                      // workflow.
+                      if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+                        router.push(`/jobs/${job.id}`);
+                        return;
+                      }
                       setSelectedJob(
                         selectedJob?.id === job.id ? null : job
-                      )
-                    }
+                      );
+                    }}
                   />
                 ))}
               </div>
