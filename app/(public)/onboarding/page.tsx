@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 
@@ -836,6 +837,10 @@ function BusinessSetup({
     // updating, so businesses can add resorts later by re-running
     // onboarding without orphaning the existing rows.
     if (businessProfileId && validResorts.length > 0) {
+      // Collect both upsert failures so a double-failure surfaces both
+      // recovery paths instead of clobbering the first message.
+      const wireupErrors: string[] = [];
+
       // 1. business_resorts join — one row per selected resort.
       // Idempotent: upsert by (business_id, resort_id) keeps re-runs
       // from duplicating tags.
@@ -850,8 +855,12 @@ function BusinessSetup({
 
       if (resortsError) {
         console.error("business_resorts upsert error:", resortsError);
-        setOnboardingError(
-          `We saved your business profile but couldn't link all your selected resorts (${resortsError.message}). You can add them later from Settings.`
+        Sentry.captureException(resortsError, {
+          tags: { feature: "onboarding", step: "business_resorts_upsert" },
+          extra: { businessProfileId, resortCount: validResorts.length },
+        });
+        wireupErrors.push(
+          `We couldn't link all your selected resorts (${resortsError.message}). Add them later from Settings.`
         );
         // Continue — the primary resort is already on the profile, so
         // the user has a usable account; secondary tags can be added
@@ -887,10 +896,20 @@ function BusinessSetup({
 
         if (venuesError) {
           console.error("business_venues upsert error:", venuesError);
-          setOnboardingError(
-            `We saved your business but couldn't auto-create venues for your additional resorts (${venuesError.message}). Visit Manage Venues to add them.`
+          Sentry.captureException(venuesError, {
+            tags: { feature: "onboarding", step: "business_venues_upsert" },
+            extra: { businessProfileId, venueCount: venueRows.length },
+          });
+          wireupErrors.push(
+            `We couldn't auto-create venues for your additional resorts (${venuesError.message}). Visit Manage Venues to add them.`
           );
         }
+      }
+
+      if (wireupErrors.length > 0) {
+        setOnboardingError(
+          `We saved your business profile, but a couple of things didn't go through: ${wireupErrors.join(" ")}`
+        );
       }
     }
 
