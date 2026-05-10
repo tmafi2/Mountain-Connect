@@ -839,7 +839,7 @@ function BusinessSetup({
       // 1. business_resorts join — one row per selected resort.
       // Idempotent: upsert by (business_id, resort_id) keeps re-runs
       // from duplicating tags.
-      await supabase.from("business_resorts").upsert(
+      const { error: resortsError } = await supabase.from("business_resorts").upsert(
         validResorts.map((r, idx) => ({
           business_id: businessProfileId!,
           resort_id: r.id,
@@ -848,30 +848,49 @@ function BusinessSetup({
         { onConflict: "business_id,resort_id" }
       );
 
-      // 2. Auto-create a venue at each non-primary resort. The
-      // primary venue is handled by the AFTER-INSERT trigger from
-      // migration 00077.
-      for (const r of secondaryResorts) {
-        const baseSlug = `${businessName} ${r.name}`
-          .toLowerCase()
-          .replace(/[^a-z0-9 -]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^-|-$/g, "");
-        const slug = baseSlug || `venue-${Math.random().toString(36).slice(2, 10)}`;
+      if (resortsError) {
+        console.error("business_resorts upsert error:", resortsError);
+        setOnboardingError(
+          `We saved your business profile but couldn't link all your selected resorts (${resortsError.message}). You can add them later from Settings.`
+        );
+        // Continue — the primary resort is already on the profile, so
+        // the user has a usable account; secondary tags can be added
+        // by re-running onboarding (it's idempotent).
+      }
 
-        // Upsert by (business_id, slug) so a duplicate run on
-        // existing data is a no-op rather than a UNIQUE error.
-        await supabase.from("business_venues").upsert(
-          {
+      // 2. Auto-create a venue at each non-primary resort in a single
+      // batched upsert. The primary venue is handled by the
+      // AFTER-INSERT trigger from migration 00077.
+      if (secondaryResorts.length > 0) {
+        const venueRows = secondaryResorts.map((r) => {
+          const baseSlug = `${businessName} ${r.name}`
+            .toLowerCase()
+            .replace(/[^a-z0-9 -]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
+          const slug = baseSlug || `venue-${Math.random().toString(36).slice(2, 10)}`;
+          return {
             business_id: businessProfileId,
             name: `${businessName} — ${r.name}`,
             slug,
             resort_id: r.id,
             is_primary: false,
-          },
-          { onConflict: "business_id,slug" }
-        );
+          };
+        });
+
+        // Upsert by (business_id, slug) so a duplicate run on
+        // existing data is a no-op rather than a UNIQUE error.
+        const { error: venuesError } = await supabase
+          .from("business_venues")
+          .upsert(venueRows, { onConflict: "business_id,slug" });
+
+        if (venuesError) {
+          console.error("business_venues upsert error:", venuesError);
+          setOnboardingError(
+            `We saved your business but couldn't auto-create venues for your additional resorts (${venuesError.message}). Visit Manage Venues to add them.`
+          );
+        }
       }
     }
 
