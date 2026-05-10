@@ -640,3 +640,67 @@ export async function sendAreaJobsUpdateEmailBatch(params: {
   });
   return sendEmailBatch(entries);
 }
+
+// Bulk variant of the winter-outreach sequence. Uses Resend's batch
+// API so a 100-lead send fires as a single API call instead of 100
+// parallel sends — the previous Promise.all pattern was hitting
+// Resend's per-second rate limit (only the first few got through
+// before the rest 429'd). Each recipient gets the same template
+// but personalised businessName + unsubscribeUrl + locationName.
+type WinterTemplate =
+  | "winter-outreach"
+  | "winter-followup-1"
+  | "winter-followup-2"
+  | "winter-followup-3"
+  | "winter-followup-final";
+
+const WINTER_TEMPLATE_RENDERERS: Record<
+  WinterTemplate,
+  (params: {
+    businessName: string;
+    ctaUrl: string;
+    unsubscribeUrl: string;
+    locationName?: string;
+    contactPersonName?: string;
+  }) => { subject: string; html: string }
+> = {
+  "winter-outreach": winterOutreachEmail,
+  "winter-followup-1": winterFollowup1Email,
+  "winter-followup-2": winterFollowup2Email,
+  "winter-followup-3": winterFollowup3Email,
+  "winter-followup-final": winterFollowupFinalEmail,
+};
+
+export async function sendWinterSequenceBatch(params: {
+  template: WinterTemplate;
+  recipients: Array<{
+    to: string;
+    businessName: string;
+    ctaUrl: string;
+    unsubscribeUrl: string;
+    locationName?: string;
+    contactPersonName?: string;
+  }>;
+}): Promise<{ id: string }[]> {
+  const renderer = WINTER_TEMPLATE_RENDERERS[params.template];
+  if (!renderer) {
+    throw new Error(`Unknown winter template: ${params.template}`);
+  }
+  const entries = params.recipients.map((r) => {
+    const { subject, html } = renderer({
+      businessName: r.businessName,
+      ctaUrl: r.ctaUrl,
+      unsubscribeUrl: r.unsubscribeUrl,
+      locationName: r.locationName,
+      contactPersonName: r.contactPersonName,
+    });
+    return {
+      from: TYLER_FROM_EMAIL,
+      to: r.to,
+      replyTo: TYLER_REPLY_TO,
+      subject,
+      html,
+    };
+  });
+  return sendEmailBatch(entries);
+}

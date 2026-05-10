@@ -1317,27 +1317,56 @@ function BulkSendModal({
     };
   }, [onClose]);
 
-  async function send() {
+  async function postSend(ids: string[], label: string) {
     if (!picked) return;
-    if (!confirm(`Send "${picked}" to ${leadIds.length} ${leadIds.length === 1 ? "lead" : "leads"}?`)) return;
+    if (!confirm(`Send "${picked}" to ${ids.length} ${ids.length === 1 ? "lead" : "leads"} ${label}?`)) return;
     setSending(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/outreach/leads/bulk-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds, template: picked }),
+        body: JSON.stringify({ leadIds: ids, template: picked }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Bulk send failed");
-      setOutcomes(data.outcomes);
-      setSummary(data.summary);
+      // Merge retry outcomes back over the previous outcome row so
+      // the UI updates which retries succeeded without losing the
+      // original "skipped" rows.
+      if (outcomes) {
+        const merged = new Map(outcomes.map((o) => [o.leadId, o]));
+        for (const o of (data.outcomes ?? []) as BulkOutcome[]) merged.set(o.leadId, o);
+        const next = Array.from(merged.values());
+        setOutcomes(next);
+        setSummary({
+          total: next.length,
+          sent: next.filter((o) => o.status === "sent").length,
+          skipped: next.filter((o) => o.status === "skipped").length,
+          failed: next.filter((o) => o.status === "failed").length,
+        });
+      } else {
+        setOutcomes(data.outcomes);
+        setSummary(data.summary);
+      }
       // Auto-close + refresh after a beat so the admin sees the success summary first.
       if (data.summary.sent > 0) setTimeout(onSent, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Bulk send failed");
     }
     setSending(false);
+  }
+
+  async function send() {
+    await postSend(leadIds, "");
+  }
+
+  const failedLeadIds = (outcomes ?? [])
+    .filter((o) => o.status === "failed")
+    .map((o) => o.leadId);
+
+  async function retryFailed() {
+    if (failedLeadIds.length === 0) return;
+    await postSend(failedLeadIds, "(failed only)");
   }
 
   return (
@@ -1445,6 +1474,16 @@ function BulkSendModal({
               className="rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white hover:bg-secondary-light disabled:opacity-50"
             >
               {sending ? "Sending…" : `Send to ${leadIds.length}`}
+            </button>
+          )}
+          {outcomes && failedLeadIds.length > 0 && (
+            <button
+              type="button"
+              onClick={retryFailed}
+              disabled={sending}
+              className="rounded-lg bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+            >
+              {sending ? "Retrying…" : `Retry ${failedLeadIds.length} failed`}
             </button>
           )}
         </div>
