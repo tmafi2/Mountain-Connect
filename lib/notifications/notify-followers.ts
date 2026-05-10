@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
-import { sendBusinessNewJobEmail } from "@/lib/email/send";
+import { sendBusinessNewJobEmailBatch } from "@/lib/email/send";
+
+const RESEND_BATCH_SIZE = 100;
 
 /**
  * Notify all followers of a business when a new job is posted.
@@ -46,42 +48,81 @@ export async function notifyFollowersNewJob(params: {
     ? `${params.venueName} (${params.businessName})`
     : params.businessName;
 
-  // Create notifications and send emails for each follower
-  const promises = followers.map(async (follower) => {
-    const worker = follower.worker as unknown as {
-      id: string;
-      user_id: string;
-      first_name: string | null;
-      last_name: string | null;
-    };
+  // Flatten the follower→worker rows into a clean list, dropping
+  // any without a worker_profile attached.
+  type Worker = {
+    id: string;
+    user_id: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+  const workers: Worker[] = [];
+  for (const f of followers) {
+    const w = f.worker as unknown as Worker | null;
+    if (w?.user_id) workers.push(w);
+  }
+  if (workers.length === 0) return;
 
-    if (!worker) return;
+  // Fire all in-app notifications in parallel — these don't hit a
+  // rate-limited external service.
+  await Promise.allSettled(
+    workers.map((w) =>
+      createNotification({
+        userId: w.user_id,
+        type: "business_new_job",
+        title: `New job at ${businessLabel}`,
+        message: `${businessLabel} just posted "${params.jobTitle}". Be one of the first to apply!`,
+        link: params.jobUrl,
+      })
+    )
+  );
 
-    // In-app notification
-    await createNotification({
-      userId: worker.user_id,
-      type: "business_new_job",
-      title: `New job at ${businessLabel}`,
-      message: `${businessLabel} just posted "${params.jobTitle}". Be one of the first to apply!`,
-      link: params.jobUrl,
-    });
+  // Bulk-resolve every follower's email via the public users table
+  // in one query. The previous code called admin.auth.admin
+  // .getUserById per follower — N round-trips to Supabase auth.
+  const { data: userRows } = await admin
+    .from("users")
+    .select("id, email")
+    .in(
+      "id",
+      workers.map((w) => w.user_id)
+    );
+  const emailByUserId = new Map<string, string>();
+  for (const row of userRows ?? []) {
+    if (row?.email) emailByUserId.set(row.id, row.email);
+  }
 
-    // Get user email for email notification
-    const { data: userData } = await admin.auth.admin.getUserById(worker.user_id);
-    if (userData?.user?.email) {
-      await sendBusinessNewJobEmail({
-        to: userData.user.email,
-        workerName: worker.first_name || "there",
+  const recipients = workers
+    .map((w) => {
+      const email = emailByUserId.get(w.user_id);
+      if (!email) return null;
+      return { to: email, workerName: w.first_name || "there" };
+    })
+    .filter((r): r is { to: string; workerName: string } => r !== null);
+
+  if (recipients.length === 0) return;
+
+  // Send in 100-recipient batches via Resend's batch API so a
+  // business with hundreds of followers doesn't blow through the
+  // per-second rate limit. Each batch is a single API call.
+  for (let i = 0; i < recipients.length; i += RESEND_BATCH_SIZE) {
+    const chunk = recipients.slice(i, i + RESEND_BATCH_SIZE);
+    try {
+      await sendBusinessNewJobEmailBatch({
+        recipients: chunk,
         businessName: businessLabel,
         jobTitle: params.jobTitle,
         jobUrl: params.jobUrl,
         location: params.location,
         pay: params.pay,
       });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(
+        `notifyFollowersNewJob: batch ${i}-${i + chunk.length} failed: ${msg}`
+      );
     }
-  });
-
-  await Promise.allSettled(promises);
+  }
 }
 
 /**

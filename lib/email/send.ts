@@ -641,6 +641,40 @@ export async function sendAreaJobsUpdateEmailBatch(params: {
   return sendEmailBatch(entries);
 }
 
+// Batch variant of business-new-job. Used by notify-followers when
+// a job goes up — fans the same template out to every follower via
+// Resend's batch API, with each recipient getting their own first
+// name. One API call per 100 recipients (caller chunks).
+export async function sendBusinessNewJobEmailBatch(params: {
+  recipients: Array<{
+    to: string;
+    workerName: string;
+  }>;
+  businessName: string;
+  jobTitle: string;
+  jobUrl: string;
+  location: string;
+  pay: string;
+}): Promise<{ id: string }[]> {
+  const entries = params.recipients.map((r) => {
+    const { subject, html } = businessNewJobEmail({
+      workerName: r.workerName,
+      businessName: params.businessName,
+      jobTitle: params.jobTitle,
+      jobUrl: params.jobUrl,
+      location: params.location,
+      pay: params.pay,
+    });
+    return {
+      from: FROM_EMAIL,
+      to: r.to,
+      subject,
+      html,
+    };
+  });
+  return sendEmailBatch(entries);
+}
+
 // Bulk variant of the winter-outreach sequence. Uses Resend's batch
 // API so a 100-lead send fires as a single API call instead of 100
 // parallel sends — the previous Promise.all pattern was hitting
