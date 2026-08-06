@@ -316,7 +316,8 @@ export default function CompanyProfilePage() {
 
   // Launch location check
   const selectedTownSlug = nearbyTowns.find((t) => t.id === form.nearby_town_id)?.slug ?? null;
-  const inLaunchLocation = isInLaunchLocation(selectedResortLegacyId, selectedTownSlug);
+  const selectedResortCountry = allResorts.find((r) => r.id === form.resort_id)?.country ?? null;
+  const inLaunchLocation = isInLaunchLocation(selectedResortLegacyId, selectedTownSlug, selectedResortCountry);
 
   const updateField = (field: keyof ProfileFormData, value: string | string[] | null) => {
     setForm((prev) => ({ ...prev, [field]: value }));

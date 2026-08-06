@@ -6154,7 +6154,7 @@ export const resorts: Resort[] = [
     is_verified: true,
   }),
   createResort({
-    id: "93", name: "Okunakayama Kogen", region_id: "3", country: "Japan",
+    id: "93", name: "Okunakayama Kogen", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Mid-sized Iwate resort with reliable Tohoku-region powder. Quieter than the Hokkaido and Nagano resorts; popular with Japanese domestic skiers.",
@@ -6162,7 +6162,7 @@ export const resorts: Resort[] = [
     base_elevation_m: 700, summit_elevation_m: 1080, snow_reliability: "high",
   }),
   createResort({
-    id: "94", name: "Madarao Kogen", region_id: "3", country: "Japan",
+    id: "94", name: "Madarao Kogen", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Nagano", nearest_town: "Iiyama",
     description: "Connected to Tangram resort to form Madarao Tangram. Famous for its ungroomed tree-skiing zones — a powder hound favourite within easy reach of Hakuba (about 90 minutes away).",
@@ -6171,7 +6171,7 @@ export const resorts: Resort[] = [
     website: "https://www.madarao.jp",
   }),
   createResort({
-    id: "95", name: "Appi Kogen", region_id: "3", country: "Japan",
+    id: "95", name: "Appi Kogen", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "One of Tohoku's biggest resorts with 21 long, well-groomed runs and reliable snow from December through April. Has long been a favourite for Japanese family skiing.",
@@ -6180,7 +6180,7 @@ export const resorts: Resort[] = [
     website: "https://www.appi.co.jp",
   }),
   createResort({
-    id: "96", name: "Shizukuishi", region_id: "3", country: "Japan",
+    id: "96", name: "Shizukuishi", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Morioka",
     description: "Resort on Mount Iwate, about 30 minutes from Morioka. Hosted the 1993 Alpine World Ski Championships. Long groomers and a panoramic top section.",
@@ -6189,7 +6189,7 @@ export const resorts: Resort[] = [
     website: "https://www.shizukuishi-ski.co.jp",
   }),
   createResort({
-    id: "97", name: "Karuizawa", region_id: "3", country: "Japan",
+    id: "97", name: "Karuizawa", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Nagano", nearest_town: "Karuizawa",
     description: "Closest resort to Tokyo (about 75 min by Shinkansen), known for early-season snowmaking and an upmarket alpine town with shopping and onsens. Smaller terrain footprint but very accessible.",
@@ -6198,7 +6198,7 @@ export const resorts: Resort[] = [
     website: "https://www.princehotels.com/ski/karuizawa",
   }),
   createResort({
-    id: "98", name: "Hakkaisan", region_id: "3", country: "Japan",
+    id: "98", name: "Hakkaisan", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Niigata", nearest_town: "Minamiuonuma",
     description: "Steep terrain on Mount Hakkai in the Niigata snowbelt. Famous for its 5-km Yuzawa-side run and reliable deep powder; about 90 min from Tokyo by Shinkansen.",
@@ -6207,7 +6207,7 @@ export const resorts: Resort[] = [
     website: "https://www.hakkaisan.co.jp/ski",
   }),
   createResort({
-    id: "99", name: "Manza Onsen", region_id: "3", country: "Japan",
+    id: "99", name: "Manza Onsen", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Gunma", nearest_town: "Tsumagoi",
     description: "High-altitude resort (1800 m base) on Mount Shirane with one of the highest onsen in Japan. Reliable cold dry powder; small but uncrowded terrain.",
@@ -6216,7 +6216,7 @@ export const resorts: Resort[] = [
     website: "https://www.princehotels.com/ski/manza",
   }),
   createResort({
-    id: "100", name: "Hachimantai", region_id: "3", country: "Japan",
+    id: "100", name: "Hachimantai", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Iwate", nearest_town: "Hachimantai",
     description: "A lightly-trafficked Tohoku resort surrounded by hot springs and old-growth beech forests. Great for tree skiing; access from Morioka.",
@@ -6224,7 +6224,7 @@ export const resorts: Resort[] = [
     base_elevation_m: 500, summit_elevation_m: 1300, snow_reliability: "high",
   }),
   createResort({
-    id: "101", name: "Hakkoda", region_id: "3", country: "Japan",
+    id: "101", name: "Hakkoda", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Aomori", nearest_town: "Aomori",
     description: "Legendary off-piste destination in northern Honshu, famed for its juhyo (snow monsters) and waist-deep powder. Single ropeway accessing huge ungroomed terrain — for committed skiers only.",
@@ -6233,7 +6233,7 @@ export const resorts: Resort[] = [
     website: "https://hakkoda-ropeway.jp",
   }),
   createResort({
-    id: "102", name: "Tazawako", region_id: "3", country: "Japan",
+    id: "102", name: "Tazawako", region_id: "3", country: "Japan", is_verified: true,
     banner_image_url: "/resorts/countries/japan.jpg",
     state_province: "Akita", nearest_town: "Senboku",
     description: "Akita resort overlooking Lake Tazawa, Japan's deepest lake. A mid-sized terrain footprint with reliable Tohoku snow and a low-key local feel.",

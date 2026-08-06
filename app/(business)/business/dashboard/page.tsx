@@ -66,7 +66,7 @@ export default async function BusinessDashboard() {
     recentJobsResult,
   ] = await Promise.all([
     profile.resort_id
-      ? supabase.from("resorts").select("legacy_id").eq("id", profile.resort_id).single()
+      ? supabase.from("resorts").select("legacy_id, country").eq("id", profile.resort_id).single()
       : Promise.resolve({ data: null }),
     profile.nearby_town_id
       ? supabase.from("nearby_towns").select("slug").eq("id", profile.nearby_town_id).single()
@@ -98,8 +98,9 @@ export default async function BusinessDashboard() {
   ]);
 
   const resortLegacyId = resortResult.data?.legacy_id ?? null;
+  const resortCountry = resortResult.data?.country ?? null;
   const townSlug = townResult.data?.slug ?? null;
-  const inLaunchLocation = isInLaunchLocation(resortLegacyId, townSlug);
+  const inLaunchLocation = isInLaunchLocation(resortLegacyId, townSlug, resortCountry);
 
   const listingCount = String(activeCountResult.count ?? 0);
   const allJobIds = allJobIdsResult.data;
