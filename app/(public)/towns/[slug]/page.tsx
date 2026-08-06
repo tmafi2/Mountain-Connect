@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ResortMap from "@/components/ui/ResortMap";
+import { ResortBanner } from "@/components/ResortBanner";
 import TownBusinesses from "./TownBusinesses";
 import type { Metadata } from "next";
 
@@ -127,6 +127,13 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
     const r = l.resorts as unknown as { id: string; name: string; legacy_id: string; country: string };
     return { id: r.id, name: r.name, legacyId: r.legacy_id, country: r.country, distance_km: l.distance_km };
   });
+
+  // Town hero uses the same country-gradient banner as its linked resort's
+  // page. Resorts use "USA" while towns use "United States", so prefer the
+  // resort's own country string and only fall back to a normalised town one.
+  const bannerCountry =
+    linkedResorts[0]?.country ??
+    (town.country === "United States" ? "USA" : town.country);
 
   // Resort IDs for queries
   const resortIds = linkedResorts.map((r) => r.id);
@@ -343,29 +350,9 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
             </div>
           )}
 
-          {/* Hero Banner Image */}
+          {/* Hero Banner — same country-gradient banner as the linked resort's page */}
           <div className="mt-6 relative h-72 overflow-hidden rounded-xl">
-            {town.hero_image_url ? (
-              <>
-                <Image
-                  src={town.hero_image_url}
-                  alt={town.name}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent" />
-              </>
-            ) : (
-              <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/20 border border-accent/30 rounded-xl">
-                <div className="flex flex-col items-center gap-2 text-foreground/30">
-                  <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v14.25a1.5 1.5 0 001.5 1.5zm14.25-14.25h.008v.008h-.008V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
-                  <span className="text-sm">Town photo coming soon</span>
-                </div>
-              </div>
-            )}
+            <ResortBanner country={bannerCountry} className="h-full w-full" />
           </div>
         </div>
       </div>
