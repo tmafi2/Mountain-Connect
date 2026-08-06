@@ -80,6 +80,25 @@ const CURRENCIES = [
   { code: "ARS", label: "ARS $", flag: "🇦🇷" },
 ];
 
+// Default pay currency for a resort's country. Keys match the resort `country`
+// strings in the resorts data ("USA", not "United States"). Used to pre-fill the
+// currency when a resort is picked, unless the business has chosen one manually.
+const COUNTRY_CURRENCY: Record<string, string> = {
+  Australia: "AUD",
+  "New Zealand": "NZD",
+  Canada: "CAD",
+  USA: "USD",
+  Japan: "JPY",
+  Austria: "EUR",
+  France: "EUR",
+  Italy: "EUR",
+  Andorra: "EUR",
+  Switzerland: "CHF",
+  Sweden: "SEK",
+  Chile: "CLP",
+  Argentina: "ARS",
+};
+
 /* ─── Toggle Component ───────────────────────────────────── */
 
 function Toggle({
@@ -143,6 +162,9 @@ export default function PostJobPage() {
   const [selectedResortName, setSelectedResortName] = useState("");
   const [showResortDropdown, setShowResortDropdown] = useState(false);
   const resortRef = useRef<HTMLDivElement>(null);
+  // Once the business picks a currency (or loads one from a template/draft),
+  // stop auto-defaulting it from the selected resort's country.
+  const [currencyTouched, setCurrencyTouched] = useState(false);
 
   // Nearby town state
   const [nearbyTowns, setNearbyTowns] = useState<{ id: string; name: string; slug: string; country: string; state_region: string | null }[]>([]);
@@ -245,15 +267,17 @@ export default function PostJobPage() {
         if (bpFull) {
           let legacyId: string | null = null;
           let townSlug: string | null = null;
+          let resortCountry: string | null = null;
           if (bpFull.resort_id) {
-            const { data: resort } = await supabase.from("resorts").select("legacy_id").eq("id", bpFull.resort_id).single();
+            const { data: resort } = await supabase.from("resorts").select("legacy_id, country").eq("id", bpFull.resort_id).single();
             legacyId = resort?.legacy_id ?? null;
+            resortCountry = resort?.country ?? null;
           }
           if (bpFull.nearby_town_id) {
             const { data: town } = await supabase.from("nearby_towns").select("slug").eq("id", bpFull.nearby_town_id).single();
             townSlug = town?.slug ?? null;
           }
-          setInLaunchLoc(isInLaunchLocation(legacyId, townSlug));
+          setInLaunchLoc(isInLaunchLocation(legacyId, townSlug, resortCountry));
         }
 
         // Load existing drafts
@@ -437,6 +461,10 @@ export default function PostJobPage() {
 
     const posType = (tpl.position_type as string) || "";
     const empType = posType === "full_time" ? "Full-time" : posType === "part_time" ? "Part-time" : posType === "casual" ? "Casual" : "";
+
+    // A template's currency is an explicit choice — don't let a later resort
+    // pick override it.
+    if (tpl.pay_currency) setCurrencyTouched(true);
 
     setForm((prev) => ({
       ...prev,
@@ -788,7 +816,13 @@ export default function PostJobPage() {
                               setSelectedResortId(r.id);
                               setSelectedResortName(r.name);
                               setResortSearch("");
-                              setForm((prev) => ({ ...prev, resortName: r.name, location: `${r.name}, ${r.country}` }));
+                              const defaultCurrency = COUNTRY_CURRENCY[r.country];
+                              setForm((prev) => ({
+                                ...prev,
+                                resortName: r.name,
+                                location: `${r.name}, ${r.country}`,
+                                payCurrency: !currencyTouched && defaultCurrency ? defaultCurrency : prev.payCurrency,
+                              }));
                               setShowResortDropdown(false);
                             }}
                             className="w-full px-4 py-2.5 text-left text-sm hover:bg-accent/20 transition-colors flex items-center justify-between"
@@ -875,7 +909,10 @@ export default function PostJobPage() {
             <div className="mt-1 flex gap-2">
               <select
                 value={form.payCurrency}
-                onChange={(e) => updateField("payCurrency", e.target.value)}
+                onChange={(e) => {
+                  setCurrencyTouched(true);
+                  updateField("payCurrency", e.target.value);
+                }}
                 className="w-36 rounded-xl border border-accent/40 bg-white px-3 py-2.5 text-sm text-primary shadow-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               >
                 {CURRENCIES.map((c) => (
