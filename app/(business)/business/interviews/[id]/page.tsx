@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import EligibilityBadge from "@/components/ui/EligibilityBadge";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -24,6 +25,7 @@ interface Interview {
   completed_at: string | null;
   cancelled_at: string | null;
   job_title: string;
+  job_country: string | null;
   worker_name: string;
   worker_location: string;
   worker_skills: string[];
@@ -83,7 +85,7 @@ export default function BusinessInterviewDetailPage() {
             invited_at, scheduled_at, completed_at, cancelled_at,
             applications(
               cover_letter,
-              job_posts(title),
+              job_posts(title, resorts(country)),
               worker_profiles(*)
             )
           `)
@@ -113,6 +115,7 @@ export default function BusinessInterviewDetailPage() {
           completed_at: iv.completed_at,
           cancelled_at: iv.cancelled_at,
           job_title: jp?.title || "Unknown Position",
+          job_country: ((jp as { resorts?: { country?: string } | null } | null)?.resorts?.country as string) || null,
           worker_name: workerName,
           worker_location: wp?.location_current || "",
           worker_skills: wp?.skills || [],
@@ -620,6 +623,7 @@ export default function BusinessInterviewDetailPage() {
         <aside className="hidden xl:block xl:sticky xl:top-6 xl:self-start xl:max-h-[calc(100vh-3rem)]">
           <CandidateSidebar
             profile={interview.worker_profile}
+            jobCountry={interview.job_country}
             workerName={interview.worker_name}
             workerProfileId={interview.worker_profile_id}
             avatarUrl={interview.worker_avatar_url}
@@ -652,6 +656,7 @@ function formatShortDate(iso: string | null) {
 
 function CandidateSidebar({
   profile,
+  jobCountry,
   workerName,
   workerProfileId,
   avatarUrl,
@@ -659,6 +664,7 @@ function CandidateSidebar({
   coverLetter,
 }: {
   profile: WorkerProfile | null;
+  jobCountry: string | null;
   workerName: string;
   workerProfileId: string | null;
   avatarUrl: string | null;
@@ -767,10 +773,14 @@ function CandidateSidebar({
             {profile.country_of_residence && (
               <ProfileField label="Country of residence">{profile.country_of_residence}</ProfileField>
             )}
-            {profile.visa_status && (
-              <ProfileField label="Visa status">
-                {formatLabel(profile.visa_status)}
-                {profile.visa_expiry_date && ` (exp. ${formatShortDate(profile.visa_expiry_date)})`}
+            {(profile.work_authorizations?.length || profile.visa_status) && (
+              <ProfileField label="Work eligibility">
+                <EligibilityBadge
+                  variant="block"
+                  country={jobCountry}
+                  workAuthorizations={profile.work_authorizations}
+                  legacy={{ visa_status: profile.visa_status, visa_expiry_date: profile.visa_expiry_date, work_eligible_countries: profile.work_eligible_countries }}
+                />
               </ProfileField>
             )}
             {profile.drivers_license !== null && profile.drivers_license !== undefined && (

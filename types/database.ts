@@ -1,4 +1,5 @@
 import type { BusinessTier } from "@/lib/tier";
+import type { VisaStatus, WorkAuthorization } from "@/lib/work-eligibility";
 
 export type BlogPostStatus = "draft" | "published" | "scheduled";
 
@@ -20,7 +21,8 @@ export interface BlogPost {
 
 export type UserRole = "worker" | "business_owner" | "admin";
 export type ApplicationStatus = "new" | "viewed" | "interview_pending" | "interview" | "offered" | "accepted" | "rejected" | "withdrawn";
-export type VisaStatus = "citizen" | "permanent_resident" | "working_holiday" | "work_visa" | "student_visa" | "no_visa" | "other";
+// VisaStatus / WorkAuthorization are defined once in lib/work-eligibility.ts and re-exported here.
+export type { VisaStatus, WorkAuthorization };
 export type SeasonPreference = "northern_winter" | "southern_winter" | "both" | "year_round";
 export type HousingPreference = "staff_housing" | "private_rental" | "shared_rental" | "van_vehicle" | "no_preference";
 export type PositionType = "full_time" | "part_time" | "casual";
@@ -59,6 +61,8 @@ export interface WorkerProfile {
   visa_status: VisaStatus | null;
   visa_expiry_date: string | null;
   work_eligible_countries: string[] | null;
+  /** Per-country eligibility (source of truth since migration 00052). */
+  work_authorizations: WorkAuthorization[] | null;
   languages: LanguageProficiency[] | null;
   drivers_license: boolean | null;
   drivers_license_country: string | null;

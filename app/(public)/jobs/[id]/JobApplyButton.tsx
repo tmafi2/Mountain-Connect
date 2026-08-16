@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { resolveEligibilityFor, type WorkAuthorization } from "@/lib/work-eligibility";
 import { createClient } from "@/lib/supabase/client";
 
 interface JobApplyButtonProps {
   jobId: string;
+  /** Resort country of the job — used to check the worker's eligibility there. */
+  jobCountry?: string | null;
+  /** Whether the employer offers visa sponsorship for this role. */
+  visaSponsorship?: boolean;
   /** True when the business hasn't claimed the listing yet. Switches the
    *  button from the normal auth-required apply flow to an anonymous
    *  "express interest" flow. */
@@ -15,6 +20,8 @@ interface JobApplyButtonProps {
 
 export default function JobApplyButton({
   jobId,
+  jobCountry = null,
+  visaSponsorship = false,
   isUnclaimed = false,
   jobTitle,
   businessName,
@@ -24,7 +31,7 @@ export default function JobApplyButton({
       <ExpressInterestButton jobId={jobId} jobTitle={jobTitle} businessName={businessName} />
     );
   }
-  return <RegularApplyButton jobId={jobId} />;
+  return <RegularApplyButton jobId={jobId} jobCountry={jobCountry} visaSponsorship={visaSponsorship} />;
 }
 
 /* ───────────────────────────────────────────────────────────── */
@@ -163,12 +170,37 @@ function ExpressInterestButton({
 /*  Regular Apply (auth-required, for claimed listings)          */
 /* ───────────────────────────────────────────────────────────── */
 
-function RegularApplyButton({ jobId }: { jobId: string }) {
+function RegularApplyButton({ jobId, jobCountry, visaSponsorship }: { jobId: string; jobCountry: string | null; visaSponsorship: boolean }) {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [error, setError] = useState("");
+  // Soft eligibility nudge, computed when the form opens (never blocks applying).
+  const [eligNudge, setEligNudge] = useState<null | { kind: "missing" | "sponsorship" | "expired"; country: string }>(null);
+
+  const checkEligibility = async () => {
+    if (!jobCountry) return;
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: wp } = await supabase
+        .from("worker_profiles")
+        .select("work_authorizations, visa_status, visa_expiry_date, work_eligible_countries")
+        .eq("user_id", user.id)
+        .single();
+      if (!wp) return;
+      const r = resolveEligibilityFor(
+        { work_authorizations: wp.work_authorizations as WorkAuthorization[] | null, visa_status: wp.visa_status, visa_expiry_date: wp.visa_expiry_date, work_eligible_countries: wp.work_eligible_countries },
+        jobCountry
+      );
+      if (r.kind === "unknown") setEligNudge({ kind: "missing", country: r.country });
+      else if (r.kind === "needs_sponsorship" && !visaSponsorship) setEligNudge({ kind: "sponsorship", country: r.country });
+      else if (r.kind === "expired") setEligNudge({ kind: "expired", country: r.country });
+      else setEligNudge(null);
+    } catch { /* nudge is best-effort */ }
+  };
 
   const handleApply = async () => {
     setApplying(true);
@@ -239,6 +271,27 @@ function RegularApplyButton({ jobId }: { jobId: string }) {
   if (showForm) {
     return (
       <div className="space-y-3">
+        {eligNudge && (
+          <div className={`rounded-xl border px-3 py-2.5 text-xs ${eligNudge.kind === "missing" ? "border-secondary/30 bg-secondary/5 text-primary" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+            {eligNudge.kind === "missing" && (
+              <>
+                This job is in <strong>{eligNudge.country}</strong>, but your profile doesn&apos;t list your work eligibility there yet. Employers look for this first —{" "}
+                <a href="/profile/edit?step=eligibility" className="font-semibold underline">add it to your profile</a> (you can still apply now).
+              </>
+            )}
+            {eligNudge.kind === "sponsorship" && (
+              <>
+                Your profile says you&apos;d need visa sponsorship to work in <strong>{eligNudge.country}</strong>, and this listing doesn&apos;t mention sponsorship. You can still apply — just be upfront in your cover letter.
+              </>
+            )}
+            {eligNudge.kind === "expired" && (
+              <>
+                Heads up: the visa on your profile for <strong>{eligNudge.country}</strong> shows as expired.{" "}
+                <a href="/profile/edit?step=eligibility" className="font-semibold underline">Update it</a> if that&apos;s changed.
+              </>
+            )}
+          </div>
+        )}
         <textarea
           value={coverLetter}
           onChange={(e) => setCoverLetter(e.target.value)}
@@ -283,7 +336,7 @@ function RegularApplyButton({ jobId }: { jobId: string }) {
       )}
       <button
         type="button"
-        onClick={() => setShowForm(true)}
+        onClick={() => { setShowForm(true); void checkEligibility(); }}
         className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20"
       >
         Apply Now

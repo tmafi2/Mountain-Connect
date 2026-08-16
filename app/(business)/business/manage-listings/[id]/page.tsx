@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import EligibilityBadge from "@/components/ui/EligibilityBadge";
+import type { WorkAuthorization } from "@/lib/work-eligibility";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -84,6 +86,8 @@ interface Applicant {
   availability: string;
   languages: string[];
   resumeUrl: string | null;
+  workAuthorizations?: WorkAuthorization[] | null;
+  legacyVisa?: { visa_status?: string | null; work_eligible_countries?: string[] | null };
 }
 
 type ActiveTab = null | "applicants" | "interviews" | "filled";
@@ -304,6 +308,7 @@ export default function ListingDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const [listing, setListing] = useState(() => demoListings[id] || null);
+  const [jobCountry, setJobCountry] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -364,6 +369,7 @@ export default function ListingDetailPage() {
 
         if (jobData) {
           const resort = jobData.resorts as { name: string; country: string } | null;
+          setJobCountry(resort?.country ?? null);
           setListing({
             id: jobData.id,
             title: jobData.title,
@@ -411,7 +417,7 @@ export default function ListingDetailPage() {
         // Fetch applicants for this listing
         const { data: appData } = await supabase
           .from("applications")
-          .select("*, worker_profiles(id, first_name, last_name, phone, avatar_url, profile_photo_url, nationality, location_current, skills, years_seasonal_experience, languages, references, cv_url)")
+          .select("*, worker_profiles(id, first_name, last_name, phone, avatar_url, profile_photo_url, nationality, location_current, skills, years_seasonal_experience, languages, references, cv_url, work_authorizations, visa_status, work_eligible_countries)")
           .eq("job_post_id", id);
 
         if (appData && appData.length > 0) {
@@ -439,6 +445,8 @@ export default function ListingDetailPage() {
               location: (wp?.location_current as string) || "",
               avatar: (wp?.avatar_url as string) || (wp?.profile_photo_url as string) || null,
               nationality: (wp?.nationality as string) || null,
+              workAuthorizations: (wp?.work_authorizations as WorkAuthorization[]) || null,
+              legacyVisa: { visa_status: (wp?.visa_status as string) || null, work_eligible_countries: (wp?.work_eligible_countries as string[]) || null },
               skills: (wp?.skills as string[]) || [],
               experience: (wp?.years_seasonal_experience as number) || 0,
               status: statusMap[a.status as string] || "pending",
@@ -1138,6 +1146,17 @@ export default function ListingDetailPage() {
 
                           {/* Details grid */}
                           <div className="grid grid-cols-2 gap-3">
+                            <div className="col-span-2">
+                              <h4 className="font-medium text-primary">Work eligibility</h4>
+                              <div className="mt-1">
+                                <EligibilityBadge
+                                  variant="block"
+                                  country={jobCountry}
+                                  workAuthorizations={applicant.workAuthorizations}
+                                  legacy={applicant.legacyVisa}
+                                />
+                              </div>
+                            </div>
                             <div>
                               <h4 className="font-medium text-primary">Languages</h4>
                               <p className="mt-0.5 text-foreground/70">{applicant.languages.join(", ")}</p>

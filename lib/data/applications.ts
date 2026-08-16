@@ -25,6 +25,10 @@ export interface SeedApplicant {
   education: string | null;
   visa_status: string | null;
   work_eligible_countries: string[] | null;
+  /** Per-country eligibility (source of truth). */
+  work_authorizations?: import("@/lib/work-eligibility").WorkAuthorization[] | null;
+  /** Country of the job's resort — what eligibility is resolved against. */
+  job_country?: string | null;
   date_of_birth: string | null;
   nationality: string | null;
   worker_resume_url: string | null;

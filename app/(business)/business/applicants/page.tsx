@@ -28,7 +28,7 @@ export default async function ApplicantsPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("applications")
-      .select("*, job_posts(id, title, resort_id, resorts(name)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, work_eligible_countries, date_of_birth, nationality, languages, references, cv_url, contact_email, users(email))")
+      .select("*, job_posts(id, title, resort_id, resorts(name, country)), worker_profiles(id, user_id, first_name, last_name, phone, profile_photo_url, avatar_url, location_current, skills, years_seasonal_experience, bio, certifications, work_history, visa_status, work_eligible_countries, work_authorizations, date_of_birth, nationality, languages, references, cv_url, contact_email, users(email))")
       .eq("job_posts.business_id", business.id),
   ]);
 
@@ -75,6 +75,8 @@ export default async function ApplicantsPage() {
         education: null,
         visa_status: (wp?.visa_status as string) || null,
         work_eligible_countries: (wp?.work_eligible_countries as string[]) || null,
+        work_authorizations: (wp?.work_authorizations as import("@/lib/work-eligibility").WorkAuthorization[]) || null,
+        job_country: ((a.job_posts as { resorts?: { country?: string } | null } | null)?.resorts?.country as string) || null,
         date_of_birth: (wp?.date_of_birth as string) || null,
         nationality: (wp?.nationality as string) || null,
         worker_resume_url: (a.resume_url as string) || (wp?.cv_url as string) || null,
