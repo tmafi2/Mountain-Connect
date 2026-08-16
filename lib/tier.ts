@@ -2,11 +2,61 @@ import { LAUNCH_GRACE_PERIOD } from "@/lib/config/launch";
 
 export type BusinessTier = "free" | "standard" | "premium" | "enterprise";
 
+/* ─── Pricing ─────────────────────────────────────────────────
+ *
+ * Two price points per paid plan: `full` is the real long-term rate card,
+ * `founding` is what businesses actually pay while founding-member pricing
+ * is open. Founding members keep their rate for as long as they stay
+ * continuously subscribed; if they lapse and return they pay `full`.
+ *
+ * Both are offered monthly or as a season pass. The season pass carries the
+ * bigger discount on purpose — it's the plan we want businesses on, since a
+ * seasonal employer on a monthly plan churns the moment hiring stops.
+ *
+ * Amounts are in whole dollars (display currency; Stripe prices are set
+ * separately per currency). Enterprise is negotiated, no list price.
+ */
+export type BillingInterval = "month" | "season";
+export type PaidTier = "standard" | "premium";
+
+/** Founding-member pricing closes at the end of the first northern season. */
+export const FOUNDING_PRICING_ENDS = new Date("2027-04-30T23:59:59Z");
+
+export function isFoundingPricingOpen(now: Date = new Date()): boolean {
+  return now < FOUNDING_PRICING_ENDS;
+}
+
+export const PRICING: Record<
+  PaidTier,
+  Record<"founding" | "full", Record<BillingInterval, number>>
+> = {
+  standard: {
+    founding: { month: 39, season: 149 },
+    full: { month: 49, season: 219 },
+  },
+  premium: {
+    founding: { month: 79, season: 299 },
+    full: { month: 99, season: 449 },
+  },
+};
+
+/** Percentage saved on the season pass vs paying monthly for a ~6-month season. */
+export function seasonSavingsPct(tier: PaidTier, rate: "founding" | "full" = "founding"): number {
+  const p = PRICING[tier][rate];
+  return Math.round((1 - p.season / (p.month * 6)) * 100);
+}
+
+/** Percentage off the full price that founding members get. */
+export function foundingDiscountPct(tier: PaidTier, interval: BillingInterval): number {
+  const { founding, full } = PRICING[tier];
+  return Math.round((1 - founding[interval] / full[interval]) * 100);
+}
+
 export const TIER_FEATURES = {
   free: {
     name: "Free",
-    maxActiveJobs: 2,
-    yearlyJobLimit: 2,
+    maxActiveJobs: 1,
+    yearlyJobLimit: 1,
     featuredPlacement: false,
     canFeatureJobs: false,
     maxFeaturedJobs: 0,
@@ -36,8 +86,8 @@ export const TIER_FEATURES = {
     fullProfileEditing: true,
     interviewScheduling: true,
     messaging: true,
-    price: "$29",
-    priceNote: "per month",
+    price: "$39",
+    priceNote: "per month · founding rate",
   },
   premium: {
     name: "Premium",
@@ -54,8 +104,8 @@ export const TIER_FEATURES = {
     fullProfileEditing: true,
     interviewScheduling: true,
     messaging: true,
-    price: "$49",
-    priceNote: "per month",
+    price: "$79",
+    priceNote: "per month · founding rate",
   },
   enterprise: {
     name: "Enterprise",
