@@ -12,8 +12,12 @@
 export interface EmployerMarket {
   slug: string;
   country: string;
-  /** Short display name for headlines ("the US" reads better than "USA"). */
+  /** Standalone name for headings, cards, breadcrumbs: "USA". */
   displayName: string;
+  /** How it reads inside a sentence ("jobs in the USA" vs "jobs in Canada").
+   *  Same as displayName for most countries; only differs where English
+   *  wants an article. */
+  inSentence: string;
   /** Adjective for "X employers" / "X ski resorts". */
   adjective: string;
   hemisphere: "Northern" | "Southern";
@@ -34,6 +38,7 @@ export const EMPLOYER_MARKETS: EmployerMarket[] = [
     slug: "canada",
     country: "Canada",
     displayName: "Canada",
+    inSentence: "Canada",
     adjective: "Canadian",
     hemisphere: "Northern",
     season: "November – April",
@@ -47,6 +52,7 @@ export const EMPLOYER_MARKETS: EmployerMarket[] = [
     slug: "japan",
     country: "Japan",
     displayName: "Japan",
+    inSentence: "Japan",
     adjective: "Japanese",
     hemisphere: "Northern",
     season: "December – March",
@@ -59,7 +65,8 @@ export const EMPLOYER_MARKETS: EmployerMarket[] = [
   {
     slug: "usa",
     country: "USA",
-    displayName: "the USA",
+    displayName: "USA",
+    inSentence: "the USA",
     adjective: "American",
     hemisphere: "Northern",
     season: "December – April",
@@ -73,6 +80,7 @@ export const EMPLOYER_MARKETS: EmployerMarket[] = [
     slug: "australia",
     country: "Australia",
     displayName: "Australia",
+    inSentence: "Australia",
     adjective: "Australian",
     hemisphere: "Southern",
     season: "June – October",

@@ -35,7 +35,7 @@ export default function ForEmployersHub() {
     "@type": "WebPage",
     name: "Hire Seasonal Ski Resort Staff",
     url: `${BASE_URL}/for-employers`,
-    hasPart: EMPLOYER_MARKETS.map((m) => ({ "@type": "WebPage", name: `Hire Seasonal Staff in ${m.displayName}`, url: `${BASE_URL}/for-employers/${m.slug}` })),
+    hasPart: EMPLOYER_MARKETS.map((m) => ({ "@type": "WebPage", name: `Hire Seasonal Staff in ${m.inSentence}`, url: `${BASE_URL}/for-employers/${m.slug}` })),
   };
 
   return (
