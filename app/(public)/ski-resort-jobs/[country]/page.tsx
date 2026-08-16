@@ -163,9 +163,12 @@ export async function generateMetadata({ params }: CountryPageProps): Promise<Me
   const cfg = COUNTRIES.find((c) => c.slug === country);
   if (!cfg) return { title: "Ski Resort Jobs" };
 
+  // Google shows ~60 chars of title and ~155 of description. The root layout
+  // appends " | Mountain Connects" (~20 chars), so keep the title itself short
+  // and put the season detail in the description instead.
   return {
-    title: `Ski Resort Jobs in ${cfg.country} — ${cfg.season} ${cfg.hemisphere} Season`,
-    description: `Find ski resort jobs in ${cfg.country} hiring for the ${cfg.season} winter season. Browse open instructor, lift operator, hospitality, and chalet roles at ${cfg.country}'s top ski resorts on Mountain Connects.`,
+    title: `Ski Resort Jobs in ${cfg.country}`,
+    description: `Ski resort jobs in ${cfg.country} for the ${cfg.season} season — instructor, lift op, hospitality and chalet roles at top resorts. Apply free.`,
     alternates: { canonical: `${BASE_URL}/ski-resort-jobs/${cfg.slug}` },
     openGraph: {
       title: `Ski Resort Jobs in ${cfg.country}`,

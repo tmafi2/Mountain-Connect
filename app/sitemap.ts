@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resorts } from "@/lib/data/resorts";
+import { EMPLOYER_MARKETS } from "@/lib/data/employer-markets";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -56,6 +57,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.95,
+    },
+    {
+      url: `${BASE_URL}/for-employers`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     {
       url: `${BASE_URL}/resorts`,
@@ -176,6 +183,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
+  // Employer landing pages — one per live market (business-facing mirror of
+  // the ski-resort-jobs country pages).
+  const employerPages: MetadataRoute.Sitemap = EMPLOYER_MARKETS.map((m) => ({
+    url: `${BASE_URL}/for-employers/${m.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+  }));
+
   // Region pages
   const regionPages: MetadataRoute.Sitemap = regionIds.map((id) => ({
     url: `${BASE_URL}/regions/${id}`,
@@ -220,6 +236,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...resortPages,
     ...skiJobCountryPages,
+    ...employerPages,
     ...regionPages,
     ...townPages,
     ...jobPages,

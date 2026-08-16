@@ -18,6 +18,7 @@ const footerLinks = {
     { href: "/about#contact", label: "Contact" },
   ],
   "For Businesses": [
+    { href: "/for-employers", label: "Hire Seasonal Staff" },
     { href: "/signup?role=business", label: "Post a Job" },
     { href: "/employers", label: "Why Mountain Connects" },
   ],
