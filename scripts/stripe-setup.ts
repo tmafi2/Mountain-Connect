@@ -23,6 +23,10 @@ import { PRICING, foundingDiscountPct, TIER_FEATURES } from "../lib/tier";
 
 const CURRENCY = "usd";
 const SEASON_MONTHS = 6;
+// Stripe product tax code: "Software as a service (SaaS) - business use".
+// Required by Managed Payments (Stripe as merchant of record); it's how
+// Stripe knows how to tax the subscription in each customer's country.
+const SAAS_B2B_TAX_CODE = "txcd_10103001";
 
 async function main() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -38,10 +42,13 @@ async function main() {
 
   for (const tier of ["standard", "premium"] as const) {
     const name = `Mountain Connects ${TIER_FEATURES[tier].name}`;
-    // Product: find by metadata.tier or create
-    const existing = await stripe.products.search({ query: `metadata['mc_tier']:'${tier}'`, limit: 1 });
-    const product =
-      existing.data[0] ??
+    // Product: find by metadata.mc_tier or create. Uses list() rather than
+    // search() — search is eventually consistent (lags ~seconds behind
+    // creation) which caused duplicate products on a quick re-run.
+    const all = await stripe.products.list({ active: true, limit: 100 });
+    const existing = all.data.find((p) => p.metadata?.mc_tier === tier);
+    let product =
+      existing ??
       (await stripe.products.create({
         name,
         description:
@@ -49,7 +56,14 @@ async function main() {
             ? "5 active job listings, Verified badge, basic analytics, interview scheduling."
             : "Unlimited job listings, featured placement, full analytics, applicant insights, priority support.",
         metadata: { mc_tier: tier },
+        tax_code: SAAS_B2B_TAX_CODE,
       }));
+    // Managed Payments (Stripe as merchant of record, on by default) requires a
+    // product tax code. Backfill it on products created before this was set.
+    if (product.tax_code !== SAAS_B2B_TAX_CODE) {
+      product = await stripe.products.update(product.id, { tax_code: SAAS_B2B_TAX_CODE });
+      console.log(`  ↳ set tax_code ${SAAS_B2B_TAX_CODE}`);
+    }
     console.log(`✓ product ${product.id}  ${name}`);
 
     for (const interval of ["month", "season"] as const) {
@@ -87,7 +101,8 @@ async function main() {
     } catch {
       coupon = await stripe.coupons.create({
         id,
-        name: `Founding member — ${interval === "month" ? "monthly" : "season pass"} (${pct}% off, locked in)`,
+        // Stripe caps coupon names at 40 chars.
+        name: `Founding member ${interval === "month" ? "monthly" : "season"} · ${pct}% off`,
         percent_off: pct,
         duration: "forever",
         metadata: { mc_founding: "true", mc_interval: interval },
