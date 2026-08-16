@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { EMPLOYER_MARKETS } from "@/lib/data/employer-markets";
-import { PRICING, isFoundingPricingOpen } from "@/lib/tier";
+import { PRICING, isFoundingPricingOpen, SEASON_PASS_TERM } from "@/lib/tier";
 import { flagForCountry } from "@/lib/resort-banner";
+import LocationRequestForm from "@/components/ui/LocationRequestForm";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -57,7 +58,7 @@ export default function ForEmployersHub() {
               Post your first job free →
             </Link>
             <span className="text-sm text-white/70">
-              Then from ${founding ? std.founding.month : std.full.month}/mo or ${founding ? std.founding.season : std.full.season}/season · 30-day free trial
+              Then from ${founding ? std.founding.month : std.full.month}/mo or ${founding ? std.founding.season : std.full.season} per {SEASON_PASS_TERM} season pass · 30-day free trial
             </span>
           </div>
         </div>
@@ -89,13 +90,10 @@ export default function ForEmployersHub() {
           ))}
         </div>
 
-        <p className="mt-10 text-center text-sm text-foreground/50">
-          Somewhere else? We&apos;re opening new regions regularly —{" "}
-          <a href="mailto:hello@mountainconnects.com?subject=Opening%20a%20new%20region" className="text-secondary underline">
-            tell us where you are
-          </a>
-          .
-        </p>
+        <div className="mx-auto mt-10 max-w-xl">
+          <p className="mb-3 text-center text-sm text-foreground/50">Somewhere else? We open new regions based on where businesses ask.</p>
+          <LocationRequestForm variant="card" initialKind="either" initialRequester="business" />
+        </div>
       </div>
     </main>
   );

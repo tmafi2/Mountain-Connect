@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import LocationRequestForm from "@/components/ui/LocationRequestForm";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -100,6 +101,7 @@ export default function EditJobPage() {
   const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
   const [selectedResortName, setSelectedResortName] = useState("");
   const [showResortDropdown, setShowResortDropdown] = useState(false);
+  const [showLocationRequest, setShowLocationRequest] = useState(false);
   const resortRef = useRef<HTMLDivElement>(null);
 
   // Nearby town state
@@ -408,7 +410,10 @@ export default function EditJobPage() {
                   {showResortDropdown && (
                     <div className="absolute z-20 mt-1 w-full rounded-xl border border-accent/40 bg-white shadow-lg max-h-56 overflow-y-auto">
                       {filteredResorts.length === 0 ? (
-                        <p className="px-4 py-3 text-sm text-foreground/40">No resorts found</p>
+                        <div className="px-4 py-3 text-sm">
+                          <p className="text-foreground/40">No resorts found</p>
+                          <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setShowLocationRequest(true); setShowResortDropdown(false); }} className="mt-1 font-semibold text-secondary hover:underline">Missing your resort? Let us know →</button>
+                        </div>
                       ) : filteredResorts.map((r) => (
                         <button key={r.id} type="button" onClick={() => { setSelectedResortId(r.id); setSelectedResortName(r.name); setResortSearch(""); setForm((prev) => ({ ...prev, resortName: r.name, location: `${r.name}, ${r.country}` })); setShowResortDropdown(false); }} className="w-full px-4 py-2.5 text-left text-sm hover:bg-accent/20 transition-colors flex items-center justify-between">
                           <span className="font-medium text-primary">{r.name}</span>
@@ -420,6 +425,11 @@ export default function EditJobPage() {
                 </>
               )}
             </div>
+            {showLocationRequest && (
+              <div className="mb-4">
+                <LocationRequestForm variant="compact" initialName={resortSearch} initialKind="resort" initialRequester="business" />
+              </div>
+            )}
             {/* Town Location (optional) */}
             {selectedResortId && nearbyTowns.length > 0 && (
               <div>

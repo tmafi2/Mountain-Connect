@@ -107,7 +107,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">9. Fees</h2>
           <p className="mt-2">
-            Mountain Connects is free for workers. For businesses, a free plan is available that includes one job listing; additional listings and features require a paid subscription (billed monthly or per season, in USD). Paid plans may include a free trial period, during which a valid payment method is required and no charge is made until the trial ends. You may cancel at any time via your billing settings; cancellation takes effect at the end of the current billing period and no partial refunds are given except where required by law. Prices are shown before checkout and we will give reasonable advance notice of any change to the price of an existing subscription. Founding-member rates remain in effect for as long as the subscription is continuously maintained.
+            Mountain Connects is free for workers. For businesses, a free plan is available that includes one job listing; additional listings and features require a paid subscription (billed monthly or as a 6-month season pass, in USD). Paid plans may include a free trial period, during which a valid payment method is required and no charge is made until the trial ends. You may cancel at any time via your billing settings; cancellation takes effect at the end of the current billing period and no partial refunds are given except where required by law. Prices are shown before checkout and we will give reasonable advance notice of any change to the price of an existing subscription. Founding-member rates remain in effect for as long as the subscription is continuously maintained.
           </p>
         </section>
 

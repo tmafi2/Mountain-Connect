@@ -1,4 +1,4 @@
-import { PRICING, FOUNDING_PRICING_ENDS } from "@/lib/tier";
+import { PRICING, FOUNDING_PRICING_ENDS, SEASON_PASS_TERM } from "@/lib/tier";
 
 interface PaidPlansAnnouncementEmailProps {
   businessName: string;
@@ -96,18 +96,18 @@ export function paidPlansAnnouncementEmail({
                   <td style="padding:16px 20px;border-top:1px solid #fde68a;vertical-align:top;width:50%;">
                     <p style="margin:0 0 4px;color:#0a1e33;font-size:15px;font-weight:700;">Standard</p>
                     <p style="margin:0 0 6px;color:#8899a6;font-size:12px;">Pubs, cafés, lodges · up to 5 active jobs</p>
-                    <p style="margin:0;color:#0a1e33;font-size:14px;"><span style="color:#8899a6;text-decoration:line-through;">$${std.full.season}</span> <strong style="font-size:18px;">$${std.founding.season}</strong> <span style="color:#4e5d6c;">/ season</span></p>
+                    <p style="margin:0;color:#0a1e33;font-size:14px;"><span style="color:#8899a6;text-decoration:line-through;">$${std.full.season}</span> <strong style="font-size:18px;">$${std.founding.season}</strong> <span style="color:#4e5d6c;">/ season pass</span></p>
                     <p style="margin:2px 0 0;color:#4e5d6c;font-size:12px;">or <span style="text-decoration:line-through;color:#8899a6;">$${std.full.month}</span> $${std.founding.month} / month</p>
                   </td>
                   <td style="padding:16px 20px;border-top:1px solid #fde68a;border-left:1px solid #fde68a;vertical-align:top;width:50%;">
                     <p style="margin:0 0 4px;color:#0a1e33;font-size:15px;font-weight:700;">Premium</p>
                     <p style="margin:0 0 6px;color:#8899a6;font-size:12px;">Hotels &amp; operators · unlimited jobs, featured placement</p>
-                    <p style="margin:0;color:#0a1e33;font-size:14px;"><span style="color:#8899a6;text-decoration:line-through;">$${prm.full.season}</span> <strong style="font-size:18px;">$${prm.founding.season}</strong> <span style="color:#4e5d6c;">/ season</span></p>
+                    <p style="margin:0;color:#0a1e33;font-size:14px;"><span style="color:#8899a6;text-decoration:line-through;">$${prm.full.season}</span> <strong style="font-size:18px;">$${prm.founding.season}</strong> <span style="color:#4e5d6c;">/ season pass</span></p>
                     <p style="margin:2px 0 0;color:#4e5d6c;font-size:12px;">or <span style="text-decoration:line-through;color:#8899a6;">$${prm.full.month}</span> $${prm.founding.month} / month</p>
                   </td>
                 </tr>
                 <tr><td colspan="3" style="padding:12px 20px;background-color:#fffbeb;border-top:1px solid #fde68a;">
-                    <p style="margin:0;color:#4e5d6c;font-size:12px;line-height:1.5;">Prices in USD. Every plan starts with a <strong>30-day free trial</strong> — cancel anytime before it ends and you pay nothing. Season pass covers a whole hiring season.</p>
+                    <p style="margin:0;color:#4e5d6c;font-size:12px;line-height:1.5;">Prices in USD. Every plan starts with a <strong>30-day free trial</strong> — cancel anytime before it ends and you pay nothing. A season pass covers ${SEASON_PASS_TERM} from the day you subscribe.</p>
                 </td></tr>
               </table>
 

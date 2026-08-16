@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 import { validatePassword } from "@/lib/utils/password";
 import PasswordStrength from "@/components/ui/PasswordStrength";
+import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 type AccountType = "worker" | "business";
@@ -45,6 +46,7 @@ function SignupContent() {
   const [selectedResortId, setSelectedResortId] = useState<string>("");
   const [resortSearch, setResortSearch] = useState("");
   const [showResortDropdown, setShowResortDropdown] = useState(false);
+  const [showLocationRequest, setShowLocationRequest] = useState(false);
 
   // Admin-imported listing claim modal
   interface PendingImport {
@@ -472,13 +474,33 @@ function SignupContent() {
                               </button>
                             ))}
                           {allResorts.filter((r) => !resortSearch.trim() || r.name.toLowerCase().includes(resortSearch.toLowerCase())).length === 0 && (
-                            <p className="px-4 py-3 text-sm text-foreground/40">No resorts found</p>
+                            <div className="px-4 py-3 text-sm">
+                              <p className="text-foreground/40">No resorts found</p>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => { setShowLocationRequest(true); setShowResortDropdown(false); }}
+                                className="mt-1 font-semibold text-secondary hover:underline"
+                              >
+                                Missing your resort? Let us know →
+                              </button>
+                            </div>
                           )}
                         </div>
                       )}
                     </>
                   )}
                 </div>
+                {showLocationRequest && (
+                  <div className="mt-3">
+                    <LocationRequestForm
+                      variant="compact"
+                      initialName={resortSearch}
+                      initialKind="resort"
+                      initialRequester="business"
+                    />
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-foreground/40">
                   Mountain Connects is currently live in {LAUNCH_LOCATION_NAMES}. Businesses in other locations can still sign up and prepare their profiles — we&apos;ll be launching in more areas soon!
                 </p>

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
 import { resorts as staticResorts } from "@/lib/data/resorts";
 import { EMPLOYER_MARKETS, getEmployerMarket } from "@/lib/data/employer-markets";
-import { PRICING, TIER_FEATURES, isFoundingPricingOpen } from "@/lib/tier";
+import { PRICING, TIER_FEATURES, isFoundingPricingOpen, SEASON_PASS_TERM, SEASON_PASS_EXPLAINER } from "@/lib/tier";
 import { flagForCountry } from "@/lib/resort-banner";
 
 const BASE_URL = "https://www.mountainconnects.com";
@@ -100,8 +100,8 @@ export default async function EmployerCountryPage({ params }: Props) {
       provider: { "@type": "Organization", name: "Mountain Connects", url: BASE_URL },
       offers: [
         { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD", description: "1 live job post, applicant tracking, messaging" },
-        { "@type": "Offer", name: "Standard", price: String(founding ? std.founding.season : std.full.season), priceCurrency: "USD", description: "Up to 5 active listings, per season" },
-        { "@type": "Offer", name: "Premium", price: String(founding ? prm.founding.season : prm.full.season), priceCurrency: "USD", description: "Unlimited listings + featured placement, per season" },
+        { "@type": "Offer", name: "Standard", price: String(founding ? std.founding.season : std.full.season), priceCurrency: "USD", description: `Up to 5 active listings, per ${SEASON_PASS_TERM} season pass` },
+        { "@type": "Offer", name: "Premium", price: String(founding ? prm.founding.season : prm.full.season), priceCurrency: "USD", description: `Unlimited listings + featured placement, per ${SEASON_PASS_TERM} season pass` },
       ],
     },
   };
@@ -201,7 +201,7 @@ export default async function EmployerCountryPage({ params }: Props) {
         {/* ── Pricing ── */}
         <section>
           <h2 className="text-2xl font-bold text-primary">Simple, honest pricing</h2>
-          <p className="mt-2 text-foreground/70">Priced in USD. Post one job free forever; choose a plan only when you need more.</p>
+          <p className="mt-2 text-foreground/70">Priced in USD. Post one job free forever; choose a plan only when you need more. {SEASON_PASS_EXPLAINER}</p>
           {founding && (
             <p className="mt-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
               🏔️ Founding-member pricing — locked in for as long as you stay subscribed
@@ -221,7 +221,7 @@ export default async function EmployerCountryPage({ params }: Props) {
               <div className="mt-2 flex items-baseline gap-2">
                 {founding && <span className="text-base text-foreground/35 line-through">${std.full.season}</span>}
                 <span className="text-3xl font-extrabold text-primary">${founding ? std.founding.season : std.full.season}</span>
-                <span className="text-sm text-foreground/50">/ season</span>
+                <span className="text-sm text-foreground/50">/ season pass</span>
               </div>
               <p className="mt-1 text-xs text-foreground/50">or ${founding ? std.founding.month : std.full.month}/month · 30-day free trial</p>
               <ul className="mt-4 space-y-1.5 text-sm text-foreground/70">
@@ -233,7 +233,7 @@ export default async function EmployerCountryPage({ params }: Props) {
               <div className="mt-2 flex items-baseline gap-2">
                 {founding && <span className="text-base text-foreground/35 line-through">${prm.full.season}</span>}
                 <span className="text-3xl font-extrabold text-primary">${founding ? prm.founding.season : prm.full.season}</span>
-                <span className="text-sm text-foreground/50">/ season</span>
+                <span className="text-sm text-foreground/50">/ season pass</span>
               </div>
               <p className="mt-1 text-xs text-foreground/50">or ${founding ? prm.founding.month : prm.full.month}/month · 30-day free trial</p>
               <ul className="mt-4 space-y-1.5 text-sm text-foreground/70">
