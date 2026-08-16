@@ -104,6 +104,37 @@ export default function UpgradePage() {
     );
   }
 
+  // Pre-launch holding view. While the global launch grace period is on,
+  // every business has full Premium access for free and billing isn't
+  // switched on, so showing prices + trial buttons here would be
+  // contradictory. Once LAUNCH_GRACE_PERIOD is flipped off this branch is
+  // skipped and the full pricing page below renders — no other change
+  // needed at go-live.
+  if (gracePeriod) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-highlight/10">
+          <span className="text-2xl">🎉</span>
+        </div>
+        <h1 className="mt-5 text-3xl font-bold text-primary">Everything&apos;s free during launch</h1>
+        <p className="mt-3 text-foreground/60">
+          You&apos;re enjoying all Premium features at no cost while we launch — unlimited job listings, featured
+          placement, analytics and priority support.
+        </p>
+        <p className="mt-3 text-sm text-foreground/50">
+          Paid plans are coming soon. We&apos;ll email you well before anything changes, and early businesses will
+          be offered founding-member pricing that&apos;s locked in for good.
+        </p>
+        <a
+          href="/business/dashboard"
+          className="mt-8 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+        >
+          Back to dashboard
+        </a>
+      </div>
+    );
+  }
+
   const state: BillingState = billing ?? { tier: "free" };
   const effectiveTier = resolveEffectiveTier(state);
   const inCourtesy = isInCourtesyWindow(state);
