@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { validatePassword } from "@/lib/utils/password";
 import type {
@@ -475,8 +475,27 @@ function SectionCard({
 /* ═══════════════════════════════════════════════════════════ */
 /*  PAGE COMPONENT                                            */
 /* ═══════════════════════════════════════════════════════════ */
+// useSearchParams() must sit under a Suspense boundary in Next 15 or the
+// production build fails ("missing-suspense-with-csr-bailout"). Same pattern
+// as the signup page.
 export default function ProfileEditPage() {
-  const [currentStep, setCurrentStep] = useState(0);
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-secondary border-t-transparent" /></div>}>
+      <ProfileEditContent />
+    </Suspense>
+  );
+}
+
+function ProfileEditContent() {
+  // Deep-link to a step: /profile/edit?step=eligibility (used by the apply-time
+  // eligibility nudge). Matches by lower-cased step name.
+  const searchParams = useSearchParams();
+  const initialStep = (() => {
+    const q = searchParams?.get("step")?.toLowerCase();
+    const i = q ? STEPS.findIndex((st) => st.toLowerCase().replace(/\s+/g, "-") === q || st.toLowerCase().startsWith(q)) : -1;
+    return i >= 0 ? i : 0;
+  })();
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [form, setForm] = useState<FormState>(INITIAL);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

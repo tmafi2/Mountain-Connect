@@ -617,6 +617,8 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               <div className="p-6 pt-5">
                 <JobApplyButton
                   jobId={job.id}
+                  jobCountry={(job.resorts as { country?: string } | null)?.country ?? null}
+                  visaSponsorship={!!job.visa_sponsorship}
                   isUnclaimed={isUnclaimed}
                   jobTitle={job.title}
                   businessName={biz?.business_name || "this business"}
