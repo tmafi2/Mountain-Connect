@@ -62,12 +62,17 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
 
   const resortNames = (links || []).map((l) => (l.resorts as unknown as { name: string })?.name).filter(Boolean);
 
-  // Build title
-  let title: string;
-  if (resortNames.length > 0 && resortNames.length <= 3) {
-    title = `${town.name} Seasonal Worker Guide — Near ${resortNames.join(" & ")}`;
-  } else {
-    title = `${town.name} Seasonal Worker Guide — Housing, Jobs & Living`;
+  // Build title. Root layout appends " | Mountain Connects" (~20 chars) and
+  // Google displays ~60, so keep this ≤ ~40. Skip the "Near X" suffix when the
+  // resort shares the town's name (e.g. "Fernie — Near Fernie" reads badly).
+  const distinctResorts = resortNames.filter((r) => r.toLowerCase() !== town.name.toLowerCase());
+  const base = `${town.name} Seasonal Worker Guide`;
+  let title = base;
+  // Only append "— Near <resort>" for a single resort AND when the whole title
+  // (with the ~20-char brand suffix the layout adds) stays within ~60 chars.
+  if (distinctResorts.length === 1) {
+    const withResort = `${town.name} Worker Guide — Near ${distinctResorts[0]}`;
+    if (withResort.length + 20 <= 60) title = withResort;
   }
 
   // Build description (under 160 chars)
