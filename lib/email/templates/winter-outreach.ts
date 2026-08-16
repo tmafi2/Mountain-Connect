@@ -1,3 +1,5 @@
+import type { Hemisphere } from "@/lib/outreach/hemisphere";
+
 interface WinterOutreachEmailProps {
   businessName: string;
   /** Landing URL — usually /signup or a featured-business contact page. */
@@ -10,6 +12,9 @@ interface WinterOutreachEmailProps {
    *  set, the lead-in becomes "workers ready to start at <location>"
    *  instead of the generic copy. */
   locationName?: string;
+  /** Season framing. "south" (default) = AU/NZ winter underway, last-minute
+   *  hiring. "north" = CA/JP/USA 2026/27 season ahead, hiring ramping up. */
+  hemisphere?: Hemisphere;
 }
 
 export function winterOutreachEmail({
@@ -17,7 +22,9 @@ export function winterOutreachEmail({
   ctaUrl,
   unsubscribeUrl,
   locationName,
+  hemisphere = "south",
 }: WinterOutreachEmailProps) {
+  const north = hemisphere === "north";
   const locationLine = locationName
     ? `Workers ready to start at <strong style="color:#0a1e33;">${locationName}</strong> this winter`
     : `Workers want to work for you this winter`;
@@ -45,7 +52,7 @@ export function winterOutreachEmail({
           <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
             <p style="margin:0 0 10px;font-size:44px;">❄️</p>
             <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">${locationLine}</h1>
-            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Winter 2026 — last-minute hiring</p>
+            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">${north ? "Winter 2026/27 — hiring season" : "Winter 2026 — last-minute hiring"}</p>
           </td>
         </tr>
         <!-- Body -->
@@ -55,10 +62,10 @@ export function winterOutreachEmail({
               Hi <strong style="color:#0a1e33;">${businessName}</strong>,
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              With the <strong style="color:#0a1e33;">2026 winter season just around the corner</strong>, we have a database of qualified workers ${locationName ? `actively looking for roles at <strong style="color:#0a1e33;">${locationName}</strong>` : `still actively looking to lock in their roles for the season`} — chefs, lift operators, instructors, housekeepers, baristas, and more.
+              With the <strong style="color:#0a1e33;">${north ? "2026/27 winter season approaching" : "2026 winter season just around the corner"}</strong>, we have a database of qualified workers ${locationName ? `actively looking for roles at <strong style="color:#0a1e33;">${locationName}</strong>` : `${north ? "actively looking to lock in their roles for the season" : "still actively looking to lock in their roles for the season"}`} — chefs, lift operators, instructors, housekeepers, baristas, and more.
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              We've already connected several Snowy Mountains businesses with the perfect people for their roles this season, and we'd love to do the same for you.
+              ${north ? "We've already helped businesses in Australia's Snowy Mountains fill their seasons — and now that we're live across Canada, Japan and the US, we'd love to do the same for you." : "We've already connected several Snowy Mountains businesses with the perfect people for their roles this season, and we'd love to do the same for you."}
             </p>
 
             <!-- Highlight box: low-friction pitch -->
@@ -74,7 +81,7 @@ export function winterOutreachEmail({
             </table>
 
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              And if you do have last-minute roles to fill, you can list them in under five minutes — workers will see them straight away.
+              And if you ${north ? "have roles to fill for the coming season" : "do have last-minute roles to fill"}, you can list them in under five minutes — workers will see them straight away.
             </p>
 
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">

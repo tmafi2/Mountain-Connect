@@ -1,3 +1,5 @@
+import type { BusinessTier } from "@/lib/tier";
+
 export type BlogPostStatus = "draft" | "published" | "scheduled";
 
 export interface BlogPost {
@@ -221,11 +223,14 @@ export interface BusinessProfile {
   phone: string | null;
   email: string | null;
   timezone: string | null;
-  tier: "free" | "premium";
+  tier: BusinessTier;
   created_at: string;
 }
 
-export type BusinessTier = "free" | "standard" | "premium" | "enterprise";
+// BusinessTier is defined once in lib/tier.ts (imported at the top of this
+// file) and re-exported here so existing `@/types/database` importers keep
+// working without a second, drift-prone copy of the union.
+export type { BusinessTier };
 
 export interface Referral {
   id: string;

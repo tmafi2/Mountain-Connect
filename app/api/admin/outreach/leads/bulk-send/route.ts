@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendWinterSequenceBatch } from "@/lib/email/send";
 import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
+import { hemisphereForCountry } from "@/lib/outreach/hemisphere";
 
 const BASE_URL = "https://www.mountainconnects.com";
 const MAX_LEADS_PER_REQUEST = 500;
@@ -30,7 +31,7 @@ interface LeadRow {
   business_name: string;
   status: string;
   unsubscribe_token: string;
-  resorts: { name: string } | null;
+  resorts: { name: string; country: string | null } | null;
   nearby_towns: { name: string } | null;
 }
 
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
   const { data: leads, error: leadsErr } = await admin
     .from("outreach_leads")
     .select(
-      "id, email, business_name, status, unsubscribe_token, resorts(name), nearby_towns(name)"
+      "id, email, business_name, status, unsubscribe_token, resorts(name, country), nearby_towns(name)"
     )
     .in("id", leadIds);
 
@@ -167,6 +168,7 @@ export async function POST(request: Request) {
       ctaUrl,
       unsubscribeUrl: `${BASE_URL}/unsubscribe/${lead.unsubscribe_token}`,
       locationName: lead.nearby_towns?.name || lead.resorts?.name,
+      hemisphere: hemisphereForCountry(lead.resorts?.country),
     }));
 
     try {

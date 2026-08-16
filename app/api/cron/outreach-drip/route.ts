@@ -8,6 +8,7 @@ import {
   sendWinterFollowupFinalEmail,
 } from "@/lib/email/send";
 import { OUTREACH_SEQUENCE, findNextStep } from "@/lib/outreach/sequence";
+import { hemisphereForCountry } from "@/lib/outreach/hemisphere";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
   // have. If this grows past ~10k leads, switch to a per-lead query.
   const { data: leads, error: leadsErr } = await admin
     .from("outreach_leads")
-    .select("id, email, business_name, unsubscribe_token, resorts(name), nearby_towns(name)")
+    .select("id, email, business_name, unsubscribe_token, resorts(name, country), nearby_towns(name)")
     .eq("status", "active");
   if (leadsErr) {
     return NextResponse.json({ error: leadsErr.message }, { status: 500 });
@@ -104,9 +105,10 @@ export async function GET(request: Request) {
     }
 
     // Due — fire the template.
-    const resort = lead.resorts as { name: string } | null;
+    const resort = lead.resorts as { name: string; country: string | null } | null;
     const town = lead.nearby_towns as { name: string } | null;
     const locationName = town?.name || resort?.name;
+    const hemisphere = hemisphereForCountry(resort?.country);
     const unsubscribeUrl = `${BASE_URL}/unsubscribe/${lead.unsubscribe_token}`;
     const ctaUrl = `${BASE_URL}/signup`;
 
@@ -118,6 +120,7 @@ export async function GET(request: Request) {
         ctaUrl,
         unsubscribeUrl,
         locationName,
+        hemisphere,
       };
       if (next.template === "winter-outreach") {
         const r = await sendWinterOutreachEmail(common);

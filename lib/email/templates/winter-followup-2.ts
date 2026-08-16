@@ -1,9 +1,14 @@
+import type { Hemisphere } from "@/lib/outreach/hemisphere";
+
 interface WinterFollowup2EmailProps {
   businessName: string;
   ctaUrl: string;
   unsubscribeUrl: string;
   locationName?: string;
   contactPersonName?: string;
+  /** Season framing — "north" swaps the AU social proof for the
+   *  new-regions line. Default "south". */
+  hemisphere?: Hemisphere;
 }
 
 /**
@@ -18,6 +23,7 @@ export function winterFollowup2Email({
   unsubscribeUrl,
   locationName,
   contactPersonName,
+  hemisphere = "south",
 }: WinterFollowup2EmailProps) {
   const greeting = contactPersonName
     ? `Hi <strong style="color:#0a1e33;">${contactPersonName}</strong>,`
@@ -71,7 +77,7 @@ export function winterFollowup2Email({
             </table>
 
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              We've already connected several Snowy Mountains businesses with great hires this season — happy to do the same for you. Claiming your free profile takes about two minutes and lets you see who's looking.
+              ${hemisphere === "north" ? "We've already connected businesses in Australia's Snowy Mountains with great hires — happy to do the same for you as the season ramps up in your region." : "We've already connected several Snowy Mountains businesses with great hires this season — happy to do the same for you."} Claiming your free profile takes about two minutes and lets you see who's looking.
             </p>
 
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">

@@ -86,7 +86,7 @@ const faqItems: { q: string; a: string }[] = [
   },
   {
     q: "Is it free to use Mountain Connects?",
-    a: "Yes. Workers can create a profile, browse every listing, and apply to jobs completely free. Businesses can post listings and manage applicants without any subscription fees. We're focused on making seasonal hiring frictionless for both sides.",
+    a: "For workers, always. Create a profile, browse every listing, and apply to jobs completely free — no catches. For businesses, your first job post is free forever, with applicant tracking and messaging included. If you need to post more, plans start at $39/month or $149 for a whole season, and every plan comes with a 30-day free trial.",
   },
 ];
 
