@@ -406,9 +406,23 @@ export default function PostJobPage() {
 
     setPosting(true);
     setError(null);
-    const supabase = createClient();
-    const { data: newJob, error: insertError } = await supabase.from("job_posts").insert(buildJobRow("active")).select("id").single();
-    if (insertError) { setError(insertError.message); setPosting(false); return; }
+    // Insert goes through the API so the plan's posting limit is enforced
+    // server-side (a direct client insert could bypass it).
+    const { business_id: _omitBiz, status: _omitStatus, is_active: _omitActive, ...jobBody } = buildJobRow("active");
+    const res = await fetch("/api/business/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job: jobBody, status: "active" }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (res.status === 403 && payload.gate) {
+      // Hit the plan limit — flip into the paywall view.
+      setCanPost(false);
+      setPosting(false);
+      return;
+    }
+    if (!res.ok) { setError(payload.error || "Failed to post job."); setPosting(false); return; }
+    const newJob = payload.job as { id: string } | undefined;
 
     // Trigger job alert matching (non-blocking)
     if (newJob?.id) {
@@ -442,9 +456,17 @@ export default function PostJobPage() {
     setSavingDraft(true);
     setError(null);
     setDraftSaved(false);
-    const supabase = createClient();
-    const { data: inserted, error: insertError } = await supabase.from("job_posts").insert(buildJobRow("draft")).select("id, title, created_at").single();
-    if (insertError) { setError(insertError.message); setSavingDraft(false); return; }
+    // Drafts aren't gated (saving work never costs a slot) but still go
+    // through the API so business_id/status can't be spoofed.
+    const { business_id: _omitBiz, status: _omitStatus, is_active: _omitActive, ...draftBody } = buildJobRow("draft");
+    const res = await fetch("/api/business/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job: draftBody, status: "draft" }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) { setError(payload.error || "Failed to save draft."); setSavingDraft(false); return; }
+    const inserted = payload.job as { id: string; title: string; created_at: string } | undefined;
     // Add to drafts list and show success
     if (inserted) setExistingDrafts((prev) => [inserted, ...prev]);
     setDraftSaved(true);

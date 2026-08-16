@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGoogleIndexing } from "@/lib/seo/google-indexing";
+import { checkPostGate } from "@/lib/billing/post-gate";
 
 /**
  * POST /api/business/publish-drafts
@@ -37,14 +38,55 @@ export async function POST() {
       return NextResponse.json({ error: "Business profile not found" }, { status: 404 });
     }
 
-    // Update all the business's drafts to active in one go.
-    // Using the RLS policy "Business owners can manage own jobs" so we don't
-    // need the admin client — the user is allowed to mutate their own rows.
+    // Publishing flips drafts live, so it's subject to the plan's posting
+    // limit exactly like posting a new active job. Load the drafts (oldest
+    // first — they queued them in that order), then publish only as many as
+    // the plan has room for and report the remainder.
+    const { data: drafts, error: draftsError } = await supabase
+      .from("job_posts")
+      .select("id")
+      .eq("business_id", business.id)
+      .eq("status", "draft")
+      .order("created_at", { ascending: true });
+
+    if (draftsError) {
+      console.error("Failed to load drafts:", draftsError);
+      return NextResponse.json({ error: "Failed to publish drafts" }, { status: 500 });
+    }
+    if (!drafts || drafts.length === 0) {
+      return NextResponse.json({ success: true, publishedCount: 0, blockedCount: 0 });
+    }
+
+    // Find the largest N such that publishing N more is still within limit.
+    let room = 0;
+    for (let n = 1; n <= drafts.length; n++) {
+      const gate = await checkPostGate(supabase, business.id, { extraPending: n - 1 });
+      if (!gate.allowed) break;
+      room = n;
+    }
+    const gateNow = await checkPostGate(supabase, business.id);
+
+    if (room === 0) {
+      return NextResponse.json(
+        {
+          error:
+            gateNow.reason === "free_limit"
+              ? "You've used your free job post. Choose a plan to publish more."
+              : `Your plan allows ${gateNow.limit} active job listings. Upgrade to publish more.`,
+          gate: gateNow,
+          publishedCount: 0,
+          blockedCount: drafts.length,
+        },
+        { status: 403 }
+      );
+    }
+
+    const toPublish = drafts.slice(0, room).map((d) => d.id);
     const { data: updated, error } = await supabase
       .from("job_posts")
       .update({ status: "active", is_active: true })
+      .in("id", toPublish)
       .eq("business_id", business.id)
-      .eq("status", "draft")
       .select("id");
 
     if (error) {
@@ -53,6 +95,7 @@ export async function POST() {
     }
 
     const publishedCount = updated?.length || 0;
+    const blockedCount = drafts.length - publishedCount;
 
     // Fire job alert matching for each newly-published job (non-blocking).
     // Same pattern used by the single-publish flow when posting a new active job.
@@ -71,7 +114,7 @@ export async function POST() {
       }
     }
 
-    return NextResponse.json({ success: true, publishedCount });
+    return NextResponse.json({ success: true, publishedCount, blockedCount, gate: gateNow });
   } catch (err) {
     console.error("publish-drafts error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
