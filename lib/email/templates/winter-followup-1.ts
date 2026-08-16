@@ -1,9 +1,13 @@
+import type { Hemisphere } from "@/lib/outreach/hemisphere";
+
 interface WinterFollowup1EmailProps {
   businessName: string;
   ctaUrl: string;
   unsubscribeUrl: string;
   locationName?: string;
   contactPersonName?: string;
+  /** Season framing — "north" renders "winter 2026/27". Default "south". */
+  hemisphere?: Hemisphere;
 }
 
 /**
@@ -19,6 +23,7 @@ export function winterFollowup1Email({
   unsubscribeUrl,
   locationName,
   contactPersonName,
+  hemisphere = "south",
 }: WinterFollowup1EmailProps) {
   const greeting = contactPersonName
     ? `Hi <strong style="color:#0a1e33;">${contactPersonName}</strong>,`
@@ -45,7 +50,7 @@ export function winterFollowup1Email({
           <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
             <p style="margin:0 0 10px;font-size:44px;">👀</p>
             <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Just bumping this up your inbox</h1>
-            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Following up — winter 2026</p>
+            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Following up — winter ${hemisphere === "north" ? "2026/27" : "2026"}</p>
           </td>
         </tr>
         <tr>

@@ -1,3 +1,5 @@
+import type { Hemisphere } from "@/lib/outreach/hemisphere";
+
 interface WinterFollowup3EmailProps {
   businessName: string;
   ctaUrl: string;
@@ -7,6 +9,9 @@ interface WinterFollowup3EmailProps {
   replyToEmail?: string;
   locationName?: string;
   contactPersonName?: string;
+  /** Accepted for parity with the other winter templates; the copy in
+   *  this one is season-neutral so both hemispheres read the same. */
+  hemisphere?: Hemisphere;
 }
 
 /**

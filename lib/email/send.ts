@@ -1,4 +1,5 @@
 import { sendEmail, sendEmailBatch } from "./client";
+import type { Hemisphere } from "@/lib/outreach/hemisphere";
 import { interviewInviteEmail } from "./templates/interview-invite";
 import { interviewConfirmationEmail } from "./templates/interview-confirmation";
 import { interviewCancelledEmail } from "./templates/interview-cancelled";
@@ -462,6 +463,7 @@ export async function sendWinterOutreachEmail(params: {
   ctaUrl: string;
   unsubscribeUrl: string;
   locationName?: string;
+  hemisphere?: Hemisphere;
 }) {
   const { subject, html } = winterOutreachEmail(params);
   return sendEmail({
@@ -480,6 +482,7 @@ export async function sendWinterFollowup1Email(params: {
   unsubscribeUrl: string;
   locationName?: string;
   contactPersonName?: string;
+  hemisphere?: Hemisphere;
 }) {
   const { subject, html } = winterFollowup1Email(params);
   return sendEmail({
@@ -498,6 +501,7 @@ export async function sendWinterFollowup2Email(params: {
   unsubscribeUrl: string;
   locationName?: string;
   contactPersonName?: string;
+  hemisphere?: Hemisphere;
 }) {
   const { subject, html } = winterFollowup2Email(params);
   return sendEmail({
@@ -517,6 +521,7 @@ export async function sendWinterFollowup3Email(params: {
   replyToEmail?: string;
   locationName?: string;
   contactPersonName?: string;
+  hemisphere?: Hemisphere;
 }) {
   const { subject, html } = winterFollowup3Email(params);
   return sendEmail({
@@ -535,6 +540,7 @@ export async function sendWinterFollowupFinalEmail(params: {
   unsubscribeUrl: string;
   locationName?: string;
   contactPersonName?: string;
+  hemisphere?: Hemisphere;
 }) {
   const { subject, html } = winterFollowupFinalEmail(params);
   return sendEmail({
@@ -696,6 +702,7 @@ const WINTER_TEMPLATE_RENDERERS: Record<
     unsubscribeUrl: string;
     locationName?: string;
     contactPersonName?: string;
+    hemisphere?: Hemisphere;
   }) => { subject: string; html: string }
 > = {
   "winter-outreach": winterOutreachEmail,
@@ -714,6 +721,7 @@ export async function sendWinterSequenceBatch(params: {
     unsubscribeUrl: string;
     locationName?: string;
     contactPersonName?: string;
+    hemisphere?: Hemisphere;
   }>;
 }): Promise<{ id: string }[]> {
   const renderer = WINTER_TEMPLATE_RENDERERS[params.template];
@@ -727,6 +735,7 @@ export async function sendWinterSequenceBatch(params: {
       unsubscribeUrl: r.unsubscribeUrl,
       locationName: r.locationName,
       contactPersonName: r.contactPersonName,
+      hemisphere: r.hemisphere,
     });
     return {
       from: TYLER_FROM_EMAIL,
