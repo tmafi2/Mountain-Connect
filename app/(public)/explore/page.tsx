@@ -272,6 +272,14 @@ function ExploreContent() {
     });
   };
 
+  // The hero fills the viewport with an interactive globe, which reads as
+  // "the whole page" — users don't realise 100+ resort cards sit below. A
+  // visible "browse" affordance (and the region pills) scroll straight to
+  // the list so nobody has to fight the globe for the scroll wheel.
+  const scrollToResorts = () => {
+    document.getElementById("resorts")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   // Globe search
   const [globeSearch, setGlobeSearch] = useState("");
   const [globeSearchSelection, setGlobeSearchSelection] = useState<string | null>(null); // country slug
@@ -445,7 +453,7 @@ function ExploreContent() {
             {CONTINENTS.map((continent) => (
               <button
                 key={continent}
-                onClick={() => setContinentFilter(continent)}
+                onClick={() => { setContinentFilter(continent); scrollToResorts(); }}
                 className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
                   continentFilter === continent
                     ? "bg-white text-primary shadow-lg shadow-white/10"
@@ -460,6 +468,28 @@ function ExploreContent() {
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* "There's more below" affordance — the one thing that stops the
+              globe hero from reading as a false bottom. */}
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={scrollToResorts}
+              className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/80 backdrop-blur-sm transition-all hover:border-white/30 hover:bg-white/10 hover:text-white"
+              aria-label="Scroll to the resort list"
+            >
+              Browse all {totalFiltered} resorts
+              <svg
+                className="h-4 w-4 animate-bounce text-highlight transition-transform group-hover:translate-y-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
           </div>
 
           {/* Globe — desktop/tablet only */}
@@ -557,7 +587,7 @@ function ExploreContent() {
       </section>
 
       {/* ═══ SEARCH + RESORT LIST ═════════════════════════ */}
-      <section className="mx-auto max-w-7xl px-6 py-10">
+      <section id="resorts" className="mx-auto max-w-7xl scroll-mt-20 px-6 py-10">
         {/* Search bar */}
         <div className="animate-on-scroll flex flex-col items-center">
           <div className="relative w-full max-w-xl">
