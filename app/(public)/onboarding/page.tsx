@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
+import LocationRequestForm from "@/components/ui/LocationRequestForm";
 
 export default function OnboardingPage() {
   return (
@@ -639,6 +640,7 @@ function BusinessSetup({
   const [resortQuery, setResortQuery] = useState("");
   const [allResorts, setAllResorts] = useState<{ id: string; name: string; country: string }[]>([]);
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
+  const [showLocationRequest, setShowLocationRequest] = useState(false);
   // Multi-resort: the first entry is treated as the business's
   // primary resort. Order matters — first added = primary.
   const [selectedResorts, setSelectedResorts] = useState<
@@ -1337,12 +1339,18 @@ function BusinessSetup({
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                       No resorts found for &ldquo;{resortQuery}&rdquo;
+                      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setShowLocationRequest(true); setResortSearchOpen(false); }} className="mt-2 block w-full font-semibold text-secondary hover:underline">Missing your resort? Let us know →</button>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
+            {showLocationRequest && (
+              <div className="mb-4">
+                <LocationRequestForm variant="compact" initialName={resortQuery} initialKind="resort" initialRequester="business" />
+              </div>
+            )}
             {/* Website */}
             <div>
               <label htmlFor="website" className="block text-sm font-medium text-foreground/70">

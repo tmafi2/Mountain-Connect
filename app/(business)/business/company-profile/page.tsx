@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PhotoUpload, { type UploadedPhoto } from "@/components/ui/PhotoUpload";
+import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import type { BusinessVerificationStatus } from "@/types/database";
 import { isInLaunchLocation, LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 
@@ -154,6 +155,7 @@ export default function CompanyProfilePage() {
   const [resortQuery, setResortQuery] = useState("");
   const [allResorts, setAllResorts] = useState<{ id: string; legacy_id?: string; name: string; country: string }[]>([]);
   const [resortSearchOpen, setResortSearchOpen] = useState(false);
+  const [showLocationRequest, setShowLocationRequest] = useState(false);
   const [selectedResortName, setSelectedResortName] = useState("");
 
   // Nearby towns
@@ -1160,14 +1162,20 @@ export default function CompanyProfilePage() {
                     )}
                   </button>
                 )) : (
-                  <div className="px-4 py-6 text-center text-sm text-foreground/40">
-                    No resorts found for &ldquo;{resortQuery}&rdquo;
+                  <div className="px-4 py-6 text-center text-sm">
+                    <p className="text-foreground/40">No resorts found for &ldquo;{resortQuery}&rdquo;</p>
+                    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setShowLocationRequest(true); setResortSearchOpen(false); }} className="mt-1 font-semibold text-secondary hover:underline">Missing your resort? Let us know →</button>
                   </div>
                 )}
               </div>
             )}
           </div>
 
+          {showLocationRequest && (
+            <div className="mb-4">
+              <LocationRequestForm variant="compact" initialName={resortQuery} initialKind="resort" initialRequester="business" />
+            </div>
+          )}
           {/* Nearby Town Toggle */}
           <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-4">
             <label className="flex items-center gap-3 cursor-pointer">

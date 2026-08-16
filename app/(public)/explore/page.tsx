@@ -9,6 +9,7 @@ import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy, type ResortEntry } from "@/lib/data/region-hierarchy";
 import { countrySlug, flagForCountry } from "@/lib/resort-banner";
 import { ResortBanner } from "@/components/ResortBanner";
+import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const GlobeComponent = dynamic(() => import("@/components/globe/Globe"), {
@@ -987,6 +988,9 @@ function ExploreContent() {
               >
                 Clear filters
               </button>
+              <div className="mx-auto mt-8 max-w-xl text-left">
+                <LocationRequestForm variant="card" initialName={searchQuery} initialKind="either" />
+              </div>
             </div>
           )}
         </div>
