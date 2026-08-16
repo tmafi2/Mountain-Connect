@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import confetti from "canvas-confetti";
 import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
-import { isGracePeriod } from "@/lib/tier";
+import PlanPanel, { type PlanPanelBilling } from "@/components/business/PlanPanel";
 import type { BusinessTier } from "@/lib/tier";
 
 /* ─── types ──────────────────────────────────────────────── */
@@ -50,6 +50,7 @@ interface DashboardClientProps {
   activities: BizActivity[];
   inLaunchLocation: boolean;
   businessTier: BusinessTier;
+  billing: PlanPanelBilling;
   showVerifiedCelebration: boolean;
   expressionsOfInterest?: EoiRow[];
 }
@@ -66,6 +67,7 @@ export default function DashboardClient({
   activities,
   inLaunchLocation,
   businessTier,
+  billing,
   showVerifiedCelebration,
   expressionsOfInterest = [],
 }: DashboardClientProps) {
@@ -557,38 +559,8 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* ── Tier banner ──────────────────────────────────────── */}
-      {businessTier === "free" && (
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-secondary/20 bg-secondary/5 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10">
-              <svg className="h-5 w-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary">
-                {isGracePeriod()
-                  ? "🎉 You're enjoying Premium features for free during our launch!"
-                  : "You're on the Free plan"
-                }
-              </p>
-              <p className="text-xs text-foreground/50">
-                {isGracePeriod()
-                  ? "All Premium features are unlocked during the launch period."
-                  : "Upgrade to Premium for unlimited jobs, analytics, and more."
-                }
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/business/upgrade"
-            className="shrink-0 rounded-lg bg-secondary px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-secondary/90"
-          >
-            {isGracePeriod() ? "View Plans" : "Upgrade"}
-          </Link>
-        </div>
-      )}
+      {/* ── Plan panel (trial / courtesy window / plan status) ── */}
+      <PlanPanel billing={billing} activeJobs={Number(listingCount) || 0} />
 
       {/* ── Stats row — clean glass cards ──────────────────────── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -274,6 +274,16 @@ export default async function BusinessDashboard() {
       activities={feed}
       inLaunchLocation={inLaunchLocation}
       businessTier={businessTier}
+      billing={{
+        tier: businessTier,
+        selected_tier: (profile.selected_tier as BusinessTier | null) ?? null,
+        subscription_status: profile.subscription_status ?? null,
+        grace_period_ends_at: profile.grace_period_ends_at ?? null,
+        trial_ends_at: profile.trial_ends_at ?? null,
+        current_period_end: profile.current_period_end ?? null,
+        billing_interval: profile.billing_interval ?? null,
+        is_founding_member: profile.is_founding_member ?? null,
+      }}
       showVerifiedCelebration={showVerifiedCelebration}
       expressionsOfInterest={expressionsOfInterest}
     />

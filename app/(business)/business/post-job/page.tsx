@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isInLaunchLocation, LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
-import { canPostJob } from "@/lib/tier";
+import { evaluatePostGate } from "@/lib/tier";
 import type { BusinessTier } from "@/lib/tier";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
 
@@ -212,7 +212,7 @@ export default function PostJobPage() {
       if (!user) { setLoading(false); return; }
       const { data: bp } = await supabase
         .from("business_profiles")
-        .select("id, verification_status, tier")
+        .select("id, verification_status, tier, selected_tier, subscription_status, grace_period_ends_at")
         .eq("user_id", user.id)
         .single();
       if (bp) {
@@ -233,30 +233,30 @@ export default function PostJobPage() {
         }
 
         setBusinessVerified(bp.verification_status === "verified");
-        const tier = (bp.tier || "free") as BusinessTier;
-        setBusinessTier(tier);
 
-        // Check active job count for tier gating
-        const { count } = await supabase
-          .from("job_posts")
-          .select("id", { count: "exact", head: true })
-          .eq("business_id", bp.id)
-          .eq("status", "active");
-        const jobCount = count || 0;
-        setActiveJobCount(jobCount);
-
-        // For free tier, also check yearly job count
-        let yearlyCount: number | undefined;
-        if (tier === "free") {
-          const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-          const { count: yc } = await supabase
-            .from("job_posts")
-            .select("id", { count: "exact", head: true })
-            .eq("business_id", bp.id)
-            .gte("created_at", yearStart);
-          yearlyCount = yc || 0;
-        }
-        setCanPost(canPostJob(tier, jobCount, yearlyCount));
+        // Client-side preview of the plan gate. Mirrors the server check in
+        // lib/billing/post-gate.ts (the API is the real enforcement); we
+        // pre-compute here so the paywall shows before they fill in a form.
+        const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+        const [{ count: activeCount }, { count: yearlyLive }] = await Promise.all([
+          supabase.from("job_posts").select("id", { count: "exact", head: true })
+            .eq("business_id", bp.id).eq("status", "active"),
+          supabase.from("job_posts").select("id", { count: "exact", head: true })
+            .eq("business_id", bp.id).neq("status", "draft").gte("created_at", yearStart),
+        ]);
+        const gate = evaluatePostGate(
+          {
+            tier: (bp.tier || "free") as BusinessTier,
+            selected_tier: bp.selected_tier ?? null,
+            subscription_status: bp.subscription_status ?? null,
+            grace_period_ends_at: bp.grace_period_ends_at ?? null,
+          },
+          activeCount || 0,
+          yearlyLive || 0
+        );
+        setBusinessTier(gate.effectiveTier);
+        setActiveJobCount(activeCount || 0);
+        setCanPost(gate.allowed);
 
         // Check launch location
         const { data: bpFull } = await supabase
@@ -599,13 +599,13 @@ export default function PostJobPage() {
   if (!canPost) {
     const tierMessages: Record<string, { feature: string; description: string; suggested: BusinessTier }> = {
       free: {
-        feature: "More Job Listings",
-        description: "You've used your 2 free job listings for this year. Upgrade to Standard for 5 active listings, or Premium for unlimited.",
+        feature: "Post more jobs",
+        description: "Your first job post was free — to post more, pick a plan. Standard gives you 5 active listings; Premium is unlimited with featured placement. Both start with a 30-day free trial.",
         suggested: "standard",
       },
       standard: {
-        feature: "Unlimited Job Listings",
-        description: `You've reached the limit of ${activeJobCount} active job listings on the Standard plan. Upgrade to Premium for unlimited jobs and featured placement.`,
+        feature: "Unlimited job listings",
+        description: `You've reached the ${activeJobCount}-listing limit on Standard. Upgrade to Premium for unlimited jobs and featured placement — the change is prorated.`,
         suggested: "premium",
       },
     };
