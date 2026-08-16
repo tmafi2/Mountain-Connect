@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import EligibilityBadge from "@/components/ui/EligibilityBadge";
 import Link from "next/link";
 import type { SeedApplicant } from "@/lib/data/applications";
 import ResumeViewer from "@/components/ui/ResumeViewer";
@@ -432,10 +433,15 @@ export default function ApplicantCard({
                     <p className="mt-1.5 text-sm font-medium text-primary">{applicant.availability}</p>
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Visa / Work Eligibility</h4>
-                    <p className="mt-1.5 text-sm font-medium text-primary">
-                      {formatVisaStatus(applicant.visa_status, applicant.work_eligible_countries)}
-                    </p>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground/50">Work Eligibility</h4>
+                    <div className="mt-1.5">
+                      <EligibilityBadge
+                        variant="block"
+                        country={applicant.job_country}
+                        workAuthorizations={applicant.work_authorizations}
+                        legacy={{ visa_status: applicant.visa_status, work_eligible_countries: applicant.work_eligible_countries }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -482,10 +488,15 @@ export default function ApplicantCard({
                     <p className="mt-0.5 text-sm font-medium text-primary">{applicant.worker_location}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-foreground/50">Visa / Work Eligibility</p>
-                    <p className="mt-0.5 text-sm font-medium text-primary">
-                      {formatVisaStatus(applicant.visa_status, applicant.work_eligible_countries)}
-                    </p>
+                    <p className="text-xs text-foreground/50">Work Eligibility</p>
+                    <div className="mt-0.5">
+                      <EligibilityBadge
+                        variant="block"
+                        country={applicant.job_country}
+                        workAuthorizations={applicant.work_authorizations}
+                        legacy={{ visa_status: applicant.visa_status, work_eligible_countries: applicant.work_eligible_countries }}
+                      />
+                    </div>
                   </div>
                 </div>
 

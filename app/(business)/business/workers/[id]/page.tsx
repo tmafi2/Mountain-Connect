@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveEligibilityFor, type WorkAuthorization } from "@/lib/work-eligibility";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -245,25 +246,46 @@ export default function BusinessWorkerProfilePage() {
             {profile.second_nationality && (
               <Detail label="Second Nationality" value={profile.second_nationality} icon={COUNTRY_FLAGS[profile.second_nationality]} />
             )}
-            <Detail label="Visa Status" value={profile.visa_status ? formatLabel(profile.visa_status) : null} />
-            {profile.visa_expiry_date && (
-              <Detail label="Visa Expiry" value={formatDate(profile.visa_expiry_date)} />
-            )}
             <Detail label="Driver's License" value={profile.drivers_license ? `Yes${profile.drivers_license_country ? ` (${profile.drivers_license_country})` : ""}` : profile.drivers_license === false ? "No" : null} />
             <Detail label="Has Car" value={profile.has_car === true ? "Yes" : profile.has_car === false ? "No" : null} />
           </div>
-          {profile.work_eligible_countries && profile.work_eligible_countries.length > 0 && (
-            <div className="mt-4">
-              <span className="text-xs font-medium uppercase tracking-wider text-foreground/40">Eligible to Work In</span>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {profile.work_eligible_countries.map((c) => (
-                  <span key={c} className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                    {COUNTRY_FLAGS[c] || ""} {c}
-                  </span>
-                ))}
+          {(() => {
+            // Per-country work eligibility (source of truth), with legacy fallback for
+            // profiles that pre-date it. One row per country, resolved status each.
+            const auths = (profile.work_authorizations as WorkAuthorization[] | null) ?? [];
+            const countries: string[] = auths.length
+              ? auths.map((a) => a.country).filter(Boolean)
+              : (profile.work_eligible_countries as string[] | null) ?? [];
+            if (countries.length === 0) return null;
+            const tone: Record<string, string> = {
+              eligible: "bg-green-50 text-green-800 border-green-200",
+              expired: "bg-amber-50 text-amber-800 border-amber-200",
+              needs_sponsorship: "bg-orange-50 text-orange-800 border-orange-200",
+              unknown: "bg-gray-50 text-gray-600 border-gray-200",
+            };
+            return (
+              <div className="mt-4">
+                <span className="text-xs font-medium uppercase tracking-wider text-foreground/40">Work Eligibility by Country</span>
+                <ul className="mt-2 divide-y divide-accent/40 rounded-lg border border-accent/50 bg-white/60">
+                  {countries.map((c) => {
+                    const r = resolveEligibilityFor(
+                      { work_authorizations: auths, visa_status: profile.visa_status, visa_expiry_date: profile.visa_expiry_date, work_eligible_countries: profile.work_eligible_countries },
+                      c
+                    );
+                    return (
+                      <li key={c} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                        <span className="text-sm font-medium text-primary">{COUNTRY_FLAGS[c] || ""} {r.country}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-foreground/60">{r.kind === "unknown" ? "" : r.summary}</span>
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone[r.kind]}`}>{r.badge}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </Section>
 
         {/* ── Languages ──────────────────────────────────── */}
