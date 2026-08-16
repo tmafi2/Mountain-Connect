@@ -36,7 +36,9 @@ export const PRICING: Record<
   },
   premium: {
     founding: { month: 79, season: 299 },
-    full: { month: 99, season: 449 },
+    // 440 (not 449) so the single 32%-off season coupon lands on exactly
+    // ~$299 for premium as well as standard.
+    full: { month: 99, season: 440 },
   },
 };
 
