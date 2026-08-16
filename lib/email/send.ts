@@ -10,6 +10,7 @@ import { applicationReceivedEmail } from "./templates/application-received";
 import { applicationStatusChangedEmail } from "./templates/application-status-changed";
 import { newApplicantEmail } from "./templates/new-applicant";
 import { businessVerifiedEmail } from "./templates/business-verified";
+import { paidPlansAnnouncementEmail } from "./templates/paid-plans-announcement";
 import { businessUnverifiedEmail } from "./templates/business-unverified";
 import { claimLinkEmail } from "./templates/claim-link";
 import { listingClaimedEmail } from "./templates/listing-claimed";
@@ -178,6 +179,22 @@ export async function sendNewApplicantEmail(params: {
 }) {
   const { subject, html } = newApplicantEmail(params);
   return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+/**
+ * One-off pricing announcement to pre-billing businesses. Sent FROM Tyler
+ * with reply-to Tyler because the copy invites a direct reply.
+ */
+export async function sendPaidPlansAnnouncementEmail(params: {
+  to: string;
+  businessName: string;
+  contactPersonName?: string;
+  courtesyEndsAt: Date;
+  plansUrl: string;
+  dashboardUrl: string;
+}) {
+  const { subject, html } = paidPlansAnnouncementEmail(params);
+  return sendEmail({ from: TYLER_FROM_EMAIL, to: params.to, replyTo: TYLER_REPLY_TO, subject, html });
 }
 
 export async function sendBusinessVerifiedEmail(params: {
