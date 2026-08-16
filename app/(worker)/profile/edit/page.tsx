@@ -28,11 +28,9 @@ const STEPS = [
 
 type Step = (typeof STEPS)[number];
 
-interface WorkAuthorization {
-  country: string;
-  visa_status: VisaStatus | "";
-  visa_expiry: string; // date string or "n/a" or ""
-}
+// WorkAuthorization / VisaStatus / VISA_OPTIONS come from the shared module so
+// the worker editor, business views and resolver can never drift apart.
+import { VISA_OPTIONS, programsFor, type WorkAuthorization } from "@/lib/work-eligibility";
 
 /* ─── form state ──────────────────────────────────────────── */
 interface FormState {
@@ -141,15 +139,6 @@ const INITIAL: FormState = {
 };
 
 /* ─── option lists ────────────────────────────────────────── */
-const VISA_OPTIONS: { value: VisaStatus; label: string }[] = [
-  { value: "citizen", label: "Citizen" },
-  { value: "permanent_resident", label: "Permanent Resident" },
-  { value: "working_holiday", label: "Working Holiday Visa" },
-  { value: "work_visa", label: "Work Visa" },
-  { value: "student_visa", label: "Student Visa" },
-  { value: "no_visa", label: "No Visa" },
-  { value: "other", label: "Other" },
-];
 
 const SEASON_OPTIONS: { value: SeasonPreference; label: string }[] = [
   { value: "northern_winter", label: "Northern Winter (Nov–Apr)" },
@@ -1225,7 +1214,10 @@ export default function ProfileEditPage() {
                               value={wa.visa_status}
                               onChange={(e) => {
                                 const updated = [...form.work_authorizations];
-                                updated[idx] = { ...wa, visa_status: e.target.value as VisaStatus };
+                                const nextStatus = e.target.value as VisaStatus;
+                                // Drop a programme that no longer applies to the new status.
+                                const stillValid = wa.program && programsFor(wa.country, nextStatus).some((p) => p.value === wa.program);
+                                updated[idx] = { ...wa, visa_status: nextStatus, program: stillValid ? wa.program : undefined };
                                 set("work_authorizations", updated);
                               }}
                               className="w-full rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
@@ -1280,6 +1272,33 @@ export default function ProfileEditPage() {
                             )}
                           </div>
                         </div>
+                        {/* Programme — the specific route within the status (IEC, J-1, 417…).
+                            Only shown when the country has known programmes for this status. */}
+                        {(() => {
+                          const progs = programsFor(wa.country, wa.visa_status);
+                          if (progs.length === 0) return null;
+                          return (
+                            <div className="mt-3">
+                              <label className="block text-xs font-medium text-foreground/60 mb-1">
+                                Which programme? <span className="font-normal text-foreground/40">(optional — helps employers)</span>
+                              </label>
+                              <select
+                                value={wa.program ?? ""}
+                                onChange={(e) => {
+                                  const updated = [...form.work_authorizations];
+                                  updated[idx] = { ...wa, program: e.target.value || undefined };
+                                  set("work_authorizations", updated);
+                                }}
+                                className="w-full rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+                              >
+                                <option value="">Not sure / not listed</option>
+                                {progs.map((p) => (
+                                  <option key={p.value} value={p.value}>{p.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -1341,7 +1360,7 @@ export default function ProfileEditPage() {
                 {form.drivers_license && (
                   <div>
                     <Label htmlFor="dl_country">License Country</Label>
-                    <Input id="dl_country" value={form.drivers_license_country} onChange={(v) => set("drivers_license_country", v)} placeholder="Australia" />
+                    <Input id="dl_country" value={form.drivers_license_country} onChange={(v) => set("drivers_license_country", v)} placeholder="e.g. Canada" />
                   </div>
                 )}
               </div>
