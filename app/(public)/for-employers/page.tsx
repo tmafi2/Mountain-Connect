@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { EMPLOYER_MARKETS } from "@/lib/data/employer-markets";
-import { PRICING, isFoundingPricingOpen } from "@/lib/tier";
+import { PRICING, isFoundingPricingOpen, SEASON_PASS_TERM } from "@/lib/tier";
 import { flagForCountry } from "@/lib/resort-banner";
 
 const BASE_URL = "https://www.mountainconnects.com";
@@ -57,7 +57,7 @@ export default function ForEmployersHub() {
               Post your first job free →
             </Link>
             <span className="text-sm text-white/70">
-              Then from ${founding ? std.founding.month : std.full.month}/mo or ${founding ? std.founding.season : std.full.season}/season · 30-day free trial
+              Then from ${founding ? std.founding.month : std.full.month}/mo or ${founding ? std.founding.season : std.full.season} per {SEASON_PASS_TERM} season pass · 30-day free trial
             </span>
           </div>
         </div>

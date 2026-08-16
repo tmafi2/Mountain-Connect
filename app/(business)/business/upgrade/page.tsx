@@ -12,6 +12,9 @@ import {
   isInCourtesyWindow,
   seasonSavingsPct,
   foundingDiscountPct,
+  SEASON_PASS_TERM,
+  SEASON_PASS_LABEL,
+  SEASON_PASS_EXPLAINER,
   type BusinessTier,
   type BillingInterval,
   type PaidTier,
@@ -201,7 +204,7 @@ export default function UpgradePage() {
             onClick={() => setInterval("season")}
             className={`rounded-full px-4 py-1.5 font-medium transition-colors ${interval === "season" ? "bg-primary text-white" : "text-foreground/60 hover:text-primary"}`}
           >
-            Season pass
+            {SEASON_PASS_LABEL}
             <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${interval === "season" ? "bg-white/20 text-white" : "bg-green-100 text-green-700"}`}>
               Save {seasonSavingsPct("standard")}%
             </span>
@@ -271,11 +274,11 @@ export default function UpgradePage() {
                         <span className="text-lg font-semibold text-foreground/35 line-through">${fullPrice}</span>
                       )}
                       <span className="text-3xl font-extrabold text-primary">${payNow}</span>
-                      <span className="text-sm text-foreground/50">USD / {interval === "month" ? "month" : "season"}</span>
+                      <span className="text-sm text-foreground/50">USD / {interval === "month" ? "month" : "season pass"}</span>
                     </div>
                     <p className="mt-0.5 text-xs text-foreground/50">
                       {interval === "season"
-                        ? `One payment covers your whole hiring season`
+                        ? `One payment · covers ${SEASON_PASS_TERM}`
                         : `Billed monthly · cancel anytime`}
                     </p>
                     {showStrike && (
@@ -383,7 +386,7 @@ export default function UpgradePage() {
           <div className="rounded-xl border border-accent bg-white p-5">
             <h3 className="font-semibold text-primary">Monthly or season pass — which should I choose?</h3>
             <p className="mt-1 text-sm text-foreground/60">
-              Most seasonal businesses hire hard for a few months then go quiet. A season pass is one payment that covers the whole hiring season and works out around {seasonSavingsPct("standard")}% cheaper than paying monthly. Monthly is there if you only need a few weeks.
+              {SEASON_PASS_EXPLAINER} Most seasonal businesses hire hard for a few months then go quiet, so one pass covers it and works out around {seasonSavingsPct("standard")}% cheaper than paying monthly. Monthly is there if you only need a few weeks.
             </p>
           </div>
           <div className="rounded-xl border border-accent bg-white p-5">

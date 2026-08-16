@@ -7,6 +7,7 @@ import {
   isFoundingPricingOpen,
   resolveEffectiveTier,
   isInCourtesyWindow,
+  SEASON_PASS_TERM,
   type BusinessTier,
 } from "@/lib/tier";
 
@@ -72,7 +73,7 @@ export default function PlanPanel({ billing, activeJobs }: { billing: PlanPanelB
     tone = "success";
     title = `${planName} plan${billing.is_founding_member ? " · Founding member" : ""}`;
     detail = billing.current_period_end
-      ? `${billing.billing_interval === "season" ? "Season pass renews" : "Renews"} ${fmt(billing.current_period_end)}. Active listings: ${limitLabel}.`
+      ? `${billing.billing_interval === "season" ? `Season pass (${SEASON_PASS_TERM}) renews` : "Renews"} ${fmt(billing.current_period_end)}. Active listings: ${limitLabel}.`
       : `Active listings: ${limitLabel}.`;
     cta = { href: "/api/billing/portal", label: "Manage billing" };
   } else if (effective === "enterprise") {

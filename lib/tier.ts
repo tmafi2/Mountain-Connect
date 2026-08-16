@@ -42,10 +42,25 @@ export const PRICING: Record<
   },
 };
 
-/** Percentage saved on the season pass vs paying monthly for a ~6-month season. */
+/**
+ * A "season pass" is a fixed 6-month term (Stripe price: interval=month,
+ * interval_count=6). "Season" alone is ambiguous to a buyer — does it end when
+ * the resort closes? — so every surface says the number explicitly via the
+ * helpers below. Single source of truth: change here, everywhere follows.
+ */
+export const SEASON_PASS_MONTHS = 6;
+/** e.g. "6 months" */
+export const SEASON_PASS_TERM = `${SEASON_PASS_MONTHS} months`;
+/** Short label for toggles/tabs: "Season pass (6 months)" */
+export const SEASON_PASS_LABEL = `Season pass (${SEASON_PASS_TERM})`;
+/** One-line explainer used under prices / in FAQs. */
+export const SEASON_PASS_EXPLAINER =
+  `A season pass covers ${SEASON_PASS_TERM} from the day you subscribe — a full hiring season plus the shoulder weeks. It renews automatically; cancel any time.`;
+
+/** Percentage saved on the season pass vs paying monthly for the same term. */
 export function seasonSavingsPct(tier: PaidTier, rate: "founding" | "full" = "founding"): number {
   const p = PRICING[tier][rate];
-  return Math.round((1 - p.season / (p.month * 6)) * 100);
+  return Math.round((1 - p.season / (p.month * SEASON_PASS_MONTHS)) * 100);
 }
 
 /** Percentage off the full price that founding members get. */
