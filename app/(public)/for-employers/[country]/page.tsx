@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const m = getEmployerMarket(country);
   if (!m) return { title: "Hire Seasonal Staff" };
   // Root layout appends " | Mountain Connects" (~20 chars); keep title ≤ ~40.
-  const title = `Hire Seasonal Staff in ${m.displayName}`;
-  const description = `Post ski resort jobs in ${m.displayName} and reach workers actively looking for the ${m.season} season. First job post free — applicant tracking, messaging and interviews included.`;
+  const title = `Hire Seasonal Staff in ${m.inSentence}`;
+  const description = `Post ski resort jobs in ${m.inSentence} and reach workers actively looking for the ${m.season} season. First job post free — applicant tracking, messaging and interviews included.`;
   return {
     title,
     description,
@@ -83,9 +83,9 @@ export default async function EmployerCountryPage({ params }: Props) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `Hire Seasonal Staff in ${m.displayName}`,
+    name: `Hire Seasonal Staff in ${m.inSentence}`,
     url: `${BASE_URL}/for-employers/${m.slug}`,
-    description: `Post ski resort jobs in ${m.displayName}. First job post free.`,
+    description: `Post ski resort jobs in ${m.inSentence}. First job post free.`,
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
@@ -119,7 +119,7 @@ export default async function EmployerCountryPage({ params }: Props) {
             ← For employers
           </Link>
           <h1 className="mt-3 text-4xl font-black leading-tight tracking-tight sm:text-6xl">
-            Hire seasonal staff in {m.displayName} {flag}
+            Hire seasonal staff in {m.inSentence} {flag}
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/85">
             Reach workers who are actively looking for {m.season} roles at {m.adjective} ski resorts — chefs, lift ops,
@@ -245,7 +245,7 @@ export default async function EmployerCountryPage({ params }: Props) {
 
         {/* ── Local hook: resorts + towns (also what makes the page rank) ── */}
         <section>
-          <h2 className="text-2xl font-bold text-primary">Hiring across {m.displayName}</h2>
+          <h2 className="text-2xl font-bold text-primary">Hiring across {m.inSentence}</h2>
           <p className="mt-2 text-foreground/70">
             Businesses at {m.highlights.slice(0, -1).join(", ")} and {m.highlights.at(-1)} — and the towns workers live in — are already on Mountain Connects.
           </p>
@@ -281,13 +281,13 @@ export default async function EmployerCountryPage({ params }: Props) {
 
         {/* ── Final CTA ── */}
         <section className="rounded-2xl bg-primary px-6 py-10 text-center text-white">
-          <h2 className="text-2xl font-bold">Post your first job in {m.displayName} — free</h2>
+          <h2 className="text-2xl font-bold">Post your first job in {m.inSentence} — free</h2>
           <p className="mt-2 text-white/75">Sign up, pick your resort, and your listing is live in minutes.</p>
           <Link href={signup} className="mt-6 inline-block rounded-xl bg-white px-6 py-3 font-bold text-primary transition hover:bg-white/90">
             Get started →
           </Link>
           <p className="mt-4 text-xs text-white/50">
-            Looking for work instead? <Link href={`/ski-resort-jobs/${m.slug}`} className="underline hover:text-white">See ski resort jobs in {m.displayName}</Link>
+            Looking for work instead? <Link href={`/ski-resort-jobs/${m.slug}`} className="underline hover:text-white">See ski resort jobs in {m.inSentence}</Link>
           </p>
         </section>
       </div>
