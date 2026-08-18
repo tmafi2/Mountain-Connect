@@ -27,14 +27,20 @@ import {
   type ExtractionResult,
   type RawPost,
   type Usage,
+  type VisionMode,
 } from "./extract";
 
 const USAGE = `
-Usage: npm run fb:extract -- [--file <path>] [--limit 10] [--out <path>]
+Usage: npm run fb:extract -- [--file <path>] [--limit 10] [--vision auto]
 
-  --file   JSON array of posts (default: the bundled sample fixtures)
-  --limit  process at most this many posts (default 10)
-  --out    where to write results (default scripts/fb-monitor/out/)
+  --file    JSON array of posts (default: the bundled sample fixtures)
+  --limit   process at most this many posts (default 10)
+  --out     where to write results (default scripts/fb-monitor/out/)
+  --vision  auto (default) | always | never
+              auto   text first, re-run with images only when a hiring post
+                     looks like its substance is in the graphic
+              always send images on the first pass (costlier, no second call)
+              never  text only
 
 Requires ANTHROPIC_API_KEY in .env.local. Writes nothing to Supabase.
 `.trimStart();
@@ -102,6 +108,9 @@ function readPosts(filePath: string): RawPost[] {
     if (typeof post.group !== "string" || post.group.trim() === "") {
       fail(`posts[${index}] needs a "group" — it is part of how we identify the post.`);
     }
+    if (post.images !== undefined && !Array.isArray(post.images)) {
+      fail(`posts[${index}].images must be an array of file paths or URLs.`);
+    }
     return {
       id: typeof post.id === "string" && post.id ? post.id : `post-${index + 1}`,
       group: post.group,
@@ -109,6 +118,9 @@ function readPosts(filePath: string): RawPost[] {
       text: post.text,
       permalink: typeof post.permalink === "string" ? post.permalink : null,
       postedAt: typeof post.postedAt === "string" ? post.postedAt : null,
+      images: Array.isArray(post.images)
+        ? post.images.filter((i): i is string => typeof i === "string" && i.trim() !== "")
+        : undefined,
     };
   });
 }
@@ -149,6 +161,13 @@ async function main(): Promise<void> {
   const limit = typeof rawLimit === "string" ? Number(rawLimit) : 10;
   if (!Number.isInteger(limit) || limit < 1) fail(`--limit must be a positive whole number.`);
 
+  const rawVision = flags.get("vision");
+  const vision: VisionMode =
+    rawVision === undefined || rawVision === true ? "auto" : (rawVision as VisionMode);
+  if (!["auto", "always", "never"].includes(vision)) {
+    fail(`--vision must be auto, always or never (got ${JSON.stringify(rawVision)}).`);
+  }
+
   const allPosts = readPosts(inputPath);
   const posts = allPosts.slice(0, limit);
 
@@ -163,7 +182,9 @@ async function main(): Promise<void> {
   note(``);
   note(`input   ${inputPath}`);
   note(`posts   ${posts.length}${allPosts.length > posts.length ? ` of ${allPosts.length} (--limit ${limit})` : ""}`);
-  note(`model   claude-opus-5 @ effort=low`);
+  note(`model   claude-opus-5 @ effort=low, vision=${vision}`);
+  const withImages = posts.filter((p) => p.images?.length).length;
+  if (withImages > 0) note(`images  ${withImages} of ${posts.length} posts have attachments`);
   note(``);
 
   const results: ExtractionResult[] = [];
@@ -174,7 +195,7 @@ async function main(): Promise<void> {
   // miss and each pay the write premium.
   for (const [index, post] of posts.entries()) {
     const label = `[${index + 1}/${posts.length}] ${post.id}`;
-    const result = await extractPost(post);
+    const result = await extractPost(post, vision);
     results.push(result);
 
     if (!result.ok) {
@@ -190,7 +211,8 @@ async function main(): Promise<void> {
 
     note(
       `${label}  ${extracted.classification.padEnd(12)} ${extracted.confidence.padEnd(6)} ` +
-        `${extracted.postLanguage}  ${extracted.businessName ?? "(no business named)"}`,
+        `${extracted.postLanguage}  ${extracted.businessName ?? "(no business named)"}` +
+        `${result.visionUsed ? "  [vision]" : ""}`,
     );
     note(`         why: ${extracted.reasoning}`);
     if (extracted.contactMethod !== "none_stated") {
@@ -226,6 +248,11 @@ async function main(): Promise<void> {
   note(`seeking work     ${seeking.length}  →  would go to lead_posts`);
   note(`other            ${other.length}  →  discarded`);
   if (lowConfidence.length > 0) note(`low confidence   ${lowConfidence.length}`);
+  const escalated = ok.filter((r) => r.ok && r.passes > 1).length;
+  const visioned = ok.filter((r) => r.ok && r.visionUsed).length;
+  if (visioned > 0) {
+    note(`vision used      ${visioned}${escalated > 0 ? ` (${escalated} via escalation, 2 calls each)` : ""}`);
+  }
   if (flagged.length > 0) note(`audit warnings   ${flagged.length}`);
 
   const totalIn = usages.reduce((n, u) => n + u.inputTokens, 0);

@@ -10,14 +10,14 @@
  * integration where the SDK carries retries, typed errors, structured-output
  * plumbing and beta handling we would otherwise hand-roll.
  *
- * Three things worth knowing about the request shape:
+ * Four things worth knowing about the request shape:
  *
  *  1. STRUCTURED OUTPUTS, not tool-use. `output_config.format` with a
  *     json_schema constrains the response directly, so there is no tool-call
  *     round trip and no hand-written JSON parsing to get wrong.
  *
  *  2. PROMPT CACHING. The system prompt carries the whole schema contract and
- *     never varies; only the post text changes. A cache breakpoint on the last
+ *     never varies; only the post changes. A cache breakpoint on the last
  *     system block means post 2 onward reads it at ~0.1x input price. Posts are
  *     processed SEQUENTIALLY for this reason: a cache entry is only readable
  *     once the first response has started streaming, so parallel requests would
@@ -27,7 +27,23 @@
  *     and disabling it has documented failure modes. Extraction is exactly the
  *     kind of bounded task where `effort: "low"` holds quality while cutting
  *     tokens, so that is the cost lever rather than turning thinking off.
+ *
+ *  4. VISION, BUT ONLY WHEN IT EARNS ITS KEEP. Real hiring posts routinely put
+ *     everything that matters — the roles, the pay, the email — inside a
+ *     graphic, leaving post text like "We are looking for seasonal staff for
+ *     this upcoming winter season…". Text-only extraction correctly reports low
+ *     confidence on those, and correctly gets nothing useful.
+ *
+ *     Images are not cheap: on Claude Opus 5 a full-resolution image can cost
+ *     up to ~4,800 input tokens, several times a whole text-only extraction. So
+ *     the default mode is ESCALATION — extract from text first, and re-run with
+ *     images only when the text result looks like an ad whose substance is
+ *     missing (see needsVision). Job-seeker posts and chatter, which are the
+ *     bulk of any group, never pay for vision at all.
  */
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
+
 import Anthropic from "@anthropic-ai/sdk";
 
 import { loadEnvFile } from "../lead-monitor/common";
@@ -47,6 +63,24 @@ const MODEL = "claude-opus-5";
 const MAX_TOKENS = 8000;
 
 /**
+ * Cap on images sent per post. Group ads overwhelmingly put the whole offer in
+ * ONE graphic; the rest of the attachments are staff photos and powder shots
+ * that cost ~4,800 tokens each to tell us nothing.
+ */
+const MAX_IMAGES_PER_POST = 2;
+
+/** Anthropic's per-image ceiling. Larger files are skipped with a warning. */
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+const MEDIA_TYPES: Readonly<Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp">> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
+
+/**
  * Server-side refusal fallback. Recommended by default on Claude Opus 5 — its
  * safety classifiers can decline a request outright, and a fallback recovers it
  * server-side instead of handing us an empty response. Job-ad extraction should
@@ -56,6 +90,9 @@ const MAX_TOKENS = 8000;
 const USE_REFUSAL_FALLBACK = true;
 const FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
+/** How aggressively to use images. */
+export type VisionMode = "auto" | "always" | "never";
+
 export type RawPost = {
   /** Stable id so results can be matched back to their source. */
   id: string;
@@ -64,15 +101,27 @@ export type RawPost = {
   text: string;
   permalink: string | null;
   postedAt: string | null;
+  /** Local file paths or http(s) URLs of images attached to the post. */
+  images?: string[];
 };
 
 export type ExtractionResult =
-  | { ok: true; post: RawPost; extracted: ExtractedPost; problems: string[]; usage: Usage }
+  | {
+      ok: true;
+      post: RawPost;
+      extracted: ExtractedPost;
+      problems: string[];
+      usage: Usage;
+      /** True when the returned extraction was produced with images attached. */
+      visionUsed: boolean;
+      /** 1 for text-only, 2 when the text pass escalated to vision. */
+      passes: number;
+    }
   /**
    * `fatal` means the whole run is doomed, not just this post — a bad key,
-   * missing credits, a wrong model id. Retrying the remaining posts would
-   * produce N copies of the same error and a results file full of nothing, so
-   * the caller stops instead.
+   * missing credits, a bad schema. Retrying the remaining posts would produce
+   * N copies of the same error and a results file full of nothing, so the
+   * caller stops instead.
    */
   | { ok: false; post: RawPost; error: string; fatal: boolean };
 
@@ -88,17 +137,20 @@ const SYSTEM_PROMPT = `You read posts from ski-region community groups and extra
 CLASSIFY FIRST
 - "hiring": a business or an individual wants to take someone on.
 - "seeking_work": someone is looking for a job for themselves.
-- "other": everything else — gear for sale, accommodation wanted, lift-line chat, lost dogs.
-Most posts in these groups are "other". That is expected; do not stretch a post into "hiring" because the group is a jobs group.
+- "other": everything else — gear for sale, accommodation wanted, group admin announcements, lift-line chat, lost dogs.
+Most posts in these groups are NOT hiring ads. Two traps worth naming: a post listing the author's own past roles ("I've worked as a head chef and sous chef") is seeking_work, not a chef vacancy; and a group announcement telling employers to post jobs is "other", not hiring.
 
 ONE ENTRY PER DISTINCT ROLE
 "Need 2 lift operators and a chef" is TWO role entries: lift operator with positionsAvailable 2, chef with positionsAvailable 1. A single role advertised for multiple people is ONE entry with a count, not repeated entries.
 
+IMAGES CARRY THE REAL AD
+When an image is attached, read it carefully — group hiring posts routinely put the whole offer in a graphic while the post text says only "we're hiring for this season". Roles, pay, contact email and the business name are frequently image-only. Treat text in an image as fully authoritative, exactly as if it had been typed into the post. Ignore decorative photos of staff, snow and scenery.
+
 NEVER INVENT A DATE
-Only produce startDate or endDate when the post states a specific date you could put in a calendar. "Starting December", "ASAP", "for the winter season" and "from next month" are all null. A null date is correct and useful; a guessed date silently corrupts the listing. This rule outranks any temptation to be helpful.
+Only produce startDate or endDate when the post states a specific date you could put in a calendar. "Starting December", "ASAP", "for the winter season", "Winter 2026/27" and "from next month" are all null. A null date is correct and useful; a guessed date silently corrupts the listing. This rule outranks any temptation to be helpful.
 
 NULL MEANS THE POST DID NOT SAY
-Do not infer pay from what the role usually pays, accommodation from what resorts usually offer, or a business name from the poster's own name. If it is not in the text, it is null. The one exception is payCurrency, which you may infer from an unambiguous country — a dollar figure in a Whistler post is CAD.
+Do not infer pay from what the role usually pays, accommodation from what resorts usually offer, or a business name from the poster's own name. If it is not in the text or an image, it is not stated. The one exception is payCurrency, which you may infer from an unambiguous country — a dollar figure in a Whistler post is CAD.
 
 CONFIDENCE, HONESTLY
 Everything you return is reviewed by a human before it goes live, so "low" costs nothing and mislabelled "high" costs trust. Use "low" when the post is vague, machine-translated, or you are unsure whether it is really a job ad. Put the specific doubt in the reasoning field.
@@ -152,25 +204,98 @@ export function assertCredentials(): void {
   getClient();
 }
 
+type ImageBlock = {
+  type: "image";
+  source:
+    | { type: "url"; url: string }
+    | { type: "base64"; media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; data: string };
+};
+
+/**
+ * Turn image references into content blocks.
+ *
+ * http(s) references are handed to the API to fetch. Anything else is read from
+ * disk and inlined as base64 — which is what a collector should do, because
+ * Facebook's CDN URLs are signed and expire, so a URL that works during the
+ * crawl may 403 by the time it is re-processed.
+ *
+ * Unreadable or oversized images are skipped with a warning rather than failing
+ * the post: a missing decorative photo should never cost us the whole ad.
+ */
+function buildImageBlocks(images: readonly string[], postId: string): ImageBlock[] {
+  const blocks: ImageBlock[] = [];
+
+  for (const reference of images.slice(0, MAX_IMAGES_PER_POST)) {
+    if (/^https?:\/\//i.test(reference)) {
+      blocks.push({ type: "image", source: { type: "url", url: reference } });
+      continue;
+    }
+
+    const mediaType = MEDIA_TYPES[path.extname(reference).toLowerCase()];
+    if (!mediaType) {
+      process.stderr.write(`  warn [${postId}]: unsupported image type, skipped: ${reference}\n`);
+      continue;
+    }
+
+    try {
+      const bytes = readFileSync(reference);
+      if (bytes.byteLength > MAX_IMAGE_BYTES) {
+        process.stderr.write(
+          `  warn [${postId}]: image over ${Math.round(MAX_IMAGE_BYTES / 1024 / 1024)}MB, skipped: ${reference}\n`,
+        );
+        continue;
+      }
+      blocks.push({
+        type: "image",
+        source: { type: "base64", media_type: mediaType, data: bytes.toString("base64") },
+      });
+    } catch (error) {
+      process.stderr.write(
+        `  warn [${postId}]: could not read image ${reference} (${
+          error instanceof Error ? error.message : String(error)
+        })\n`,
+      );
+    }
+  }
+
+  if (images.length > MAX_IMAGES_PER_POST) {
+    process.stderr.write(
+      `  note [${postId}]: ${images.length} images attached, sending the first ${MAX_IMAGES_PER_POST}\n`,
+    );
+  }
+
+  return blocks;
+}
+
 /** Build the user turn. Stable content lives in the system prompt, above the cache breakpoint. */
-function userContent(post: RawPost): string {
-  const lines = [
+function userContent(post: RawPost, withImages: boolean): Array<ImageBlock | { type: "text"; text: string }> {
+  const header = [
     `Group: ${post.group}`,
     `Author: ${post.author ?? "(unknown)"}`,
     post.postedAt ? `Posted: ${post.postedAt}` : null,
     ``,
     `Post text:`,
     post.text,
-  ].filter((line) => line !== null);
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
 
-  return lines.join("\n");
+  const blocks: Array<ImageBlock | { type: "text"; text: string }> = [];
+
+  // Images before the text: the model reads the attachment, then the framing.
+  if (withImages && post.images?.length) {
+    blocks.push(...buildImageBlocks(post.images, post.id));
+  }
+  blocks.push({ type: "text", text: header });
+
+  return blocks;
 }
 
 /**
  * One model call, with a one-time downgrade if the refusal-fallback beta is not
  * available on this account. Everything else is left to the SDK's own retry.
  */
-async function callModel(post: RawPost): Promise<Anthropic.Message> {
+async function callModel(post: RawPost, withImages: boolean): Promise<Anthropic.Message> {
   const anthropic = getClient();
 
   const request = {
@@ -189,8 +314,8 @@ async function callModel(post: RawPost): Promise<Anthropic.Message> {
       effort: "low" as const,
       format: { type: "json_schema" as const, schema: EXTRACTION_SCHEMA },
     },
-    messages: [{ role: "user" as const, content: userContent(post) }],
-  };
+    messages: [{ role: "user" as const, content: userContent(post, withImages) }],
+  } as unknown as Anthropic.MessageCreateParamsNonStreaming;
 
   if (!fallbackAvailable) {
     return anthropic.messages.create(request);
@@ -204,9 +329,7 @@ async function callModel(post: RawPost): Promise<Anthropic.Message> {
     } as Parameters<typeof anthropic.beta.messages.create>[0])) as Anthropic.Message;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const isBetaProblem =
-      error instanceof Anthropic.BadRequestError &&
-      /fallback|beta/i.test(message);
+    const isBetaProblem = error instanceof Anthropic.BadRequestError && /fallback|beta/i.test(message);
 
     if (!isBetaProblem) throw error;
 
@@ -223,7 +346,7 @@ async function callModel(post: RawPost): Promise<Anthropic.Message> {
 /**
  * Distinguish "this post failed" from "the run cannot work".
  *
- * A truncated key, exhausted credits or a typo'd model id will fail identically
+ * A truncated key, exhausted credits or a malformed schema will fail identically
  * on every post, so there is no point discovering it eight times.
  */
 function isFatalForRun(error: unknown): { fatal: boolean; hint?: string } {
@@ -262,32 +385,17 @@ function isFatalForRun(error: unknown): { fatal: boolean; hint?: string } {
   return { fatal: false };
 }
 
-/** Extract one post. Per-post problems return ok:false; run-level ones set fatal. */
-export async function extractPost(post: RawPost): Promise<ExtractionResult> {
-  let response: Anthropic.Message;
-  try {
-    response = await callModel(post);
-  } catch (error) {
-    const { fatal, hint } = isFatalForRun(error);
-    const base = error instanceof Error ? error.message : String(error);
-    return { ok: false, post, error: hint ? `${base}\n\n  ${hint}` : base, fatal };
-  }
-
+/** Parse one response into a normalised extraction, or an error string. */
+function readResponse(response: Anthropic.Message): { extracted: ExtractedPost } | { error: string } {
   // Check stop_reason BEFORE touching content. On a refusal the content array
   // is empty (pre-output) or partial (mid-stream), so indexing it blindly is
   // how this would crash in production.
   if (response.stop_reason === "refusal") {
     const category = response.stop_details?.category ?? "unspecified";
-    return { ok: false, post, fatal: false, error: `model declined to answer (category: ${category})` };
+    return { error: `model declined to answer (category: ${category})` };
   }
-
   if (response.stop_reason === "max_tokens") {
-    return {
-      ok: false,
-      post,
-      fatal: false,
-      error: `hit max_tokens (${MAX_TOKENS}) — response truncated, raise MAX_TOKENS`,
-    };
+    return { error: `hit max_tokens (${MAX_TOKENS}) — response truncated, raise MAX_TOKENS` };
   }
 
   const text = response.content
@@ -295,23 +403,104 @@ export async function extractPost(post: RawPost): Promise<ExtractionResult> {
     .map((block) => block.text)
     .join("");
 
-  if (!text.trim()) {
-    return { ok: false, post, fatal: false, error: `empty response (stop_reason: ${response.stop_reason})` };
-  }
+  if (!text.trim()) return { error: `empty response (stop_reason: ${response.stop_reason})` };
 
-  let extracted: ExtractedPost;
   try {
     // Sentinels ("" / NOT_STATED / tri-state) become null here, once.
-    extracted = normaliseExtraction(JSON.parse(text));
+    return { extracted: normaliseExtraction(JSON.parse(text)) };
   } catch (error) {
     return {
-      ok: false,
-      post,
-      fatal: false,
       error: `response was not valid JSON despite structured outputs: ${
         error instanceof Error ? error.message : String(error)
       }`,
     };
+  }
+}
+
+/**
+ * Should the text-only result be re-run with images attached?
+ *
+ * Only hiring posts qualify: a job-seeker's holiday snaps and a group admin's
+ * welcome graphic have nothing to add, and vision on those is pure cost. Within
+ * hiring posts, escalate when the substance an actual listing needs is missing —
+ * which is precisely the signature of an ad whose content lives in the graphic.
+ */
+function needsVision(extracted: ExtractedPost, post: RawPost): boolean {
+  if (!post.images?.length) return false;
+  if (extracted.classification !== "hiring") return false;
+
+  return (
+    extracted.confidence !== "high" ||
+    extracted.roles.length === 0 ||
+    extracted.businessName === null ||
+    extracted.contactMethod === "none_stated"
+  );
+}
+
+function toUsage(response: Anthropic.Message): Usage {
+  return {
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
+  };
+}
+
+function addUsage(a: Usage, b: Usage): Usage {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    cacheReadTokens: a.cacheReadTokens + b.cacheReadTokens,
+    cacheWriteTokens: a.cacheWriteTokens + b.cacheWriteTokens,
+  };
+}
+
+/**
+ * Extract one post. Per-post problems return ok:false; run-level ones set fatal.
+ *
+ * In "auto" mode this may make two calls: text first, then a re-run with images
+ * when the text result looks like an ad missing its substance. Both calls are
+ * billed, and `usage` is their sum.
+ */
+export async function extractPost(
+  post: RawPost,
+  mode: VisionMode = "auto",
+): Promise<ExtractionResult> {
+  const hasImages = Boolean(post.images?.length);
+  const firstPassWithImages = mode === "always" && hasImages;
+
+  let response: Anthropic.Message;
+  try {
+    response = await callModel(post, firstPassWithImages);
+  } catch (error) {
+    const { fatal, hint } = isFatalForRun(error);
+    const base = error instanceof Error ? error.message : String(error);
+    return { ok: false, post, error: hint ? `${base}\n\n  ${hint}` : base, fatal };
+  }
+
+  const first = readResponse(response);
+  if ("error" in first) return { ok: false, post, error: first.error, fatal: false };
+
+  let extracted = first.extracted;
+  let usage = toUsage(response);
+  let visionUsed = firstPassWithImages;
+  let passes = 1;
+
+  if (mode === "auto" && needsVision(extracted, post)) {
+    try {
+      const second = await callModel(post, true);
+      const parsed = readResponse(second);
+      usage = addUsage(usage, toUsage(second));
+      passes = 2;
+      // Keep the text-only result if the vision pass fails — a degraded row
+      // beats no row, and the audit will still flag what is missing.
+      if (!("error" in parsed)) {
+        extracted = parsed.extracted;
+        visionUsed = true;
+      }
+    } catch {
+      // Same reasoning: a failed escalation must not lose the first result.
+    }
   }
 
   return {
@@ -319,12 +508,9 @@ export async function extractPost(post: RawPost): Promise<ExtractionResult> {
     post,
     extracted,
     problems: auditExtraction(extracted),
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-      cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
-      cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
-    },
+    usage,
+    visionUsed,
+    passes,
   };
 }
 
