@@ -56,11 +56,16 @@ type ScrapedPost = {
   permalink: string | null;
   postedAt: string | null;
   images?: string[];
+  /** Numeric Facebook user id of the poster, when the DOM exposes it. */
+  authorId?: string | null;
+  /** When THIS run saw the post. Facebook's own timestamp is unreadable. */
+  collectedAt: string;
 };
 
 /** What page.evaluate hands back, before images are downloaded. */
 type RawScraped = {
   author: string | null;
+  authorId: string | null;
   text: string;
   permalink: string | null;
   postedAt: string | null;
@@ -101,12 +106,13 @@ async function expandPosts(page: Page): Promise<number> {
  * returns raw shapes; image downloading happens back in Node where the request
  * context carries the session cookies.
  */
-async function scrapePosts(page: Page): Promise<RawScraped[]> {
+async function scrapePosts(page: Page, groupId: string): Promise<RawScraped[]> {
   // Evaluated as a string on purpose: tsx/esbuild rewrites named arrow
   // functions with a __name helper that does not exist in page context, so a
   // normal TS callback here fails with "__name is not defined".
   return page.evaluate(String.raw`(() => {
     var MIN_IMAGE_WIDTH = ${MIN_IMAGE_WIDTH};
+    var GROUP_ID = '${groupId}';
     var bodies = Array.prototype.slice.call(
       document.querySelectorAll('[data-ad-preview="message"], [data-ad-comet-preview="message"]')
     );
@@ -132,31 +138,52 @@ async function scrapePosts(page: Page): Promise<RawScraped[]> {
 
       var links = Array.prototype.slice.call(container.querySelectorAll('a[href]'));
 
+      // PERMALINK. Facebook does not put the real post URL in the feed: the
+      // timestamp link's href is a bare ?__cft__ token that resolves to the
+      // group. The only durable post identifier available here is the photo
+      // "collection base" id on attachment links (set=pcb.<id>), which for
+      // group posts is the post id, so we rebuild the canonical URL from it.
+      // Text-only posts therefore have no permalink, and that is a real limit
+      // rather than a selector we have not found.
       var permalink = null;
-      var postedAt = null;
       for (var i = 0; i < links.length; i++) {
         var href = links[i].href || '';
-        if (/\/posts\/|permalink|story_fbid/.test(href) && href.indexOf('comment_id') === -1) {
-          permalink = href.split('?')[0];
-          postedAt =
-            links[i].getAttribute('aria-label') ||
-            links[i].getAttribute('title') ||
-            (links[i].innerText || '').trim() ||
-            null;
+        var direct = /\/posts\/([0-9]+)/.exec(href);
+        if (direct) { permalink = href.split('?')[0]; break; }
+        var pcb = /set=pcb\.([0-9]+)/.exec(href);
+        if (pcb) { permalink = 'https://www.facebook.com/groups/' + GROUP_ID + '/posts/' + pcb[1] + '/'; break; }
+      }
+
+      // AUTHOR. The post header h2 is the display name. The user link carries
+      // the numeric id, which is stabler than a name for identity.
+      // NB: that link's href contains "/groups/" — an earlier version excluded
+      // every /groups/ link and so discarded the only one that mattered.
+      var author = null;
+      var authorId = null;
+      var h2 = container.querySelector('h2');
+      if (h2) author = (h2.innerText || '').trim().split('\n')[0] || null;
+
+      for (var j = 0; j < links.length; j++) {
+        var uhref = links[j].href || '';
+        var um = /\/groups\/[0-9]+\/user\/([0-9]+)/.exec(uhref);
+        if (um) {
+          authorId = um[1];
+          if (!author) {
+            author =
+              (links[j].getAttribute('aria-label') || '').trim() ||
+              (links[j].innerText || '').trim().split('\n')[0] ||
+              null;
+          }
           break;
         }
       }
 
-      var author = null;
-      for (var j = 0; j < links.length; j++) {
-        var ahref = links[j].href || '';
-        var atext = (links[j].innerText || '').trim();
-        if (!atext) continue;
-        if (ahref.indexOf('/groups/') !== -1) continue;
-        if (!/facebook\.com\/(profile\.php|people\/|[^\/]+\/?$)/.test(ahref)) continue;
-        author = atext.split('\n')[0];
-        break;
-      }
+      // TIMESTAMP. Deliberately obfuscated: the visible "3d" is scrambled
+      // characters interleaved with U+034F joiners and reordered by CSS, so
+      // anything read out of it is garbage. Left null on purpose — the
+      // extractor already refuses to guess dates, and collectedAt below
+      // records when WE saw the post, which is what dedup actually needs.
+      var postedAt = null;
 
       var imgs = Array.prototype.slice.call(container.querySelectorAll('img'));
       var seen = {};
@@ -173,6 +200,7 @@ async function scrapePosts(page: Page): Promise<RawScraped[]> {
 
       out.push({
         author: author,
+        authorId: authorId,
         text: text,
         permalink: permalink,
         postedAt: postedAt ? String(postedAt).trim() : null,
@@ -280,7 +308,7 @@ async function collectGroup(
     const expanded = await expandPosts(page);
     if (expanded > 0) await pause(1_200);
 
-    const scraped = await scrapePosts(page);
+    const scraped = await scrapePosts(page, groupId);
 
     for (const [index, raw] of scraped.entries()) {
       if (raw.text.length < 20) continue; // comment blocks and chrome
@@ -294,6 +322,8 @@ async function collectGroup(
         text: raw.text,
         permalink: raw.permalink,
         postedAt: raw.postedAt,
+        authorId: raw.authorId,
+        collectedAt: new Date().toISOString(),
         images: raw.imageUrls.length > 0 ? raw.imageUrls : undefined,
       });
     }
