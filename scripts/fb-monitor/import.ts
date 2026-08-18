@@ -33,7 +33,7 @@
  */
 import { readFileSync } from "node:fs";
 
-import { buildDedupKey } from "../lead-monitor/dedup-key";
+import { buildDedupKey, fnv1a64Hex, utf8Bytes } from "../lead-monitor/dedup-key";
 import {
   loadEnvFile,
   normaliseRegion,
@@ -231,11 +231,32 @@ async function main(): Promise<void> {
     if (!resort) { held.push(`${label}: resort ${JSON.stringify(e.resortName)} did not match`); continue; }
     if (e.roles.length === 0) { held.push(`${label}: no roles extracted`); continue; }
 
-    for (const [index, role] of e.roles.entries()) {
+    for (const role of e.roles) {
       // One listing per role, so each is discoverable by category and alert.
-      // externalId is per-role, or a post advertising three jobs would collapse
-      // into one on re-import.
-      const externalId = buildDedupKey(row.post.group, e.businessName, `${row.post.text}|${role.jobTitle}|${index}`);
+      //
+      // Hash the FULL tuple rather than calling buildDedupKey: that function
+      // truncates its text component to 120 code points, which is correct for
+      // lead dedup and wrong here. An earlier version passed
+      // `${text}|${jobTitle}|${index}` as its text argument, so truncation ate
+      // the discriminator and every role in a post produced an identical id.
+      // The endpoint then upserted them all onto one row, turning 23 listings
+      // into 8 while honestly reporting 23 successes.
+      // IDENTITY OF A LISTING: group + business + job title. Nothing else.
+      //
+      // Two earlier attempts got this wrong in opposite directions. Including
+      // the post text truncated to 120 chars collapsed every role in a post
+      // onto one row. Including the full text AND the role's array index went
+      // the other way and created duplicates on re-run, because the model does
+      // not guarantee role ordering and the scraped text shifts slightly
+      // between passes as "See more" expands — either variation mints a new id
+      // for a listing that already exists.
+      //
+      // A scheduled job runs this three times a day, so stability across runs
+      // matters more than distinguishing two same-titled roles at one business,
+      // which is vanishingly rare and harmless to merge.
+      const externalId = fnv1a64Hex(
+        utf8Bytes([row.post.group, e.businessName, role.jobTitle].join(" ~|~ ").toLowerCase()),
+      );
 
       pending.push({
         row,
