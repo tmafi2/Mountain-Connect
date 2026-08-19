@@ -15,7 +15,7 @@
 
 set -uo pipefail
 
-REPO="/Users/tylermafi/Desktop/Mountain Connect"
+REPO="/Users/tylermafi/projects/mountain-connect"
 NPM="/usr/local/bin/npm"
 # launchd does not guarantee HOME, and `set -u` turns an unset one into an
 # immediate abort before anything is logged — which is the worst possible
