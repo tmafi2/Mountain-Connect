@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-3xl font-bold text-primary">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-foreground/50">Last updated: 5 April 2026</p>
+      <p className="mt-2 text-sm text-foreground/50">Last updated: 19 August 2026</p>
 
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-foreground/70">
         <section>
@@ -26,6 +26,7 @@ export default function PrivacyPolicyPage() {
             <li><strong>Account information:</strong> Name, email address, password, and account type (worker or business)</li>
             <li><strong>Worker profile data:</strong> Bio, skills, work experience, availability, preferred job types, contact email, phone number, date of birth, nationality, visa status, profile photos, and uploaded resumes</li>
             <li><strong>Business profile data:</strong> Business name, description, industry, location, contact details, logo, cover photos, associated resort</li>
+            <li><strong>Billing information (paid plans only):</strong> Your selected plan, billing interval, subscription and trial status, renewal date, and the customer and subscription identifiers assigned by our payment processor. <strong>We never receive or store your card number.</strong> Card details are entered directly into Stripe&apos;s hosted checkout and billing portal and do not pass through our servers.</li>
             <li><strong>Job listings:</strong> Job titles, descriptions, requirements, and application details</li>
             <li><strong>Applications:</strong> Application messages and status</li>
             <li><strong>Communications:</strong> Messages sent through our platform</li>
@@ -67,9 +68,13 @@ export default function PrivacyPolicyPage() {
                 <li>Resend (transactional emails)</li>
                 <li>Vercel (website hosting)</li>
                 <li>Google Analytics (anonymised usage analytics)</li>
+                <li>Stripe (subscription payments and billing, for businesses on a paid plan)</li>
               </ul>
             </li>
           </ul>
+          <p className="mt-2">
+            If you subscribe to a paid plan, your payment details are collected and processed by Stripe under its own privacy policy rather than this one. Stripe acts as merchant of record for those transactions. We receive only the resulting subscription record — the plan, its status, and its renewal date — and never your card number or full billing details.
+          </p>
           <p className="mt-2">We do not sell your personal information to third parties.</p>
         </section>
 
@@ -77,6 +82,9 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-lg font-semibold text-primary">5. Data Storage and Security</h2>
           <p className="mt-2">
             Your data is stored securely using Supabase, which provides enterprise-grade security including encryption at rest and in transit. Our database uses row-level security (RLS) policies to ensure users can only access data they are authorised to view.
+          </p>
+          <p className="mt-2">
+            Records of payments and subscriptions are kept for as long as we are required to keep them to meet our tax and accounting obligations. This can be longer than we retain other account data, including after an account is closed.
           </p>
           <p className="mt-2">
             While we take reasonable steps to protect your information, no method of electronic transmission or storage is 100% secure. We cannot guarantee absolute security.
@@ -89,7 +97,7 @@ export default function PrivacyPolicyPage() {
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
             <li><strong>Correction:</strong> Request that we correct any inaccurate or incomplete information</li>
-            <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes all profile data, applications, job listings, notifications, newsletter subscriptions, and authentication credentials</li>
+            <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes all profile data, applications, job listings, notifications, newsletter subscriptions, and authentication credentials. Payment and subscription records are the one exception: we must retain those for the period described in section 5, and Stripe retains its own records independently of us</li>
             <li><strong>Complaint:</strong> Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) if you believe we have breached the APPs</li>
           </ul>
           <p className="mt-2">To exercise any of these rights, contact us at hello@mountainconnects.com.</p>
