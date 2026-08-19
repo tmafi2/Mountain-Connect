@@ -54,6 +54,16 @@ export default function AdminJobsPage() {
   const [publishing, setPublishing] = useState(false);
   const [resendingOutreach, setResendingOutreach] = useState(false);
   const [outreachSentTo, setOutreachSentTo] = useState<string | null>(null);
+  // Bulk selection. Held as ids rather than rows so it survives refetches
+  // and filter changes without going stale.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<null | "approve" | "delete">(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null);
+  // A row's X opens the same confirm as the panel's delete. One extra click
+  // is worth it: this cascades applications and cannot be undone, and the
+  // pending queue is long enough that a mis-click is a matter of time.
+  const [rowPendingDelete, setRowPendingDelete] = useState<JobRow | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -148,6 +158,101 @@ export default function AdminJobsPage() {
     setDeleting(false);
   };
 
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const deleteJobsById = async (ids: string[]) => {
+    const res = await fetch("/api/admin/delete-jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobIds: ids }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Unknown error");
+    setJobs((prev) => prev.filter((j) => !ids.includes(j.id)));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.delete(id);
+      return next;
+    });
+    return data as { deleted: number; alreadyGone: number };
+  };
+
+  const handleBulkApprove = async () => {
+    const ids = [...selectedIds];
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/publish-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobIds: ids }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Unknown error");
+
+      const published: string[] = data.published ?? [];
+      setJobs((prev) =>
+        prev.map((j) =>
+          published.includes(j.id) ? { ...j, status: "active", pending_approval: false } : j
+        )
+      );
+      // Say what was EMAILED, not just what was published. One email per
+      // business is the whole point of the bulk endpoint, and the only way
+      // to see it worked is for the count to be lower than the job count.
+      const sent = (data.emailsSent ?? []) as Array<{ businessName: string; listings: number }>;
+      const errors = (data.emailErrors ?? []) as Array<{ businessName: string; error: string }>;
+      const skipped = (data.emailsSkipped ?? []) as Array<{ reason: string }>;
+      const parts = [`Published ${published.length} listing${published.length === 1 ? "" : "s"}.`];
+      parts.push(
+        sent.length === 0
+          ? "No outreach emails sent."
+          : `Emailed ${sent.length} business${sent.length === 1 ? "" : "es"} once each: ${sent
+              .map((e) => `${e.businessName} (${e.listings})`)
+              .join(", ")}.`
+      );
+      if (skipped.length > 0) parts.push(`${skipped.length} skipped (already claimed or contacted).`);
+      if (errors.length > 0) parts.push(`${errors.length} email error(s): ${errors[0].error}`);
+      setBulkSummary(parts.join(" "));
+      clearSelection();
+      setBulkAction(null);
+    } catch (err) {
+      alert("Bulk approve failed: " + (err instanceof Error ? err.message : "Unknown error"));
+    }
+    setBulkBusy(false);
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkBusy(true);
+    try {
+      const data = await deleteJobsById([...selectedIds]);
+      setBulkSummary(`Deleted ${data.deleted} listing${data.deleted === 1 ? "" : "s"}.`);
+      setBulkAction(null);
+    } catch (err) {
+      alert("Bulk delete failed: " + (err instanceof Error ? err.message : "Unknown error"));
+    }
+    setBulkBusy(false);
+  };
+
+  const handleRowDelete = async () => {
+    if (!rowPendingDelete) return;
+    setBulkBusy(true);
+    try {
+      await deleteJobsById([rowPendingDelete.id]);
+      if (selected?.id === rowPendingDelete.id) setSelected(null);
+      setRowPendingDelete(null);
+    } catch (err) {
+      alert("Delete failed: " + (err instanceof Error ? err.message : "Unknown error"));
+    }
+    setBulkBusy(false);
+  };
+
   const handleToggleFeature = async () => {
     if (!selected) return;
     setFeaturing(true);
@@ -219,10 +324,78 @@ export default function AdminJobsPage() {
         )}
       </div>
 
+      {bulkSummary && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+          <span className="text-sm text-green-800">{bulkSummary}</span>
+          <button
+            type="button"
+            onClick={() => setBulkSummary(null)}
+            className="ml-auto shrink-0 text-sm font-semibold text-green-700 hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {selectedIds.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-secondary/30 bg-secondary/5 px-4 py-3">
+          <span className="text-sm font-semibold text-primary">
+            {selectedIds.size} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => setBulkAction("approve")}
+            className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-700"
+          >
+            ✓ Approve &amp; email
+          </button>
+          <button
+            type="button"
+            onClick={() => setBulkAction("delete")}
+            className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-xs font-semibold text-foreground/50 hover:text-foreground/80"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="mt-6 overflow-hidden rounded-xl border border-accent bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-accent bg-accent/10 text-left text-xs uppercase tracking-wider text-foreground/50">
+              <th className="w-10 px-3 py-3">
+                <input
+                  type="checkbox"
+                  aria-label="Select all listed jobs"
+                  checked={filtered.length > 0 && filtered.every((j) => selectedIds.has(j.id))}
+                  ref={(el) => {
+                    if (!el) return;
+                    const n = filtered.filter((j) => selectedIds.has(j.id)).length;
+                    el.indeterminate = n > 0 && n < filtered.length;
+                  }}
+                  onChange={(e) =>
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev);
+                      // Acts on what is CURRENTLY FILTERED, not the whole
+                      // table — "select all" while filtered to Pending must
+                      // not quietly rope in active jobs too.
+                      for (const j of filtered) {
+                        if (e.target.checked) next.add(j.id);
+                        else next.delete(j.id);
+                      }
+                      return next;
+                    })
+                  }
+                  className="h-4 w-4 cursor-pointer accent-secondary"
+                />
+              </th>
               <th className="px-5 py-3">Job Title</th>
               <th className="px-5 py-3">Business</th>
               <th className="px-5 py-3">Location</th>
@@ -230,11 +403,21 @@ export default function AdminJobsPage() {
               <th className="px-5 py-3">Pay</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3 text-right">Posted</th>
+              <th className="w-10 px-3 py-3" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
             {filtered.map((job) => (
               <tr key={job.id} onClick={() => setSelected(job)} className="border-b border-accent/30 cursor-pointer transition-colors hover:bg-accent/5">
+                <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${job.title}`}
+                    checked={selectedIds.has(job.id)}
+                    onChange={() => toggleOne(job.id)}
+                    className="h-4 w-4 cursor-pointer accent-secondary"
+                  />
+                </td>
                 <td className="px-5 py-3 font-medium text-primary">
                   {job.featured_until && new Date(job.featured_until) > new Date() && (
                     <span className="mr-1.5 inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600" title="Featured">★</span>
@@ -271,6 +454,19 @@ export default function AdminJobsPage() {
                   </div>
                 </td>
                 <td className="px-5 py-3 text-right text-foreground/50">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
+                <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    title={`Delete "${job.title}"`}
+                    aria-label={`Delete ${job.title}`}
+                    onClick={() => setRowPendingDelete(job)}
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-foreground/30 transition-colors hover:bg-red-50 hover:text-red-600"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -393,8 +589,10 @@ export default function AdminJobsPage() {
                       const data = await res.json();
                       setPublishing(false);
                       if (res.ok && data.success) {
-                        setSelected({ ...selected, status: "active" });
-                        setJobs((prev) => prev.map((j) => j.id === selected.id ? { ...j, status: "active" } : j));
+                        // pending_approval too, or the amber "Pending" badge
+                        // sticks around on a row that is now live.
+                        setSelected({ ...selected, status: "active", pending_approval: false });
+                        setJobs((prev) => prev.map((j) => j.id === selected.id ? { ...j, status: "active", pending_approval: false } : j));
                       } else {
                         alert(data.error || "Failed to publish");
                       }
@@ -484,6 +682,93 @@ export default function AdminJobsPage() {
               </button>
               <button onClick={handleDeleteJob} disabled={deleting} className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50">
                 {deleting ? "Removing..." : "Yes, Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk confirm — approve or delete */}
+      {bulkAction && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !bulkBusy && setBulkAction(null)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            {bulkAction === "approve" ? (
+              <>
+                <h3 className="text-lg font-bold text-primary">
+                  Approve {selectedIds.size} listing{selectedIds.size === 1 ? "" : "s"}?
+                </h3>
+                <p className="mt-2 text-sm text-foreground/60">
+                  They go live immediately. Unclaimed businesses get one claim email each —{" "}
+                  <strong className="text-primary">
+                    {new Set(jobs.filter((j) => selectedIds.has(j.id)).map((j) => j.business_id)).size} business
+                    {new Set(jobs.filter((j) => selectedIds.has(j.id)).map((j) => j.business_id)).size === 1 ? "" : "es"}
+                  </strong>{" "}
+                  — not one per listing, and never twice to the same business.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-bold text-primary">
+                  Delete {selectedIds.size} listing{selectedIds.size === 1 ? "" : "s"}?
+                </h3>
+                <p className="mt-2 text-sm text-foreground/60">
+                  Permanent. Any applications and expressions of interest on them go too. This cannot be undone.
+                </p>
+              </>
+            )}
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setBulkAction(null)}
+                disabled={bulkBusy}
+                className="flex-1 rounded-xl border border-accent/40 py-2.5 text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent/10 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={bulkAction === "approve" ? handleBulkApprove : handleBulkDelete}
+                disabled={bulkBusy}
+                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${
+                  bulkAction === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {bulkBusy
+                  ? bulkAction === "approve"
+                    ? "Publishing…"
+                    : "Deleting…"
+                  : bulkAction === "approve"
+                    ? "Approve & email"
+                    : "Yes, delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Row X confirm */}
+      {rowPendingDelete && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !bulkBusy && setRowPendingDelete(null)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-primary">Delete this listing?</h3>
+            <p className="mt-2 text-sm text-foreground/60">
+              &ldquo;{rowPendingDelete.title}&rdquo;{rowPendingDelete.business_name ? ` — ${rowPendingDelete.business_name}` : ""}.
+              Permanent, and takes any applications with it.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setRowPendingDelete(null)}
+                disabled={bulkBusy}
+                className="flex-1 rounded-xl border border-accent/40 py-2.5 text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent/10 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRowDelete}
+                disabled={bulkBusy}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {bulkBusy ? "Deleting…" : "Yes, delete"}
               </button>
             </div>
           </div>

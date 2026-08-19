@@ -412,6 +412,8 @@ export async function sendImportOutreachEmail(params: {
   source: string;
   claimUrl: string;
   eoiCount: number;
+  /** Further listings published for this business in the same action. */
+  otherListings?: number;
 }) {
   const { subject, html } = importOutreachEmail(params);
   return sendEmail({

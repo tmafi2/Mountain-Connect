@@ -4,15 +4,40 @@ interface ImportOutreachEmailProps {
   source: string;
   claimUrl: string;
   eoiCount: number;
+  /**
+   * How many FURTHER listings we published for this business alongside
+   * jobTitle. We import one listing per role, so publishing a business's
+   * queue can be a dozen jobs; they get one email, and it has to describe
+   * what actually happened rather than name one listing and hide the rest.
+   */
+  otherListings?: number;
 }
 
-export function importOutreachEmail({ businessName, jobTitle, source, claimUrl, eoiCount }: ImportOutreachEmailProps) {
+export function importOutreachEmail({
+  businessName,
+  jobTitle,
+  source,
+  claimUrl,
+  eoiCount,
+  otherListings = 0,
+}: ImportOutreachEmailProps) {
+  const many = otherListings > 0;
+  const listingCount = otherListings + 1;
+
   const eoiLine = eoiCount > 0
-    ? `It is already live and has received ${eoiCount} ${eoiCount === 1 ? "expression" : "expressions"} of interest from job seekers.`
-    : `It is already live and ready for job seekers to browse.`;
+    ? `${many ? "They are" : "It is"} already live and ${many ? "have" : "has"} received ${eoiCount} ${eoiCount === 1 ? "expression" : "expressions"} of interest from job seekers.`
+    : `${many ? "They are" : "It is"} already live and ready for job seekers to browse.`;
+
+  const subjectLine = many
+    ? `Your ${listingCount} jobs on Mountain Connects`
+    : `Your ${jobTitle} job on Mountain Connects`;
+  const headerLine = many ? `${listingCount} LISTINGS` : jobTitle;
+  const sawLine = many
+    ? `I saw your <strong>${jobTitle}</strong> listing and ${otherListings} other${otherListings === 1 ? "" : "s"} on ${source}`
+    : `I saw your <strong>${jobTitle}</strong> listing on ${source}`;
 
   return {
-    subject: `Your ${jobTitle} job on Mountain Connects`,
+    subject: subjectLine,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -31,7 +56,7 @@ export function importOutreachEmail({ businessName, jobTitle, source, claimUrl, 
             <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
               <p style="margin:0 0 10px;font-size:44px;">🏔️</p>
               <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">Your job is live on Mountain Connects</h1>
-              <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">${jobTitle}</p>
+              <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">${headerLine}</p>
             </td>
           </tr>
           <tr>
@@ -40,10 +65,10 @@ export function importOutreachEmail({ businessName, jobTitle, source, claimUrl, 
                 Hi <strong style="color:#0a1e33;">${businessName}</strong>,
               </p>
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                I am reaching out from Mountain Connects, a new platform connecting ski resort businesses with seasonal workers. I saw your <strong>${jobTitle}</strong> listing on ${source} and thought you would be a great fit for the platform.
+                I am reaching out from Mountain Connects, a new platform connecting ski resort businesses with seasonal workers. ${sawLine} and thought you would be a great fit for the platform.
               </p>
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                I have set up a free listing for you to get things started. ${eoiLine} Claim it below to edit details, see interested candidates, and start interviewing all in one place.
+                I have set up ${many ? `${listingCount} free listings` : "a free listing"} for you to get things started. ${eoiLine} Claim ${many ? "them" : "it"} below to edit details, see interested candidates, and start interviewing all in one place.
               </p>
 
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
