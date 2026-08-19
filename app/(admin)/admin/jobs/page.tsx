@@ -23,6 +23,7 @@ interface JobRow {
   start_date: string | null;
   end_date: string | null;
   resort_name: string | null;
+  resort_country: string | null;
   nearby_town_name: string | null;
   featured_until: string | null;
   created_at: string;
@@ -59,7 +60,7 @@ export default function AdminJobsPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("job_posts")
-        .select("id, title, description, requirements, position_type, status, pending_approval, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, featured_until, created_at, business_id, resorts(name), nearby_towns(name)")
+        .select("id, title, description, requirements, position_type, status, pending_approval, pay_amount, pay_currency, salary_range, positions_available, accommodation_included, ski_pass_included, visa_sponsorship, meal_perks, start_date, end_date, featured_until, created_at, business_id, resorts(name, country), nearby_towns(name)")
         .order("created_at", { ascending: false });
 
       if (error) { console.error("Error loading jobs:", error); setLoading(false); return; }
@@ -80,6 +81,7 @@ export default function AdminJobsPage() {
           return {
             ...j,
             resort_name: (j.resorts as unknown as { name: string } | null)?.name || null,
+            resort_country: (j.resorts as unknown as { country: string } | null)?.country || null,
             nearby_town_name: ((j as any).nearby_towns as { name: string } | null)?.name || null,
             business_name: biz?.name || "Unknown",
             business_claimed: biz?.claimed ?? true,
@@ -223,6 +225,7 @@ export default function AdminJobsPage() {
             <tr className="border-b border-accent bg-accent/10 text-left text-xs uppercase tracking-wider text-foreground/50">
               <th className="px-5 py-3">Job Title</th>
               <th className="px-5 py-3">Business</th>
+              <th className="px-5 py-3">Location</th>
               <th className="px-5 py-3">Type</th>
               <th className="px-5 py-3">Pay</th>
               <th className="px-5 py-3">Status</th>
@@ -239,6 +242,18 @@ export default function AdminJobsPage() {
                   {job.title}
                 </td>
                 <td className="px-5 py-3 text-foreground/70">{job.business_name}</td>
+                <td className="px-5 py-3">
+                  {job.resort_name || job.nearby_town_name ? (
+                    <div className="leading-tight">
+                      <div className="text-foreground/70">{job.resort_name || job.nearby_town_name}</div>
+                      {job.resort_country && (
+                        <div className="text-xs text-foreground/40">{job.resort_country}</div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-foreground/40">—</span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-foreground/70 capitalize">{job.position_type?.replace("_", " ") || "—"}</td>
                 <td className="px-5 py-3 text-foreground/70">{job.pay_amount ? `${job.pay_currency || "AUD"} $${job.pay_amount}` : "—"}</td>
                 <td className="px-5 py-3">

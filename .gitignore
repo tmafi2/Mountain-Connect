@@ -40,3 +40,6 @@ yarn-error.log*
 next-env.d.ts
 .claude/
 .env*
+
+# fb-monitor extraction output — contains scraped personal data, never commit
+scripts/fb-monitor/out/
