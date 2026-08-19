@@ -78,7 +78,7 @@ export default async function BusinessDashboard() {
       .eq("status", "active"),
     supabase
       .from("job_posts")
-      .select("id")
+      .select("id, status, paused_reason")
       .eq("business_id", profile.id),
     supabase
       .from("interviews")
@@ -104,6 +104,15 @@ export default async function BusinessDashboard() {
 
   const listingCount = String(activeCountResult.count ?? 0);
   const allJobIds = allJobIdsResult.data;
+
+  // Listings we parked behind the tier limit (migration 00087). A NULL
+  // paused_reason means the owner paused it themselves, which is none of the
+  // upgrade prompt's business.
+  const parkedJobIds = new Set(
+    (allJobIds ?? [])
+      .filter((j) => j.status === "paused" && j.paused_reason)
+      .map((j) => j.id)
+  );
   const recentInterviews = recentInterviewsResult.data;
   const recentJobs = recentJobsResult.data;
 
@@ -286,6 +295,10 @@ export default async function BusinessDashboard() {
       }}
       showVerifiedCelebration={showVerifiedCelebration}
       expressionsOfInterest={expressionsOfInterest}
+      parkedListingCount={parkedJobIds.size}
+      parkedInterestCount={
+        expressionsOfInterest.filter((e) => parkedJobIds.has(e.jobPostId)).length
+      }
     />
   );
 }

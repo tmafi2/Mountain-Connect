@@ -5,6 +5,8 @@ import { sendListingClaimedEmail, sendAdminListingClaimedEmail } from "@/lib/ema
 import { createNotification } from "@/lib/notifications/create";
 import { logAdminAction } from "@/lib/audit/log";
 import { validatePassword } from "@/lib/utils/password";
+import { resolveEffectiveTier, TIER_FEATURES } from "@/lib/tier";
+import { parkListingsOnClaim } from "@/lib/billing/job-parking";
 
 /**
  * POST /api/claim/complete
@@ -20,10 +22,13 @@ export async function POST(request: Request) {
     if (rateLimited) return rateLimited;
 
     const body = await request.json();
-    const { claimToken, email, password } = body as {
+    const { claimToken, email, password, keepLiveJobId } = body as {
       claimToken?: string;
       email?: string;
       password?: string;
+      /** Which imported listing stays live. Only meaningful when the
+       *  claimant's tier covers fewer listings than we imported for them. */
+      keepLiveJobId?: string;
     };
 
     if (!claimToken) return NextResponse.json({ error: "Missing claim token" }, { status: 400 });
@@ -44,7 +49,9 @@ export async function POST(request: Request) {
     // Find the shell business by claim token
     const { data: business } = await admin
       .from("business_profiles")
-      .select("id, business_name, email, is_claimed, user_id")
+      .select(
+        "id, business_name, email, is_claimed, user_id, tier, selected_tier, subscription_status, grace_period_ends_at"
+      )
       .eq("claim_token", claimToken)
       .maybeSingle();
 
@@ -125,6 +132,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to link listing" }, { status: 500 });
     }
 
+    // Apply the tier's listing limit to what they just inherited.
+    //
+    // We import one listing per ROLE, so a single Facebook post can become a
+    // dozen job posts. Until now a claimant kept every one of them live for
+    // free, while a business that signed up normally got one — the gate only
+    // ever ran on job CREATION, and claiming creates nothing.
+    //
+    // The limit comes from the resolved tier rather than a hardcoded 1, so a
+    // shell still inside the 00080 courtesy window keeps everything live and
+    // nothing is parked. Failure here must not fail the claim: they own the
+    // listing either way, and the nightly downgrade rule would catch it.
+    const effectiveTier = resolveEffectiveTier({
+      tier: business.tier as "free" | "standard" | "premium" | "enterprise" | null,
+      selected_tier: business.selected_tier,
+      subscription_status: business.subscription_status,
+      grace_period_ends_at: business.grace_period_ends_at,
+    });
+    let parkedCount = 0;
+    try {
+      parkedCount = await parkListingsOnClaim(
+        admin,
+        business.id,
+        keepLiveJobId ?? null,
+        TIER_FEATURES[effectiveTier].maxActiveJobs
+      );
+    } catch (err) {
+      console.error("Failed to apply listing limit on claim:", err);
+    }
+
     // Welcome email to the business (non-blocking)
     sendListingClaimedEmail({
       to: normalizedEmail,
@@ -190,9 +226,12 @@ export async function POST(request: Request) {
       }
     }
 
+    // The parked count rides through login so the dashboard can open on the
+    // upgrade prompt while the reason is still fresh in their mind.
     return NextResponse.json({
       success: true,
-      redirectUrl: "/login?claimed=1",
+      parkedCount,
+      redirectUrl: parkedCount > 0 ? `/login?claimed=1&parked=${parkedCount}` : "/login?claimed=1",
     });
   } catch (err) {
     console.error("Claim complete error:", err);

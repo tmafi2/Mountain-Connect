@@ -275,6 +275,9 @@ async function fetchListingsData(): Promise<{
         venue: venue && !venue.is_primary ? venue.name : null,
         location: resort ? `${resort.name}, ${resort.country}` : "",
         status: (j.status as string) as "active" | "paused" | "closed" | "draft",
+        // Set only when WE parked it for a tier limit (migration 00087).
+        // A self-paused listing has NULL here and reads as a plain "Paused".
+        pausedReason: (j.paused_reason as string | null) ?? null,
         pay: (j.pay_amount as string) ? `${(j.pay_currency as string) || "AUD"} $${j.pay_amount as string}` : (j.salary_range as string) || "",
         type: posType,
         posted: new Date(j.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),

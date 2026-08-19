@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ClaimForm from "./ClaimForm";
+import { resolveEffectiveTier, TIER_FEATURES } from "@/lib/tier";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,9 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
 
   const { data: business, error: bizErr } = await admin
     .from("business_profiles")
-    .select("id, business_name, email, location, country, is_claimed, logo_url, resort_id")
+    .select(
+      "id, business_name, email, location, country, is_claimed, logo_url, resort_id, tier, selected_tier, subscription_status, grace_period_ends_at"
+    )
     .eq("claim_token", token)
     .maybeSingle();
 
@@ -52,6 +55,21 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
     .eq("business_id", business.id)
     .eq("status", "active")
     .order("created_at", { ascending: false });
+
+  // How many of these listings the claimant can keep live. Resolved from the
+  // shell's own billing state rather than assumed to be 1: migration 00080
+  // stamped a courtesy window onto every business row, unclaimed shells
+  // included, so some of these legitimately resolve to premium and should see
+  // no picker at all. The claim API resolves this again server-side — this
+  // copy only decides what the page offers.
+  const listingLimit = TIER_FEATURES[
+    resolveEffectiveTier({
+      tier: business.tier,
+      selected_tier: business.selected_tier,
+      subscription_status: business.subscription_status,
+      grace_period_ends_at: business.grace_period_ends_at,
+    })
+  ].maxActiveJobs;
 
   // business_profiles.resort_id is a text column without an FK constraint, so
   // we fetch the resort name in a separate query rather than via nested select.
@@ -92,33 +110,13 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
             {resortName ? ` at ${resortName}` : ""}. Create your account below to take ownership and start managing it.
           </p>
 
-          {/* Listing preview */}
-          {jobs && jobs.length > 0 && (
-            <div className="mt-6 rounded-xl border border-accent/50 bg-accent/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-3">
-                Your listing{jobs.length > 1 ? "s" : ""}
-              </p>
-              <div className="space-y-3">
-                {jobs.map((j) => (
-                  <div key={j.id} className="border-b border-accent/40 pb-3 last:border-0 last:pb-0">
-                    <p className="text-sm font-bold text-primary">{j.title}</p>
-                    <p className="mt-1 text-xs text-foreground/60 line-clamp-2">{j.description}</p>
-                    {j.source && (
-                      <p className="mt-1 text-[11px] text-foreground/40">
-                        Sourced from {j.source}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="mt-8 border-t border-accent/40 pt-8">
             <ClaimForm
               claimToken={token}
               businessName={business.business_name}
               defaultEmail={business.email || ""}
+              jobs={jobs ?? []}
+              listingLimit={listingLimit}
             />
           </div>
         </div>
