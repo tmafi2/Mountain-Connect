@@ -27,7 +27,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/tylermafi/Desktop/Mountain Connect/scripts/fb-monitor/run.sh</string>
+        <string>/Users/tylermafi/projects/mountain-connect/scripts/fb-monitor/run.sh</string>
     </array>
 
     <key>StartCalendarInterval</key>
@@ -38,13 +38,15 @@
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/tylermafi/Desktop/Mountain Connect</string>
+    <string>/Users/tylermafi/projects/mountain-connect</string>
 
     <!-- launchd's default PATH omits /usr/local/bin, where node and npm live. -->
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/tylermafi</string>
     </dict>
 
     <!-- launchd's own stdout/stderr, separate from the script's dated log. -->
