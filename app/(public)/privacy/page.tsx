@@ -15,7 +15,10 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-lg font-semibold text-primary">1. Introduction</h2>
           <p className="mt-2">
-            Mountain Connects (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates the website mountainconnects.com. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. We are committed to protecting your privacy in accordance with the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).
+            Mountain Connects (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates the website mountainconnects.com. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
+          </p>
+          <p className="mt-2">
+            We are an Australian operation, and we apply the standards of the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs) to every user. Our workers and businesses are located worldwide, so where the law of your own country gives you stronger or additional rights, those apply to you as well. This includes the Personal Information Protection and Electronic Documents Act (PIPEDA) and provincial equivalents in Canada, the Act on the Protection of Personal Information (APPI) in Japan, and state privacy laws in the United States including the California Consumer Privacy Act as amended (CCPA/CPRA). Section 6 sets out how to exercise those rights and who to complain to in each region.
           </p>
         </section>
 
@@ -69,6 +72,11 @@ export default function PrivacyPolicyPage() {
                 <li>Vercel (website hosting)</li>
                 <li>Google Analytics (anonymised usage analytics)</li>
                 <li>Stripe (subscription payments and billing, for businesses on a paid plan)</li>
+                <li>Sentry (error monitoring and diagnostics)</li>
+                <li>Daily (video interview rooms, when you take an interview on the platform)</li>
+                <li>Cloudflare Turnstile (bot protection on sign-up, login, and password reset)</li>
+                <li>Upstash (rate limiting, which processes IP addresses)</li>
+                <li>Google Maps (map display on resort and town pages)</li>
               </ul>
             </li>
           </ul>
@@ -79,9 +87,15 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-primary">5. Data Storage and Security</h2>
+          <h2 className="text-lg font-semibold text-primary">5. Data Storage, Security, and International Transfers</h2>
           <p className="mt-2">
             Your data is stored securely using Supabase, which provides enterprise-grade security including encryption at rest and in transit. Our database uses row-level security (RLS) policies to ensure users can only access data they are authorised to view.
+          </p>
+          <p className="mt-2">
+            <strong>Where your data is held.</strong> Our primary database is hosted in the Asia Pacific (Seoul) region. Our website and application servers are operated by Vercel, and the service providers listed in section 4 process data on infrastructure of their own, which is generally located in the United States and the European Union. This means that if you are located in Australia, Canada, Japan, the United States, or elsewhere, your personal information will be transferred to and stored in countries other than your own, and may be accessible to those providers under the laws of the countries where they operate.
+          </p>
+          <p className="mt-2">
+            We use these providers because they are established services with published security and privacy practices, and we share with them only what is needed to run the platform. By creating an account you consent to your information being transferred and processed in this way. If you would prefer that your data not be transferred internationally, we are not able to offer you an account, because there is no version of the platform that operates in a single country.
           </p>
           <p className="mt-2">
             Records of payments and subscriptions are kept for as long as we are required to keep them to meet our tax and accounting obligations. This can be longer than we retain other account data, including after an account is closed.
@@ -93,14 +107,22 @@ export default function PrivacyPolicyPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-primary">6. Your Rights</h2>
-          <p className="mt-2">Under Australian privacy law, you have the right to:</p>
+          <p className="mt-2">Wherever you are, you have the right to:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
             <li><strong>Correction:</strong> Request that we correct any inaccurate or incomplete information</li>
             <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes all profile data, applications, job listings, notifications, newsletter subscriptions, and authentication credentials. Payment and subscription records are the one exception: we must retain those for the period described in section 5, and Stripe retains its own records independently of us</li>
-            <li><strong>Complaint:</strong> Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) if you believe we have breached the APPs</li>
+            <li><strong>Complaint:</strong> Complain to us first at hello@mountainconnects.com, and to your regulator if we do not resolve it</li>
           </ul>
-          <p className="mt-2">To exercise any of these rights, contact us at hello@mountainconnects.com.</p>
+          <p className="mt-2">To exercise any of these rights, contact us at hello@mountainconnects.com. We do not charge for this and we will not treat you differently for asking.</p>
+
+          <p className="mt-4"><strong>Your regulator, by region:</strong></p>
+          <ul className="mt-2 list-disc space-y-1 pl-6">
+            <li><strong>Australia:</strong> Office of the Australian Information Commissioner (OAIC), if you believe we have breached the APPs</li>
+            <li><strong>Canada:</strong> Office of the Privacy Commissioner of Canada, or your provincial commissioner where one has jurisdiction (including Quebec, British Columbia, and Alberta)</li>
+            <li><strong>Japan:</strong> Personal Information Protection Commission (個人情報保護委員会)</li>
+            <li><strong>United States:</strong> your state Attorney General. California residents also have the right under the CCPA/CPRA to know what personal information we collect and why, to request deletion or correction, and to opt out of the sale or sharing of personal information — we do not sell or share personal information, so there is nothing to opt out of, and we do not offer financial incentives in exchange for it</li>
+          </ul>
         </section>
 
         <section>
