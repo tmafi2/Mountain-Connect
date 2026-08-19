@@ -123,6 +123,20 @@ function matchResort(name: string | null, resorts: readonly Resort[]): Resort | 
  * the author happened to name a mountain, and requiring a resort threw away
  * 7 of 10 real leads on the first run.
  */
+/**
+ * Requirements text, with the visa detail folded in.
+ *
+ * job_posts.visa_sponsorship is a boolean, so "J-1, H-2B" would be reduced to
+ * `true` and the useful part thrown away. Keeping it in the prose means the
+ * flag stays filterable and the specifics survive for whoever reads the ad.
+ */
+function buildRequirements(role: ExtractedPost["roles"][number]): string {
+  const parts: string[] = [];
+  if (role.requirements) parts.push(role.requirements);
+  if (role.visaSponsorship) parts.push(`Visa: ${role.visaSponsorship}`);
+  return parts.join(" — ");
+}
+
 function regionFor(resort: Resort | null, groupName: string): Region | null {
   if (resort) {
     const fromResort = normaliseRegion(resort.country);
@@ -274,6 +288,30 @@ async function main(): Promise<void> {
           resortName: resort.name,
           country: resort.country,
           location: e.townName ?? "",
+
+          // Everything the extractor already worked out. Omitted from an
+          // earlier version, which is why perks and requirements arrived empty
+          // on listings whose posts plainly stated them.
+          requirements: buildRequirements(role),
+          positionType: role.employmentType ?? "",
+          payAmount: role.payAmount ?? "",
+          payCurrency: role.payCurrency ?? "",
+          // pay_amount alone loses "per what", so keep a readable form too.
+          salaryRange:
+            role.payAmount !== null && role.payPeriod
+              ? `${role.payCurrency ?? ""} ${role.payAmount}/${role.payPeriod}`.trim()
+              : "",
+          positionsAvailable: role.positionsAvailable ?? "",
+          accommodationIncluded: role.accommodationIncluded,
+          accommodationType: role.accommodationType ?? "",
+          skiPassIncluded: role.skiPassIncluded,
+          mealPerks: role.mealPerks,
+          // The column is a boolean; the extractor returns which programmes
+          // were named. Record the flag here and keep the detail in
+          // requirements rather than losing it.
+          visaSponsorship: role.visaSponsorship !== null ? true : undefined,
+          startDate: role.startDate ?? "",
+          endDate: role.endDate ?? "",
         },
       });
     }

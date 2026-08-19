@@ -50,6 +50,9 @@ export async function POST(request: Request) {
     for (const k of keys) {
       const v = body[k];
       if (typeof v === "string") return v.trim();
+      // Numbers count too. A caller sending payAmount: 1700 rather than "1700"
+      // previously fell through to "" and the value was silently dropped.
+      if (typeof v === "number" && Number.isFinite(v)) return String(v);
     }
     return "";
   };
@@ -67,6 +70,58 @@ export async function POST(request: Request) {
   const notionId = pick("notionId", "notion_id");
   const rawResortId = pick("resortId", "resort_id");
   const resortName = pick("resortName", "resort_name");
+
+  // Optional job detail. Every one of these is omitted rather than nulled when
+  // absent, so a re-sync from a source that does not carry them never wipes
+  // values already set by hand in the admin form.
+  const requirements = pick("requirements");
+  const positionTypeRaw = pick("positionType", "position_type");
+  const payAmountRaw = pick("payAmount", "pay_amount");
+  const payCurrency = pick("payCurrency", "pay_currency").toUpperCase();
+  const salaryRange = pick("salaryRange", "salary_range");
+  const positionsRaw = pick("positionsAvailable", "positions_available");
+  const startDate = pick("startDate", "start_date");
+  const endDate = pick("endDate", "end_date");
+  const accommodationType = pick("accommodationType", "accommodation_type");
+
+  const pickBool = (...keys: string[]): boolean | undefined => {
+    for (const k of keys) {
+      const v = body[k];
+      if (typeof v === "boolean") return v;
+      if (v === "true") return true;
+      if (v === "false") return false;
+    }
+    return undefined;
+  };
+  const accommodationIncluded = pickBool("accommodationIncluded", "accommodation_included");
+  const skiPassIncluded = pickBool("skiPassIncluded", "ski_pass_included");
+  const mealPerks = pickBool("mealPerks", "meal_perks");
+  const visaSponsorship = pickBool("visaSponsorship", "visa_sponsorship");
+
+  // position_type is stored snake_case ("full_time"), but callers naturally
+  // send the label the admin form shows ("Full-time"). Anything unrecognised
+  // is dropped rather than guessed, since the column is constrained.
+  const POSITION_TYPES: Record<string, string> = {
+    "full-time": "full_time",
+    "full time": "full_time",
+    full_time: "full_time",
+    "part-time": "part_time",
+    "part time": "part_time",
+    part_time: "part_time",
+    casual: "casual",
+  };
+  const positionType = POSITION_TYPES[positionTypeRaw.toLowerCase()];
+
+  const payAmount = payAmountRaw && !Number.isNaN(Number(payAmountRaw)) ? Number(payAmountRaw) : undefined;
+  const positionsAvailable =
+    positionsRaw && Number.isInteger(Number(positionsRaw)) && Number(positionsRaw) > 0
+      ? Number(positionsRaw)
+      : undefined;
+
+  // ISO dates only. A malformed date is dropped, never coerced — a wrong
+  // season on a live listing is worse than an empty field.
+  const isoDate = (value: string): string | undefined =>
+    /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) ? value : undefined;
 
   if (!notionId) return NextResponse.json({ error: "notionId is required" }, { status: 400 });
   if (!businessName) return NextResponse.json({ error: "businessName is required" }, { status: 400 });
@@ -93,6 +148,9 @@ export async function POST(request: Request) {
     notionId: [notionId, 100],
     resortId: [rawResortId, 100],
     resortName: [resortName, 200],
+    requirements: [requirements, 5000],
+    salaryRange: [salaryRange, 200],
+    accommodationType: [accommodationType, 100],
   };
   for (const [field, [value, max]] of Object.entries(limits)) {
     if (value.length > max) {
@@ -190,6 +248,21 @@ export async function POST(request: Request) {
     source_url: sourceUrl || null,
     application_email: applicationEmail || null,
     notion_id: notionId,
+    // Spread-if-present: an absent field leaves whatever is already stored
+    // alone, so re-syncing a thin payload cannot erase richer data.
+    ...(requirements ? { requirements } : {}),
+    ...(positionType ? { position_type: positionType } : {}),
+    ...(payAmount !== undefined ? { pay_amount: payAmount } : {}),
+    ...(payCurrency ? { pay_currency: payCurrency } : {}),
+    ...(salaryRange ? { salary_range: salaryRange } : {}),
+    ...(positionsAvailable !== undefined ? { positions_available: positionsAvailable } : {}),
+    ...(accommodationIncluded !== undefined ? { accommodation_included: accommodationIncluded } : {}),
+    ...(accommodationType ? { accommodation_type: accommodationType } : {}),
+    ...(skiPassIncluded !== undefined ? { ski_pass_included: skiPassIncluded } : {}),
+    ...(mealPerks !== undefined ? { meal_perks: mealPerks } : {}),
+    ...(visaSponsorship !== undefined ? { visa_sponsorship: visaSponsorship } : {}),
+    ...(startDate && isoDate(startDate) ? { start_date: isoDate(startDate) } : {}),
+    ...(endDate && isoDate(endDate) ? { end_date: isoDate(endDate) } : {}),
   };
 
   let jobId: string;
