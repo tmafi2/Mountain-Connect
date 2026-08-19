@@ -24,6 +24,14 @@ export function importOutreachEmail({
   const many = otherListings > 0;
   const listingCount = otherListings + 1;
 
+  // NOTE ON "free". We publish every imported listing, so all of them are
+  // genuinely live when this email goes out — but the free tier keeps ONE
+  // live once the business claims, and they choose which (see the picker in
+  // app/(public)/claim/[token]/ClaimForm.tsx). So the count and the word
+  // "free" must never be joined: "13 free listings" is a promise the claim
+  // page then takes back, which is the worst possible first impression.
+  // Say how many exist, and say the claim is of a free listing, singular.
+
   const eoiLine = eoiCount > 0
     ? `${many ? "They are" : "It is"} already live and ${many ? "have" : "has"} received ${eoiCount} ${eoiCount === 1 ? "expression" : "expressions"} of interest from job seekers.`
     : `${many ? "They are" : "It is"} already live and ready for job seekers to browse.`;
@@ -68,13 +76,13 @@ export function importOutreachEmail({
                 I am reaching out from Mountain Connects, a new platform connecting ski resort businesses with seasonal workers. ${sawLine} and thought you would be a great fit for the platform.
               </p>
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                I have set up ${many ? `${listingCount} free listings` : "a free listing"} for you to get things started. ${eoiLine} Claim ${many ? "them" : "it"} below to edit details, see interested candidates, and start interviewing all in one place.
+                We have set up ${many ? `${listingCount} listings` : "a listing"} for you to get things started. ${eoiLine} Claim your free listing below to edit details, see interested candidates, and start interviewing all in one place.
               </p>
 
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
                 <tr>
                   <td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:15px 36px;text-align:center;">
-                    <a href="${claimUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Claim your ${many ? "listings" : "listing"} →</a>
+                    <a href="${claimUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Claim your free listing →</a>
                   </td>
                 </tr>
               </table>
