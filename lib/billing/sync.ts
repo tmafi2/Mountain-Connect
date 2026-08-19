@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getStripe, planForPriceId } from "@/lib/billing/stripe";
 import { TIER_FEATURES, type BusinessTier } from "@/lib/tier";
+import { restoreParkedJobs } from "@/lib/billing/job-parking";
 
 /**
  * Sync a Stripe subscription's state onto its business_profiles row, and
@@ -88,11 +89,20 @@ export async function syncSubscriptionToBusiness(
 
   // Downgrade rule: when access is lost, pause any jobs over the new limit,
   // keeping the newest live. Never delete.
+  //
+  // The reverse also has to happen. A business that claimed several imported
+  // listings kept one live and parked the rest; the moment they start a trial
+  // that parked inventory is what they paid for, so restore it in the same
+  // step rather than making them re-publish by hand. restoreParkedJobs only
+  // touches rows WE parked — anything the owner paused stays paused.
   if (!entitled && current?.tier !== "enterprise") {
     await enforceJobLimit(admin, businessId, "free");
   } else if (entitled && selectedTier) {
-    // Also enforce on plan changes (e.g. premium -> standard via portal).
+    // Order matters: trim first, then fill the remaining headroom. Doing it
+    // the other way round would restore into space enforceJobLimit is about
+    // to reclaim, and churn the same rows twice on a downgrade.
     await enforceJobLimit(admin, businessId, selectedTier);
+    await restoreParkedJobs(admin, businessId, selectedTier);
   }
 
   return { businessId, status, effectiveTier };
@@ -123,7 +133,7 @@ export async function enforceJobLimit(
   const ids = over.map((j) => j.id);
   const { error } = await admin
     .from("job_posts")
-    .update({ status: "paused", is_active: false })
+    .update({ status: "paused", is_active: false, paused_reason: "tier_downgrade" })
     .in("id", ids);
   if (error) {
     console.error("[billing] enforceJobLimit failed:", error);
