@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { purgeStoragePrefix } from "@/lib/supabase/purge-storage";
 
 export async function POST(request: Request) {
   try {
@@ -28,6 +29,37 @@ export async function POST(request: Request) {
       .select("id")
       .eq("user_id", user.id)
       .single();
+
+    // Purge uploaded files BEFORE the rows that point at them go away —
+    // once the profile is deleted we lose the business id we need to find
+    // venue assets, and an orphaned file has no owner to trace it back to.
+    //
+    // Everything is foldered by owner id, so a prefix walk covers it:
+    //   avatars/{userId}/           worker avatar, business logo
+    //   business-photos/{userId}/   business cover photo
+    //   resumes/{userId}/           resume + cover letter (private bucket)
+    //   {avatars,business-photos}/{businessId}/  gallery + venues/{venueId}/
+    //
+    // `avatars` and `business-photos` are PUBLIC buckets — leaving these
+    // behind means a deleted user's photo stays fetchable at a stable URL,
+    // which is what the Privacy page promises does not happen.
+    const purges: Promise<number>[] = [
+      purgeStoragePrefix("avatars", user.id),
+      purgeStoragePrefix("business-photos", user.id),
+      purgeStoragePrefix("resumes", user.id),
+    ];
+    if (businessProfile) {
+      purges.push(
+        purgeStoragePrefix("avatars", businessProfile.id),
+        purgeStoragePrefix("business-photos", businessProfile.id),
+        // contracts/{businessId}/{applicationId}/*.pdf — see api/contracts/send.
+        // Only reachable by business id, which is why a worker deleting their
+        // account cannot clear signed contract PDFs held under the employer's
+        // prefix. Section 5 of the Privacy page says so plainly.
+        purgeStoragePrefix("contracts", businessProfile.id)
+      );
+    }
+    await Promise.all(purges);
 
     // Delete job posts if business owner
     if (businessProfile) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { canConverse } from "@/lib/chat/can-converse";
 
 type OtherProfile = {
   name: string;
@@ -274,6 +275,22 @@ export async function POST(request: Request) {
           initialMessage: initialMessage?.trim() || null,
         });
       }
+    }
+
+    // No thread yet — so this request is asking us to CREATE the relationship,
+    // and creating it is itself a grant of access: 00085's RLS policy lets a
+    // business read any worker profile it shares a conversation with. Check the
+    // relationship before the thread exists rather than trusting that the UI
+    // only ever offers applicants. See lib/chat/can-converse.ts.
+    //
+    // Deliberately placed AFTER the existing-conversation branch above: a
+    // thread that is already open stays usable even if the application behind
+    // it is later withdrawn. We are gating new access, not severing old.
+    if (!(await canConverse(user.id, targetUserId))) {
+      return NextResponse.json(
+        { error: "You can only start a conversation with someone you have an application with." },
+        { status: 403 }
+      );
     }
 
     // Create new conversation
