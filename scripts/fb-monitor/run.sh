@@ -17,6 +17,10 @@ set -uo pipefail
 
 REPO="/Users/tylermafi/Desktop/Mountain Connect"
 NPM="/usr/local/bin/npm"
+# launchd does not guarantee HOME, and `set -u` turns an unset one into an
+# immediate abort before anything is logged — which is the worst possible
+# failure mode for a job nobody watches.
+HOME="${HOME:-/Users/tylermafi}"
 LOG_DIR="$HOME/.mountain-connect/logs"
 LOG="$LOG_DIR/fb-monitor-$(date +%Y-%m-%d).log"
 

@@ -45,6 +45,8 @@
     <dict>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/tylermafi</string>
     </dict>
 
     <!-- launchd's own stdout/stderr, separate from the script's dated log. -->
