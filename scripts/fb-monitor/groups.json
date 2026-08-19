@@ -1,6 +1,11 @@
 {
-  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Run 'npm run fb:check' after editing to confirm every group is reachable.",
-
+  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload \u2014 each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Run 'npm run fb:check' after editing to confirm every group is reachable.",
+  "_pending": {
+    "_note": "Groups requested but not yet joined. The collector only sees groups the signed-in account is a member of, so these would return nothing. Move a URL back into its region once the join is approved.",
+    "canada": [
+      "https://www.facebook.com/groups/bowvalleyjobs"
+    ]
+  },
   "japan": {
     "hour": 6,
     "postsPerGroup": 20,
@@ -12,7 +17,6 @@
       "https://www.facebook.com/groups/117939665034575"
     ]
   },
-
   "canada": {
     "hour": 12,
     "postsPerGroup": 20,
@@ -24,11 +28,9 @@
       "https://www.facebook.com/groups/5678751021",
       "https://www.facebook.com/groups/813144602037093",
       "https://www.facebook.com/groups/535564789792097",
-      "https://www.facebook.com/groups/826037524168581",
-      "https://www.facebook.com/groups/bowvalleyjobs"
+      "https://www.facebook.com/groups/826037524168581"
     ]
   },
-
   "usa": {
     "hour": 18,
     "postsPerGroup": 20,

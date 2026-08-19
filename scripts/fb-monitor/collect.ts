@@ -347,11 +347,12 @@ async function collectGroup(
   const posts = [...byId.values()].slice(0, wanted);
 
   if (posts.length === 0) {
-    fail(
-      `Found 0 posts in ${groupName}.\n\n` +
-        `  Either the selectors have gone stale (Facebook changed its DOM) or the\n` +
-        `  account cannot see this group's feed. Re-run with --headed to watch it.`,
-    );
+    // One bad group must not cost us the other eight. Most likely the account
+    // has not joined it, or it is a vanity URL that no longer resolves — both
+    // are per-group facts, not run-level failures. The caller decides whether
+    // an empty TOTAL is fatal.
+    note(`  WARNING: 0 posts — the account may not be a member, or the URL may be wrong`);
+    return [];
   }
 
   note(`  scraped: ${posts.length} posts after ${scrolls} scroll(s)`);
@@ -407,15 +408,57 @@ async function main(): Promise<void> {
   const page = context.pages()[0] ?? (await context.newPage());
 
   const all: ScrapedPost[] = [];
+  const emptyGroups: string[] = [];
+  const failedGroups: { url: string; error: string }[] = [];
   try {
     for (const [index, url] of groups.entries()) {
-      all.push(...(await collectGroup(page, url, wanted, imageDir)));
+      // Each group is isolated. A navigation timeout, a dead vanity URL or a
+      // network blip on group 7 must not discard the six already collected —
+      // posts are only written after the loop, so an uncaught throw here used
+      // to lose the whole run's work.
+      //
+      // The login-wall check inside collectGroup calls fail(), which exits the
+      // process rather than throwing, so genuine session expiry still stops
+      // everything. That distinction is deliberate: one unreachable group is a
+      // per-group fact, a dead session is a run-level one.
+      try {
+        const got = await collectGroup(page, url, wanted, imageDir);
+        if (got.length === 0) emptyGroups.push(url);
+        all.push(...got);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        failedGroups.push({ url, error: message.split("\n")[0].slice(0, 140) });
+        note(`  ERROR: ${message.split("\n")[0].slice(0, 140)}`);
+      }
+
       // Space out groups; back-to-back navigation is the least human thing
       // a session can do.
       if (index < groups.length - 1) await pause(6_000);
     }
   } finally {
     await context.close();
+  }
+
+  const okCount = groups.length - emptyGroups.length - failedGroups.length;
+  note(`\ngroups: ${okCount} ok, ${emptyGroups.length} empty, ${failedGroups.length} errored`);
+
+  if (emptyGroups.length > 0) {
+    note(`\nreturned nothing (not joined, or the URL has changed):`);
+    for (const url of emptyGroups) note(`  ${url}`);
+  }
+  if (failedGroups.length > 0) {
+    note(`\nerrored (collected posts from the others are still being kept):`);
+    for (const f of failedGroups) note(`  ${f.url}\n    ${f.error}`);
+  }
+
+  // Only a completely empty run is fatal — that is the shape of an expired
+  // session or a DOM change, rather than groups we cannot individually reach.
+  if (all.length === 0) {
+    fail(
+      `Every group returned 0 posts.\n\n` +
+        `  That usually means the Facebook session has expired (run npm run fb:login)\n` +
+        `  or Facebook changed its DOM. A single unreachable group would not do this.`,
+    );
   }
 
   const file = outPath ?? path.join(outDir, `posts-${Date.now()}.json`);
