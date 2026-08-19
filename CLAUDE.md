@@ -37,7 +37,7 @@ supabase/
 ## Supabase Patterns
 - **User-scoped client** (`createClient` from server.ts or client.ts): respects RLS, use for user-facing reads
 - **Admin client** (`createAdminClient` from admin.ts): bypasses RLS, use for cross-user operations (notifications, conversations, admin actions)
-- **RLS is enforced** on all tables. Admin policies in migration 00011.
+- **RLS is enforced** on all tables. Admin policies in migration 00011. **Verified by probe on 2026-08-19**, not merely asserted: anonymous callers, plus throwaway authenticated worker and business accounts with no relationships, were pointed at all 24 sensitive tables and at storage. Everything user-scoped returned 0 rows (`worker_profiles`, `applications`, `messages`, `interviews`, `contracts`, `audit_logs`, `outreach_leads`, `support_reports`, `login_otp_codes`, `expressions_of_interest`, `nfc_taps`, …); `users` returns the caller's own row only; `business_profiles` and `job_posts` are public by design. Storage: an authenticated stranger cannot list the resumes/contracts/documents buckets, cannot list another user's folder, and cannot sign another user's file, while public buckets still serve. **Two exceptions found:** `conversation_participants` raises 42P17 (infinite recursion) so it has NO working policy — it fails closed, and the app only works because `/api/conversations` uses the admin client throughout; and `lead_posts` returns 403 by design (no policy, service-role only). Re-run the probe after any policy change — and note that RLS also lives in dashboard-created policies that never appear in `supabase/migrations/` (see 00090), so reading the migration files is not a substitute.
 - **Realtime** enabled on `messages` table only
 
 ## Key Database Tables
