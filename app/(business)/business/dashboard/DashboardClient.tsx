@@ -7,6 +7,7 @@ import confetti from "canvas-confetti";
 import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
 import PlanPanel, { type PlanPanelBilling } from "@/components/business/PlanPanel";
 import type { BusinessTier } from "@/lib/tier";
+import { TRIAL_DAYS_LABEL } from "@/lib/billing/trial";
 
 /* ─── types ──────────────────────────────────────────────── */
 interface SearchResult {
@@ -53,6 +54,9 @@ interface DashboardClientProps {
   billing: PlanPanelBilling;
   showVerifiedCelebration: boolean;
   expressionsOfInterest?: EoiRow[];
+  /** Listings we parked behind the tier limit, and the interest waiting on them. */
+  parkedListingCount?: number;
+  parkedInterestCount?: number;
 }
 
 export default function DashboardClient({
@@ -70,6 +74,8 @@ export default function DashboardClient({
   billing,
   showVerifiedCelebration,
   expressionsOfInterest = [],
+  parkedListingCount = 0,
+  parkedInterestCount = 0,
 }: DashboardClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCelebration, setShowCelebration] = useState(showVerifiedCelebration);
@@ -554,6 +560,48 @@ export default function DashboardClient({
               <Link href="/business/company-profile" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-red-700 hover:underline">
                 Update Profile →
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Parked listings (claimed more than the tier keeps live) ── */}
+      {parkedListingCount > 0 && (
+        <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15">
+              <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-primary">
+                {parkedListingCount} of your listing{parkedListingCount === 1 ? " is" : "s are"} parked
+              </h3>
+              <p className="mt-1 text-sm text-foreground/70">
+                Your current plan keeps {listingCount} live. The other {parkedListingCount} {parkedListingCount === 1 ? "is" : "are"} saved
+                with everything {parkedListingCount === 1 ? "it has" : "they have"} collected — nothing was deleted.
+                {parkedInterestCount > 0 && (
+                  <>
+                    {" "}
+                    <span className="font-semibold text-primary">
+                      {parkedInterestCount} {parkedInterestCount === 1 ? "person has" : "people have"} already
+                      expressed interest
+                    </span>{" "}
+                    in {parkedListingCount === 1 ? "it" : "them"}.
+                  </>
+                )}
+              </p>
+              <Link
+                href="/business/upgrade"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20"
+              >
+                Put them live — first {TRIAL_DAYS_LABEL} free
+                <span aria-hidden="true">→</span>
+              </Link>
+              <p className="mt-2 text-xs text-foreground/50">
+                Cancel any time before the trial ends and you won&apos;t be charged.
+              </p>
             </div>
           </div>
         </div>

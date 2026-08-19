@@ -31,7 +31,17 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://maps.googleapis.com https://maps.gstatic.com",
+              // 'unsafe-eval' is added in development ONLY. The Next dev server
+              // compiles and evaluates modules at runtime, so without it the
+              // client bundle downloads but never executes: the page renders
+              // server-side and then sits there un-hydrated, with every
+              // onChange/onClick in the app silently dead. The production CSP
+              // is unchanged — a production build contains no eval.
+              [
+                "script-src 'self' 'unsafe-inline'",
+                ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
+                "https://www.googletagmanager.com https://maps.googleapis.com https://maps.gstatic.com",
+              ].join(" "),
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com https://streetviewpixels-pa.googleapis.com",

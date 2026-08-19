@@ -52,7 +52,9 @@ export function getStripe(): Stripe {
 }
 
 export const BILLING_CURRENCY = "usd" as const;
-export const TRIAL_DAYS = 30;
+// Single source lives in ./trial so client components can read it without
+// pulling the Stripe SDK into the browser bundle.
+export { TRIAL_DAYS } from "./trial";
 
 const PRICE_ENV: Record<PaidTier, Record<BillingInterval, string>> = {
   standard: { month: "STRIPE_PRICE_STANDARD_MONTH", season: "STRIPE_PRICE_STANDARD_SEASON" },

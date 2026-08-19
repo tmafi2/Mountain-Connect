@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { resolveEffectiveTier, TIER_FEATURES } from "@/lib/tier";
+import { parkListingsOnClaim } from "@/lib/billing/job-parking";
 
 /**
  * POST /api/signup/claim-imports
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: profiles } = await admin
       .from("business_profiles")
-      .select("id")
+      .select("id, tier, selected_tier, subscription_status, grace_period_ends_at")
       .eq("email", rawEmail)
       .eq("is_claimed", false);
 
@@ -82,7 +84,35 @@ export async function POST(request: Request) {
         .catch((err) => console.error("Failed to detach extra unclaimed profiles:", err));
     }
 
-    return NextResponse.json({ claimed: 1, businessId: primary.id });
+    // Same tier gate as /api/claim/complete — otherwise this is a clean
+    // bypass: sign up with the email we imported against and inherit every
+    // listing live for free.
+    //
+    // Unlike the claim-link flow there is no picker here; the user is
+    // mid-signup and has never seen these listings. Passing no preference
+    // keeps the newest live (enforceJobLimit's rule) and parks the rest,
+    // which they can swap from manage-listings. Never fail the signup over
+    // it — the account and the link matter more than the limit, and the
+    // downgrade rule is a second line of defence.
+    let parkedCount = 0;
+    try {
+      const effectiveTier = resolveEffectiveTier({
+        tier: primary.tier,
+        selected_tier: primary.selected_tier,
+        subscription_status: primary.subscription_status,
+        grace_period_ends_at: primary.grace_period_ends_at,
+      });
+      parkedCount = await parkListingsOnClaim(
+        admin,
+        primary.id,
+        null,
+        TIER_FEATURES[effectiveTier].maxActiveJobs
+      );
+    } catch (err) {
+      console.error("Failed to apply listing limit on signup claim:", err);
+    }
+
+    return NextResponse.json({ claimed: 1, businessId: primary.id, parkedCount });
   } catch (err) {
     console.error("claim-imports error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

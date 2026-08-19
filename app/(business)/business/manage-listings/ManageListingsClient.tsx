@@ -24,6 +24,8 @@ export interface ListingItem {
   venue: string | null;
   location: string;
   status: "active" | "paused" | "closed" | "draft";
+  /** Why it is paused, when we parked it for a tier limit. NULL = owner paused it. */
+  pausedReason?: string | null;
   pay: string;
   type: string;
   posted: string;
@@ -69,6 +71,10 @@ const LISTING_STATUS_STYLES: Record<string, { bg: string; text: string; dot: str
   draft: { bg: "bg-blue-50 border-blue-200", text: "text-blue-600", dot: "bg-blue-400", label: "Draft" },
   paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", dot: "bg-yellow-400", label: "Paused" },
   closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", dot: "bg-gray-400", label: "Closed" },
+  // Not a DB status — a paused row carrying a paused_reason. Worth its own
+  // badge because "Paused" on a listing the business never paused reads as a
+  // bug, and this is the one place they come to look at their listings.
+  parked: { bg: "bg-secondary/10 border-secondary/30", text: "text-primary", dot: "bg-secondary", label: "Parked \u2014 upgrade to publish" },
 };
 
 const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -407,7 +413,10 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
           </div>
         )}
         {filtered.map((listing) => {
-          const style = LISTING_STATUS_STYLES[listing.status];
+          const style =
+            LISTING_STATUS_STYLES[
+              listing.status === "paused" && listing.pausedReason ? "parked" : listing.status
+            ];
           const isExpanded = expandedListing === listing.id;
           const jobApplicants = getApplicantsForJob(listing.id);
           const rawJobApplicants = getRawApplicantsForJob(listing.id);
