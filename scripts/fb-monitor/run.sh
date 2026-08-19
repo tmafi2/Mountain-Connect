@@ -95,9 +95,17 @@ GROUPS_RAW="$("$NODE" -e '
 ' "$CONFIG" "$REGION" 2>>"$LOG")" || die "region \"$REGION\" is not in groups.json"
 
 POSTS_PER_GROUP="$("$NODE" -e 'console.log(JSON.parse(process.argv[1]).posts)' "$GROUPS_RAW")"
-mapfile -t FB_GROUPS < <("$NODE" -e 'JSON.parse(process.argv[1]).groups.forEach(g=>console.log(g))' "$GROUPS_RAW")
 
-if [[ "${#FB_GROUPS[@]}" -eq 0 ]]; then
+# NB: read loop rather than `mapfile`. mapfile is a bash 4.0 builtin and macOS
+# ships bash 3.2.57 — frozen in 2007 over GPLv3 — so it is simply absent here.
+# This is the same shape of trap as GROUPS being a read-only builtin: valid
+# bash that this particular bash does not have.
+FB_GROUPS=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && FB_GROUPS+=("$line")
+done < <("$NODE" -e 'JSON.parse(process.argv[1]).groups.forEach(g=>console.log(g))' "$GROUPS_RAW")
+
+if [[ "${#FB_GROUPS[@]:-0}" -eq 0 ]]; then
   # Not a failure. An empty region is a region you have not filled in yet.
   COMPLETED=1
   log "no groups configured for this region — nothing to do"
