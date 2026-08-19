@@ -74,12 +74,14 @@ export async function POST(request: Request) {
     }
 
     if (extras.length > 0) {
-      await admin
+      const { error: detachErr } = await admin
         .from("business_profiles")
         .update({ email: null })
-        .in("id", extras.map((e) => e.id))
-        .then(() => {})
-        .catch((err) => console.error("Failed to detach extra unclaimed profiles:", err));
+        .in("id", extras.map((e) => e.id));
+
+      if (detachErr) {
+        console.error("Failed to detach extra unclaimed profiles:", detachErr);
+      }
     }
 
     return NextResponse.json({ claimed: 1, businessId: primary.id });

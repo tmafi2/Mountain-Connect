@@ -120,7 +120,8 @@ export async function POST(request: Request) {
     if (updateError) {
       console.error("Failed to link business_profile:", updateError);
       // Roll back both auth + users
-      await admin.from("users").delete().eq("id", newUserId).catch(() => {});
+      const { error: rollbackError } = await admin.from("users").delete().eq("id", newUserId);
+      if (rollbackError) console.error("Failed to roll back users row:", rollbackError);
       await admin.auth.admin.deleteUser(newUserId).catch(() => {});
       return NextResponse.json({ error: "Failed to link listing" }, { status: 500 });
     }
