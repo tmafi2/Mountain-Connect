@@ -409,11 +409,28 @@ async function main(): Promise<void> {
 
   const all: ScrapedPost[] = [];
   const emptyGroups: string[] = [];
+  const failedGroups: { url: string; error: string }[] = [];
   try {
     for (const [index, url] of groups.entries()) {
-      const got = await collectGroup(page, url, wanted, imageDir);
-      if (got.length === 0) emptyGroups.push(url);
-      all.push(...got);
+      // Each group is isolated. A navigation timeout, a dead vanity URL or a
+      // network blip on group 7 must not discard the six already collected —
+      // posts are only written after the loop, so an uncaught throw here used
+      // to lose the whole run's work.
+      //
+      // The login-wall check inside collectGroup calls fail(), which exits the
+      // process rather than throwing, so genuine session expiry still stops
+      // everything. That distinction is deliberate: one unreachable group is a
+      // per-group fact, a dead session is a run-level one.
+      try {
+        const got = await collectGroup(page, url, wanted, imageDir);
+        if (got.length === 0) emptyGroups.push(url);
+        all.push(...got);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        failedGroups.push({ url, error: message.split("\n")[0].slice(0, 140) });
+        note(`  ERROR: ${message.split("\n")[0].slice(0, 140)}`);
+      }
+
       // Space out groups; back-to-back navigation is the least human thing
       // a session can do.
       if (index < groups.length - 1) await pause(6_000);
@@ -422,14 +439,20 @@ async function main(): Promise<void> {
     await context.close();
   }
 
+  const okCount = groups.length - emptyGroups.length - failedGroups.length;
+  note(`\ngroups: ${okCount} ok, ${emptyGroups.length} empty, ${failedGroups.length} errored`);
+
   if (emptyGroups.length > 0) {
-    note(`\n${emptyGroups.length} group(s) returned nothing:`);
+    note(`\nreturned nothing (not joined, or the URL has changed):`);
     for (const url of emptyGroups) note(`  ${url}`);
-    note(`Check membership with: npm run fb:check`);
+  }
+  if (failedGroups.length > 0) {
+    note(`\nerrored (collected posts from the others are still being kept):`);
+    for (const f of failedGroups) note(`  ${f.url}\n    ${f.error}`);
   }
 
   // Only a completely empty run is fatal — that is the shape of an expired
-  // session or a DOM change, rather than one group we cannot see.
+  // session or a DOM change, rather than groups we cannot individually reach.
   if (all.length === 0) {
     fail(
       `Every group returned 0 posts.\n\n` +
