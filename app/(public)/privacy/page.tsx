@@ -43,10 +43,22 @@ export default function PrivacyPolicyPage() {
           <p className="mt-3">We also collect information automatically:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Usage data:</strong> Pages visited, features used, and interactions with the platform</li>
-            <li><strong>Analytics data:</strong> We use Google Analytics 4 to collect anonymised usage statistics including page views, session duration, and device information</li>
+            <li><strong>Technical data:</strong> Your IP address and browser information. We record the IP address behind administrative actions in our audit log, we record your browser and operating system when you submit a support report, and we process IP addresses transiently for rate limiting and bot protection.</li>
+            <li><strong>Analytics data:</strong> We use Google Analytics 4 to collect anonymised usage statistics including page views, session duration, and device information. This runs only if you accept analytics cookies.</li>
+            <li><strong>Diagnostic data:</strong> When an error occurs, our error-monitoring provider may capture a recording of that session — the pages and elements involved in the fault — so we can reproduce it. Text content is masked by default, and sessions in which nothing goes wrong are not recorded.</li>
             <li><strong>Device and approximate location:</strong> If you tap or scan one of our physical contact cards, we record your device type, browser, and operating system, and the approximate location — country, region, city, timezone, and coordinates — that our hosting provider derives from your IP address. This is approximate and IP-based; it is not GPS, and we do not track your location as you move.</li>
             <li><strong>Cookies:</strong> Essential cookies for authentication and session management</li>
           </ul>
+
+          <p className="mt-4"><strong>Information we collect from sources other than you.</strong> Not everything we hold was given to us by the person it describes. We also collect:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-6">
+            <li><strong>Publicly posted job adverts.</strong> We collect job adverts that businesses have posted publicly in community groups and on social media in the regions we cover, and we may publish them on Mountain Connects as unclaimed listings. These hold the business name, location, role details, any contact address included in the original post, and a link back to it. If a listing about your business is here and you did not put it here, you can claim it or have it removed at any time — write to us using section 11 and we will take it down on request, without asking why.</li>
+            <li><strong>Business contact details for outreach.</strong> We collect business email addresses so we can tell those businesses that the platform exists. Every such email carries a one-click unsubscribe link, and we stop on the first request.</li>
+            <li><strong>Public posts from people looking for seasonal work.</strong> Where someone has publicly posted that they are seeking seasonal work in a region we cover, we may record that post, the name attached to it, and a link to it, so that we can let them know the platform exists. We do not build a profile from it and we do not combine it with anything else. You can ask us to delete yours at any time.</li>
+          </ul>
+          <p className="mt-2">
+            We use an automated text-extraction service (Anthropic) to read these public posts and pull out structured details such as the role and the location. Where we hold information about you that did not come from you, you have exactly the same rights over it as an account holder does — see section 6 — and asking us to delete it is not conditional on having an account.
+          </p>
         </section>
 
         <section>
@@ -69,8 +81,9 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-lg font-semibold text-primary">4. How We Share Your Information</h2>
           <p className="mt-2">We may share your information with:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
-            <li><strong>Businesses (upon application):</strong> When you apply for a job, the hiring business can view your worker profile including your name, skills, experience, phone number, date of birth, nationality, visa status, cover letter, and uploaded resume. Businesses can only see profiles of workers who have applied to their job listings.</li>
-            <li><strong>Public visibility:</strong> Verified business profiles and active job listings are publicly visible. Worker profiles are never publicly visible — they are only shared with businesses you apply to.</li>
+            <li><strong>Businesses (upon application):</strong> When you apply for a job, the hiring business can view your worker profile including your name, skills, experience, phone number, date of birth, nationality, visa status, cover letter, and uploaded resume. A business can only see your profile if you have created a link to it yourself: you applied to one of its listings, or you followed it. Businesses cannot browse workers, search them, or message a worker who has not applied to them. Following a business is what makes you visible to that business, and unfollowing removes that access.</li>
+            <li><strong>Public visibility:</strong> Verified business profiles and active job listings are publicly visible. Worker profiles are never publicly visible — no worker profile is reachable without signing in, and then only by a business you have applied to or followed.</li>
+            <li><strong>Businesses claiming an imported listing:</strong> Where we have published an unclaimed listing collected from a public post (see section 2), an application you make to it is held until someone claims that listing, and is then released to them. We send the claim link only to the contact address on the original advert, but anyone holding that link can complete the claim. Unclaimed listings are labelled as unclaimed so you can decide whether to apply.</li>
             <li><strong>Service providers:</strong> We use third-party services to operate the platform:
               <ul className="mt-1 list-disc space-y-1 pl-6">
                 <li>Supabase (database hosting and authentication)</li>
@@ -78,11 +91,12 @@ export default function PrivacyPolicyPage() {
                 <li>Vercel (website hosting)</li>
                 <li>Google Analytics (anonymised usage analytics)</li>
                 <li>Stripe (subscription payments and billing, for businesses on a paid plan)</li>
-                <li>Sentry (error monitoring and diagnostics)</li>
+                <li>Sentry (error monitoring, diagnostics, and session recording when an error occurs)</li>
                 <li>Daily (video interview rooms, when you take an interview on the platform)</li>
                 <li>Cloudflare Turnstile (bot protection on sign-up, login, and password reset)</li>
                 <li>Upstash (rate limiting, which processes IP addresses)</li>
-                <li>Google Maps (map display on resort and town pages)</li>
+                <li>Google Maps (map display on resort and town pages; these maps load whenever you open such a page)</li>
+                <li>Anthropic (automated extraction of details from the public posts described in section 2)</li>
               </ul>
             </li>
           </ul>
@@ -107,6 +121,9 @@ export default function PrivacyPolicyPage() {
             Records of payments and subscriptions are kept for as long as we are required to keep them to meet our tax and accounting obligations. This can be longer than we retain other account data, including after an account is closed.
           </p>
           <p className="mt-2">
+            Two other things outlive an account, and we would rather say so than let you find out. Our administrative audit log keeps a record of actions taken on accounts, along with the IP address behind them — that record is the point of having a log. And if a business issued you a contract through the platform, the signed PDF is stored under that business&apos;s records; closing your worker account removes our copy of the contract and your signature from our database, but not the employer&apos;s file. If either concerns you, ask us — section 6 applies to both.
+          </p>
+          <p className="mt-2">
             While we take reasonable steps to protect your information, no method of electronic transmission or storage is 100% secure. We cannot guarantee absolute security.
           </p>
           <p className="mt-2">
@@ -120,7 +137,7 @@ export default function PrivacyPolicyPage() {
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
             <li><strong>Correction:</strong> Request that we correct any inaccurate or incomplete information</li>
-            <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes all profile data, applications, job listings, notifications, newsletter subscriptions, and authentication credentials. Payment and subscription records are the one exception: we must retain those for the period described in section 5, and Stripe retains its own records independently of us</li>
+            <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes your profile data, applications, job listings, messages, interviews, notifications, newsletter subscriptions, authentication credentials, and the files you uploaded — profile photo, resume, cover letter, logo, and business photos are deleted from our storage, not merely unlinked. The exceptions are the ones named in section 5: payment and subscription records, which we must keep for tax and accounting purposes and which Stripe also retains independently of us; our administrative audit log; and any contract PDF held under an employer&apos;s records</li>
             <li><strong>Complaint:</strong> Complain to us first at hello@mountainconnects.com, and to your regulator if we do not resolve it</li>
           </ul>
           <p className="mt-2">To exercise any of these rights, contact us at hello@mountainconnects.com. We do not charge for this and we will not treat you differently for asking.</p>
@@ -138,8 +155,9 @@ export default function PrivacyPolicyPage() {
           <h2 className="text-lg font-semibold text-primary">7. Cookies</h2>
           <p className="mt-2">We use the following types of cookies:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
-            <li><strong>Essential cookies:</strong> Required for authentication and session management. These cannot be disabled.</li>
-            <li><strong>Analytics cookies:</strong> Used by Google Analytics to collect anonymised usage data. You can opt out of these via our cookie consent banner.</li>
+            <li><strong>Essential cookies:</strong> Required for authentication and session management, and for the bot protection on sign-up, login, and password reset. These cannot be disabled.</li>
+            <li><strong>Analytics cookies:</strong> Used by Google Analytics to collect anonymised usage data. These do not load at all unless you accept them, and you can decline them on our cookie consent banner.</li>
+            <li><strong>Third-party embeds:</strong> Resort and town pages embed Google Maps, which loads from Google and may set its own cookies when you open one of those pages. It is not analytics and it is not covered by the banner. If you would rather it did not load, avoid those pages or block it in your browser.</li>
           </ul>
         </section>
 
