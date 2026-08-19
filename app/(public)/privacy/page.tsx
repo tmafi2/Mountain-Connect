@@ -33,12 +33,18 @@ export default function PrivacyPolicyPage() {
             <li><strong>Job listings:</strong> Job titles, descriptions, requirements, and application details</li>
             <li><strong>Applications:</strong> Application messages and status</li>
             <li><strong>Communications:</strong> Messages sent through our platform</li>
+            <li><strong>Interview data:</strong> Interview times, availability, timezone, and any notes a business or worker records against an interview. Interviews held on the platform use video rooms provided by Daily. We store the room reference and its expiry so the call can be joined — <strong>we do not record interviews</strong>, and rooms are configured without recording enabled.</li>
+            <li><strong>Contracts and signatures:</strong> If a business issues a contract through the platform, we store the contract document, the signed copy, and your electronic signature.</li>
+            <li><strong>Expressions of interest:</strong> If you register interest in a listing without creating an account, we store the name, email address, phone number, and message you submit, and pass them to the business once it claims the listing.</li>
+            <li><strong>Support requests:</strong> The category, subject, and message you send us, along with your name, email, the page you were on, and your browser details.</li>
+            <li><strong>Marketing and alerts:</strong> Newsletter and waitlist subscriptions, and any job alerts you set up, including the search filters they use.</li>
             <li><strong>Referral data:</strong> Referral codes and tracking of referred users</li>
           </ul>
           <p className="mt-3">We also collect information automatically:</p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
             <li><strong>Usage data:</strong> Pages visited, features used, and interactions with the platform</li>
             <li><strong>Analytics data:</strong> We use Google Analytics 4 to collect anonymised usage statistics including page views, session duration, and device information</li>
+            <li><strong>Device and approximate location:</strong> If you tap or scan one of our physical contact cards, we record your device type, browser, and operating system, and the approximate location — country, region, city, timezone, and coordinates — that our hosting provider derives from your IP address. This is approximate and IP-based; it is not GPS, and we do not track your location as you move.</li>
             <li><strong>Cookies:</strong> Essential cookies for authentication and session management</li>
           </ul>
         </section>
@@ -102,6 +108,9 @@ export default function PrivacyPolicyPage() {
           </p>
           <p className="mt-2">
             While we take reasonable steps to protect your information, no method of electronic transmission or storage is 100% secure. We cannot guarantee absolute security.
+          </p>
+          <p className="mt-2">
+            <strong>If something goes wrong.</strong> If a data breach occurs that is likely to result in serious harm to you, we will notify you and the relevant regulator as required by the Notifiable Data Breaches scheme in Australia and the equivalent obligations in your own country. We will tell you what happened, what information was involved, and what you can do about it.
           </p>
         </section>
 
