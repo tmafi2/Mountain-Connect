@@ -347,11 +347,12 @@ async function collectGroup(
   const posts = [...byId.values()].slice(0, wanted);
 
   if (posts.length === 0) {
-    fail(
-      `Found 0 posts in ${groupName}.\n\n` +
-        `  Either the selectors have gone stale (Facebook changed its DOM) or the\n` +
-        `  account cannot see this group's feed. Re-run with --headed to watch it.`,
-    );
+    // One bad group must not cost us the other eight. Most likely the account
+    // has not joined it, or it is a vanity URL that no longer resolves — both
+    // are per-group facts, not run-level failures. The caller decides whether
+    // an empty TOTAL is fatal.
+    note(`  WARNING: 0 posts — the account may not be a member, or the URL may be wrong`);
+    return [];
   }
 
   note(`  scraped: ${posts.length} posts after ${scrolls} scroll(s)`);
@@ -407,15 +408,34 @@ async function main(): Promise<void> {
   const page = context.pages()[0] ?? (await context.newPage());
 
   const all: ScrapedPost[] = [];
+  const emptyGroups: string[] = [];
   try {
     for (const [index, url] of groups.entries()) {
-      all.push(...(await collectGroup(page, url, wanted, imageDir)));
+      const got = await collectGroup(page, url, wanted, imageDir);
+      if (got.length === 0) emptyGroups.push(url);
+      all.push(...got);
       // Space out groups; back-to-back navigation is the least human thing
       // a session can do.
       if (index < groups.length - 1) await pause(6_000);
     }
   } finally {
     await context.close();
+  }
+
+  if (emptyGroups.length > 0) {
+    note(`\n${emptyGroups.length} group(s) returned nothing:`);
+    for (const url of emptyGroups) note(`  ${url}`);
+    note(`Check membership with: npm run fb:check`);
+  }
+
+  // Only a completely empty run is fatal — that is the shape of an expired
+  // session or a DOM change, rather than one group we cannot see.
+  if (all.length === 0) {
+    fail(
+      `Every group returned 0 posts.\n\n` +
+        `  That usually means the Facebook session has expired (run npm run fb:login)\n` +
+        `  or Facebook changed its DOM. A single unreachable group would not do this.`,
+    );
   }
 
   const file = outPath ?? path.join(outDir, `posts-${Date.now()}.json`);
