@@ -55,6 +55,16 @@ type Resort = { id: string; name: string; country: string };
 
 const SOURCE_LABEL = "Facebook";
 
+/**
+ * Pull a single usable address out of whatever the model put in
+ * contactValue. Returns null when there is nothing address-shaped in there.
+ */
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+function extractEmail(raw: string): string | null {
+  const match = raw.match(EMAIL_RE);
+  return match ? match[0].toLowerCase() : null;
+}
+
 /** Cases seen in real posts where the common name differs from the table. */
 const RESORT_ALIASES: Readonly<Record<string, string>> = {
   niseko: "Niseko United",
@@ -241,6 +251,16 @@ async function main(): Promise<void> {
       held.push(`${label}: contact is ${e.contactMethod} — endpoint requires an email`);
       continue;
     }
+    // contactMethod="email" does not guarantee contactValue is only an
+    // address. The model returns what the post said, and posts say things
+    // like "canrocent@gmail.com; text 2042289737". Storing that verbatim
+    // gives the business an unmailable address and every claim email to
+    // them bounces, so take the first real address and drop the rest.
+    const businessEmail = extractEmail(e.contactValue);
+    if (!businessEmail) {
+      held.push(`${label}: contact ${JSON.stringify(e.contactValue)} has no usable email address`);
+      continue;
+    }
     const resort = matchResort(e.resortName, resorts);
     if (!resort) { held.push(`${label}: resort ${JSON.stringify(e.resortName)} did not match`); continue; }
     if (e.roles.length === 0) { held.push(`${label}: no roles extracted`); continue; }
@@ -281,8 +301,8 @@ async function main(): Promise<void> {
           businessName: e.businessName,
           jobTitle: role.jobTitle,
           description: row.post.text.slice(0, 5000),
-          businessEmail: e.contactValue,
-          applicationEmail: e.contactValue,
+          businessEmail,
+          applicationEmail: businessEmail,
           source: SOURCE_LABEL,
           sourceUrl: row.post.permalink ?? "",
           resortName: resort.name,
@@ -324,7 +344,16 @@ async function main(): Promise<void> {
     const existing = await restSelectAll<{ email: string; is_claimed: boolean }>(
       target,
       "business_profiles",
-      `select=email,is_claimed&email=in.(${emails.map((e) => `"${e}"`).join(",")})`,
+      // encodeURIComponent is not decoration. These values come from a model
+      // reading Facebook posts, and a ";" inside one truncated this query at
+      // exactly the character the server stopped parsing on, failing a whole
+      // canada run after collect and extract had already succeeded. Quotes
+      // inside a value are backslash-escaped first, which is what PostgREST
+      // expects inside a double-quoted `in.()` element.
+      `select=email,is_claimed&email=` +
+        encodeURIComponent(
+          `in.(${emails.map((e) => `"${e.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",")})`,
+        ),
     );
     for (const b of existing) if (b.is_claimed) claimed.add(b.email.toLowerCase());
   }
