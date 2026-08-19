@@ -1,0 +1,37 @@
+{
+  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Run 'npm run fb:check' after editing to confirm every group is reachable.",
+
+  "japan": {
+    "hour": 6,
+    "postsPerGroup": 20,
+    "groups": [
+      "https://www.facebook.com/groups/404292596702960",
+      "https://www.facebook.com/groups/1162104401848557",
+      "https://www.facebook.com/groups/10670147914",
+      "https://www.facebook.com/groups/1451763955073570",
+      "https://www.facebook.com/groups/117939665034575"
+    ]
+  },
+
+  "canada": {
+    "hour": 12,
+    "postsPerGroup": 20,
+    "groups": [
+      "https://www.facebook.com/groups/372263323547541",
+      "https://www.facebook.com/groups/1690169767968221",
+      "https://www.facebook.com/groups/328987027143040",
+      "https://www.facebook.com/groups/432527943502882",
+      "https://www.facebook.com/groups/5678751021",
+      "https://www.facebook.com/groups/813144602037093",
+      "https://www.facebook.com/groups/535564789792097",
+      "https://www.facebook.com/groups/826037524168581",
+      "https://www.facebook.com/groups/bowvalleyjobs"
+    ]
+  },
+
+  "usa": {
+    "hour": 18,
+    "postsPerGroup": 20,
+    "groups": []
+  }
+}
