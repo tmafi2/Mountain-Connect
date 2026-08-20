@@ -42,6 +42,7 @@ import * as path from "node:path";
 import type { Page } from "playwright";
 
 import { isLoggedOut, launch, pause } from "./browser";
+import { stripSeeMoreControl } from "./text";
 
 const DEFAULT_POSTS_PER_GROUP = 25;
 const MAX_SCROLLS = 30;
@@ -311,7 +312,8 @@ async function collectGroup(
     const scraped = await scrapePosts(page, groupId);
 
     for (const [index, raw] of scraped.entries()) {
-      if (raw.text.length < 20) continue; // comment blocks and chrome
+      const cleanText = stripSeeMoreControl(raw.text);
+      if (cleanText.length < 20) continue; // comment blocks and chrome
       const id = postIdFrom(raw.permalink, groupId, index);
       if (byId.has(id)) continue;
 
@@ -319,7 +321,7 @@ async function collectGroup(
         id,
         group: groupName,
         author: raw.author,
-        text: raw.text,
+        text: cleanText,
         permalink: raw.permalink,
         postedAt: raw.postedAt,
         authorId: raw.authorId,
