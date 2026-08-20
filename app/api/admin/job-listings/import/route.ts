@@ -255,7 +255,21 @@ export async function POST(request: Request) {
     ...(payAmount !== undefined ? { pay_amount: payAmount } : {}),
     ...(payCurrency ? { pay_currency: payCurrency } : {}),
     ...(salaryRange ? { salary_range: salaryRange } : {}),
-    ...(positionsAvailable !== undefined ? { positions_available: positionsAvailable } : {}),
+    // Positions: only claim a count when the source post actually gave one.
+    //
+    // positions_available is NOT NULL DEFAULT 1 and show_positions DEFAULT
+    // true, so an import that could not determine a count used to publish
+    // "1 available" — a number we invented. Most scraped adverts never say
+    // how many people they want, so that was the common case, not the edge
+    // one.
+    //
+    // show_positions is therefore set explicitly on every import: on when we
+    // extracted a real number, off when we did not. The owner can turn it
+    // back on from the job form after they claim, which is the right place
+    // for a fact only they know.
+    ...(positionsAvailable !== undefined
+      ? { positions_available: positionsAvailable, show_positions: true }
+      : { show_positions: false }),
     ...(accommodationIncluded !== undefined ? { accommodation_included: accommodationIncluded } : {}),
     ...(accommodationType ? { accommodation_type: accommodationType } : {}),
     ...(skiPassIncluded !== undefined ? { ski_pass_included: skiPassIncluded } : {}),
