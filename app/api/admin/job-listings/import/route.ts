@@ -232,12 +232,46 @@ export async function POST(request: Request) {
     businessId = newBiz.id;
   }
 
-  // Upsert the job by notion_id
-  const { data: existingJob } = await admin
+  // Upsert the job. Two lookups, in order.
+  //
+  // notion_id first: it is the caller's own identity for the listing and the
+  // only thing that survives a title being edited on our side.
+  //
+  // Then business + title, because notion_id alone is not enough. The FB
+  // importer derives it from (group, business, jobTitle), so the SAME advert
+  // cross-posted by a business to two Facebook groups hashes to two different
+  // ids and lands as two listings. That is not hypothetical: Seasons Niseko
+  // posted to "Niseko Winter Staff" and "WHV Jobs in Niseko, Japan" and got a
+  // duplicate of every role, 20 pairs in total.
+  //
+  // Which group we happened to find an advert in is provenance, not identity.
+  // A business does not have two Pastry Chef openings because it posted once
+  // in each group. Matching on business + title collapses that, and the
+  // existing risk note still holds: two genuinely distinct same-titled roles
+  // at one business are vanishingly rare and harmless to merge.
+  //
+  // Deliberately NOT re-keying notion_id to drop the group — every stored id
+  // would stop matching and the next run would duplicate the entire corpus
+  // once more. The fallback fixes it without touching a single existing row.
+  let existingJob: { id: string; status: string } | null = null;
+
+  const { data: byNotion } = await admin
     .from("job_posts")
     .select("id, status")
     .eq("notion_id", notionId)
     .maybeSingle();
+  existingJob = byNotion ?? null;
+
+  if (!existingJob) {
+    const { data: byTitle } = await admin
+      .from("job_posts")
+      .select("id, status")
+      .eq("business_id", businessId)
+      .ilike("title", jobTitle)
+      .limit(1)
+      .maybeSingle();
+    existingJob = byTitle ?? null;
+  }
 
   const sharedFields = {
     business_id: businessId,
@@ -255,7 +289,20 @@ export async function POST(request: Request) {
     ...(payAmount !== undefined ? { pay_amount: payAmount } : {}),
     ...(payCurrency ? { pay_currency: payCurrency } : {}),
     ...(salaryRange ? { salary_range: salaryRange } : {}),
+    // Positions: never published for an imported listing.
+    //
+    // positions_available is NOT NULL DEFAULT 1 and show_positions DEFAULT
+    // true, so an import used to announce "1 available" whenever the advert
+    // did not say — a number we invented. Scraped adverts almost never state
+    // a headcount, and the extractor is told to return 1 for a single role,
+    // so a genuine "one position" and an unknown one are indistinguishable
+    // by the time they reach here.
+    //
+    // Rather than guess which is which, imports keep the count private and
+    // the business turns it on from the job form after claiming. A headcount
+    // is a fact only they actually know.
     ...(positionsAvailable !== undefined ? { positions_available: positionsAvailable } : {}),
+    show_positions: false,
     ...(accommodationIncluded !== undefined ? { accommodation_included: accommodationIncluded } : {}),
     ...(accommodationType ? { accommodation_type: accommodationType } : {}),
     ...(skiPassIncluded !== undefined ? { ski_pass_included: skiPassIncluded } : {}),
