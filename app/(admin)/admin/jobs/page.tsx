@@ -286,6 +286,17 @@ export default function AdminJobsPage() {
       const q = search.toLowerCase();
       results = results.filter((j) => j.title.toLowerCase().includes(q) || (j.business_name && j.business_name.toLowerCase().includes(q)));
     }
+
+    // Anything still awaiting approval floats to the top, newest first, with
+    // everything already dealt with below it in the same order. The query
+    // already returns newest-first, but a purely chronological list buries a
+    // pending import from last week under everything approved since — and the
+    // queue arrives in bursts of a dozen from one scrape, so "did I miss one"
+    // is the question this page has to answer at a glance.
+    results.sort((a, b) => {
+      if (!!a.pending_approval !== !!b.pending_approval) return a.pending_approval ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
     return results;
   }, [jobs, search, statusFilter]);
 
