@@ -324,13 +324,36 @@ export default function AdminJobsPage() {
           <option value="closed">Closed / Paused</option>
         </select>
         <span className="text-sm text-foreground/50">{filtered.length} jobs</span>
-        {pendingCount > 0 && statusFilter !== "pending" && (
+        {/* Replaces the old one-way "N pending approval →" chip. That could
+            only take you INTO the pending view; getting back out meant going
+            to the dropdown. This toggles both ways and still shows the count.
+            Bound to statusFilter rather than its own state so it and the
+            dropdown can never disagree. */}
+        {pendingCount > 0 && (
           <button
             type="button"
-            onClick={() => setStatusFilter("pending")}
-            className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 border border-amber-200 hover:bg-amber-100"
+            role="switch"
+            aria-checked={statusFilter === "pending"}
+            onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              statusFilter === "pending"
+                ? "border-amber-300 bg-amber-100 text-amber-800"
+                : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+            }`}
           >
-            {pendingCount} pending approval →
+            <span
+              aria-hidden="true"
+              className={`relative h-3.5 w-6 shrink-0 rounded-full transition-colors ${
+                statusFilter === "pending" ? "bg-amber-600" : "bg-amber-300/60"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition-all ${
+                  statusFilter === "pending" ? "left-3" : "left-0.5"
+                }`}
+              />
+            </span>
+            Only unapproved ({pendingCount})
           </button>
         )}
       </div>
