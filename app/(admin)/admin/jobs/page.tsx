@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -418,7 +418,24 @@ export default function AdminJobsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((job) => (
+            {filtered.map((job, i) => {
+              // The boundary between "still to review" and "already dealt
+              // with". Without it the two groups run together and, at 70+
+              // rows, you scroll past the cutoff without noticing — which
+              // defeats the point of sorting pending to the top.
+              const prev = filtered[i - 1];
+              const showDivider = !!prev && !!prev.pending_approval && !job.pending_approval;
+              return (
+              <Fragment key={job.id}>
+              {showDivider && (
+                <tr>
+                  <td colSpan={9} className="border-y border-accent/40 bg-accent/10 px-5 py-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
+                      Reviewed — no action needed
+                    </span>
+                  </td>
+                </tr>
+              )}
               <tr key={job.id} onClick={() => setSelected(job)} className="border-b border-accent/30 cursor-pointer transition-colors hover:bg-accent/5">
                 <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                   <input
@@ -479,7 +496,9 @@ export default function AdminJobsPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              </Fragment>
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 && <div className="p-8 text-center text-sm text-foreground/40">No jobs found.</div>}
