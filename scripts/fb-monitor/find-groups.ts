@@ -20,20 +20,9 @@
 import { writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { launch } from "./browser";
+import { scoreGroup, parseMembers } from "./group-scoring";
 
 const OUT_DIR = path.join(process.cwd(), "scripts", "fb-monitor", "out");
-
-/** Words that make a group likely to carry job adverts. */
-const JOB_WORDS = [
-  "job", "jobs", "work", "working", "employment", "hiring", "hire",
-  "staff", "recruit", "career", "seasonal", "vacancies", "gigs", "classifieds",
-];
-/** Words that mean the group is about something else entirely. */
-const NEGATIVE_WORDS = [
-  "buy", "sell", "swap", "for sale", "marketplace", "rent", "rental",
-  "housing", "accommodation", "roommate", "ride share", "rideshare",
-  "lost and found", "condo", "real estate", "trail", "avalanche",
-];
 
 interface Candidate {
   id: string;
@@ -47,43 +36,12 @@ interface Candidate {
   forResorts: string[];
 }
 
-function parseMembers(line: string): number {
-  const m = line.match(/([\d.,]+)\s*([KM])?\s*members/i);
-  if (!m) return 0;
-  const n = parseFloat(m[1].replace(/,/g, ""));
-  if (Number.isNaN(n)) return 0;
-  return m[2]?.toUpperCase() === "K" ? n * 1e3 : m[2]?.toUpperCase() === "M" ? n * 1e6 : n;
-}
-
-function score(name: string, members: number, terms: string[]): { score: number; matched: string[] } {
-  const lower = name.toLowerCase();
-  const matched: string[] = [];
-  let s = 0;
-
-  // Naming the place is the strongest signal that it serves that resort.
-  for (const t of terms) {
-    if (t.length > 2 && lower.includes(t.toLowerCase())) {
-      s += 40;
-      matched.push(t);
-      break;
-    }
-  }
-  if (JOB_WORDS.some((w) => new RegExp(`\\b${w}\\b`, "i").test(lower))) {
-    s += 35;
-    matched.push("job-related");
-  }
-  if (NEGATIVE_WORDS.some((w) => lower.includes(w))) s -= 45;
-
-  // Size helps but must not dominate: a 150k city-wide group is far less
-  // useful to us than a 3k group for the actual resort town.
-  s += Math.min(20, Math.log10(Math.max(members, 1)) * 5);
-  return { score: Math.round(s), matched };
-}
-
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const countryArg = args[args.indexOf("--country") + 1] ?? "Canada,Japan,USA";
   const countries = countryArg.split(",").map((c) => c.trim());
+  const onlyArg = args.indexOf("--only") >= 0 ? args[args.indexOf("--only") + 1] : null;
+  const only = onlyArg ? new Set(onlyArg.split(",").map((x) => x.trim())) : null;
   const limitArg = Number(args[args.indexOf("--limit") + 1]);
   const perResort = Number.isFinite(limitArg) && limitArg > 0 ? limitArg : 3;
 
@@ -96,10 +54,10 @@ async function main(): Promise<void> {
   const SB = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-  const resorts: Array<{ name: string; country: string; resort_nearby_towns: Array<{ nearby_towns: { name: string } | null }> }> =
+  const resorts: Array<{ name: string; country: string; state_province: string | null; resort_nearby_towns: Array<{ nearby_towns: { name: string } | null }> }> =
     await (
       await fetch(
-        `${SB}/rest/v1/resorts?select=name,country,resort_nearby_towns(nearby_towns(name))&country=in.(${countries.join(",")})&order=country,name`,
+        `${SB}/rest/v1/resorts?select=name,country,state_province,resort_nearby_towns(nearby_towns(name))&country=in.(${countries.join(",")})&order=country,name`,
         { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } }
       )
     ).json();
@@ -116,7 +74,8 @@ async function main(): Promise<void> {
     }
   } catch { /* config is optional here */ }
 
-  console.log(`resorts: ${resorts.length}  (${countries.join(", ")})`);
+  const targets = only ? resorts.filter((r) => only.has(r.name)) : resorts;
+  console.log(`resorts: ${targets.length}${only ? ` (filtered from ${resorts.length})` : ""}  (${countries.join(", ")})`);
   console.log(`already monitored: ${configured.size} group(s) — excluded from results\n`);
 
   const ctx = await launch(true);
@@ -124,16 +83,27 @@ async function main(): Promise<void> {
   const found = new Map<string, Candidate>();
 
   try {
-    for (const [i, resort] of resorts.entries()) {
+    for (const [i, resort] of targets.entries()) {
       const towns = (resort.resort_nearby_towns ?? [])
         .map((t) => t.nearby_towns?.name)
         .filter((n): n is string => !!n);
       const terms = [resort.name, ...towns];
-      // Two queries: the resort itself, and its main town. The town is often
-      // where the staff actually live and where the local job group is named.
-      const queries = [`${resort.name} jobs`, ...(towns[0] ? [`${towns[0]} jobs`] : [])];
+      // Several angles per resort. One query per resort found groups for only
+      // 21 of 53 — Facebook's group search is literal, so "Fernie jobs" and
+      // "Fernie employment" surface different sets, and seasonal resort work
+      // is often advertised under "staff", "winter" or "noticeboard" rather
+      // than the word "jobs" at all.
+      const town = towns[0];
+      const queries = [
+        `${resort.name} jobs`,
+        ...(town ? [`${town} jobs`, `${town} employment`, `${town} noticeboard`] : []),
+        `${resort.name} staff`,
+        // Japan's resort groups are usually named for the English-speaking
+        // seasonal crowd rather than using the word "jobs".
+        ...(resort.country === "Japan" ? [`${resort.name} working holiday`, `${town ?? resort.name} winter staff`] : []),
+      ];
 
-      process.stdout.write(`[${i + 1}/${resorts.length}] ${resort.name} (${resort.country}) … `);
+      process.stdout.write(`[${i + 1}/${targets.length}] ${resort.name} (${resort.country}) … `);
       let newForThis = 0;
 
       for (const q of queries) {
@@ -169,8 +139,9 @@ async function main(): Promise<void> {
             if (!name || /^join$/i.test(name)) continue;
 
             const members = parseMembers(meta);
-            const { score: s, matched } = score(name, members, terms);
-            if (s < 45) continue; // must at least name the place or be job-shaped
+            const verdict = scoreGroup({ name, members, terms, region: resort.state_province });
+            if (verdict.rejected) continue;
+            const s = verdict.score;
 
             const existing = found.get(r.id);
             if (existing) {
@@ -185,7 +156,7 @@ async function main(): Promise<void> {
                 activity: meta.match(/[\d+]+\s*posts? a day/i)?.[0] ?? null,
                 url: `https://www.facebook.com/groups/${r.id}`,
                 score: s,
-                matchedOn: matched,
+                matchedOn: [verdict.matchedPlace ?? "", verdict.confidence ?? ""].filter(Boolean),
                 forResorts: [resort.name],
               });
               newForThis++;
@@ -211,7 +182,7 @@ async function main(): Promise<void> {
     }
   }
   const shortlist: Record<string, Candidate[]> = {};
-  for (const resort of resorts) {
+  for (const resort of targets) {
     const list = (byResort.get(resort.name) ?? []).sort((a, b) => b.score - a.score).slice(0, perResort);
     shortlist[`${resort.country}|${resort.name}`] = list;
   }
