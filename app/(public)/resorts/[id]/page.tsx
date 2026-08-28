@@ -18,9 +18,35 @@ interface ResortPageProps {
 
 const BASE_URL = "https://www.mountainconnects.com";
 
+/**
+ * Resolve a route id to the static resort record.
+ *
+ * The route accepts both a legacy id ("11") and the database UUID, and the
+ * static array is keyed on the legacy id only. generateMetadata used to do
+ * the plain lookup and nothing else, so every UUID URL rendered a correct
+ * page under the title "Resort Not Found" — the body resolved the UUID and
+ * the metadata did not. Shared so the two cannot drift apart again.
+ */
+async function resolveResort(id: string): Promise<{ resort: (typeof resorts)[number] | undefined; uuid: string | null }> {
+  const direct = resorts.find((r) => r.id === id);
+  if (direct) return { resort: direct, uuid: null };
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if (!isUuid) return { resort: undefined, uuid: null };
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from("resorts").select("id, legacy_id").eq("id", id).single();
+    if (data?.legacy_id) {
+      return { resort: resorts.find((r) => r.id === data.legacy_id), uuid: data.id };
+    }
+  } catch {}
+  return { resort: undefined, uuid: null };
+}
+
 export async function generateMetadata({ params }: ResortPageProps): Promise<Metadata> {
   const { id } = await params;
-  const resort = resorts.find((r) => r.id === id);
+  const { resort } = await resolveResort(id);
 
   if (!resort) return { title: "Resort Not Found" };
 
@@ -111,26 +137,11 @@ function InfoRow({
 export default async function ResortDetailPage({ params }: ResortPageProps) {
   const { id } = await params;
 
-  // Support both legacy IDs (e.g. "thredbo") and UUIDs
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  let resort = resorts.find((r) => r.id === id);
-  let resortUuid: string | null = null;
-
-  // If UUID was passed, look up legacy_id from Supabase to find the static resort data
-  if (!resort && isUuid) {
-    try {
-      const supabase = await createClient();
-      const { data: dbResort } = await supabase
-        .from("resorts")
-        .select("id, legacy_id")
-        .eq("id", id)
-        .single();
-      if (dbResort?.legacy_id) {
-        resort = resorts.find((r) => r.id === dbResort.legacy_id);
-        resortUuid = dbResort.id;
-      }
-    } catch {}
-  }
+  // Accepts both a legacy id and the database UUID — see resolveResort.
+  const { resort, uuid } = await resolveResort(id);
+  // Reassigned below when the route was entered by legacy id, which needs a
+  // second lookup to find the UUID the related queries key on.
+  let resortUuid = uuid;
 
   if (!resort) {
     notFound();
