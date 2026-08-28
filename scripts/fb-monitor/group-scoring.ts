@@ -25,11 +25,29 @@
  *     ranking on members alone puts them the wrong way round.
  */
 
+/**
+ * Vocabulary that marks a group as job-carrying.
+ *
+ * The second half exists because the first half missed the point. A list of
+ * formal employment words rejected "Whistler Blackcomb Employees", "Sunshine
+ * Village Crew", "Niseko Seasonaires", "Revelstoke Lifties" and "Fernie Ski
+ * Season 2026/27" — six of eight realistic resort-crew group names — while
+ * happily accepting "Kelowna Jobs" and "Salt Lake City jobs". That is why an
+ * earlier shortlist was full of town groups and nearly empty of the resort
+ * groups it was supposed to find: seasonal mountain crews do not call it
+ * "employment", they call it the crew, the season, or being a liftie.
+ */
 export const JOB_WORDS = [
-  "job", "jobs", "work", "working", "employment", "hiring", "hire",
+  // Formal
+  "job", "jobs", "work", "working", "workers", "employment", "hiring", "hire",
   "staff", "staffing", "recruit", "recruitment", "career", "careers",
-  "seasonal", "vacancy", "vacancies", "gig", "gigs", "classifieds",
-  "noticeboard", "notice board", "employ",
+  "employ", "employee", "employees", "vacancy", "vacancies",
+  // How seasonal resort crews actually name themselves
+  "crew", "seasonal", "seasonaire", "seasonaires", "seasonnaire", "seasonnaires",
+  "liftie", "lifties", "ski season", "winter season", "snow season",
+  "working holiday", "winter crew", "snow crew", "season 2025", "season 2026",
+  // Boards that carry adverts among other things
+  "gig", "gigs", "classifieds", "noticeboard", "notice board",
 ];
 
 /** Group themes that are never job adverts, however well they match. */
@@ -39,6 +57,10 @@ export const NEGATIVE_WORDS = [
   "ride share", "rideshare", "carpool", "lost and found", "real estate",
   "condo", "avalanche", "trail", "skiers", "snowboarders", "powder",
   "conditions", "webcam", "for sale or", "dating", "singles",
+  // Broadening JOB_WORDS to "season" and "crew" opens the door to social and
+  // enthusiast groups that share the vocabulary. These close it again.
+  "season pass", "pass holders", "ski club", "race club", "alumni",
+  "reunion", "memories", "photos",
 ];
 
 

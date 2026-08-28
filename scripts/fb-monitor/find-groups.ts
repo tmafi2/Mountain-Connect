@@ -88,19 +88,28 @@ async function main(): Promise<void> {
         .map((t) => t.nearby_towns?.name)
         .filter((n): n is string => !!n);
       const terms = [resort.name, ...towns];
-      // Several angles per resort. One query per resort found groups for only
-      // 21 of 53 — Facebook's group search is literal, so "Fernie jobs" and
-      // "Fernie employment" surface different sets, and seasonal resort work
-      // is often advertised under "staff", "winter" or "noticeboard" rather
-      // than the word "jobs" at all.
+      // Weighted toward the MOUNTAIN, not the town it sits above.
+      //
+      // An earlier pass ran three town queries to two resort ones and came
+      // back full of "Kelowna Jobs" and "Salt Lake City jobs" — real job
+      // boards, but for the nearest city rather than the hill. A resort's own
+      // crew group is the more valuable find: smaller, seasonal, and full of
+      // exactly the postings we want.
+      //
+      // The extra angles matter because seasonal crews name themselves
+      // inconsistently — employees, crew, staff, seasonaires — and Facebook's
+      // search is literal, so each phrasing surfaces a different set.
       const town = towns[0];
       const queries = [
         `${resort.name} jobs`,
-        ...(town ? [`${town} jobs`, `${town} employment`, `${town} noticeboard`] : []),
         `${resort.name} staff`,
-        // Japan's resort groups are usually named for the English-speaking
-        // seasonal crowd rather than using the word "jobs".
-        ...(resort.country === "Japan" ? [`${resort.name} working holiday`, `${town ?? resort.name} winter staff`] : []),
+        `${resort.name} employees`,
+        `${resort.name} crew`,
+        `${resort.name} seasonaires`,
+        // One town query kept: some resorts genuinely have no group of their
+        // own and the town board is the only place their adverts appear.
+        ...(town ? [`${town} jobs`] : []),
+        ...(resort.country === "Japan" ? [`${resort.name} working holiday`] : []),
       ];
 
       process.stdout.write(`[${i + 1}/${targets.length}] ${resort.name} (${resort.country}) … `);
