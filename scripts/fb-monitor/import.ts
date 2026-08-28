@@ -18,7 +18,7 @@
  *
  * RESORT MATCHING. The extractor returns a resort as a human would write it
  * ("Niseko", "Banff"); the resorts table has "Niseko United" and
- * "Banff / Lake Louise". The import endpoint does an exact ilike and 400s on a
+ * "Mount Norquay". The import endpoint does an exact ilike and 400s on a
  * miss, so unmatched names would silently cost us listings. Matching therefore
  * happens here, against the live table, in three passes: exact, then a small
  * alias table for the cases we have actually seen, then token overlap. A post
@@ -70,8 +70,20 @@ const RESORT_ALIASES: Readonly<Record<string, string>> = {
   niseko: "Niseko United",
   "niseko grand hirafu": "Niseko United",
   hirafu: "Niseko United",
-  banff: "Banff / Lake Louise",
-  "lake louise": "Banff / Lake Louise",
+  // "Banff / Lake Louise" was renamed to Mount Norquay in migration 00091 —
+  // Banff is a town, not a resort, and that record was the three Banff ski
+  // areas summed. Both aliases would now 400 on the endpoint's exact ilike.
+  //
+  // Lake Louise gains by the split: it now points at its own record instead
+  // of a composite. A bare "Banff" is a genuine judgement call — the town has
+  // three ski areas — and goes to Norquay, which is the hill in Banff itself
+  // and the same row the alias resolved to before.
+  banff: "Mount Norquay",
+  "mt norquay": "Mount Norquay",
+  "mount norquay": "Mount Norquay",
+  norquay: "Mount Norquay",
+  "lake louise": "Lake Louise Ski Resort",
+  "sunshine village": "Sunshine Village",
   "revelstoke mountain resort": "Revelstoke",
   whistler: "Whistler Blackcomb",
   hakuba: "Hakuba Valley",

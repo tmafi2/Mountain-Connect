@@ -47,7 +47,7 @@ const COUNTRIES: CountryConfig[] = [
     season: "November – April",
     visaNote: "International Experience Canada (IEC) Working Holiday is the standard path for under-35s.",
     intro:
-      "Canadian ski resort jobs run from late November to mid-April. Whistler-Blackcomb, Banff/Lake Louise, and Revelstoke see thousands of seasonal workers each year. Big resort operators sponsor specialist roles.",
+      "Canadian ski resort jobs run from late November to mid-April. Whistler Blackcomb, the Banff trio of Mount Norquay, Sunshine Village and Lake Louise, and Revelstoke see thousands of seasonal workers each year. Big resort operators sponsor specialist roles.",
   },
   {
     slug: "japan",
