@@ -43,12 +43,29 @@ export const JOB_WORDS = [
   "staff", "staffing", "recruit", "recruitment", "career", "careers",
   "employ", "employee", "employees", "vacancy", "vacancies",
   // How seasonal resort crews actually name themselves
-  "crew", "seasonal", "seasonaire", "seasonaires", "seasonnaire", "seasonnaires",
-  "liftie", "lifties", "ski season", "winter season", "snow season",
-  "working holiday", "winter crew", "snow crew", "season 2025", "season 2026",
+  "seasonaire", "seasonaires", "seasonnaire", "seasonnaires",
+  "liftie", "lifties", "working holiday", "winter crew", "snow crew",
   // Boards that carry adverts among other things
   "gig", "gigs", "classifieds", "noticeboard", "notice board",
 ];
+
+/**
+ * Words that suggest a jobs group but do not establish one.
+ *
+ * "Crew" and "season" are how resort staff groups name themselves — and also
+ * how riding groups, charity teams and social circles do. Adding them
+ * outright pulled in "Fernie Adventure Crew", "fernie touring crew!",
+ * "Green/Blue Crew of Fernie" (32 members) and "Hakuba Hairy Lips Movember
+ * Crew" (55 members).
+ *
+ * A weak word alone is not enough: the group must also be big enough to be a
+ * real board. "2026/27 Hakuba Crew" at 10k qualifies; a 32-member group of
+ * friends does not, whatever it calls itself.
+ */
+export const WEAK_JOB_WORDS = [
+  "crew", "seasonal", "season", "ski season", "winter season", "snow season",
+];
+const WEAK_MIN_MEMBERS = 1500;
 
 /** Group themes that are never job adverts, however well they match. */
 export const NEGATIVE_WORDS = [
@@ -61,6 +78,8 @@ export const NEGATIVE_WORDS = [
   // enthusiast groups that share the vocabulary. These close it again.
   "season pass", "pass holders", "ski club", "race club", "alumni",
   "reunion", "memories", "photos",
+  // Recreational uses of "crew" that a size threshold alone would miss.
+  "adventure", "touring", "movember", "riding", "shred", "social club",
 ];
 
 
@@ -173,12 +192,22 @@ export function scoreGroup({ name, members, terms, region = null }: ScoreInput):
     };
   }
 
-  const jobShaped = JOB_WORDS.some((w) => namesPlace(name, w));
+  const strong = JOB_WORDS.some((w) => namesPlace(name, w));
+  const weak = WEAK_JOB_WORDS.some((w) => namesPlace(name, w));
+  const jobShaped = strong || (weak && members >= WEAK_MIN_MEMBERS);
   if (!jobShaped) {
-    return { score: 0, matchedPlace, jobShaped: false, rejected: "names the place but is not a jobs group" };
+    return {
+      score: 0,
+      matchedPlace,
+      jobShaped: false,
+      rejected: weak
+        ? `only a weak signal ("crew"/"season") and too small at ${members || 0} members to be a board`
+        : "names the place but is not a jobs group",
+    };
   }
 
-  let score = 60;
+  // A weak-signal group is a maybe, not a find.
+  let score = strong ? 60 : 45;
   // A multi-word place match is far more specific than a single word.
   if (matchedPlace.includes(" ")) score += 15;
   // Size helps, capped so it can never outweigh relevance.
