@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveEffectiveTier, type BusinessTier } from "@/lib/tier";
 import ManageListingsClient from "./ManageListingsClient";
 import type { ListingItem, ApplicantItem, ApplicantStatus } from "./ManageListingsClient";
 
@@ -227,7 +228,9 @@ async function fetchListingsData(): Promise<{
 
     const { data: bp } = await supabase
       .from("business_profiles")
-      .select("id, verification_status")
+      .select(
+        "id, verification_status, tier, selected_tier, subscription_status, grace_period_ends_at"
+      )
       .eq("user_id", user.id)
       .single();
 
@@ -236,6 +239,18 @@ async function fetchListingsData(): Promise<{
     }
 
     const businessVerified = bp.verification_status === "verified";
+
+    // Auto-renew is a paid feature, so the toggle only appears for a business
+    // whose tier actually entitles it right now. Resolved rather than read
+    // off a column: a courtesy window or a cancelled subscription both change
+    // the answer without changing `tier`.
+    const effectiveTier = resolveEffectiveTier({
+      tier: bp.tier as BusinessTier | null,
+      selected_tier: bp.selected_tier as BusinessTier | null,
+      subscription_status: bp.subscription_status as string | null,
+      grace_period_ends_at: bp.grace_period_ends_at as string | null,
+    });
+    const canAutoRenew = effectiveTier !== "free";
 
     // Fire jobs + applications in parallel. The applications query uses
     // an inner join on job_posts to scope by business_id without needing
@@ -278,6 +293,8 @@ async function fetchListingsData(): Promise<{
         // Set only when WE parked it for a tier limit (migration 00087).
         // A self-paused listing has NULL here and reads as a plain "Paused".
         pausedReason: (j.paused_reason as string | null) ?? null,
+        autoRenew: (j.auto_renew as boolean | null) ?? false,
+        expiresAt: (j.expires_at as string | null) ?? null,
         pay: (j.pay_amount as string) ? `${(j.pay_currency as string) || "AUD"} $${j.pay_amount as string}` : (j.salary_range as string) || "",
         type: posType,
         posted: new Date(j.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -330,23 +347,24 @@ async function fetchListingsData(): Promise<{
       });
     }
 
-    return { listings, applicants, businessVerified };
+    return { listings, applicants, businessVerified, canAutoRenew };
   } catch {
     // On error, return empty
-    return { listings: [], applicants: [], businessVerified: false };
+    return { listings: [], applicants: [], businessVerified: false, canAutoRenew: false };
   }
 }
 
 /* --- Page component (server) --- */
 
 export default async function ManageListingsPage() {
-  const { listings, applicants, businessVerified } = await fetchListingsData();
+  const { listings, applicants, businessVerified, canAutoRenew } = await fetchListingsData();
 
   return (
     <ManageListingsClient
       initialListings={listings}
       initialApplicants={applicants}
       businessVerified={businessVerified}
+      canAutoRenew={canAutoRenew}
     />
   );
 }

@@ -26,6 +26,10 @@ export interface ListingItem {
   status: "active" | "paused" | "closed" | "draft";
   /** Why it is paused, when we parked it for a tier limit. NULL = owner paused it. */
   pausedReason?: string | null;
+  /** Paid-plan flag: renew this listing instead of letting it lapse. */
+  autoRenew?: boolean;
+  /** End of the current live window. NULL on drafts and unpublished rows. */
+  expiresAt?: string | null;
   pay: string;
   type: string;
   posted: string;
@@ -62,6 +66,8 @@ export interface ManageListingsClientProps {
   /** Whether the current business is verified. When false, all listings are
    *  hidden from the public regardless of status. */
   businessVerified?: boolean;
+  /** Whether the business's tier entitles it to auto-renew right now. */
+  canAutoRenew?: boolean;
 }
 
 /* --- Style helpers --- */
@@ -107,15 +113,110 @@ type FilterTab = "all" | "active" | "draft" | "paused" | "closed";
 
 /* --- Component --- */
 
-export default function ManageListingsClient({ initialListings, initialApplicants, businessVerified = true }: ManageListingsClientProps) {
+
+/**
+ * The expiry strip at the top of an expanded listing.
+ *
+ * Shows when the listing lapses and, on paid plans, offers to renew it
+ * automatically instead. The date is stated even for free businesses —
+ * knowing when a listing ends is not a paid feature, and hiding it would
+ * make the eventual pause a surprise.
+ */
+function ExpiryStrip({
+  listing,
+  canAutoRenew,
+}: {
+  listing: ListingItem;
+  canAutoRenew: boolean;
+}) {
+  const [on, setOn] = useState(!!listing.autoRenew);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (listing.status !== "active" || !listing.expiresAt) return null;
+
+  const ends = new Date(listing.expiresAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
+  async function toggle() {
+    const next = !on;
+    setSaving(true);
+    setError(null);
+    // Optimistic: the row reads as switched immediately and is put back if
+    // the server disagrees, which it will for a lapsed subscription.
+    setOn(next);
+    try {
+      const res = await fetch("/api/business/jobs/auto-renew", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: listing.id, autoRenew: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Could not update auto-renew");
+      }
+    } catch (err) {
+      setOn(!next);
+      setError(err instanceof Error ? err.message : "Could not update auto-renew");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-accent/40 bg-background/40 px-4 py-3">
+      <p className="text-xs text-foreground/60">
+        {on ? "Renews automatically on " : "Live until "}
+        <span className="font-semibold text-primary">{ends}</span>
+        {!on && <span className="text-foreground/45"> · we&apos;ll email you a week before</span>}
+      </p>
+
+      {canAutoRenew ? (
+        <div className="flex items-center gap-2">
+          {error && <span className="text-xs text-red-600">{error}</span>}
+          <button
+            type="button"
+            onClick={toggle}
+            disabled={saving}
+            aria-pressed={on}
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+              on
+                ? "border-secondary/40 bg-secondary/10 text-primary"
+                : "border-accent/50 bg-white text-foreground/60 hover:text-primary"
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${on ? "bg-secondary" : "bg-foreground/25"}`}
+              aria-hidden
+            />
+            Auto-renew {on ? "on" : "off"}
+          </button>
+        </div>
+      ) : (
+        <a
+          href="/business/upgrade"
+          className="text-xs font-semibold text-secondary hover:underline"
+        >
+          Auto-renew on paid plans
+        </a>
+      )}
+    </div>
+  );
+}
+
+export default function ManageListingsClient({ initialListings, initialApplicants, businessVerified = true, canAutoRenew = false }: ManageListingsClientProps) {
   return (
     <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-primary" /></div>}>
-      <ManageListingsContent initialListings={initialListings} initialApplicants={initialApplicants} businessVerified={businessVerified} />
+      <ManageListingsContent initialListings={initialListings} initialApplicants={initialApplicants} businessVerified={businessVerified} canAutoRenew={canAutoRenew} />
     </Suspense>
   );
 }
 
-function ManageListingsContent({ initialListings, initialApplicants, businessVerified = true }: ManageListingsClientProps) {
+function ManageListingsContent({ initialListings, initialApplicants, businessVerified = true, canAutoRenew = false }: ManageListingsClientProps) {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -553,6 +654,7 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
               {/* Expanded: applicant list + detail */}
               {isExpanded && (
                 <div className="border-t border-accent/40">
+                  <ExpiryStrip listing={listing} canAutoRenew={canAutoRenew} />
                   {rawJobApplicants.length === 0 ? (
                     <div className="p-8 text-center">
                       <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20">

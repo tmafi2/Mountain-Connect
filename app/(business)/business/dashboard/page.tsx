@@ -4,6 +4,7 @@ import { isInLaunchLocation } from "@/lib/config/launch-locations";
 import DashboardClient from "./DashboardClient";
 import type { BizActivity, EoiRow } from "./DashboardClient";
 import type { BusinessTier } from "@/lib/tier";
+import { BILLING_PAUSE_REASONS } from "@/lib/billing/job-parking";
 
 export const dynamic = "force-dynamic";
 
@@ -105,12 +106,21 @@ export default async function BusinessDashboard() {
   const listingCount = String(activeCountResult.count ?? 0);
   const allJobIds = allJobIdsResult.data;
 
-  // Listings we parked behind the tier limit (migration 00087). A NULL
-  // paused_reason means the owner paused it themselves, which is none of the
-  // upgrade prompt's business.
+  // Listings we parked behind the tier limit (migration 00087), which drive
+  // the upgrade prompt further down.
+  //
+  // Matched against BILLING_PAUSE_REASONS, not "has a reason at all". A NULL
+  // reason is the owner's own pause and none of the prompt's business — and
+  // since 00092 a reason can also be 'stale_cleanup' or 'expired', neither of
+  // which an upgrade fixes. Counting those would advertise listings as behind
+  // the paywall that are not, and invite a business to pay for nothing.
   const parkedJobIds = new Set(
     (allJobIds ?? [])
-      .filter((j) => j.status === "paused" && j.paused_reason)
+      .filter(
+        (j) =>
+          j.status === "paused" &&
+          BILLING_PAUSE_REASONS.includes(j.paused_reason as (typeof BILLING_PAUSE_REASONS)[number])
+      )
       .map((j) => j.id)
   );
   const recentInterviews = recentInterviewsResult.data;
