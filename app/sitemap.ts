@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resorts } from "@/lib/data/resorts";
 import { EMPLOYER_MARKETS } from "@/lib/data/employer-markets";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -100,12 +101,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    {
-      url: `${BASE_URL}/employers`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
+    // Omitted while the directory is hidden — submitting a URL that answers
+    // 404 is a crawl error, not a neutral no-op.
+    ...(EMPLOYERS_DIRECTORY_ENABLED
+      ? [
+          {
+            url: `${BASE_URL}/employers`,
+            lastModified: new Date(),
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          },
+        ]
+      : []),
     {
       url: `${BASE_URL}/about`,
       lastModified: new Date(),

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 
 const footerLinks = {
   Platform: [
@@ -20,8 +21,8 @@ const footerLinks = {
   "For Businesses": [
     { href: "/for-employers", label: "Hire Seasonal Staff" },
     { href: "/signup?role=business", label: "Post a Job" },
-    { href: "/employers", label: "Why Mountain Connects" },
-  ],
+    { href: "/employers", label: "Why Mountain Connects", enabled: EMPLOYERS_DIRECTORY_ENABLED },
+  ].filter((link) => link.enabled !== false),
 };
 
 export default function Footer() {

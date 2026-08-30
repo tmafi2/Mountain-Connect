@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import AnimatedCounter from "../home/AnimatedCounter";
 
 type View = "business" | "worker";
@@ -158,11 +159,24 @@ export default function WelcomeClient({ initialView }: WelcomeClientProps) {
                 </svg>
               </span>
             </Link>
+            {/* A business's secondary CTA falls back to the marketing page
+                while the directory is hidden, so the pair of buttons stays
+                intact rather than leaving a lone CTA. */}
             <Link
-              href={isBusiness ? "/employers" : "/jobs"}
+              href={
+                isBusiness
+                  ? EMPLOYERS_DIRECTORY_ENABLED
+                    ? "/employers"
+                    : "/for-employers"
+                  : "/jobs"
+              }
               className="rounded-xl border-2 border-white/20 px-8 py-4 text-sm font-bold text-white/90 transition-all hover:border-white/40 hover:bg-white/5 sm:text-base"
             >
-              {isBusiness ? "See verified employers" : "Browse jobs"}
+              {isBusiness
+                ? EMPLOYERS_DIRECTORY_ENABLED
+                  ? "See verified employers"
+                  : "See how it works"
+                : "Browse jobs"}
             </Link>
           </div>
 
@@ -311,7 +325,9 @@ export default function WelcomeClient({ initialView }: WelcomeClientProps) {
             <div className="flex items-center gap-4 text-xs text-foreground/50">
               <Link href="/" className="hover:text-primary transition-colors">Home</Link>
               <Link href="/jobs" className="hover:text-primary transition-colors">Jobs</Link>
-              <Link href="/employers" className="hover:text-primary transition-colors">Employers</Link>
+              {EMPLOYERS_DIRECTORY_ENABLED && (
+                <Link href="/employers" className="hover:text-primary transition-colors">Employers</Link>
+              )}
               <Link href="/about" className="hover:text-primary transition-colors">About</Link>
             </div>
           </div>

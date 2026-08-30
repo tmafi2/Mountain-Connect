@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,6 +8,9 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: [
+          // Hidden feature, not a private area — drops off this list the
+          // moment EMPLOYERS_DIRECTORY_ENABLED goes back to true.
+          ...(EMPLOYERS_DIRECTORY_ENABLED ? [] : ["/employers"]),
           "/admin/",
           "/dashboard/",
           "/profile/",

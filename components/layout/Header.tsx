@@ -5,18 +5,23 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import RegionsDropdown from "./RegionsDropdown";
 import NotificationBell from "@/components/ui/NotificationBell";
 import MessageNotificationBell from "@/components/ui/MessageNotificationBell";
 
+// Filtered, not edited: leaving the entry in place and gating it keeps the
+// flag the single thing to flip when the directory comes back. The slice()
+// calls below split this list into left/right nav groups after filtering,
+// so a removed link closes the gap rather than shifting a link across groups.
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/explore", label: "Explore" },
   { href: "/jobs", label: "Jobs" },
-  { href: "/employers", label: "Employers" },
+  { href: "/employers", label: "Employers", enabled: EMPLOYERS_DIRECTORY_ENABLED },
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
-];
+].filter((link) => link.enabled !== false);
 
 export default function Header() {
   const pathname = usePathname();

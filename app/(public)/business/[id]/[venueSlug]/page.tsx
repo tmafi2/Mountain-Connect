@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import { formatPay } from "@/lib/utils/format-pay";
 
 interface VenuePageProps {
@@ -113,8 +114,13 @@ export default async function VenuePage({ params }: VenuePageProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <nav className="mb-6 text-xs text-foreground/50">
-        <Link href="/employers" className="hover:text-secondary">Employers</Link>
-        <span className="mx-1.5">/</span>
+        {/* The Employers rung disappears with the directory it points at. */}
+        {EMPLOYERS_DIRECTORY_ENABLED && (
+          <>
+            <Link href="/employers" className="hover:text-secondary">Employers</Link>
+            <span className="mx-1.5">/</span>
+          </>
+        )}
         <Link
           href={`/business/${business.id}`}
           className="hover:text-secondary"

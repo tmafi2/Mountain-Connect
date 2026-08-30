@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import { formatPay } from "@/lib/utils/format-pay";
 
 interface BusinessPageProps {
@@ -279,20 +280,26 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     }),
   };
 
-  // BreadcrumbList — Home → Employers → {Business name}.
+  // BreadcrumbList — Home → Employers → {Business name}, with the Employers
+  // rung dropped while the directory is hidden. Positions are renumbered
+  // rather than left with a gap: schema.org requires them to be consecutive,
+  // and pointing a rung at a 404 would invalidate the whole trail.
+  const breadcrumbTrail = [
+    { name: "Home", item: BASE_URL },
+    ...(EMPLOYERS_DIRECTORY_ENABLED
+      ? [{ name: "Employers", item: `${BASE_URL}/employers` }]
+      : []),
+    { name: business.business_name, item: `${BASE_URL}/business/${id}` },
+  ];
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
-      { "@type": "ListItem", position: 2, name: "Employers", item: `${BASE_URL}/employers` },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: business.business_name,
-        item: `${BASE_URL}/business/${id}`,
-      },
-    ],
+    itemListElement: breadcrumbTrail.map((crumb, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: crumb.name,
+      item: crumb.item,
+    })),
   };
 
   return (
