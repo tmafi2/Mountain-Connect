@@ -76,7 +76,9 @@ export interface SweepReport {
   renew: BusinessGroup[];
   /** Posts that lapse. */
   expire: BusinessGroup[];
-  counts: { warn: number; renew: number; expire: number; businesses: number };
+  /** Past due but still owed their notice period, or unwarnable. */
+  holding: BusinessGroup[];
+  counts: { warn: number; renew: number; expire: number; holding: number; businesses: number };
   errors: string[];
 }
 
@@ -148,7 +150,8 @@ export async function planExpirySweep(
       warn: [],
       renew: [],
       expire: [],
-      counts: { warn: 0, renew: 0, expire: 0, businesses: 0 },
+      holding: [],
+      counts: { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 },
       errors: [`job read failed: ${jobErr.message}`],
     };
   }
@@ -163,7 +166,8 @@ export async function planExpirySweep(
       warn: [],
       renew: [],
       expire: [],
-      counts: { warn: 0, renew: 0, expire: 0, businesses: 0 },
+      holding: [],
+      counts: { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 },
       errors,
     };
   }
@@ -205,8 +209,11 @@ export async function planExpirySweep(
   const nowMs = now.getTime();
   const isPast = (j: SweepJob) => new Date(j.expires_at).getTime() <= nowMs;
 
-  // Pass 1 — not yet expired, inside the warning window, never warned.
-  const toWarn = claimed.filter((j) => !isPast(j) && j.expiry_warning_sent_at === null);
+  // Pass 1 — never warned, and close enough to matter. Deliberately NOT
+  // restricted to posts that are still in date: a post can slip past its
+  // expiry unwarned (a cron outage, a business address added late), and
+  // those need warning most of all.
+  const toWarn = claimed.filter((j) => j.expiry_warning_sent_at === null);
 
   // Pass 2 — expired, opted into auto-renew, and actually entitled to it.
   // The tier is re-resolved rather than trusted from a flag: a business can
@@ -218,13 +225,38 @@ export async function planExpirySweep(
     return j.auto_renew && !!biz && tierOf(biz) !== "free";
   });
 
-  // Pass 3 — everything else that is past its window.
+  // Pass 3 — expired, not renewing, AND warned a full warning period ago.
+  //
+  // THE RULE THAT MAKES THE PROMISE TRUE. The email says a week's notice, so
+  // nothing lapses without having had one. Testing that the warning is old
+  // enough — rather than merely that one was sent — is what survives an
+  // outage: if the sweep misses a fortnight, the first run back warns, and
+  // expiry waits another seven days rather than pausing the board that
+  // afternoon.
+  //
+  // It also removes a deadlock. Gating expiry on "was warned" while gating
+  // warnings on "not yet expired" would strand any post that slipped past
+  // its date unwarned: never warnable because it is late, never expirable
+  // because it was never warned. Pass 1 warns regardless of date, and this
+  // gives that warning its full run.
+  const warnedLongEnough = (j: SweepJob & { expiry_warning_sent_at: string | null }) =>
+    j.expiry_warning_sent_at !== null &&
+    new Date(j.expiry_warning_sent_at).getTime() <= nowMs - EXPIRY_WARNING_DAYS * 86_400_000;
+
   const renewIds = new Set(toRenew.map((j) => j.id));
-  const toExpire = past.filter((j) => !renewIds.has(j.id));
+  const toExpire = past.filter((j) => !renewIds.has(j.id) && warnedLongEnough(j));
+
+  // Past due but not yet expirable — waiting out their notice, or never
+  // warnable because the business has no address on file. Surfaced so a
+  // post stuck here is visible rather than silently immortal.
+  const awaitingNotice = past.filter(
+    (j) => !renewIds.has(j.id) && !warnedLongEnough(j)
+  );
 
   const warn = group(toWarn, businesses, tierOf);
   const renew = group(toRenew, businesses, tierOf);
   const expire = group(toExpire, businesses, tierOf);
+  const holding = group(awaitingNotice, businesses, tierOf);
 
   return {
     mode,
@@ -234,11 +266,13 @@ export async function planExpirySweep(
     warn,
     renew,
     expire,
+    holding,
     counts: {
       warn: toWarn.length,
       renew: toRenew.length,
       expire: toExpire.length,
-      businesses: new Set([...warn, ...renew, ...expire].map((g) => g.businessId)).size,
+      holding: awaitingNotice.length,
+      businesses: new Set([...warn, ...renew, ...expire, ...holding].map((g) => g.businessId)).size,
     },
     errors,
   };
@@ -249,12 +283,14 @@ export function describeSweep(r: SweepReport): string {
   const lines = [
     `[job-expiry] mode=${r.mode} email=${r.wouldSendEmail} write=${r.wouldWrite} ` +
       `warn=${r.counts.warn} renew=${r.counts.renew} expire=${r.counts.expire} ` +
+      `holding=${r.counts.holding} ` +
       `across ${r.counts.businesses} business(es), window=${JOB_POST_LIFESPAN_DAYS}d`,
   ];
   for (const [label, groups] of [
     ["WARN", r.warn],
     ["RENEW", r.renew],
     ["EXPIRE", r.expire],
+    ["HOLDING", r.holding],
   ] as const) {
     for (const g of groups) {
       lines.push(

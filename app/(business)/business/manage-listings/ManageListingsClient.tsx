@@ -71,11 +71,29 @@ const LISTING_STATUS_STYLES: Record<string, { bg: string; text: string; dot: str
   draft: { bg: "bg-blue-50 border-blue-200", text: "text-blue-600", dot: "bg-blue-400", label: "Draft" },
   paused: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", dot: "bg-yellow-400", label: "Paused" },
   closed: { bg: "bg-gray-50 border-gray-200", text: "text-gray-500", dot: "bg-gray-400", label: "Closed" },
-  // Not a DB status — a paused row carrying a paused_reason. Worth its own
-  // badge because "Paused" on a listing the business never paused reads as a
+  // Not DB statuses — a paused row carrying a paused_reason. Worth their own
+  // badges because "Paused" on a listing the business never paused reads as a
   // bug, and this is the one place they come to look at their listings.
+  //
+  // Split by reason, because they are not the same problem and only one of
+  // them is solved by paying. Sending a business to the pricing page to fix
+  // a listing that simply ran out of time is worse than saying nothing.
   parked: { bg: "bg-secondary/10 border-secondary/30", text: "text-primary", dot: "bg-secondary", label: "Parked \u2014 upgrade to publish" },
+  expired: { bg: "bg-amber-50 border-amber-200", text: "text-amber-800", dot: "bg-amber-400", label: "Expired \u2014 relist to go live" },
+  retired: { bg: "bg-gray-50 border-gray-200", text: "text-gray-600", dot: "bg-gray-400", label: "Ended \u2014 relist to go live" },
 };
+
+/**
+ * Which badge a paused listing gets. Only billing reasons point at an
+ * upgrade; 'expired' ran out of time and 'stale_cleanup' was retired by
+ * hand, and both are fixed by relisting rather than by paying.
+ */
+function pausedBadgeKey(reason: string | null | undefined): string {
+  if (!reason) return "paused";
+  if (reason === "claim_gated" || reason === "tier_downgrade") return "parked";
+  if (reason === "expired") return "expired";
+  return "retired";
+}
 
 const APPLICANT_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   pending: { bg: "bg-blue-50", text: "text-blue-700", label: "Pending" },
@@ -415,7 +433,7 @@ function ManageListingsContent({ initialListings, initialApplicants, businessVer
         {filtered.map((listing) => {
           const style =
             LISTING_STATUS_STYLES[
-              listing.status === "paused" && listing.pausedReason ? "parked" : listing.status
+              listing.status === "paused" ? pausedBadgeKey(listing.pausedReason) : listing.status
             ];
           const isExpanded = expandedListing === listing.id;
           const jobApplicants = getApplicantsForJob(listing.id);

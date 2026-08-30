@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { planExpirySweep, describeSweep } from "@/lib/jobs/expiry-sweep";
 import { sendExpiryWarnings } from "@/lib/jobs/send-expiry-warnings";
-import { sendJobExpiryWarningEmail } from "@/lib/email/send";
-import { JOB_EXPIRY_MODE, jobExpiryWrites, jobExpirySendsEmail } from "@/lib/config/features";
+import { applyExpirySweep } from "@/lib/jobs/apply-expiry";
+import {
+  sendJobExpiryWarningEmail,
+  sendJobExpiryPausedEmail,
+  sendJobAutoRenewedEmail,
+} from "@/lib/email/send";
+import { jobExpiryWrites, jobExpirySendsEmail } from "@/lib/config/features";
 
 /**
  * GET /api/cron/job-post-expiry
@@ -71,18 +76,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ ...report, warningsSent: warnings, applied: false });
     }
 
-    // Phase 4 attaches here: auto-renew report.renew, pause report.expire,
-    // and send the pause notice. Deliberately not stubbed — an unfinished
-    // branch behind a mode flag is what gets switched on by accident.
-    return NextResponse.json(
-      {
-        ...report,
-        warningsSent: warnings,
-        applied: false,
-        error: `JOB_EXPIRY_MODE="${JOB_EXPIRY_MODE}" but pausing is not implemented yet`,
-      },
-      { status: 501 }
+    // Renew before expire: the sweep never puts a post in both lists, but a
+    // crash between the two should leave a paid business's listing live
+    // rather than paused.
+    const applied = await applyExpirySweep(
+      admin,
+      report.renew,
+      report.expire,
+      origin,
+      { paused: sendJobExpiryPausedEmail, renewed: sendJobAutoRenewedEmail },
+      new Date(report.ranAt)
     );
+    console.log(
+      `[job-expiry] applied renewed=${applied.renewedJobs} paused=${applied.pausedJobs} ` +
+        `notices=${applied.pausedNoticesSent}/${applied.renewNoticesSent} ` +
+        `noEmail=${applied.skippedNoEmail}` +
+        (applied.errors.length ? ` errors: ${applied.errors.join("; ")}` : "")
+    );
+
+    return NextResponse.json({ ...report, warningsSent: warnings, applied });
   } catch (err) {
     console.error("[job-expiry] sweep failed:", err);
     return NextResponse.json(

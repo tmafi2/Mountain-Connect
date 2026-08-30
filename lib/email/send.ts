@@ -1,6 +1,8 @@
 import { sendEmail, sendEmailBatch } from "./client";
 import type { Hemisphere } from "@/lib/outreach/hemisphere";
 import { jobExpiryWarningEmail } from "./templates/job-expiry-warning";
+import { jobExpiryPausedEmail } from "./templates/job-expiry-paused";
+import { jobAutoRenewedEmail } from "./templates/job-auto-renewed";
 import { interviewInviteEmail } from "./templates/interview-invite";
 import { interviewConfirmationEmail } from "./templates/interview-confirmation";
 import { interviewCancelledEmail } from "./templates/interview-cancelled";
@@ -788,4 +790,28 @@ export async function sendJobExpiryWarningEmail(params: {
     subject,
     html,
   });
+}
+
+/** Sent when listings actually pause — never before they do. */
+export async function sendJobExpiryPausedEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitles: string[];
+  relistUrl: string;
+  manageUrl: string;
+}) {
+  const { subject, html } = jobExpiryPausedEmail(params);
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+/** The auto-renew receipt, so a filled role does not renew itself in silence. */
+export async function sendJobAutoRenewedEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitles: string[];
+  expiryDate: string;
+  pauseUrl: string;
+}) {
+  const { subject, html } = jobAutoRenewedEmail(params);
+  return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
 }
