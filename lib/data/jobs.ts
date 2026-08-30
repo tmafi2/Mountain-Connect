@@ -741,7 +741,7 @@ export const seedJobs: SeedJob[] = [
     created_at: "2025-09-14T00:00:00Z",
     business_name: "Banff Sunshine Village",
     business_verified: true, business_logo_url: null,
-    resort_name: "Banff / Lake Louise",
+    resort_name: "Mount Norquay",
     resort_country: "Canada",
     category: "Events Coordinator",
     position_type: "full_time",

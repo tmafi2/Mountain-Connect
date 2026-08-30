@@ -133,7 +133,7 @@ export const regionHierarchy: ContinentEntry[] = [
           { id: "57", name: "Sun Peaks Resort", state: "British Columbia" },
           { id: "1", name: "Whistler Blackcomb", state: "British Columbia" },
           // Alberta
-          { id: "11", name: "Banff / Lake Louise", state: "Alberta" },
+          { id: "11", name: "Mount Norquay", state: "Alberta" },
           { id: "60", name: "Lake Louise Ski Resort", state: "Alberta" },
           { id: "63", name: "Marmot Basin", state: "Alberta" },
           { id: "62", name: "Nakiska Ski Area", state: "Alberta" },

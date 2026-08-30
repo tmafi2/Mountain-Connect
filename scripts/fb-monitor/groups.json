@@ -1,5 +1,5 @@
 {
-  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload \u2014 each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Run 'npm run fb:check' after editing to confirm every group is reachable.",
+  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Run 'npm run fb:check' after editing to confirm every group is reachable.",
   "_pending": {
     "_note": "Groups requested but not yet joined. The collector only sees groups the signed-in account is a member of, so these would return nothing. Move a URL back into its region once the join is approved.",
     "canada": [
@@ -14,7 +14,15 @@
       "https://www.facebook.com/groups/1162104401848557",
       "https://www.facebook.com/groups/10670147914",
       "https://www.facebook.com/groups/1451763955073570",
-      "https://www.facebook.com/groups/117939665034575"
+      "https://www.facebook.com/groups/117939665034575",
+      "https://www.facebook.com/groups/975724976103398",
+      "https://www.facebook.com/groups/1378531332445868",
+      "https://www.facebook.com/groups/290153556914086",
+      "https://www.facebook.com/groups/myokoandmadarao",
+      "https://www.facebook.com/groups/Myokotrade",
+      "https://www.facebook.com/groups/2952523718095410",
+      "https://www.facebook.com/groups/nozawanoticeboard",
+      "https://www.facebook.com/groups/597143303806350"
     ]
   },
   "canada": {
@@ -28,7 +36,17 @@
       "https://www.facebook.com/groups/5678751021",
       "https://www.facebook.com/groups/813144602037093",
       "https://www.facebook.com/groups/535564789792097",
-      "https://www.facebook.com/groups/826037524168581"
+      "https://www.facebook.com/groups/826037524168581",
+      "https://www.facebook.com/groups/1124306324285790",
+      "https://www.facebook.com/groups/594926084849510",
+      "https://www.facebook.com/groups/RevelstokeCashJobs",
+      "https://www.facebook.com/groups/889986741929213",
+      "https://www.facebook.com/groups/402417926615850",
+      "https://www.facebook.com/groups/402228425525083",
+      "https://www.facebook.com/groups/274004394095598",
+      "https://www.facebook.com/groups/1077988816522870",
+      "https://www.facebook.com/groups/935252240145563",
+      "https://www.facebook.com/groups/2268247500002247"
     ]
   },
   "usa": {

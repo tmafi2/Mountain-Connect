@@ -43,3 +43,6 @@ next-env.d.ts
 
 # fb-monitor extraction output — contains scraped personal data, never commit
 scripts/fb-monitor/out/
+
+# supabase CLI scratch — project ref, pooler URL, cached tool versions
+supabase/.temp/
