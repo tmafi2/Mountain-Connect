@@ -1,5 +1,6 @@
 import { sendEmail, sendEmailBatch } from "./client";
 import type { Hemisphere } from "@/lib/outreach/hemisphere";
+import { jobExpiryWarningEmail } from "./templates/job-expiry-warning";
 import { interviewInviteEmail } from "./templates/interview-invite";
 import { interviewConfirmationEmail } from "./templates/interview-confirmation";
 import { interviewCancelledEmail } from "./templates/interview-cancelled";
@@ -765,4 +766,26 @@ export async function sendWinterSequenceBatch(params: {
     };
   });
   return sendEmailBatch(entries);
+}
+
+/**
+ * "Still hiring?" — one email per business, listing every role of theirs
+ * expiring in the warning window. Sent by /api/cron/job-post-expiry once
+ * JOB_EXPIRY_MODE reaches "emails_only".
+ */
+export async function sendJobExpiryWarningEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitles: string[];
+  expiryDate: string;
+  renewUrl: string;
+  manageUrl: string;
+}) {
+  const { subject, html } = jobExpiryWarningEmail(params);
+  return sendEmail({
+    from: FROM_EMAIL,
+    to: params.to,
+    subject,
+    html,
+  });
 }

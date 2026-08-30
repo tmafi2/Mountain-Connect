@@ -56,7 +56,10 @@ export const EMPLOYERS_DIRECTORY_ENABLED = false;
  */
 export type JobExpiryMode = "log_only" | "emails_only" | "live";
 
-export const JOB_EXPIRY_MODE: JobExpiryMode = "log_only";
+// Phase 3 (2026-08-30): warnings are live. Nothing is paused yet, so no
+// "your listing has been paused" email exists — sending one while nothing
+// pauses would tell businesses something untrue. It ships with the pause.
+export const JOB_EXPIRY_MODE: JobExpiryMode = "emails_only";
 
 /** Emails go out at "emails_only" and beyond. */
 export const jobExpirySendsEmail = (m: JobExpiryMode = JOB_EXPIRY_MODE): boolean =>
