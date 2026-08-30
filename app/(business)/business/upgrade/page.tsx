@@ -54,7 +54,12 @@ const fmtDate = (d: Date | string) =>
 export default function UpgradePage() {
   const [billing, setBilling] = useState<BillingState & { trial_ends_at?: string | null; billing_interval?: string | null; is_founding_member?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [interval, setInterval] = useState<BillingInterval>("season");
+  // Monthly by default so the first number a business sees is the smaller
+  // one ($39 rather than $149). The season pass is still the better deal and
+  // the toggle carries its "Save X%" badge to say so — but leading with the
+  // larger figure asks them to swallow a season's commitment before they
+  // have any reason to. The toggle already sits Monthly-first, left to right.
+  const [interval, setInterval] = useState<BillingInterval>("month");
   const [checkingOut, setCheckingOut] = useState<PaidTier | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
