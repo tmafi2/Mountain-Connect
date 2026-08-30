@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parkListingsOnClaim, restoreParkedJobs } from "./job-parking";
+import { parkListingsOnClaim, restoreParkedJobs, countParkedJobs } from "./job-parking";
 
 /**
  * These run against a fake Supabase client rather than the real database.
@@ -239,4 +239,42 @@ test("park then restore round-trips to the original live set", async () => {
     ["a", "b", "c"]
   );
   assert.ok(rows.every((r) => r.paused_reason === null), "no stale reasons left behind");
+});
+
+/**
+ * Regression guard for migration 00092.
+ *
+ * paused_reason used to mean "billing parked this", so the restore matched
+ * on "reason is not null". 00092 added 'stale_cleanup' for listings retired
+ * by hand, and job expiry will add another. Under the old match, the first
+ * of those businesses to upgrade would have silently republished every
+ * listing we deliberately took down — which is the precise failure the
+ * whole paused_reason column exists to prevent.
+ */
+test("a listing retired by stale_cleanup is never restored by an upgrade", async () => {
+  const { client, updates } = fakeClient(
+    jobs(
+      ["billing", "2026-03-01", "paused", "claim_gated"],
+      ["stale", "2026-04-01", "paused", "stale_cleanup"]
+    )
+  );
+  const restored = await restoreParkedJobs(client, "biz", "premium");
+  assert.equal(restored, 1, "only the billing-parked listing comes back");
+  assert.deepEqual(updates[0].ids, ["billing"]);
+});
+
+test("stale_cleanup listings are not counted as parked behind the paywall", async () => {
+  const { client } = fakeClient(
+    jobs(
+      ["billing", "2026-03-01", "paused", "tier_downgrade"],
+      ["stale1", "2026-04-01", "paused", "stale_cleanup"],
+      ["stale2", "2026-05-01", "paused", "stale_cleanup"],
+      ["owner", "2026-06-01", "paused", null]
+    )
+  );
+  assert.equal(
+    await countParkedJobs(client, "biz"),
+    1,
+    "the upgrade prompt must not advertise listings we retired"
+  );
 });

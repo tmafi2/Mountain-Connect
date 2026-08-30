@@ -14,8 +14,19 @@ import { TIER_FEATURES, type BusinessTier } from "@/lib/tier";
  *   tier_downgrade  — the billing downgrade rule (enforceJobLimit).
  *
  * Both unpark on upgrade, newest-first, up to whatever the new tier allows.
+ *
+ * Other parts of the app now pause jobs for their own reasons — 00092's
+ * 'stale_cleanup', and job expiry after it. Those are NOT billing decisions
+ * and must never be undone by an upgrade, so everything here matches on
+ * BILLING_PAUSE_REASONS explicitly rather than on "paused_reason is set".
  */
 export type PauseReason = "claim_gated" | "tier_downgrade";
+
+/**
+ * The only reasons billing may reverse. Anything paused for another reason
+ * is somebody else's decision to undo.
+ */
+export const BILLING_PAUSE_REASONS: PauseReason[] = ["claim_gated", "tier_downgrade"];
 
 /**
  * Park the active jobs this business's tier does not cover, keeping
@@ -93,9 +104,14 @@ export async function parkListingsOnClaim(
 /**
  * Bring parked jobs back, newest-first, up to what `tier` allows.
  *
- * The mirror of enforceJobLimit. Only rows WE parked (paused_reason set)
- * are eligible — a job the owner paused stays paused, because silently
- * re-publishing a role they filled is worse than making them click once.
+ * The mirror of enforceJobLimit. Only rows parked FOR BILLING are eligible —
+ * a job the owner paused stays paused, because silently re-publishing a role
+ * they filled is worse than making them click once.
+ *
+ * Matched against BILLING_PAUSE_REASONS rather than "any reason set": once
+ * paused_reason grew non-billing values (00092's 'stale_cleanup', and job
+ * expiry after it), "we set it" stopped implying "we may undo it". A stale
+ * listing retired months ago must not come back because someone upgraded.
  *
  * Jobs restored beyond the limit stay parked with their reason intact, so
  * a later upgrade picks up where this left off.
@@ -120,7 +136,7 @@ export async function restoreParkedJobs(
       .select("id")
       .eq("business_id", businessId)
       .eq("status", "paused")
-      .not("paused_reason", "is", null)
+      .in("paused_reason", BILLING_PAUSE_REASONS)
       .order("created_at", { ascending: false }),
   ]);
 
@@ -161,6 +177,6 @@ export async function countParkedJobs(
     .select("id", { count: "exact", head: true })
     .eq("business_id", businessId)
     .eq("status", "paused")
-    .not("paused_reason", "is", null);
+    .in("paused_reason", BILLING_PAUSE_REASONS);
   return count ?? 0;
 }
