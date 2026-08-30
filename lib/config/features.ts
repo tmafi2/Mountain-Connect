@@ -56,10 +56,14 @@ export const EMPLOYERS_DIRECTORY_ENABLED = false;
  */
 export type JobExpiryMode = "log_only" | "emails_only" | "live";
 
-// Phase 3 (2026-08-30): warnings are live. Nothing is paused yet, so no
-// "your listing has been paused" email exists — sending one while nothing
-// pauses would tell businesses something untrue. It ships with the pause.
-export const JOB_EXPIRY_MODE: JobExpiryMode = "emails_only";
+// Phase 4 (2026-08-30): fully live. Listings now pause when their window
+// runs out, and the pause notice ships with the pause that justifies it.
+//
+// Nothing lapses without a full notice period first — the sweep expires a
+// post only once its warning is EXPIRY_WARNING_DAYS old, so an outage
+// delays expiry rather than pausing the board unannounced. Reverting to
+// "emails_only" stops all pausing without touching a single row.
+export const JOB_EXPIRY_MODE: JobExpiryMode = "live";
 
 /** Emails go out at "emails_only" and beyond. */
 export const jobExpirySendsEmail = (m: JobExpiryMode = JOB_EXPIRY_MODE): boolean =>

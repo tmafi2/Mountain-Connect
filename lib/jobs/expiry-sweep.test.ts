@@ -89,15 +89,53 @@ test("a post inside the warning window is warned, not expired", async () => {
   assert.equal(r.warn[0].jobs[0].title, "Bartender");
 });
 
-test("a post already past its window expires", async () => {
-  const r = await planExpirySweep(fakeClient([job({ expires_at: inDays(-1) })], [biz()]), NOW, "log_only");
+test("a post already past its window expires once its notice has run out", async () => {
+  const r = await planExpirySweep(
+    fakeClient([job({ expires_at: inDays(-1), expiry_warning_sent_at: inDays(-9) })], [biz()]),
+    NOW, "log_only"
+  );
   assert.equal(r.counts.expire, 1);
   assert.equal(r.counts.warn, 0);
 });
 
+/**
+ * The promise the warning email makes. Nothing lapses without having had a
+ * full notice period, however late that notice was.
+ */
+test("a post past its window is NOT expired if it was never warned", async () => {
+  const r = await planExpirySweep(
+    fakeClient([job({ expires_at: inDays(-1), expiry_warning_sent_at: null })], [biz()]),
+    NOW, "log_only"
+  );
+  assert.equal(r.counts.expire, 0, "silently pausing an unwarned post breaks the promise");
+  assert.equal(r.counts.warn, 1, "it gets warned instead, late but properly");
+});
+
+test("a post warned only yesterday still has six days of notice left", async () => {
+  const r = await planExpirySweep(
+    fakeClient([job({ expires_at: inDays(-1), expiry_warning_sent_at: inDays(-1) })], [biz()]),
+    NOW, "log_only"
+  );
+  assert.equal(r.counts.expire, 0);
+  assert.equal(r.counts.holding, 1, "waiting out its notice, and visible while it waits");
+});
+
+/**
+ * The deadlock the rule would otherwise create: unwarnable because it is
+ * late, unexpirable because it was never warned.
+ */
+test("a post that slipped past its date unwarned is warned, not stranded", async () => {
+  const r = await planExpirySweep(
+    fakeClient([job({ expires_at: inDays(-40), expiry_warning_sent_at: null })], [biz()]),
+    NOW, "log_only"
+  );
+  assert.equal(r.counts.warn, 1, "40 days late and still gets its notice");
+  assert.equal(r.counts.expire, 0);
+});
+
 test("a post outside the warning window is left alone entirely", async () => {
   const r = await planExpirySweep(fakeClient([job({ expires_at: inDays(30) })], [biz()]), NOW, "log_only");
-  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, businesses: 0 });
+  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 });
 });
 
 test("a business already warned is not warned again", async () => {
@@ -118,7 +156,7 @@ test("unclaimed import shells are ignored — the dormancy sweep owns them", asy
     fakeClient([job({ expires_at: inDays(-1) })], [biz({ user_id: null })]),
     NOW, "log_only"
   );
-  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, businesses: 0 });
+  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 });
 });
 
 test("an expired post auto-renews when the business is genuinely paid", async () => {
@@ -141,7 +179,7 @@ test("an expired post auto-renews when the business is genuinely paid", async ()
 test("auto_renew does not save a post once the subscription has lapsed", async () => {
   const r = await planExpirySweep(
     fakeClient(
-      [job({ expires_at: inDays(-1), auto_renew: true })],
+      [job({ expires_at: inDays(-1), auto_renew: true, expiry_warning_sent_at: inDays(-9) })],
       [biz({ selected_tier: "standard", subscription_status: "canceled" })]
     ),
     NOW, "log_only"
@@ -168,9 +206,9 @@ test("several lapsing posts collapse into a single business group", async () => 
   const r = await planExpirySweep(
     fakeClient(
       [
-        job({ id: "j1", title: "Bartender", expires_at: inDays(-1) }),
-        job({ id: "j2", title: "Chef", expires_at: inDays(-2) }),
-        job({ id: "j3", title: "Liftie", expires_at: inDays(-3) }),
+        job({ id: "j1", title: "Bartender", expires_at: inDays(-1), expiry_warning_sent_at: inDays(-9) }),
+        job({ id: "j2", title: "Chef", expires_at: inDays(-2), expiry_warning_sent_at: inDays(-9) }),
+        job({ id: "j3", title: "Liftie", expires_at: inDays(-3), expiry_warning_sent_at: inDays(-9) }),
       ],
       [biz()]
     ),
@@ -184,8 +222,8 @@ test("several lapsing posts collapse into a single business group", async () => 
 test("posts from different businesses stay in separate groups", async () => {
   const r = await planExpirySweep(
     fakeClient(
-      [job({ id: "j1", business_id: "b1", expires_at: inDays(-1) }),
-       job({ id: "j2", business_id: "b2", expires_at: inDays(-1) })],
+      [job({ id: "j1", business_id: "b1", expires_at: inDays(-1), expiry_warning_sent_at: inDays(-9) }),
+       job({ id: "j2", business_id: "b2", expires_at: inDays(-1), expiry_warning_sent_at: inDays(-9) })],
       [biz({ id: "b1" }), biz({ id: "b2", business_name: "Snow Lodge", user_id: "u2" })]
     ),
     NOW, "log_only"
@@ -196,7 +234,7 @@ test("posts from different businesses stay in separate groups", async () => {
 
 test("only active posts are considered", async () => {
   const r = await planExpirySweep(
-    fakeClient([job({ status: "paused", expires_at: inDays(-1) })], [biz()]),
+    fakeClient([job({ status: "paused", expires_at: inDays(-1), expiry_warning_sent_at: inDays(-9) })], [biz()]),
     NOW, "log_only"
   );
   assert.equal(r.counts.expire, 0);
@@ -230,7 +268,7 @@ test("emails_only would email but not write", async () => {
 
 test("a business with no email is still reported, flagged for the caller", async () => {
   const r = await planExpirySweep(
-    fakeClient([job({ expires_at: inDays(-1) })], [biz({ email: null })]),
+    fakeClient([job({ expires_at: inDays(-1), expiry_warning_sent_at: inDays(-9) })], [biz({ email: null })]),
     NOW, "log_only"
   );
   assert.equal(r.counts.expire, 1);
