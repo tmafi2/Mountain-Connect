@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import { createPublicClient } from "@/lib/supabase/public";
+import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import EmployersClient from "./EmployersClient";
 import type { Business } from "./EmployersClient";
 
@@ -13,6 +15,10 @@ export const metadata = {
 };
 
 export default async function EmployersPage() {
+  // Hidden, not deleted — see EMPLOYERS_DIRECTORY_ENABLED. Bailing out before
+  // the queries below means a hidden directory costs no database work.
+  if (!EMPLOYERS_DIRECTORY_ENABLED) notFound();
+
   let businesses: Business[] = [];
   let allResorts: { id: string; name: string }[] = [];
   let legacyResortMap: Record<string, string> = {};
