@@ -35,3 +35,32 @@
  * To restore: set this to true and deploy.
  */
 export const EMPLOYERS_DIRECTORY_ENABLED = false;
+
+/**
+ * How far the job-post expiry sweep is switched on.
+ *
+ * The sweep can pause every expired listing on the board in one run, so it
+ * is rolled out in stages rather than shipped hot:
+ *
+ *   "log_only"    — computes everything, writes nothing, sends nothing.
+ *                   The daily run reports what it WOULD do. This is the
+ *                   only way to see which posts the real queries select
+ *                   once genuine published_at values exist.
+ *   "emails_only" — sends the warning and notice emails, still pauses
+ *                   nothing. Businesses hear about it before it bites.
+ *   "live"        — emails, auto-renews, and pauses.
+ *
+ * Each step is a one-line change here plus a deploy, and each is reversible
+ * the same way. Phase 1 (migration 00093) put the columns in place; this
+ * governs everything that reads them.
+ */
+export type JobExpiryMode = "log_only" | "emails_only" | "live";
+
+export const JOB_EXPIRY_MODE: JobExpiryMode = "log_only";
+
+/** Emails go out at "emails_only" and beyond. */
+export const jobExpirySendsEmail = (m: JobExpiryMode = JOB_EXPIRY_MODE): boolean =>
+  m === "emails_only" || m === "live";
+
+/** Posts are actually paused, and auto-renewed, only at "live". */
+export const jobExpiryWrites = (m: JobExpiryMode = JOB_EXPIRY_MODE): boolean => m === "live";

@@ -8,11 +8,12 @@
 -- data to work from instead of guesses.
 --
 -- WHY A TRIGGER RATHER THAN STAMPING AT THE CALL SITES. Four separate paths
--- set status = 'active': POST /api/business/jobs, lib/admin/publish-jobs.ts
--- (admin bulk approve), /api/cron/publish-scheduled, and restoreParkedJobs
--- when a plan upgrade unparks a listing. Patching four writers and every
--- future one is how a column quietly goes half-populated. The database
--- stamps it instead, so every path is covered including ones not written yet.
+-- set status = 'active': POST /api/business/jobs, POST
+-- /api/business/publish-drafts, lib/admin/publish-jobs.ts (admin bulk
+-- approve), and restoreParkedJobs when a plan upgrade unparks a listing.
+-- Patching four writers and every future one is how a column quietly goes
+-- half-populated. The database stamps it instead, so every path is covered
+-- including ones not written yet.
 --
 -- THE CLOCK STARTS AT APPROVAL, NOT CREATION. 49 posts are sitting in draft
 -- awaiting review. created_at is when the row appeared, which for those is
