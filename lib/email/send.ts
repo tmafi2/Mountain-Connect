@@ -1,5 +1,6 @@
 import { sendEmail, sendEmailBatch } from "./client";
 import type { Hemisphere } from "@/lib/outreach/hemisphere";
+import { claimRemovalNoticeEmail } from "./templates/claim-removal-notice";
 import { jobExpiryWarningEmail } from "./templates/job-expiry-warning";
 import { jobExpiryPausedEmail } from "./templates/job-expiry-paused";
 import { jobAutoRenewedEmail } from "./templates/job-auto-renewed";
@@ -815,4 +816,26 @@ export async function sendJobAutoRenewedEmail(params: {
 }) {
   const { subject, html } = jobAutoRenewedEmail(params);
   return sendEmail({ from: FROM_EMAIL, to: params.to, subject, html });
+}
+
+/**
+ * First removal warning, two weeks out. The final notice a week later is
+ * sendClaimLastChanceEmail.
+ */
+export async function sendClaimRemovalNoticeEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  eoiCount: number;
+  removalDate: string;
+  claimUrl: string;
+}) {
+  const { subject, html } = claimRemovalNoticeEmail(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
 }

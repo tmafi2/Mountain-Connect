@@ -4,10 +4,18 @@ import {
   sendClaimLastChanceEmail,
   sendEoiThresholdNudgeEmail,
   sendFirstApplicantNudgeEmail,
+  sendClaimRemovalNoticeEmail,
 } from "@/lib/email/send";
 
-const WARNING_AFTER_DAYS = 14;
-const TAKEDOWN_GRACE_DAYS = 7;
+// Two warnings and four weeks, changed from one warning and three on
+// 2026-08-30. The first email arrives cold — from a company the business has
+// never dealt with, about a listing they did not create — and one of those is
+// easy to miss entirely. A fortnight of notice also survives a seasonal
+// operator going a couple of weeks without reading email, which is most of a
+// ski season.
+const FIRST_WARNING_DAYS = 14;  // import → "removed in two weeks"
+const FINAL_AFTER_DAYS = 7;     // first warning → "final notice"
+const TAKEDOWN_AFTER_DAYS = 7;  // final notice → listing comes down
 const EOI_NUDGE_THRESHOLD = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -49,14 +57,18 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
   const now = Date.now();
-  const warningCutoff = new Date(now - WARNING_AFTER_DAYS * DAY_MS).toISOString();
-  const takedownCutoff = new Date(now - TAKEDOWN_GRACE_DAYS * DAY_MS).toISOString();
+  const firstWarningCutoff = new Date(now - FIRST_WARNING_DAYS * DAY_MS).toISOString();
+  const finalCutoff = new Date(now - FINAL_AFTER_DAYS * DAY_MS).toISOString();
+  const takedownCutoff = new Date(now - TAKEDOWN_AFTER_DAYS * DAY_MS).toISOString();
+  const fmtDate = (ms: number) =>
+    new Date(ms).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
   const origin = new URL(request.url).origin;
 
   const result = {
     firstApplicantSent: 0,
     thresholdSent: 0,
     warned: 0,
+    finalNoticed: 0,
     takendown: 0,
     errors: [] as string[],
   };
@@ -159,13 +171,18 @@ export async function GET(request: Request) {
     }
   }
 
-  // ─── Pass 1: send last-chance warning ───────────────────────
+  // ─── Pass 1: first removal warning, two weeks in ────────────
+  //
+  // The gate is stamped AFTER a confirmed send, not before. Stamping first
+  // meant a Resend outage silently consumed the only warning a business
+  // would ever get, and they would find their listing gone having been told
+  // nothing.
   const { data: toWarn, error: warnErr } = await admin
     .from("business_profiles")
     .select("id, business_name, email, claim_token, created_at")
     .eq("is_claimed", false)
     .is("dormancy_warning_sent_at", null)
-    .lte("created_at", warningCutoff);
+    .lte("created_at", firstWarningCutoff);
 
   if (warnErr) {
     console.error("dormancy-sweep warn query failed:", warnErr);
@@ -176,7 +193,76 @@ export async function GET(request: Request) {
     try {
       if (!biz.email || !biz.claim_token) continue;
 
-      // Grab the first active job title + aggregate EOI count for this business
+      const { data: jobs } = await admin
+        .from("job_posts")
+        .select("id, title")
+        .eq("business_id", biz.id)
+        .eq("status", "active")
+        .limit(1);
+      // No live listing, nothing to warn about. This ALSO excludes the
+      // trial-period imports whose posts migration 00092 retired: their
+      // listings came down deliberately, they were never real prospects, and
+      // Tyler's call on 2026-08-30 was to leave them alone rather than chase
+      // them. Should this guard ever be relaxed to chase businesses that
+      // still have expressions of interest waiting, exclude stale_cleanup
+      // explicitly or those sixteen get a warning for a listing that was
+      // taken down on purpose months earlier.
+      if (!jobs || jobs.length === 0) continue;
+
+      const { count: eoiCount } = await admin
+        .from("expressions_of_interest")
+        .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
+        .eq("job_posts.business_id", biz.id);
+
+      await sendClaimRemovalNoticeEmail({
+        to: biz.email,
+        businessName: biz.business_name,
+        jobTitle: jobs[0].title,
+        eoiCount: eoiCount ?? 0,
+        // Two more weeks from today: a week to the final notice, a week from
+        // there to removal.
+        removalDate: fmtDate(now + (FINAL_AFTER_DAYS + TAKEDOWN_AFTER_DAYS) * DAY_MS),
+        claimUrl: `${origin}/claim/${biz.claim_token}`,
+      });
+
+      const { error: stampErr } = await admin
+        .from("business_profiles")
+        .update({ dormancy_warning_sent_at: new Date().toISOString() })
+        .eq("id", biz.id)
+        .is("dormancy_warning_sent_at", null);
+      if (stampErr) result.errors.push(`warn stamp ${biz.id}: ${stampErr.message}`);
+
+      result.warned++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`dormancy-sweep warn for ${biz.id}:`, err);
+      result.errors.push(`warn ${biz.id}: ${msg}`);
+    }
+  }
+
+  // ─── Pass 2: final notice, a week after the first ───────────
+  //
+  // Gated on how old the FIRST warning is, never on created_at. If the sweep
+  // is down for a fortnight, the first run back sends warning one and the
+  // final waits another week — rather than firing both at once and removing
+  // the listing days later.
+  const { data: toFinal, error: finalErr } = await admin
+    .from("business_profiles")
+    .select("id, business_name, email, claim_token")
+    .eq("is_claimed", false)
+    .not("dormancy_warning_sent_at", "is", null)
+    .is("dormancy_final_sent_at", null)
+    .lte("dormancy_warning_sent_at", finalCutoff);
+
+  if (finalErr) {
+    console.error("dormancy-sweep final query failed:", finalErr);
+    result.errors.push(`final query: ${finalErr.message}`);
+  }
+
+  for (const biz of toFinal ?? []) {
+    try {
+      if (!biz.email || !biz.claim_token) continue;
+
       const { data: jobs } = await admin
         .from("job_posts")
         .select("id, title")
@@ -190,44 +276,40 @@ export async function GET(request: Request) {
         .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
         .eq("job_posts.business_id", biz.id);
 
-      const origin = new URL(request.url).origin;
-      const claimUrl = `${origin}/claim/${biz.claim_token}`;
-      const takedownDate = new Date(now + TAKEDOWN_GRACE_DAYS * DAY_MS).toLocaleDateString("en-AU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-
-      await admin
-        .from("business_profiles")
-        .update({ dormancy_warning_sent_at: new Date().toISOString() })
-        .eq("id", biz.id)
-        .is("dormancy_warning_sent_at", null);
-
       await sendClaimLastChanceEmail({
         to: biz.email,
         businessName: biz.business_name,
         jobTitle: jobs[0].title,
         eoiCount: eoiCount ?? 0,
-        takedownDate,
-        claimUrl,
+        takedownDate: fmtDate(now + TAKEDOWN_AFTER_DAYS * DAY_MS),
+        claimUrl: `${origin}/claim/${biz.claim_token}`,
       });
 
-      result.warned++;
+      const { error: stampErr } = await admin
+        .from("business_profiles")
+        .update({ dormancy_final_sent_at: new Date().toISOString() })
+        .eq("id", biz.id)
+        .is("dormancy_final_sent_at", null);
+      if (stampErr) result.errors.push(`final stamp ${biz.id}: ${stampErr.message}`);
+
+      result.finalNoticed++;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`dormancy-sweep warn for ${biz.id}:`, err);
-      result.errors.push(`warn ${biz.id}: ${msg}`);
+      console.error(`dormancy-sweep final for ${biz.id}:`, err);
+      result.errors.push(`final ${biz.id}: ${msg}`);
     }
   }
 
-  // ─── Pass 2: takedown after grace period ────────────────────
+  // ─── Pass 3: takedown, a week after the final notice ────────
+  //
+  // Gated on the FINAL notice, so a listing can never come down without both
+  // warnings having gone out and had their week to be read.
   const { data: toTakedown, error: tdErr } = await admin
     .from("business_profiles")
     .select("id")
     .eq("is_claimed", false)
-    .not("dormancy_warning_sent_at", "is", null)
-    .lte("dormancy_warning_sent_at", takedownCutoff);
+    .not("dormancy_final_sent_at", "is", null)
+    .lte("dormancy_final_sent_at", takedownCutoff);
 
   if (tdErr) {
     console.error("dormancy-sweep takedown query failed:", tdErr);
