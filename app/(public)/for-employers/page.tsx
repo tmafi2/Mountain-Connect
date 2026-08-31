@@ -14,11 +14,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Hire Seasonal Ski Resort Staff",
   description:
-    "Post ski resort jobs and reach workers actively looking for the season — in Canada, Japan, the USA and Australia. First job post free. Applicant tracking, messaging and interviews included.",
+    "Post ski resort jobs and reach workers actively looking for the season — in Canada, Japan, the USA and Australia. First job post free for 4 weeks. Applicant tracking, messaging and interviews included.",
   alternates: { canonical: `${BASE_URL}/for-employers` },
   openGraph: {
     title: "Hire Seasonal Ski Resort Staff | Mountain Connects",
-    description: "Post ski resort jobs and reach seasonal workers. First job post free.",
+    description: "Post ski resort jobs and reach seasonal workers. First job post free for 4 weeks.",
     url: `${BASE_URL}/for-employers`,
     siteName: "Mountain Connects",
     type: "website",

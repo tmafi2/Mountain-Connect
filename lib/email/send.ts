@@ -782,6 +782,7 @@ export async function sendJobExpiryWarningEmail(params: {
   expiryDate: string;
   renewUrl: string;
   manageUrl: string;
+  canRenew?: boolean;
 }) {
   const { subject, html } = jobExpiryWarningEmail(params);
   return sendEmail({

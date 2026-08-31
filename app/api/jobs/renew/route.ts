@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyRenewToken } from "@/lib/jobs/renew-token";
 import { nextExpiryFrom } from "@/lib/jobs/expiry";
+import { resolveEffectiveTier, type BusinessTier } from "@/lib/tier";
 
 /**
  * POST /api/jobs/renew   { token }
@@ -14,10 +15,13 @@ import { nextExpiryFrom } from "@/lib/jobs/expiry";
  * clicked. The email points at /jobs/renew/[token], a page that shows what
  * is about to be renewed and posts here on a button press.
  *
- * NOT GATED ON TIER. Renewal is one click for everybody — a free business
- * that cannot renew simply deletes and reposts, which costs them less
- * effort than renewing and costs us the post's applications and its age.
- * The paid perk is auto-renew, which is doing it for them.
+ * GATED ON TIER since 2026-08-30. The free post is a four-week trial, and a
+ * free renewal would make that cap meaningless.
+ *
+ * This reverses an earlier call to let everybody renew. The reason for that
+ * call was that a blocked free business would simply delete and repost — but
+ * the free slot is now once per account for good, so reposting gains them
+ * nothing and the loophole that justified free renewal is closed.
  *
  * The token authorises this on its own; there is no session. It is
  * HMAC-signed, expires, and the worst it can do is keep a business's own
@@ -46,6 +50,38 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
   const now = new Date();
+
+  // Entitlement is resolved fresh, not read off a column: a courtesy window
+  // or a cancelled subscription both change the answer. A business that has
+  // lapsed since the email was sent is told to upgrade, not quietly renewed.
+  const { data: billing } = await admin
+    .from("business_profiles")
+    .select("tier, selected_tier, subscription_status, grace_period_ends_at")
+    .eq("id", verdict.businessId)
+    .single();
+
+  const tier = resolveEffectiveTier(
+    {
+      tier: (billing?.tier ?? "free") as BusinessTier | null,
+      selected_tier: (billing?.selected_tier ?? null) as BusinessTier | null,
+      subscription_status: (billing?.subscription_status ?? null) as string | null,
+      grace_period_ends_at: (billing?.grace_period_ends_at ?? null) as string | null,
+    },
+    now
+  );
+
+  if (tier === "free") {
+    return NextResponse.json(
+      {
+        error:
+          "Your free listing has run its four weeks. Choose a plan to put it back up — your applicants are safe either way.",
+        reason: "free_tier",
+        upgradeUrl: "/business/upgrade",
+      },
+      { status: 402 }
+    );
+  }
+
   const renewedAt = nextExpiryFrom(now).toISOString();
 
   // Two sets, deliberately: extend what is live, and revive only what WE

@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!m) return { title: "Hire Seasonal Staff" };
   // Root layout appends " | Mountain Connects" (~20 chars); keep title ≤ ~40.
   const title = `Hire Seasonal Staff in ${m.inSentence}`;
-  const description = `Post ski resort jobs in ${m.inSentence} and reach workers actively looking for the ${m.season} season. First job post free — applicant tracking, messaging and interviews included.`;
+  const description = `Post ski resort jobs in ${m.inSentence} and reach workers actively looking for the ${m.season} season. First job post free for 4 weeks — applicant tracking, messaging and interviews included.`;
   return {
     title,
     description,
@@ -85,7 +85,7 @@ export default async function EmployerCountryPage({ params }: Props) {
     "@type": "WebPage",
     name: `Hire Seasonal Staff in ${m.inSentence}`,
     url: `${BASE_URL}/for-employers/${m.slug}`,
-    description: `Post ski resort jobs in ${m.inSentence}. First job post free.`,
+    description: `Post ski resort jobs in ${m.inSentence}. First job post free for 4 weeks.`,
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [

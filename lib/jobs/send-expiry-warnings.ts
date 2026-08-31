@@ -27,6 +27,7 @@ export type ExpiryMailer = (params: {
   expiryDate: string;
   renewUrl: string;
   manageUrl: string;
+  canRenew: boolean;
 }) => Promise<unknown>;
 
 export interface WarningSendResult {
@@ -79,6 +80,9 @@ export async function sendExpiryWarnings(
         expiryDate: formatExpiryDate(earliest),
         renewUrl: `${origin}/jobs/renew/${signRenewToken(g.businessId, now)}`,
         manageUrl: `${origin}/business/manage-listings`,
+        // Free accounts get the upgrade wording instead of a renew button
+        // they are not entitled to press.
+        canRenew: g.effectiveTier !== "free",
       });
     } catch (err) {
       result.failed += 1;
