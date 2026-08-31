@@ -12,19 +12,44 @@ const ROLE_COOKIE_TTL_SECONDS = 60 * 5;
 const ROLE_QUERY_TIMEOUT_MS = 2500;
 
 // Routes that require the "worker" role
-const WORKER_ROUTES = ["/dashboard", "/profile", "/applications", "/saved-jobs", "/messages", "/interviews", "/following", "/job-alerts"];
+// Kept in step with the folders under app/(worker)/. Anything missing here
+// answers an anonymous request with a 200 and renders the portal shell —
+// /my-jobs, /reviews, /referrals and /settings all did until 2026-08-30.
+// Matching below is exact-or-followed-by-slash, so these never collide with
+// a public path that merely starts the same way.
+const WORKER_ROUTES = [
+  "/applications",
+  "/dashboard",
+  "/following",
+  "/interviews",
+  "/job-alerts",
+  "/messages",
+  "/my-jobs",
+  "/profile",
+  "/referrals",
+  "/reviews",
+  "/saved-jobs",
+  "/settings",
+];
 // Routes that require the "business_owner" role
+// Kept in step with the folders under app/(business)/business/. The public
+// business profile at /business/{id} is unaffected: matching is exact or
+// followed by a slash, and no id equals one of these words.
 const BUSINESS_PORTAL_ROUTES = [
-  "/business/dashboard",
-  "/business/manage-listings",
-  "/business/post-job",
-  "/business/applicants",
-  "/business/company-profile",
-  "/business/interviews",
-  "/business/messages",
-  "/business/availability",
+  "/business/admin",
   "/business/analytics",
+  "/business/applicants",
+  "/business/availability",
+  "/business/company-profile",
+  "/business/dashboard",
+  "/business/interviews",
+  "/business/manage-listings",
+  "/business/messages",
+  "/business/post-job",
+  "/business/referrals",
   "/business/settings",
+  "/business/upgrade",
+  "/business/venues",
   "/business/workers",
 ];
 // Routes that require the "admin" role
