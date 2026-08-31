@@ -73,7 +73,7 @@ export const TIER_FEATURES = {
   free: {
     name: "Free",
     maxActiveJobs: 1,
-    yearlyJobLimit: 1,
+    freeJobLimit: 1,
     featuredPlacement: false,
     canFeatureJobs: false,
     maxFeaturedJobs: 0,
@@ -91,7 +91,7 @@ export const TIER_FEATURES = {
   standard: {
     name: "Standard",
     maxActiveJobs: 5,
-    yearlyJobLimit: Infinity,
+    freeJobLimit: Infinity,
     featuredPlacement: false,
     canFeatureJobs: false,
     maxFeaturedJobs: 0,
@@ -109,7 +109,7 @@ export const TIER_FEATURES = {
   premium: {
     name: "Premium",
     maxActiveJobs: Infinity,
-    yearlyJobLimit: Infinity,
+    freeJobLimit: Infinity,
     featuredPlacement: true,
     canFeatureJobs: true,
     maxFeaturedJobs: 3,
@@ -127,7 +127,7 @@ export const TIER_FEATURES = {
   enterprise: {
     name: "Enterprise",
     maxActiveJobs: Infinity,
-    yearlyJobLimit: Infinity,
+    freeJobLimit: Infinity,
     featuredPlacement: true,
     canFeatureJobs: true,
     maxFeaturedJobs: Infinity,
@@ -237,9 +237,11 @@ export function getEffectiveTier(tier: BusinessTier): BusinessTier {
 /**
  * Check if a business can post a new job.
  *
- * Free tier: capped by LIVE (status='active') jobs this calendar year —
- * "first job post free". Drafts don't burn the slot; deleting/closing a
- * live post does not refund it within the year.
+ * Free tier: ONE live post for the lifetime of the account — "your first job
+ * post is free". Drafts don't burn the slot; deleting, closing or letting it
+ * expire does not refund it, ever. It was a calendar-year allowance until
+ * 2026-08-30; a slot that quietly came back each January made the free tier
+ * a permanent way to advertise rather than a trial of a paid one.
  * Paid tiers: capped by concurrently active jobs.
  *
  * `tier` here is the EFFECTIVE tier (use resolveEffectiveTier first when
@@ -249,14 +251,14 @@ export function getEffectiveTier(tier: BusinessTier): BusinessTier {
 export function canPostJob(
   tier: BusinessTier,
   activeJobCount: number,
-  yearlyJobsPosted?: number
+  everLiveJobsPosted?: number
 ): boolean {
   const effective = getEffectiveTier(tier);
   if (effective === "free") {
     // If the caller didn't supply the yearly count, fall back to the active
     // count — never silently grant more than the free limit.
-    const used = typeof yearlyJobsPosted === "number" ? yearlyJobsPosted : activeJobCount;
-    return used < TIER_FEATURES.free.yearlyJobLimit;
+    const used = typeof everLiveJobsPosted === "number" ? everLiveJobsPosted : activeJobCount;
+    return used < TIER_FEATURES.free.freeJobLimit;
   }
   const limit = TIER_FEATURES[effective].maxActiveJobs;
   return activeJobCount < limit;
@@ -267,7 +269,7 @@ export interface PostGateResult {
   allowed: boolean;
   effectiveTier: BusinessTier;
   activeJobCount: number;
-  yearlyLiveJobs: number;
+  everLiveJobs: number;
   limit: number;
   /** Set when not allowed. */
   reason?: "free_limit" | "active_limit";
@@ -276,23 +278,23 @@ export interface PostGateResult {
 export function evaluatePostGate(
   state: BillingState,
   activeJobCount: number,
-  yearlyLiveJobs: number,
+  everLiveJobs: number,
   now: Date = new Date(),
   globalGrace: boolean = LAUNCH_GRACE_PERIOD
 ): PostGateResult {
   const effectiveTier = resolveEffectiveTier(state, now, globalGrace);
   const isFree = effectiveTier === "free";
-  const limit = isFree ? TIER_FEATURES.free.yearlyJobLimit : TIER_FEATURES[effectiveTier].maxActiveJobs;
+  const limit = isFree ? TIER_FEATURES.free.freeJobLimit : TIER_FEATURES[effectiveTier].maxActiveJobs;
   // Gate on the resolved tier directly (not via getEffectiveTier, which
   // would re-apply the global switch and defeat the injected override).
   const allowed = isFree
-    ? yearlyLiveJobs < TIER_FEATURES.free.yearlyJobLimit
+    ? everLiveJobs < TIER_FEATURES.free.freeJobLimit
     : activeJobCount < TIER_FEATURES[effectiveTier].maxActiveJobs;
   return {
     allowed,
     effectiveTier,
     activeJobCount,
-    yearlyLiveJobs,
+    everLiveJobs,
     limit,
     reason: allowed ? undefined : isFree ? "free_limit" : "active_limit",
   };

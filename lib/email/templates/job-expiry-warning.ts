@@ -4,6 +4,11 @@ interface JobExpiryWarningEmailProps {
   expiryDate: string;
   renewUrl: string;
   manageUrl: string;
+  /**
+   * Free accounts cannot renew — their post is a four-week trial. The email
+   * must say so, or it promises a button that answers 402.
+   */
+  canRenew?: boolean;
 }
 
 /**
@@ -23,6 +28,7 @@ export function jobExpiryWarningEmail({
   expiryDate,
   renewUrl,
   manageUrl,
+  canRenew = true,
 }: JobExpiryWarningEmailProps) {
   const many = jobTitles.length > 1;
   const heading = many
@@ -40,10 +46,26 @@ export function jobExpiryWarningEmail({
     )
     .join("");
 
+  const cta = canRenew
+    ? { url: renewUrl, label: many ? "Keep these listings live" : "Keep this listing live" }
+    : { url: `${manageUrl.replace(/\/business\/.*$/, "")}/business/upgrade`, label: "See plans" };
+
+  const closing = canRenew
+    ? `${many ? "Filled them all?" : "Already filled it?"} Do nothing — ${
+        many ? "they will pause themselves" : "it will pause itself"
+      } on ${expiryDate}, and your applicants stay in your account either way.`
+    : `Your first job post is free for four weeks. To keep ${
+        many ? "them" : "it"
+      } live past ${expiryDate} you'll need a plan — and your applicants stay in your account either way.`;
+
   return {
-    subject: many
-      ? `Still hiring? ${jobTitles.length} listings expire on ${expiryDate}`
-      : `Still hiring? Your ${jobTitles[0]} listing expires on ${expiryDate}`,
+    subject: canRenew
+      ? many
+        ? `Still hiring? ${jobTitles.length} listings expire on ${expiryDate}`
+        : `Still hiring? Your ${jobTitles[0]} listing expires on ${expiryDate}`
+      : many
+        ? `Your free listings end on ${expiryDate}`
+        : `Your free ${jobTitles[0]} listing ends on ${expiryDate}`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -82,17 +104,15 @@ export function jobExpiryWarningEmail({
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
               <tr>
                 <td style="border-radius:10px;background-color:#3b9ede;">
-                  <a href="${renewUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;">
-                    ${many ? "Keep these listings live" : "Keep this listing live"}
+                  <a href="${cta.url}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;">
+                    ${cta.label}
                   </a>
                 </td>
               </tr>
             </table>
 
             <p style="margin:0 0 8px;color:#3d4f5f;font-size:15px;line-height:1.6;text-align:center;">
-              ${many ? "Filled them all?" : "Already filled it?"} Do nothing —
-              ${many ? "they will pause themselves" : "it will pause itself"} on ${expiryDate},
-              and your applicants stay in your account either way.
+              ${closing}
             </p>
             <p style="margin:0;color:#7d8b99;font-size:13px;line-height:1.6;text-align:center;">
               You can also <a href="${manageUrl}" style="color:#3b9ede;text-decoration:none;">manage your listings</a> directly.

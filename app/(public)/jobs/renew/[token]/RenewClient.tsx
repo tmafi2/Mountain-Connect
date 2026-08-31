@@ -24,11 +24,13 @@ export default function RenewClient({
   businessName,
   listings,
   lifespanDays,
+  canRenew,
 }: {
   token: string;
   businessName: string | null;
   listings: Listing[];
   lifespanDays: number;
+  canRenew: boolean;
 }) {
   const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [result, setResult] = useState<{ renewed: number; revived: number; expiresAt: string } | null>(null);
@@ -78,6 +80,44 @@ export default function RenewClient({
         >
           Manage my listings
         </a>
+      </div>
+    );
+  }
+
+  // A free account's four weeks are up. Show what is at stake and where to
+  // go, rather than a button that would answer 402.
+  if (!canRenew && listings.length > 0) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-12">
+        <h1 className="text-center text-2xl font-bold text-primary">
+          {businessName ? `${businessName}, your free listing has run its course` : "Your free listing has run its course"}
+        </h1>
+        <p className="mt-3 text-center text-foreground/70">
+          The first job post is free for four weeks. To keep{" "}
+          {listings.length === 1 ? "it" : "these"} live, pick a plan — everyone who
+          applied stays in your account either way.
+        </p>
+
+        <ul className="mt-8 divide-y divide-accent/40 rounded-2xl border border-accent/40 bg-white">
+          {listings.map((l) => (
+            <li key={l.id} className="flex items-center justify-between gap-4 px-5 py-4">
+              <span className="font-semibold text-primary">{l.title}</span>
+              <span className="shrink-0 text-xs text-foreground/50">
+                {l.lapsed ? "Paused" : fmt(l.expiresAt) ? `Until ${fmt(l.expiresAt)}` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <a
+          href="/business/upgrade"
+          className="mt-6 block w-full rounded-xl bg-secondary px-6 py-3.5 text-center font-bold text-white transition-colors hover:bg-secondary/90"
+        >
+          See plans
+        </a>
+        <p className="mt-3 text-center text-xs text-foreground/50">
+          Plans start at $39/month. Cancel any time.
+        </p>
       </div>
     );
   }

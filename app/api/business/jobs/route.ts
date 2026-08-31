@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { checkPostGate } from "@/lib/billing/post-gate";
+import { expiryForTier } from "@/lib/jobs/expiry";
 
 /**
  * POST /api/business/jobs
@@ -65,9 +66,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Resort is required" }, { status: 400 });
     }
 
-    // Enforce the plan limit for anything going live.
+    // Enforce the plan limit for anything going live, and take the live
+    // window from the same resolved tier so the two can never disagree.
+    let expiresAt: string | null = null;
     if (status === "active") {
       const gate = await checkPostGate(supabase, business.id);
+      expiresAt = expiryForTier(gate.effectiveTier).toISOString();
       if (!gate.allowed) {
         return NextResponse.json(
           {
@@ -88,6 +92,10 @@ export async function POST(request: Request) {
       business_id: business.id,
       status,
       is_active: status === "active",
+      // Supplied explicitly so a free post gets four weeks rather than the
+      // trigger's eight. Migration 00093's trigger yields to a value the
+      // statement provides; drafts pass nothing and are stamped on approval.
+      ...(expiresAt ? { expires_at: expiresAt } : {}),
     };
 
     const { data: inserted, error } = await supabase

@@ -37,7 +37,7 @@ interface FeatureRow {
 }
 
 const FEATURES: FeatureRow[] = [
-  { label: "Job listings", values: { free: "1 free post", standard: "5 active", premium: "Unlimited", enterprise: "Unlimited" } },
+  { label: "Job listings", values: { free: "First post free \u00b7 4 weeks", standard: "5 active", premium: "Unlimited", enterprise: "Unlimited" } },
   { label: "Featured on employers page", values: { free: false, standard: false, premium: true, enterprise: true } },
   { label: "Feature individual jobs", values: { free: false, standard: false, premium: "Up to 3", enterprise: "Unlimited" } },
   { label: "Analytics dashboard", values: { free: false, standard: "Basic", premium: "Full", enterprise: "Full + export" } },
@@ -154,7 +154,7 @@ export default function UpgradePage() {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-primary">Choose Your Plan</h1>
         <p className="mt-2 text-foreground/60">
-          Your first job post is free, forever. Pick a plan when you&apos;re ready to post more.
+          Your first job post is free for four weeks. Pick a plan to keep it live, or to post more.
         </p>
       </div>
 
@@ -296,7 +296,7 @@ export default function UpgradePage() {
               </div>
 
               <p className="mt-3 text-sm text-foreground/60">
-                {tier === "free" && "Post your first job free. Applicant tracking and messaging included."}
+                {tier === "free" && "Post your first job free for four weeks. Applicant tracking and messaging included."}
                 {tier === "standard" && "For pubs, cafés and lodges hiring a handful of roles each season."}
                 {tier === "premium" && "For hotels and operators hiring at scale. Unlimited jobs and top placement."}
                 {tier === "enterprise" && "For resort companies and multi-venue groups with dedicated support."}

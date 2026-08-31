@@ -11,7 +11,7 @@ import { evaluatePostGate, type BillingState, type PostGateResult } from "@/lib/
  *
  * Counts:
  *   activeJobCount  — jobs with status='active' right now (paid-tier cap)
- *   yearlyLiveJobs  — jobs that went live this calendar year, live or not
+ *   everLiveJobs    — jobs that have EVER gone live, live or not
  *                     (free-tier "first post free" cap). Drafts excluded.
  *
  * `supabase` should be the caller's user-scoped client so RLS restricts the
@@ -23,9 +23,7 @@ export async function checkPostGate(
   businessId: string,
   opts: { extraPending?: number } = {}
 ): Promise<PostGateResult> {
-  const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
-
-  const [profileRes, activeRes, yearlyRes] = await Promise.all([
+  const [profileRes, activeRes, everLiveRes] = await Promise.all([
     supabase
       .from("business_profiles")
       .select("tier, selected_tier, subscription_status, grace_period_ends_at")
@@ -36,14 +34,14 @@ export async function checkPostGate(
       .select("id", { count: "exact", head: true })
       .eq("business_id", businessId)
       .eq("status", "active"),
-    // "went live this year": anything that isn't a draft, created this year.
-    // A closed/expired post still consumed the free slot for the year.
+    // "has ever gone live": anything that is not a draft. A closed or
+    // expired post still consumed the one free slot — permanently, which is
+    // what makes it a trial rather than a renewable allowance.
     supabase
       .from("job_posts")
       .select("id", { count: "exact", head: true })
       .eq("business_id", businessId)
-      .neq("status", "draft")
-      .gte("created_at", yearStart),
+      .neq("status", "draft"),
   ]);
 
   const state: BillingState = {
@@ -58,6 +56,6 @@ export async function checkPostGate(
   return evaluatePostGate(
     state,
     (activeRes.count ?? 0) + extra,
-    (yearlyRes.count ?? 0) + extra
+    (everLiveRes.count ?? 0) + extra
   );
 }

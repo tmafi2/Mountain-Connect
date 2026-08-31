@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGoogleIndexing } from "@/lib/seo/google-indexing";
 import { checkPostGate } from "@/lib/billing/post-gate";
+import { expiryForTier } from "@/lib/jobs/expiry";
 
 /**
  * POST /api/business/publish-drafts
@@ -84,7 +85,13 @@ export async function POST() {
     const toPublish = drafts.slice(0, room).map((d) => d.id);
     const { data: updated, error } = await supabase
       .from("job_posts")
-      .update({ status: "active", is_active: true })
+      // Same tier-resolved window as a fresh publish — see the note in
+      // app/api/business/jobs/route.ts.
+      .update({
+        status: "active",
+        is_active: true,
+        expires_at: expiryForTier(gateNow.effectiveTier).toISOString(),
+      })
       .in("id", toPublish)
       .eq("business_id", business.id)
       .select("id");

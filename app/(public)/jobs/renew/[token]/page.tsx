@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyRenewToken } from "@/lib/jobs/renew-token";
 import { JOB_POST_LIFESPAN_DAYS } from "@/lib/jobs/expiry";
+import { resolveEffectiveTier, type BusinessTier } from "@/lib/tier";
 import RenewClient from "./RenewClient";
 
 export const metadata: Metadata = {
@@ -55,7 +56,7 @@ export default async function RenewPage({
   const [{ data: business }, { data: jobs }] = await Promise.all([
     admin
       .from("business_profiles")
-      .select("business_name")
+      .select("business_name, tier, selected_tier, subscription_status, grace_period_ends_at")
       .eq("id", verdict.businessId)
       .single(),
     admin
@@ -73,12 +74,23 @@ export default async function RenewPage({
     expiresAt: (j.expires_at as string | null) ?? null,
   }));
 
+  // Free accounts cannot renew — the page says so up front rather than
+  // letting them press a button that answers 402.
+  const canRenew =
+    resolveEffectiveTier({
+      tier: (business?.tier ?? "free") as BusinessTier | null,
+      selected_tier: (business?.selected_tier ?? null) as BusinessTier | null,
+      subscription_status: (business?.subscription_status ?? null) as string | null,
+      grace_period_ends_at: (business?.grace_period_ends_at ?? null) as string | null,
+    }) !== "free";
+
   return (
     <RenewClient
       token={token}
       businessName={(business?.business_name as string | null) ?? null}
       listings={listings}
       lifespanDays={JOB_POST_LIFESPAN_DAYS}
+      canRenew={canRenew}
     />
   );
 }

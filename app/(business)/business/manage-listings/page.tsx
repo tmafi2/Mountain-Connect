@@ -216,6 +216,8 @@ async function fetchListingsData(): Promise<{
   listings: ListingItem[];
   applicants: ApplicantItem[];
   businessVerified: boolean;
+  /** Whether the business's tier entitles it to auto-renew right now. */
+  canAutoRenew: boolean;
 }> {
   try {
     const supabase = await createClient();
@@ -223,7 +225,7 @@ async function fetchListingsData(): Promise<{
 
     if (!user) {
       // Not logged in — show demo data
-      return { listings: demoListings, applicants: demoApplicants, businessVerified: true };
+      return { listings: demoListings, applicants: demoApplicants, businessVerified: true, canAutoRenew: false };
     }
 
     const { data: bp } = await supabase
@@ -235,7 +237,7 @@ async function fetchListingsData(): Promise<{
       .single();
 
     if (!bp) {
-      return { listings: [], applicants: [], businessVerified: false };
+      return { listings: [], applicants: [], businessVerified: false, canAutoRenew: false };
     }
 
     const businessVerified = bp.verification_status === "verified";
@@ -272,7 +274,7 @@ async function fetchListingsData(): Promise<{
     const jobs = jobsResult.data;
 
     if (!jobs || jobs.length === 0) {
-      return { listings: [], applicants: [], businessVerified };
+      return { listings: [], applicants: [], businessVerified, canAutoRenew };
     }
 
     // Map jobs to ListingItem format
