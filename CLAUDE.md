@@ -80,7 +80,7 @@ Businesses can post listings regardless of verification state. Verification is a
 - **Work eligibility (worker ↔ business):** `lib/work-eligibility.ts` is the single source — VisaStatus taxonomy, per-country visa *programmes* (AU 417/462, CA IEC, US J-1/H-2B, JP WH/Designated Activities…), country normalisation ("USA" ≡ "United States"), and `resolveEligibilityFor(profile, country)`. Workers record per-country status (+ optional programme + expiry) in `worker_profiles.work_authorizations` JSONB. **Business views always resolve for the JOB's resort country** via `components/ui/EligibilityBadge` (applicants inbox, manage-listings/[id], interview sidebar; workers/[id] shows a per-country table) — never the legacy `visa_status` column, which only reflects the first country added. Apply form shows a soft nudge if the worker has no eligibility listed for the job's country (`/profile/edit?step=eligibility`). We capture STATUS only — never visa/passport numbers or documents; right-to-work verification is the employer's job at hire.
 
 ## Migration Status
-Latest migration: **00093** (`job_post_expiry_schema` — Phase 1 of automatic job-post expiry. Adds `published_at`, `expires_at`, `auto_renew`, `expiry_warning_sent_at`, `expired_notice_sent_at` to `job_posts`, adds `'expired'` to the `paused_reason` CHECK, and installs the `job_posts_stamp_expiry` BEFORE INSERT OR UPDATE trigger. **Nothing user-visible changes yet** — no cron reads these columns, nothing is paused, no email is sent. THE CLOCK STARTS AT APPROVAL, not creation: the trigger stamps on the transition INTO `status='active'`, so an admin review backlog never eats a business's window, and an ordinary edit while active does NOT extend it. A caller that supplies its own `expires_at` keeps it. A trigger rather than call-site stamping because FOUR paths set status=active (`POST /api/business/jobs`, `POST /api/business/publish-drafts`, `lib/admin/publish-jobs.ts`, and `restoreParkedJobs`). ⚠️ The 56-day window is a literal in the trigger AND `JOB_POST_LIFESPAN_DAYS` in `lib/jobs/expiry.ts` — changing one requires changing the other. Backfilled all 98 active posts with a fresh window from the apply date (guarded on `published_at IS NULL`) so switching the cron on later cannot mass-pause the board. All 7 trigger cases were tested in a rolled-back prod transaction before applying.) Before that, **00092** (`retire_stale_spring_listings` — one-off: paused the 32 job posts created March–June 2026 that were still live in late August, with `paused_reason='stale_cleanup'` and no notification. Businesses keep them — manage-listings has no status filter — and the 90 attached applications are untouched. **This migration REQUIRED a code change to be safe:** `restoreParkedJobs`/`countParkedJobs` matched on `paused_reason IS NOT NULL`, so a non-billing reason would have been silently republished on the next plan upgrade. Both now match `BILLING_PAUSE_REASONS` (`claim_gated`, `tier_downgrade`) in `lib/billing/job-parking.ts`, covered by two regression tests confirmed to fail against the old matching.) Before that, **00091** (`norquay_replaces_banff_lake_louise` — repoints legacy_id 11 from the composite "Banff / Lake Louise" record to Mount Norquay alone.) Before that, **00090** (`storage_policies_bucket_scope` — 🔴 fixes a LIVE data exposure. Two sets of dashboard-created policies on `storage.objects` (`1oj01fe_*`, `flreew_*`) had no `bucket_id` predicate, and storage RLS is a disjunction — so `"Anyone can view avatars"` (qual `true`, role `public`) granted ANONYMOUS read of every object in every PRIVATE bucket: resumes, documents, contracts. Three more granted any authenticated user INSERT/UPDATE/DELETE across all buckets. Verified against prod before and after: anon listing of resumes/documents/contracts went 5+/1/1 entries → 0/0/0, public buckets and service role unaffected.) Before that, **00089** (`contracts_storage_party_scope` — scopes contract FILE reads to the issuing business and the contract's worker via SECURITY DEFINER `can_read_contract_file()`, replacing 00055's `auth.role() = 'authenticated'` blanket grant, and drops the unused authenticated INSERT grant since both writers use the admin client. NOTE: 00089 alone did nothing — 00090's blanket policy overrode it. Both are required.) Before that, **00088** (`import_outreach_sent_at` — gates the import/claim outreach email per BUSINESS rather than per published job, matching the sent-at pattern every other email in the cadence already had.) Before that, **00087** (`job_pause_reason` — adds `job_posts.paused_reason` (NULL | 'claim_gated' | 'tier_downgrade') so a paused row records WHY. NULL keeps its existing meaning, "the owner paused it", which is what makes auto-restore-on-upgrade safe: without the marker, restoring every paused job would silently re-publish roles the owner had filled. Partial index on (business_id, paused_reason) WHERE NOT NULL. Applied via `supabase db push`.) Before that, **00080** (`billing_subscriptions` — adds Stripe/subscription columns to `business_profiles`: stripe_customer_id, stripe_subscription_id, subscription_status, selected_tier, billing_interval, trial_ends_at, current_period_end, is_founding_member, grace_period_ends_at, billing_updated_at, with CHECKs + partial indexes; stamps every existing business with a 60-day premium courtesy window, guarded by IS NULL so re-runs never extend anyone. Validated with a real PG parser). Before that, **00079** (`towns_for_new_resorts` — seeds 16 full-detail nearby towns and 18 resort links for the 21 resorts from the 00075 batch that had none: Japan 92–102, USA 103–106, Canada 107–108. Morioka and Hachimantai City each serve two resorts; Palisades Tahoe gets Olympic Valley primary + Truckee secondary. Idempotent, validated with a real PG parser). All prior migrations applied through **00078** (`swap_primary_venue_rpc` — adds an RPC the venues page calls to atomically flip the primary venue in a single UPDATE, replacing the previous two-step pattern that could leave the business primary-less if the second write failed. SECURITY DEFINER with an explicit owner/admin check). 00077 added three venue safeguards (auto-create primary venue trigger, venue↔business validation trigger, ON DELETE SET NULL on job_posts.venue_id). 00076 introduced business venues. 00075 added 38 new resorts. 00074 added the auto-resolve trigger that stamps `business_profiles.nearby_town_id` from the location text. 00073 added the `outreach_leads` and `outreach_sends` tables for the admin email-campaign feature. Next migration number: **00094**. (00086 `lead_posts` — FB/social lead capture, see scripts/lead-monitor.) (00084 `location_requests` — "Missing your resort/town?" request table. 00085 `worker_profile_visibility` — businesses can only SELECT worker profiles they have a relationship with (applied / conversation / follow) via SECURITY DEFINER `business_can_view_worker()`; matches the Privacy page. Inline subqueries recurse — keep the function.) (00083 `paid_plans_notice_sent` — first migration applied via `supabase db push`.) (00081/00082 are `worker_contact_email` and `fix_thredbo_perisher_banners`, renumbered from duplicate 00032/00034 slots on 2026-08-16 — same SQL, long since applied; renamed only so every version is unique for the Supabase CLI.)
+Latest migration: **00096** (`rename_notion_id_to_import_key` — Notion left the pipeline; the column was always the scraper's own `fb-<hash>` idempotency key. Renamed, not dropped: it is what makes a re-scrape update a listing rather than duplicate it. Endpoint still accepts `notionId` as an alias.) Before that, **00095** (`merge_odin_duplicates` — three records for one company, all already emailed, one with a misspelled address. Listings moved onto the record with the correct address; the others renamed, not deleted, and skipped by the sweep's existing no-live-listing guard.) Before that, **00094** (`dormancy_final_notice` — adds `dormancy_final_sent_at`, turning the claim cadence into two warnings over four weeks: day 14 "removed in two weeks", day 21 final notice, day 28 removed. Each stage is timed from the PREVIOUS stage's timestamp, never from `created_at`, so an outage delays removal rather than firing both warnings at once.) Before that, **00093** (`job_post_expiry_schema` — Phase 1 of automatic job-post expiry. Adds `published_at`, `expires_at`, `auto_renew`, `expiry_warning_sent_at`, `expired_notice_sent_at` to `job_posts`, adds `'expired'` to the `paused_reason` CHECK, and installs the `job_posts_stamp_expiry` BEFORE INSERT OR UPDATE trigger. **Nothing user-visible changes yet** — no cron reads these columns, nothing is paused, no email is sent. THE CLOCK STARTS AT APPROVAL, not creation: the trigger stamps on the transition INTO `status='active'`, so an admin review backlog never eats a business's window, and an ordinary edit while active does NOT extend it. A caller that supplies its own `expires_at` keeps it. A trigger rather than call-site stamping because FOUR paths set status=active (`POST /api/business/jobs`, `POST /api/business/publish-drafts`, `lib/admin/publish-jobs.ts`, and `restoreParkedJobs`). ⚠️ The 56-day window is a literal in the trigger AND `JOB_POST_LIFESPAN_DAYS` in `lib/jobs/expiry.ts` — changing one requires changing the other. Backfilled all 98 active posts with a fresh window from the apply date (guarded on `published_at IS NULL`) so switching the cron on later cannot mass-pause the board. All 7 trigger cases were tested in a rolled-back prod transaction before applying.) Before that, **00092** (`retire_stale_spring_listings` — one-off: paused the 32 job posts created March–June 2026 that were still live in late August, with `paused_reason='stale_cleanup'` and no notification. Businesses keep them — manage-listings has no status filter — and the 90 attached applications are untouched. **This migration REQUIRED a code change to be safe:** `restoreParkedJobs`/`countParkedJobs` matched on `paused_reason IS NOT NULL`, so a non-billing reason would have been silently republished on the next plan upgrade. Both now match `BILLING_PAUSE_REASONS` (`claim_gated`, `tier_downgrade`) in `lib/billing/job-parking.ts`, covered by two regression tests confirmed to fail against the old matching.) Before that, **00091** (`norquay_replaces_banff_lake_louise` — repoints legacy_id 11 from the composite "Banff / Lake Louise" record to Mount Norquay alone.) Before that, **00090** (`storage_policies_bucket_scope` — 🔴 fixes a LIVE data exposure. Two sets of dashboard-created policies on `storage.objects` (`1oj01fe_*`, `flreew_*`) had no `bucket_id` predicate, and storage RLS is a disjunction — so `"Anyone can view avatars"` (qual `true`, role `public`) granted ANONYMOUS read of every object in every PRIVATE bucket: resumes, documents, contracts. Three more granted any authenticated user INSERT/UPDATE/DELETE across all buckets. Verified against prod before and after: anon listing of resumes/documents/contracts went 5+/1/1 entries → 0/0/0, public buckets and service role unaffected.) Before that, **00089** (`contracts_storage_party_scope` — scopes contract FILE reads to the issuing business and the contract's worker via SECURITY DEFINER `can_read_contract_file()`, replacing 00055's `auth.role() = 'authenticated'` blanket grant, and drops the unused authenticated INSERT grant since both writers use the admin client. NOTE: 00089 alone did nothing — 00090's blanket policy overrode it. Both are required.) Before that, **00088** (`import_outreach_sent_at` — gates the import/claim outreach email per BUSINESS rather than per published job, matching the sent-at pattern every other email in the cadence already had.) Before that, **00087** (`job_pause_reason` — adds `job_posts.paused_reason` (NULL | 'claim_gated' | 'tier_downgrade') so a paused row records WHY. NULL keeps its existing meaning, "the owner paused it", which is what makes auto-restore-on-upgrade safe: without the marker, restoring every paused job would silently re-publish roles the owner had filled. Partial index on (business_id, paused_reason) WHERE NOT NULL. Applied via `supabase db push`.) Before that, **00080** (`billing_subscriptions` — adds Stripe/subscription columns to `business_profiles`: stripe_customer_id, stripe_subscription_id, subscription_status, selected_tier, billing_interval, trial_ends_at, current_period_end, is_founding_member, grace_period_ends_at, billing_updated_at, with CHECKs + partial indexes; stamps every existing business with a 60-day premium courtesy window, guarded by IS NULL so re-runs never extend anyone. Validated with a real PG parser). Before that, **00079** (`towns_for_new_resorts` — seeds 16 full-detail nearby towns and 18 resort links for the 21 resorts from the 00075 batch that had none: Japan 92–102, USA 103–106, Canada 107–108. Morioka and Hachimantai City each serve two resorts; Palisades Tahoe gets Olympic Valley primary + Truckee secondary. Idempotent, validated with a real PG parser). All prior migrations applied through **00078** (`swap_primary_venue_rpc` — adds an RPC the venues page calls to atomically flip the primary venue in a single UPDATE, replacing the previous two-step pattern that could leave the business primary-less if the second write failed. SECURITY DEFINER with an explicit owner/admin check). 00077 added three venue safeguards (auto-create primary venue trigger, venue↔business validation trigger, ON DELETE SET NULL on job_posts.venue_id). 00076 introduced business venues. 00075 added 38 new resorts. 00074 added the auto-resolve trigger that stamps `business_profiles.nearby_town_id` from the location text. 00073 added the `outreach_leads` and `outreach_sends` tables for the admin email-campaign feature. Next migration number: **00097**. (00086 `lead_posts` — FB/social lead capture, see scripts/lead-monitor.) (00084 `location_requests` — "Missing your resort/town?" request table. 00085 `worker_profile_visibility` — businesses can only SELECT worker profiles they have a relationship with (applied / conversation / follow) via SECURITY DEFINER `business_can_view_worker()`; matches the Privacy page. Inline subqueries recurse — keep the function.) (00083 `paid_plans_notice_sent` — first migration applied via `supabase db push`.) (00081/00082 are `worker_contact_email` and `fix_thredbo_perisher_banners`, renumbered from duplicate 00032/00034 slots on 2026-08-16 — same SQL, long since applied; renamed only so every version is unique for the Supabase CLI.)
 
 Apply migrations with `supabase db push` (always `--dry-run` first). When adding a schema-touching migration, dry-run it against a fresh `supabase db reset` (or branch DB) before merging — recent dedup work needed three follow-up commits to fix text/UUID cast errors that would have surfaced locally.
 
@@ -102,118 +102,11 @@ Apply migrations with `supabase db push` (always `--dry-run` first). When adding
 - Accent: #c8d5e0
 
 
-## Notion import pipeline (managed by Cowork)
+## Job import pipeline
 
-This section documents the automated social media → Notion → Mountain Connects import pipeline. It is maintained by the Cowork agent. Do not edit manually — changes will be overwritten on the next Cowork session.
+The Facebook monitor (`scripts/fb-monitor/`) scrapes the groups in `groups.json`, extracts each post with Claude, and posts to `POST /api/admin/job-listings/import`. **Notion is no longer part of this** — it was removed on 2026-08-31 and `job_posts.notion_id` was renamed to `import_key` in migration 00096, because every value in it comes from the scraper (`fb-<hash of group+business+title>`) and never had anything to do with Notion. The endpoint still accepts `notionId` as an alias so an older checkout of the scraper keeps working.
 
----
+**Idempotency, two lookups in order:** `import_key` first, then **business + title** (case-insensitive). The second exists because the FB importer derives the key from *(group, business, jobTitle)*, so one advert cross-posted to two groups hashes twice — Seasons Niseko produced a duplicate of every role that way, 20 pairs. On a match the row is **updated, not inserted**: status is preserved (a re-import cannot revert a published listing to draft) and absent fields are left alone (a thinner re-scrape cannot erase richer data).
 
-### Notion database IDs
+**Businesses are found-or-created by EXACT email match**, which cannot see past a different address for the same company — Odin Living arrived as three records (`recruitment@`, `hrmanager@`, and a misspelled `recuritment@`) and each was emailed separately. `lib/admin/duplicate-businesses.ts` now flags likely duplicates in `/admin/jobs` on three signals — shared non-free email domain, identical punctuation-stripped name, and an email within two edits of another. It flags only; merging is a judgement call (00095 merged Odin by hand). ⚠️ Free email providers are excluded from the domain signal or every gmail address becomes one cluster.
 
-| Database | Data Source ID |
-|---|---|
-| Job Posts (raw Facebook captures) | `0bec452f-3acd-46df-8ae4-0c99a05fb7c1` |
-| MC Import Listings (staging for import) | `4d3a647a-5b13-4670-8ff3-6bdb79c418ca` |
-
-Both databases live on the Notion page: **🏔️ Snowy Mountains Job Monitor**
-
----
-
-### MC Import Listings → API field mappings
-
-When pushing a listing from Notion to the `/api/admin/job-listings/import` endpoint, map Notion columns to API fields as follows:
-
-| Notion Column | API Field | Notes |
-|---|---|---|
-| Business Name | `businessName` | Title field — always present |
-| Job Title | `jobTitle` | Omit if blank |
-| Description | `description` | Up to 500 chars |
-| Location | `location` | e.g. "Jindabyne, NSW" |
-| Country | `country` | Always "Australia" |
-| Business Email | `businessEmail` | Omit if blank |
-| Application Email | `applicationEmail` | Omit if blank |
-| Original Post URL | `sourceUrl` | Source Facebook post permalink |
-| Source | `source` | Facebook group name — see source-name registry below |
-| Date Posted (date:Date Posted:start) | `datePosted` | ISO 8601 date string of original post |
-| Page ID | `notionId` | Always include — used to update the Notion record after push |
-| Resort (inferred) | `resortName` | Canonical resort name (see normalisation rules); required unless a UUID `resortId` is sent instead. Omit if resort cannot be determined. |
-
-Fields intentionally never sent: Category, Employment Type, Housing Included, Season Start, Season End, Requirements, MC Listing URL.
-
----
-
-### Sync status — which column marks a record as synced
-
-The **Status** column on MC Import Listings is the single source of truth for sync state:
-
-| Status value | Meaning |
-|---|---|
-| `📋 To Import` | Ready to push — will be included in the next push run |
-| `✅ Imported` | Successfully pushed to MC; `MC Listing URL` field is populated |
-| `⚠️ Has Account` | Business already has an MC account — do not push |
-
-**After a successful push:** set Status → `✅ Imported` and populate `MC Listing URL` with the URL returned by the API.  
-**After a failed push:** leave Status as `📋 To Import` and prepend `⚠️ Push failed: <error>` to the Description field.  
-**Never push** records with Status `✅ Imported` or `⚠️ Has Account`.
-
----
-
-### Push task — schedule and error handling
-
-The push task (`push-mc-job-listings`) is **ad-hoc** (manual trigger only, no cron). Tyler triggers it by saying *"push new job listings"* in a Cowork session.
-
-**Error handling rules:**
-- On **401 Unauthorized** → stop the entire batch immediately and report that the API key may be invalid
-- On **4xx (other)** → log the error against that listing, continue to the next
-- On **5xx / network error** → retry once after 5 seconds; if it fails again, log and continue
-- On **partial batch failure** → report which listings succeeded and which failed; do not re-attempt succeeded ones
-
-**API credentials** are stored at:  
-`/Users/tylermafi/Documents/Claude/Mountain Connects - social/mc_api_config.json`
-
----
-
-### Source-name registry
-
-The `source` field sent to the API must exactly match one of these canonical names. These also correspond to the Facebook groups the monitor scans:
-
-```
-Jindabyne Notice Board
-Jindabyne Job Guide
-Thredbo Job Guide
-Snowy Mountain Uncensored
-Looking to live around Jindabyne
-Thredbo Notice Board
-```
-
-Do not abbreviate, translate, or reformat these. If a source value in Notion doesn't match the list (e.g. a previously appended cross-post note like "Jindabyne Notice Board → also: Jindabyne Job Guide"), extract only the first group name (before the `→`) as the canonical source.
-
----
-
-### Resort-name normalisation
-
-The `resortName` API field must be one of these canonical values:
-
-| Canonical value | Maps from |
-|---|---|
-| `Perisher` | "Perisher Valley", "Perisher Blue", "Perisher FoodWorks", posts mentioning Perisher ski resort |
-| `Thredbo` | "Thredbo Alpine Village", "Thredbo Resort", posts from Thredbo groups or mentioning Thredbo |
-| `Smiggins` | "Smiggins Holes", "Smiggins Hotel", posts mentioning Smiggins |
-| `Jindabyne` | Posts based in Jindabyne town with no specific resort mentioned |
-| `Both` | Posts that explicitly service or recruit for both Perisher and Thredbo |
-
-If resort cannot be determined from the post content or group context, omit `resortName` entirely — do not guess.
-
----
-
-### Deduplication rule (MC Import Listings)
-
-Before creating a new MC Import Listings entry, check for an existing record where:
-1. `Business Email` matches (case-insensitive) **OR** `Business Name` matches (case-insensitive)
-2. **AND** `Job Title` matches (case-insensitive), or both entries have a blank Job Title
-3. **AND** `Date Posted` is within the last **21 days**
-
-If all three match → do not create a new record. Instead append the new source group to the existing record's `Source` field:  
-`"Jindabyne Notice Board → also: Jindabyne Job Guide"`
-
-After 21 days → treat as a fresh listing regardless of business/role match.

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { findDuplicateBusinesses } from "@/lib/admin/duplicate-businesses";
 
 interface JobRow {
   id: string;
@@ -31,6 +32,9 @@ interface JobRow {
   business_name?: string;
   business_claimed?: boolean;
   business_email?: string | null;
+  /** Other business records that may be the same company — see
+   *  lib/admin/duplicate-businesses. Empty or absent means no suspicion. */
+  business_duplicates?: Array<{ business_name: string | null; email: string | null; reason: string }>;
 }
 
 interface JobApplicant {
@@ -81,6 +85,17 @@ export default function AdminJobsPage() {
           .from("business_profiles")
           .select("id, business_name, is_claimed, email")
           .in("id", bizIds);
+        // Which of these records might be the same company. Computed over
+        // every business we loaded, not just the ones on screen, so a
+        // duplicate that is filtered out of view still flags the one in it.
+        const dupes = findDuplicateBusinesses(
+          (bizData ?? []).map((b) => ({
+            id: b.id as string,
+            business_name: b.business_name as string | null,
+            email: (b.email as string | null) ?? null,
+          }))
+        );
+
         const bizMap: Record<string, { name: string; claimed: boolean; email: string | null }> = {};
         if (bizData) bizData.forEach((b) => {
           bizMap[b.id] = { name: b.business_name, claimed: !!b.is_claimed, email: b.email || null };
@@ -94,6 +109,11 @@ export default function AdminJobsPage() {
             resort_country: (j.resorts as unknown as { country: string } | null)?.country || null,
             nearby_town_name: ((j as any).nearby_towns as { name: string } | null)?.name || null,
             business_name: biz?.name || "Unknown",
+            business_duplicates: (dupes.get(j.business_id as string) ?? []).map((d) => ({
+              business_name: d.business_name,
+              email: d.email,
+              reason: d.reason,
+            })),
             business_claimed: biz?.claimed ?? true,
             business_email: biz?.email || null,
           };
@@ -475,7 +495,25 @@ export default function AdminJobsPage() {
                   )}
                   {job.title}
                 </td>
-                <td className="px-5 py-3 text-foreground/70">{job.business_name}</td>
+                <td className="px-5 py-3 text-foreground/70">
+                  {job.business_name}
+                  {job.business_duplicates && job.business_duplicates.length > 0 && (
+                    <span
+                      className="ml-2 inline-flex cursor-help items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 align-middle text-[11px] font-semibold text-amber-800"
+                      title={
+                        `Possibly the same company as:\n` +
+                        job.business_duplicates
+                          .map((d) => `• ${d.business_name ?? "(unnamed)"} — ${d.email ?? "no email"} (${d.reason})`)
+                          .join("\n") +
+                        `\n\nApproving both will email them twice.`
+                      }
+                    >
+                      ⚠ {job.business_duplicates.length === 1
+                        ? "possible duplicate"
+                        : `${job.business_duplicates.length} possible duplicates`}
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   {job.resort_name || job.nearby_town_name ? (
                     <div className="leading-tight">
