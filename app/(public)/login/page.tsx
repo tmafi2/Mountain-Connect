@@ -6,6 +6,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { safeSet } from "@/lib/utils/safe-storage";
 
 type LoginType = "worker" | "business";
 
@@ -82,7 +83,7 @@ function LoginContent() {
       }
 
       if (checkData.requires2fa) {
-        sessionStorage.setItem("2fa_password", adminPassword);
+        safeSet("2fa_password", adminPassword, "session");
         router.push(`/login/verify?email=${encodeURIComponent(adminEmail)}&type=admin`);
         return;
       }
@@ -143,7 +144,7 @@ function LoginContent() {
       // If 2FA required, redirect to verification page
       if (checkData.requires2fa) {
         // Store password temporarily for post-2FA sign-in (cleared after use)
-        sessionStorage.setItem("2fa_password", password);
+        safeSet("2fa_password", password, "session");
         router.push(`/login/verify?email=${encodeURIComponent(email)}&type=${loginType}`);
         return;
       }

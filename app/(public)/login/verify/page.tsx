@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { safeGet, safeRemove } from "@/lib/utils/safe-storage";
 
 export default function VerifyPage() {
   return (
@@ -76,7 +77,7 @@ function VerifyContent() {
     setError("");
 
     try {
-      const password = sessionStorage.getItem("2fa_password") || "";
+      const password = safeGet("2fa_password", "session") || "";
 
       const res = await fetch("/api/auth/verify-2fa", {
         method: "POST",
@@ -102,7 +103,7 @@ function VerifyContent() {
       });
 
       // Clean up
-      sessionStorage.removeItem("2fa_password");
+      safeRemove("2fa_password", "session");
 
       if (signInError) {
         setError("Login failed. Please try again.");
