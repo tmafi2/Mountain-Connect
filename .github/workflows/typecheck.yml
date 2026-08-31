@@ -1,0 +1,53 @@
+name: Typecheck
+
+# A RATCHET, not a clean-slate gate.
+#
+# The repo carries a long tail of pre-existing type errors, so requiring zero
+# would mean a permanently red check that everyone learns to ignore — worse
+# than no check. This fails only when the count goes UP, which is the thing
+# worth catching: it holds the line today and lets the number be driven down
+# whenever somebody has the appetite.
+#
+# Two real bugs were found this way by reading `tsc` output by hand — a
+# rollback that could orphan an auth user, and a type error that shipped
+# because a grep for the wrong filename missed it. Nothing was running tsc.
+#
+# To lower the bar after fixing errors, run:
+#   npx tsc --noEmit 2>&1 | grep -c "error TS" > .tsc-baseline
+# and commit it. Raising it should take an explanation in the commit message.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Compare error count against the baseline
+        run: |
+          BASELINE=$(cat .tsc-baseline | tr -d '[:space:]')
+          npx tsc --noEmit 2>&1 | tee /tmp/tsc.log | grep -c "error TS" > /tmp/count || true
+          COUNT=$(cat /tmp/count | tr -d '[:space:]')
+          echo "baseline: $BASELINE   current: $COUNT"
+
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            echo "::error::Type errors rose from $BASELINE to $COUNT"
+            echo ""
+            echo "Errors, for reference — the new ones are somewhere in here:"
+            grep "error TS" /tmp/tsc.log | head -40
+            exit 1
+          fi
+
+          if [ "$COUNT" -lt "$BASELINE" ]; then
+            echo "::notice::Type errors fell from $BASELINE to $COUNT — commit the new baseline:"
+            echo "  npx tsc --noEmit 2>&1 | grep -c \"error TS\" > .tsc-baseline"
+          fi

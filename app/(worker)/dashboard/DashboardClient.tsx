@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { safeGet, safeSet } from "@/lib/utils/safe-storage";
 
 /* ─── country → flag emoji mapping ─────────────────────────── */
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -79,7 +80,7 @@ export default function DashboardClient({
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
   const [checklistDismissed, setChecklistDismissed] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("mc-onboarding-dismissed") === "true";
+      return safeGet("mc-onboarding-dismissed") === "true";
     }
     return false;
   });
@@ -162,7 +163,7 @@ export default function DashboardClient({
           interviewCount={interviewCount}
           onDismiss={() => {
             setChecklistDismissed(true);
-            localStorage.setItem("mc-onboarding-dismissed", "true");
+            safeSet("mc-onboarding-dismissed", "true");
           }}
         />
       )}

@@ -4,8 +4,19 @@ import { sendOnboardingReminderEmail } from "@/lib/email/send";
 
 export async function GET(request: Request) {
   // Verify cron secret
+  // Fail closed when the secret is absent. With CRON_SECRET unset this
+  // compared against the literal "Bearer undefined" — which anyone can send,
+  // and which was live: a request with that header returned 200 in
+  // production. Vercel also sends no Authorization header at all when the
+  // variable is missing, so the scheduled runs were getting 401 and this job
+  // had never actually executed.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error("[cron] CRON_SECRET is not set; refusing to run");
+    return NextResponse.json({ error: "Cron is not configured" }, { status: 503 });
+  }
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

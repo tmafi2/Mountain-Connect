@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { safeGet, safeSet } from "@/lib/utils/safe-storage";
 const STORAGE_KEY = "admin_dashboard_last_stats";
 
 interface Stats {
@@ -62,7 +63,7 @@ export default function AdminDashboardPage() {
 
       // Calculate deltas from last saved stats
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = safeGet(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved) as { stats: Stats; date: string };
           setLastSeenDate(parsed.date);
@@ -84,7 +85,7 @@ export default function AdminDashboardPage() {
       // Only save a new baseline snapshot every 24 hours
       // This keeps deltas visible throughout the day instead of resetting on each page load
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = safeGet(STORAGE_KEY);
         const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
         let shouldSave = true;
 
@@ -96,7 +97,7 @@ export default function AdminDashboardPage() {
         }
 
         if (shouldSave) {
-          localStorage.setItem(
+          safeSet(
             STORAGE_KEY,
             JSON.stringify({
               stats: currentStats,
@@ -106,7 +107,7 @@ export default function AdminDashboardPage() {
         }
       } catch {
         // First visit or corrupted data — save fresh baseline
-        localStorage.setItem(
+        safeSet(
           STORAGE_KEY,
           JSON.stringify({
             stats: currentStats,
