@@ -7,14 +7,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnec
 /**
  * POST /api/admin/job-listings/import
  *
- * Machine-to-machine import endpoint for Notion-sourced listings.
+ * Machine-to-machine import endpoint for scraped listings.
  * Authenticated via bearer token (IMPORT_API_KEY env var) — NOT the
  * cookie-based admin session used by the in-browser admin panel.
  *
- * Behavior is idempotent on `notion_id`: re-sending the same page
+ * Behavior is idempotent on `import_key`: re-sending the same listing
  * updates the existing listing in place rather than creating a
  * duplicate. Status is preserved on updates so an already-approved
- * listing does not silently drop back to draft when Notion re-syncs.
+ * listing does not silently drop back to draft when a scrape re-syncs it.
  * New listings land as draft + pending_approval=true so they surface
  * in the existing Pending approval queue at /admin/jobs.
  *
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   // Accept both camelCase and snake_case so external automation (e.g.
   // Cowork push tasks) can evolve its payload format without breaking us.
   // sourceUrl also accepts "original_post_url" as an alias since that is
-  // what the Notion column is called.
+  // what the caller happens to call the field.
   const pick = (...keys: string[]): string => {
     for (const k of keys) {
       const v = body[k];
@@ -67,7 +67,10 @@ export async function POST(request: Request) {
   const source = pick("source");
   const sourceUrl = pick("sourceUrl", "source_url", "original_post_url");
   const datePosted = pick("datePosted", "date_posted");
-  const notionId = pick("notionId", "notion_id");
+  // Accepts importKey, and still notionId, because a scraper running from an
+  // older checkout may send either. The value is the same string; only the
+  // field name changed when Notion left the pipeline (migration 00096).
+  const importKey = pick("importKey", "import_key", "notionId", "notion_id");
   const rawResortId = pick("resortId", "resort_id");
   const resortName = pick("resortName", "resort_name");
 
@@ -123,7 +126,7 @@ export async function POST(request: Request) {
   const isoDate = (value: string): string | undefined =>
     /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) ? value : undefined;
 
-  if (!notionId) return NextResponse.json({ error: "notionId is required" }, { status: 400 });
+  if (!importKey) return NextResponse.json({ error: "importKey is required" }, { status: 400 });
   if (!businessName) return NextResponse.json({ error: "businessName is required" }, { status: 400 });
   if (!jobTitle) return NextResponse.json({ error: "jobTitle is required" }, { status: 400 });
   if (!description) return NextResponse.json({ error: "description is required" }, { status: 400 });
@@ -145,7 +148,7 @@ export async function POST(request: Request) {
     source: [source, 200],
     sourceUrl: [sourceUrl, 2048],
     datePosted: [datePosted, 50],
-    notionId: [notionId, 100],
+    importKey: [importKey, 100],
     resortId: [rawResortId, 100],
     resortName: [resortName, 200],
     requirements: [requirements, 5000],
@@ -164,7 +167,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
 
   // Resolve the resort. Accept either a UUID (resortId) or a friendly
-  // resort name (resortName) so Notion automations can pass the name
+  // resort name (resortName) so a caller can pass the name
   // without having to look up UUIDs first.
   let resortId = rawResortId;
   if (!resortId && resortName) {
@@ -234,10 +237,10 @@ export async function POST(request: Request) {
 
   // Upsert the job. Two lookups, in order.
   //
-  // notion_id first: it is the caller's own identity for the listing and the
+  // import_key first: it is the caller's own identity for the listing and the
   // only thing that survives a title being edited on our side.
   //
-  // Then business + title, because notion_id alone is not enough. The FB
+  // Then business + title, because import_key alone is not enough. The FB
   // importer derives it from (group, business, jobTitle), so the SAME advert
   // cross-posted by a business to two Facebook groups hashes to two different
   // ids and lands as two listings. That is not hypothetical: Seasons Niseko
@@ -250,17 +253,17 @@ export async function POST(request: Request) {
   // existing risk note still holds: two genuinely distinct same-titled roles
   // at one business are vanishingly rare and harmless to merge.
   //
-  // Deliberately NOT re-keying notion_id to drop the group — every stored id
+  // Deliberately NOT re-keying import_key to drop the group — every stored id
   // would stop matching and the next run would duplicate the entire corpus
   // once more. The fallback fixes it without touching a single existing row.
   let existingJob: { id: string; status: string } | null = null;
 
-  const { data: byNotion } = await admin
+  const { data: byKey } = await admin
     .from("job_posts")
     .select("id, status")
-    .eq("notion_id", notionId)
+    .eq("import_key", importKey)
     .maybeSingle();
-  existingJob = byNotion ?? null;
+  existingJob = byKey ?? null;
 
   if (!existingJob) {
     const { data: byTitle } = await admin
@@ -281,7 +284,7 @@ export async function POST(request: Request) {
     source,
     source_url: sourceUrl || null,
     application_email: applicationEmail || null,
-    notion_id: notionId,
+    import_key: importKey,
     // Spread-if-present: an absent field leaves whatever is already stored
     // alone, so re-syncing a thin payload cannot erase richer data.
     ...(requirements ? { requirements } : {}),
@@ -315,7 +318,7 @@ export async function POST(request: Request) {
   let jobId: string;
   if (existingJob) {
     // Preserve status on updates so an already-published listing
-    // does not silently revert to draft on a Notion re-sync.
+    // does not silently revert to draft when a scrape re-syncs it.
     const { error: updateErr } = await admin
       .from("job_posts")
       .update({

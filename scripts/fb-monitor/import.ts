@@ -309,7 +309,7 @@ async function main(): Promise<void> {
         e,
         resort,
         payload: {
-          notionId: `fb-${externalId}`,
+          importKey: `fb-${externalId}`,
           businessName: e.businessName,
           jobTitle: role.jobTitle,
           description: row.post.text.slice(0, 5000),
