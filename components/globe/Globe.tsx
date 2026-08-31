@@ -255,6 +255,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     Record<string, unknown>
   > | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  /** No WebGL on this device, or the globe bundle failed to load. */
+  const [webglBlocked, setWebglBlocked] = useState(false);
   const [ready, setReady] = useState(false);
   const hoveredIdRef = useRef<string | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -293,14 +295,48 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     return c.count > 0;
   });
 
-  // Dynamic import
+  // Dynamic import, but only where a globe can actually be drawn.
+  //
+  // react-globe.gl throws "Error creating WebGL context" on a device that
+  // cannot give it one — older phones, software rendering, and browsers with
+  // hardware acceleration switched off. That reached Sentry from /explore.
+  // Probing first turns an uncatchable render crash into a missing globe, and
+  // the rest of the page (which is the part with the jobs on it) still works.
   useEffect(() => {
-    import("react-globe.gl").then((mod) => {
-      setGlobeGL(
-        () =>
-          mod.default as unknown as React.ComponentType<Record<string, unknown>>
-      );
-    });
+    let cancelled = false;
+
+    const hasWebGL = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        return !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+        );
+      } catch {
+        return false;
+      }
+    };
+
+    if (!hasWebGL()) {
+      setWebglBlocked(true);
+      return;
+    }
+
+    import("react-globe.gl")
+      .then((mod) => {
+        if (cancelled) return;
+        setGlobeGL(
+          () =>
+            mod.default as unknown as React.ComponentType<Record<string, unknown>>
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setWebglBlocked(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Responsive sizing — bigger globe
@@ -639,6 +675,27 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       globeRef.current.pointOfView({ lat: 40, lng: 10, altitude: 2.0 }, 800);
     }
   }, [selectedCountry, ready]);
+
+  // Without WebGL the globe never arrives, so say so instead of showing
+  // "Loading globe…" forever. Explore's country and resort lists sit below
+  // this and work regardless — the globe is the decoration, not the feature.
+  if (webglBlocked) {
+    return (
+      <div
+        ref={containerRef}
+        className="flex flex-col items-center justify-center gap-2 px-6 text-center"
+        style={{ minHeight: 500 }}
+      >
+        <p className="text-sm font-medium text-foreground/60">
+          The 3D globe can&apos;t run on this device.
+        </p>
+        <p className="max-w-sm text-xs text-foreground/40">
+          Everything else works — browse the resorts and countries below, or head
+          straight to the jobs.
+        </p>
+      </div>
+    );
+  }
 
   if (!GlobeGL) {
     return (

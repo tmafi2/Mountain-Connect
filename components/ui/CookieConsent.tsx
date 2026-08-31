@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { safeGet, safeSet } from "@/lib/utils/safe-storage";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Script from "next/script";
@@ -20,7 +21,7 @@ export default function CookieConsent() {
   const hiddenForRoute = HIDDEN_PREFIXES.some((p) => pathname?.startsWith(p));
 
   useEffect(() => {
-    const stored = localStorage.getItem(COOKIE_KEY);
+    const stored = safeGet(COOKIE_KEY);
     if (stored === "granted" || stored === "denied") {
       setConsent(stored);
     } else {
@@ -29,13 +30,13 @@ export default function CookieConsent() {
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem(COOKIE_KEY, "granted");
+    safeSet(COOKIE_KEY, "granted");
     setConsent("granted");
     setVisible(false);
   };
 
   const handleDecline = () => {
-    localStorage.setItem(COOKIE_KEY, "denied");
+    safeSet(COOKIE_KEY, "denied");
     setConsent("denied");
     setVisible(false);
   };

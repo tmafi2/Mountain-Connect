@@ -1591,7 +1591,11 @@ function ShareSection({ url, title, description }: { url: string; title: string;
       document.body.appendChild(input);
       input.select();
       document.execCommand("copy");
-      document.body.removeChild(input);
+      // remove(), not removeChild(): if anything has already detached the
+      // node — a re-render, an extension, a translation layer — removeChild
+      // throws NotFoundError and takes the copy with it. remove() is a no-op
+      // on a node that has no parent.
+      input.remove();
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
