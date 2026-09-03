@@ -108,5 +108,12 @@ The Facebook monitor (`scripts/fb-monitor/`) scrapes the groups in `groups.json`
 
 **Idempotency, two lookups in order:** `import_key` first, then **business + title** (case-insensitive). The second exists because the FB importer derives the key from *(group, business, jobTitle)*, so one advert cross-posted to two groups hashes twice — Seasons Niseko produced a duplicate of every role that way, 20 pairs. On a match the row is **updated, not inserted**: status is preserved (a re-import cannot revert a published listing to draft) and absent fields are left alone (a thinner re-scrape cannot erase richer data).
 
+**Cutting the extraction bill.** Extraction is the only paid part (~$0.011/post, ~$113/mo at three regions daily) and just over half of what it reads is not a job. Two free gates run before it:
+
+1. `scripts/fb-monitor/prefilter.ts` — keyword rules. Replayed over 688 real posts: drops 16%, loses **zero** listings the model called hiring. ⚠️ Order matters: any hiring signal wins outright, because "accommodation" is both the top rejection reason AND in most genuine ski ads ("staff accommodation provided").
+2. `scripts/fb-monitor/triage-local.ts` — a free local model (Ollama, qwen2.5:7b) answers one question: does this post offer work? Off unless `FB_LOCAL_TRIAGE=1`. Measured 1 miss in 40 vs the paid model's own verdicts; anything it cannot answer is SENT, so a broken Ollama degrades to today's behaviour.
+
+⚠️ `scripts/fb-monitor/extract-ollama.ts` does the FULL extraction locally and is a last resort only — measured at **11 jobs lost in 30**. The difference is the schema, not the model: asked seventeen fields under constrained decoding a 7B model gets the substance wrong, asked one question it nearly matches Opus. Do not switch extraction to it to save money.
+
 **Businesses are found-or-created by EXACT email match**, which cannot see past a different address for the same company — Odin Living arrived as three records (`recruitment@`, `hrmanager@`, and a misspelled `recuritment@`) and each was emailed separately. `lib/admin/duplicate-businesses.ts` now flags likely duplicates in `/admin/jobs` on three signals — shared non-free email domain, identical punctuation-stripped name, and an email within two edits of another. It flags only; merging is a judgement call (00095 merged Odin by hand). ⚠️ Free email providers are excluded from the domain signal or every gmail address becomes one cluster.
 

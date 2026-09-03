@@ -132,7 +132,12 @@ export type Usage = {
   cacheWriteTokens: number;
 };
 
-const SYSTEM_PROMPT = `You read posts from ski-region community groups and extract structured hiring data.
+/**
+ * Exported so the local backend (extract-ollama.ts) uses the identical
+ * instructions. Same prompt and same schema is what makes a paid-vs-local
+ * comparison mean anything.
+ */
+export const SYSTEM_PROMPT_TEXT = `You read posts from ski-region community groups and extract structured hiring data.
 
 CLASSIFY FIRST
 - "hiring": a business or an individual wants to take someone on.
@@ -306,7 +311,7 @@ async function callModel(post: RawPost, withImages: boolean): Promise<Anthropic.
     system: [
       {
         type: "text" as const,
-        text: SYSTEM_PROMPT,
+        text: SYSTEM_PROMPT_TEXT,
         cache_control: { type: "ephemeral" as const },
       },
     ],
