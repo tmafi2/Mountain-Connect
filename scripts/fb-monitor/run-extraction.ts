@@ -19,6 +19,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
+import { prefilter } from "./prefilter";
 
 import {
   assertCredentials,
@@ -169,7 +170,7 @@ async function main(): Promise<void> {
   }
 
   const allPosts = readPosts(inputPath);
-  const posts = allPosts.slice(0, limit);
+  const limited = allPosts.slice(0, limit);
 
   // Before any model call: a missing key is one setup problem, not N per-post
   // failures followed by an empty results file.
@@ -181,11 +182,29 @@ async function main(): Promise<void> {
 
   note(``);
   note(`input   ${inputPath}`);
-  note(`posts   ${posts.length}${allPosts.length > posts.length ? ` of ${allPosts.length} (--limit ${limit})` : ""}`);
+  note(`posts   ${limited.length}${allPosts.length > limited.length ? ` of ${allPosts.length} (--limit ${limit})` : ""}`);
   note(`model   claude-opus-5 @ effort=low, vision=${vision}`);
-  const withImages = posts.filter((p) => p.images?.length).length;
-  if (withImages > 0) note(`images  ${withImages} of ${posts.length} posts have attachments`);
+  const withImages = allPosts.filter((p) => p.images?.length).length;
+  if (withImages > 0) note(`images  ${withImages} of ${allPosts.length} posts have attachments`);
   note(``);
+
+  // Drop what obviously is not a job before it costs anything. Replayed over
+  // 688 real posts this removes 16% of the extraction bill — 62 people
+  // advertising themselves and 46 sales, questions and chat — without losing
+  // a single listing the model called hiring. It is built to be wrong in the
+  // cheap direction: an unrecognised post is always sent.
+  const skipped: Array<{ id: string; reason: string }> = [];
+  const posts = limited.filter((p) => {
+    const v = prefilter(p.text, (p.images?.length ?? 0) > 0);
+    if (!v.send) skipped.push({ id: p.id, reason: v.reason ?? "not a job ad" });
+    return v.send;
+  });
+  if (skipped.length > 0) {
+    note(`prefilter ${skipped.length} of ${limited.length} skipped before extraction (not job ads)`);
+    for (const s of skipped.slice(0, 8)) note(`         · ${s.id} — ${s.reason}`);
+    if (skipped.length > 8) note(`         … and ${skipped.length - 8} more`);
+    note(``);
+  }
 
   const results: ExtractionResult[] = [];
   const usages: Usage[] = [];
