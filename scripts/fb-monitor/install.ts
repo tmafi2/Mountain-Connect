@@ -42,6 +42,19 @@ function launchctl(args: string[]): void {
   }
 }
 
+/**
+ * Have a free local model decide which posts are worth paying to extract.
+ *
+ * Costs nothing and removes roughly a quarter of the paid calls. It reaches
+ * Ollama over HTTP on localhost, so launchd's bare PATH does not matter, and
+ * Ollama's own agent is RunAtLoad + KeepAlive so it is up whenever the user
+ * is logged in. If it is not, triage sends everything and the run behaves
+ * exactly as it did before — a missing local model can never empty the board.
+ *
+ * Set to false and re-run `npm run fb:install` to turn it off.
+ */
+const LOCAL_TRIAGE = true;
+
 function plistFor(region: string, cfg: RegionConfig): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!--
@@ -78,6 +91,8 @@ function plistFor(region: string, cfg: RegionConfig): string {
         <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>HOME</key>
         <string>${homedir()}</string>
+        <key>FB_LOCAL_TRIAGE</key>
+        <string>${LOCAL_TRIAGE ? "1" : "0"}</string>
     </dict>
 
     <key>StandardOutPath</key>
