@@ -20,6 +20,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { prefilter } from "./prefilter";
+import { triageAvailable, triageLocal } from "./triage-local";
 
 import {
   assertCredentials,
@@ -206,14 +207,41 @@ async function main(): Promise<void> {
     note(``);
   }
 
+  // Second gate, optional and free: a local model answers one question —
+  // "does this post offer work?" — about whatever the keyword filter let
+  // through. Measured at 1 miss in 40 against the paid model's own verdicts,
+  // versus 11 in 30 when the same local model was asked to do the whole
+  // extraction. Off unless FB_LOCAL_TRIAGE=1, and anything it cannot answer
+  // is sent, so a broken Ollama degrades to today's behaviour.
+  let triaged = posts;
+  if (process.env.FB_LOCAL_TRIAGE === "1") {
+    const avail = await triageAvailable();
+    if (!avail.ok) {
+      note(`triage  SKIPPED — ${avail.detail}`);
+      note(``);
+    } else {
+      note(`triage  ${avail.detail}`);
+      const keep: typeof posts = [];
+      let rejected = 0, degraded = 0;
+      for (const p of posts) {
+        const v = await triageLocal(p.text, (p.images?.length ?? 0) > 0);
+        if (v.degraded) degraded++;
+        if (v.send) keep.push(p); else rejected++;
+      }
+      note(`triage  ${rejected} of ${posts.length} judged not to offer work${degraded ? ` (${degraded} sent after a local failure)` : ""}`);
+      note(``);
+      triaged = keep;
+    }
+  }
+
   const results: ExtractionResult[] = [];
   const usages: Usage[] = [];
 
   // Sequential, not parallel: the first call writes the system-prompt cache and
   // every later call reads it. Firing them concurrently would make them all
   // miss and each pay the write premium.
-  for (const [index, post] of posts.entries()) {
-    const label = `[${index + 1}/${posts.length}] ${post.id}`;
+  for (const [index, post] of triaged.entries()) {
+    const label = `[${index + 1}/${triaged.length}] ${post.id}`;
     const result = await extractPost(post, vision);
     results.push(result);
 
