@@ -35,18 +35,38 @@ export const TRIAGE_MODEL = process.env.OLLAMA_TRIAGE_MODEL || "qwen2.5:7b";
  * shifts and one-off cash work are most of what these groups carry, and the
  * measured misses were all of that kind before the prompt named them.
  */
-const TRIAGE_PROMPT = `You decide whether a Facebook post is someone OFFERING work to others.
+const TRIAGE_PROMPT = `Decide whether a post could be a job advertisement.
 
-Answer yes if the post offers any paid or unpaid work, however informal:
-casual shifts, one-off tasks, cash jobs, seasonal roles, help exchanges,
-work-for-accommodation, apprenticeships or training that leads to work,
-"looking for a cleaner", "need someone to...", "$25/hr for someone to...".
+Answer YES if anyone is trying to get someone to do work for them — a company,
+a shop, a hotel, a restaurant, or a private person. Formal or informal, paid or
+unpaid, permanent or a single afternoon. If a role, a wage, a shift, an
+employer or an application route is mentioned, the answer is yes.
 
-Answer no only when nobody is offering work: gear for sale, someone asking
-FOR a job or advertising themselves, accommodation wanted or offered,
-questions, recommendations, events, chat.
+Answer NO only when nobody wants work done: gear for sale, accommodation,
+questions, recommendations, events, chat, or a person advertising THEMSELVES
+for hire.
 
-When you are unsure, answer yes.`;
+The single most important rule: "looking for" means YES when it is followed by
+a person to do a job ("looking for a chef", "looking for cleaners", "looking
+for a piano teacher"), and NO only when the writer is looking for work FOR
+THEMSELVES ("I'm looking for a job", "looking for winter work").
+
+When you are not certain, answer YES.
+
+Examples:
+"The Westin Whistler is looking for a Guest Services Manager to join our
+leadership team. Full-Time, salary $65k." -> yes
+"Creekside Market is still looking for a Produce Supervisor, starting wage
+$25-28 plus perks." -> yes
+"Looking for two private music teachers in Squamish for my daughters, piano
+and violin, every second week." -> yes
+"$25/hr cash for someone to help me install metal guard rails this weekend."
+-> yes
+"Looking for cleaners this afternoon, 2 hours, cash." -> yes
+"Hi everyone! My name is Sam, I'm 24 from Australia and I'm looking for winter
+work in Niseko. My CV is attached." -> no
+"Selling my Burton board, barely used, $300 ono." -> no
+"Does anyone know a good physio in Hakuba?" -> no`;
 
 export interface TriageVerdict {
   send: boolean;
