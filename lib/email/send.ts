@@ -1,6 +1,7 @@
 import { sendEmail, sendEmailBatch } from "./client";
 import type { Hemisphere } from "@/lib/outreach/hemisphere";
 import { claimRemovalNoticeEmail } from "./templates/claim-removal-notice";
+import { claimApplicantsWaitingEmail } from "./templates/claim-applicants-waiting";
 import { jobExpiryWarningEmail } from "./templates/job-expiry-warning";
 import { jobExpiryPausedEmail } from "./templates/job-expiry-paused";
 import { jobAutoRenewedEmail } from "./templates/job-auto-renewed";
@@ -831,6 +832,28 @@ export async function sendClaimRemovalNoticeEmail(params: {
   claimUrl: string;
 }) {
   const { subject, html } = claimRemovalNoticeEmail(params);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+/**
+ * Sent to an unclaimed business that has people waiting. Replaces the removal
+ * warnings for them entirely — see the template for why threatening a listing
+ * with live demand is the wrong move.
+ */
+export async function sendClaimApplicantsWaitingEmail(params: {
+  to: string;
+  businessName: string;
+  roles: Array<{ title: string; count: number }>;
+  totalWaiting: number;
+  claimUrl: string;
+}) {
+  const { subject, html } = claimApplicantsWaitingEmail(params);
   return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
