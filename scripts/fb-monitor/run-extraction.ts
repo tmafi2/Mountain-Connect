@@ -20,6 +20,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { prefilter } from "./prefilter";
+import { loadLedger, saveLedger, record, alreadyExtracted } from "./ledger";
 import { triageAvailable, triageLocal } from "./triage-local";
 
 import {
@@ -189,19 +190,35 @@ async function main(): Promise<void> {
   if (withImages > 0) note(`images  ${withImages} of ${allPosts.length} posts have attachments`);
   note(``);
 
+  // Gate 1 — posts already extracted, unchanged. Exact rather than heuristic,
+  // so it runs before the keyword filter. A post stays near the top of a
+  // group's feed for days and is re-collected every night; 32% of a recent
+  // sample had been seen before, and every one was being paid for again to
+  // produce a listing already in the database.
+  const ledger = loadLedger();
+  const seenBefore: string[] = [];
+  const unseen = limited.filter((p) => {
+    if (alreadyExtracted(ledger, p.id, p.text ?? "")) { seenBefore.push(p.id); return false; }
+    return true;
+  });
+  if (seenBefore.length > 0) {
+    note(`ledger  ${seenBefore.length} of ${limited.length} already extracted, unchanged since`);
+    note(``);
+  }
+
   // Drop what obviously is not a job before it costs anything. Replayed over
   // 688 real posts this removes 16% of the extraction bill — 62 people
   // advertising themselves and 46 sales, questions and chat — without losing
   // a single listing the model called hiring. It is built to be wrong in the
   // cheap direction: an unrecognised post is always sent.
   const skipped: Array<{ id: string; reason: string }> = [];
-  const posts = limited.filter((p) => {
+  const posts = unseen.filter((p) => {
     const v = prefilter(p.text, (p.images?.length ?? 0) > 0);
     if (!v.send) skipped.push({ id: p.id, reason: v.reason ?? "not a job ad" });
     return v.send;
   });
   if (skipped.length > 0) {
-    note(`prefilter ${skipped.length} of ${limited.length} skipped before extraction (not job ads)`);
+    note(`prefilter ${skipped.length} of ${unseen.length} skipped before extraction (not job ads)`);
     for (const s of skipped.slice(0, 8)) note(`         · ${s.id} — ${s.reason}`);
     if (skipped.length > 8) note(`         … and ${skipped.length - 8} more`);
     note(``);
@@ -244,6 +261,9 @@ async function main(): Promise<void> {
     const label = `[${index + 1}/${triaged.length}] ${post.id}`;
     const result = await extractPost(post, vision);
     results.push(result);
+    // Recorded only on success: a post that failed — an empty balance, a
+    // timeout — must be tried again tomorrow, not remembered as done.
+    if (result.ok) record(ledger, post.id, post.text ?? "");
 
     if (!result.ok) {
       // A run-level failure (bad key, no credits, wrong model) fails identically
@@ -321,6 +341,11 @@ async function main(): Promise<void> {
   const outDir = typeof flags.get("out") === "string" ? (flags.get("out") as string) : DEFAULT_OUT_DIR;
   mkdirSync(outDir, { recursive: true });
   const outPath = path.join(outDir, `extraction-${Date.now()}.json`);
+  // Persisted once, after the results are safely on disk. Written even when
+  // some posts failed — the successes still deserve to be remembered, and the
+  // failures were never recorded in the first place.
+  saveLedger(ledger);
+
   writeFileSync(outPath, `${JSON.stringify(results, null, 2)}\n`, "utf8");
 
   note(``);
