@@ -5,6 +5,7 @@ import {
   sendEoiThresholdNudgeEmail,
   sendFirstApplicantNudgeEmail,
   sendClaimRemovalNoticeEmail,
+  sendClaimApplicantsWaitingEmail,
 } from "@/lib/email/send";
 
 // Two warnings and four weeks, changed from one warning and three on
@@ -69,6 +70,8 @@ export async function GET(request: Request) {
     thresholdSent: 0,
     warned: 0,
     finalNoticed: 0,
+    /** Listings left live because somebody has applied to them. */
+    sparedWithApplicants: 0,
     takendown: 0,
     errors: [] as string[],
   };
@@ -171,6 +174,47 @@ export async function GET(request: Request) {
     }
   }
 
+  // Who has people waiting, and for what.
+  //
+  // THE RULE THIS ESTABLISHES: a listing somebody has applied to is never
+  // threatened and never taken down. It is the most valuable listing on the
+  // board, and the demand attached to it is the strongest argument for
+  // claiming we will ever have — deleting it throws away both. These
+  // businesses get told who is waiting instead, on the same schedule.
+  const waiting = new Map<string, { total: number; roles: Array<{ title: string; count: number }> }>();
+  {
+    const { data: rows, error } = await admin
+      .from("expressions_of_interest")
+      .select("id, job_posts!inner(id, title, business_id)");
+    if (error) {
+      // Without this the sweep cannot tell a wanted listing from a dead one,
+      // and would remove both. Better to warn nobody than remove the wrong one.
+      console.error("dormancy-sweep: could not load expressions of interest:", error);
+      result.errors.push(`eoi query: ${error.message} — takedown skipped this run`);
+    }
+    const perRole = new Map<string, { bizId: string; title: string; count: number }>();
+    // PostgREST types an !inner join as an array even when it is one row.
+    // Normalised here rather than cast away, because a wrong assumption about
+    // this shape means every EOI is silently ignored and the exemption never
+    // fires — a failure that looks exactly like having no applicants.
+    type EoiRow = { job_posts: { id: string; title: string; business_id: string } | Array<{ id: string; title: string; business_id: string }> };
+    for (const r of (rows ?? []) as unknown as EoiRow[]) {
+      const jp = Array.isArray(r.job_posts) ? r.job_posts[0] : r.job_posts;
+      if (!jp) continue;
+      const cur = perRole.get(jp.id) ?? { bizId: jp.business_id, title: jp.title, count: 0 };
+      cur.count += 1;
+      perRole.set(jp.id, cur);
+    }
+    for (const { bizId, title, count } of perRole.values()) {
+      const e = waiting.get(bizId) ?? { total: 0, roles: [] };
+      e.total += count;
+      e.roles.push({ title, count });
+      waiting.set(bizId, e);
+    }
+    for (const e of waiting.values()) e.roles.sort((a, b) => b.count - a.count);
+  }
+  const eoiQueryFailed = result.errors.some((e) => e.startsWith("eoi query:"));
+
   // ─── Pass 1: first removal warning, two weeks in ────────────
   //
   // The gate is stamped AFTER a confirmed send, not before. Stamping first
@@ -214,16 +258,28 @@ export async function GET(request: Request) {
         .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
         .eq("job_posts.business_id", biz.id);
 
-      await sendClaimRemovalNoticeEmail({
-        to: biz.email,
-        businessName: biz.business_name,
-        jobTitle: jobs[0].title,
-        eoiCount: eoiCount ?? 0,
-        // Two more weeks from today: a week to the final notice, a week from
-        // there to removal.
-        removalDate: fmtDate(now + (FINAL_AFTER_DAYS + TAKEDOWN_AFTER_DAYS) * DAY_MS),
-        claimUrl: `${origin}/claim/${biz.claim_token}`,
-      });
+      const w = waiting.get(biz.id);
+      if (w && w.total > 0) {
+        // People are waiting: no deadline, no threat. Tell them who.
+        await sendClaimApplicantsWaitingEmail({
+          to: biz.email,
+          businessName: biz.business_name,
+          roles: w.roles,
+          totalWaiting: w.total,
+          claimUrl: `${origin}/claim/${biz.claim_token}`,
+        });
+      } else {
+        await sendClaimRemovalNoticeEmail({
+          to: biz.email,
+          businessName: biz.business_name,
+          jobTitle: jobs[0].title,
+          eoiCount: 0,
+          // Two more weeks from today: a week to the final notice, a week
+          // from there to removal.
+          removalDate: fmtDate(now + (FINAL_AFTER_DAYS + TAKEDOWN_AFTER_DAYS) * DAY_MS),
+          claimUrl: `${origin}/claim/${biz.claim_token}`,
+        });
+      }
 
       const { error: stampErr } = await admin
         .from("business_profiles")
@@ -276,14 +332,29 @@ export async function GET(request: Request) {
         .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
         .eq("job_posts.business_id", biz.id);
 
-      await sendClaimLastChanceEmail({
-        to: biz.email,
-        businessName: biz.business_name,
-        jobTitle: jobs[0].title,
-        eoiCount: eoiCount ?? 0,
-        takedownDate: fmtDate(now + TAKEDOWN_AFTER_DAYS * DAY_MS),
-        claimUrl: `${origin}/claim/${biz.claim_token}`,
-      });
+      const w2 = waiting.get(biz.id);
+      if (w2 && w2.total > 0) {
+        // Sent again rather than skipped: the counts have moved on since the
+        // first one, and "4 people are waiting" is a different message from
+        // "someone applied". A final notice would be a lie — nothing is
+        // being removed.
+        await sendClaimApplicantsWaitingEmail({
+          to: biz.email,
+          businessName: biz.business_name,
+          roles: w2.roles,
+          totalWaiting: w2.total,
+          claimUrl: `${origin}/claim/${biz.claim_token}`,
+        });
+      } else {
+        await sendClaimLastChanceEmail({
+          to: biz.email,
+          businessName: biz.business_name,
+          jobTitle: jobs[0].title,
+          eoiCount: 0,
+          takedownDate: fmtDate(now + TAKEDOWN_AFTER_DAYS * DAY_MS),
+          claimUrl: `${origin}/claim/${biz.claim_token}`,
+        });
+      }
 
       const { error: stampErr } = await admin
         .from("business_profiles")
@@ -316,14 +387,35 @@ export async function GET(request: Request) {
     result.errors.push(`takedown query: ${tdErr.message}`);
   }
 
-  for (const biz of toTakedown ?? []) {
+  // If the expressions-of-interest query failed, we cannot tell a wanted
+  // listing from a dead one — so nothing comes down this run. Removing the
+  // wrong listing is unrecoverable; a day's delay is not.
+  const takedownList = eoiQueryFailed ? [] : (toTakedown ?? []);
+  if (eoiQueryFailed) result.errors.push("takedown skipped: could not verify which listings have applicants");
+
+  for (const biz of takedownList) {
     try {
-      const { data: updated, error: updateErr } = await admin
+      // Post-level, not business-level: a listing somebody applied to stays
+      // up, and the ones nobody wanted still come down. A business is not
+      // all-or-nothing, and the row people are waiting on is precisely the
+      // one worth keeping.
+      const { data: wanted } = await admin
+        .from("expressions_of_interest")
+        .select("job_post_id, job_posts!inner(business_id)")
+        .eq("job_posts.business_id", biz.id);
+      const spared = new Set(
+        ((wanted ?? []) as Array<{ job_post_id: string }>).map((r) => r.job_post_id)
+      );
+
+      let q = admin
         .from("job_posts")
         .update({ status: "inactive" })
         .eq("business_id", biz.id)
-        .eq("status", "active")
-        .select("id");
+        .eq("status", "active");
+      if (spared.size > 0) q = q.not("id", "in", `(${[...spared].join(",")})`);
+
+      const { data: updated, error: updateErr } = await q.select("id");
+      if (spared.size > 0) result.sparedWithApplicants += spared.size;
 
       if (updateErr) {
         result.errors.push(`takedown ${biz.id}: ${updateErr.message}`);
