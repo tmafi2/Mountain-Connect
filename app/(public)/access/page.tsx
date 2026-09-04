@@ -4,15 +4,48 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+/** One star in the backdrop. Values are pixels, percentages and seconds. */
+interface Star {
+  width: number;
+  height: number;
+  top: number;
+  left: number;
+  opacity: number;
+  duration: number;
+  delay: number;
+}
+
 export default function AccessPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [stars, setStars] = useState<Star[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
+    // Generated after mount, never during render.
+    //
+    // Math.random() in the render body gives the server and the client
+    // different numbers for all 40 stars, so React reported a hydration
+    // mismatch on every single page load — an error in the console of every
+    // visitor, and noise in front of every real one.
+    //
+    // Building them here means the server sends no stars at all, which
+    // changes nothing visually: they already fade in from opacity-0 once
+    // `mounted` flips, so they were never meant to be on the first paint.
+    setStars(
+      Array.from({ length: 40 }, () => ({
+        width: Math.random() * 2 + 1,
+        height: Math.random() * 2 + 1,
+        top: Math.random() * 40,
+        left: Math.random() * 100,
+        opacity: Math.random() * 0.6 + 0.2,
+        duration: Math.random() * 3 + 2,
+        delay: Math.random() * 3,
+      }))
+    );
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,18 +114,18 @@ export default function AccessPage() {
 
         {/* Stars */}
         <div className={`transition-all duration-[3000ms] delay-500 ${mounted ? "opacity-100" : "opacity-0"}`}>
-          {[...Array(40)].map((_, i) => (
+          {stars.map((s, i) => (
             <div
               key={i}
               className="absolute rounded-full bg-white"
               style={{
-                width: `${Math.random() * 2 + 1}px`,
-                height: `${Math.random() * 2 + 1}px`,
-                top: `${Math.random() * 40}%`,
-                left: `${Math.random() * 100}%`,
-                opacity: Math.random() * 0.6 + 0.2,
-                animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 3}s`,
+                width: `${s.width}px`,
+                height: `${s.height}px`,
+                top: `${s.top}%`,
+                left: `${s.left}%`,
+                opacity: s.opacity,
+                animation: `twinkle ${s.duration}s ease-in-out infinite`,
+                animationDelay: `${s.delay}s`,
               }}
             />
           ))}
