@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { pickCanonicalBusiness, findBusinessByEmail, type BusinessMatch } from "./business-by-email";
 
 const biz = (over: Partial<BusinessMatch> & { id: string }): BusinessMatch => ({
+  business_name: over.id,
   is_claimed: false,
   claim_token: "tok-" + over.id,
   nearby_town_id: null,
@@ -114,4 +115,73 @@ test("duplicate rows are surfaced by count so the mess is visible", async () => 
   assert.equal(out.error, null);
   assert.equal(out.count, 2);
   assert.equal(out.match?.id, "a");
+});
+
+/**
+ * One recruitment address advertises Odin Living, Mūsu Bar & Bistro and The
+ * Barn by Odin. Age alone would send every one of those adverts to Odin
+ * Living; the name on the post is what keeps them apart.
+ */
+test("a named business wins over an older sibling on the same email", () => {
+  const rows = [
+    biz({ id: "odin", business_name: "Odin Living", created_at: "2026-08-18T00:00:00Z" }),
+    biz({ id: "musu", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-04T00:00:00Z" }),
+    biz({ id: "barn", business_name: "The Barn by Odin", created_at: "2026-09-06T00:00:00Z" }),
+  ];
+  assert.equal(pickCanonicalBusiness(rows, "Mūsu Bar & Bistro")?.id, "musu");
+  assert.equal(pickCanonicalBusiness(rows, "The Barn by Odin")?.id, "barn");
+  assert.equal(pickCanonicalBusiness(rows, "Odin Living")?.id, "odin");
+});
+
+test("name matching ignores case, accents, punctuation and 'and'", () => {
+  const rows = [
+    biz({ id: "odin", business_name: "Odin Living", created_at: "2026-08-18T00:00:00Z" }),
+    biz({ id: "musu", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-04T00:00:00Z" }),
+  ];
+  for (const variant of ["musu bar and bistro", "MUSU BAR & BISTRO", "Mūsu  Bar-&-Bistro"]) {
+    assert.equal(pickCanonicalBusiness(rows, variant)?.id, "musu", variant);
+  }
+});
+
+/**
+ * The variant that started this: "Odin Living / Odin Hills" is not an exact
+ * match for anything, and inserting on that basis is what made eleven rows.
+ */
+test("an unrecognised name falls back to the canonical row, never to nothing", () => {
+  const rows = [
+    biz({ id: "odin", business_name: "Odin Living", created_at: "2026-08-18T00:00:00Z" }),
+    biz({ id: "musu", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-04T00:00:00Z" }),
+  ];
+  assert.equal(pickCanonicalBusiness(rows, "Odin Living / Odin Hills")?.id, "odin");
+  assert.equal(pickCanonicalBusiness(rows, "A Venue Nobody Has Seen")?.id, "odin");
+});
+
+test("omitting the name still resolves, by age", () => {
+  const rows = [
+    biz({ id: "odin", business_name: "Odin Living", created_at: "2026-08-18T00:00:00Z" }),
+    biz({ id: "musu", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-04T00:00:00Z" }),
+  ];
+  assert.equal(pickCanonicalBusiness(rows)?.id, "odin");
+  assert.equal(pickCanonicalBusiness(rows, "")?.id, "odin");
+  assert.equal(pickCanonicalBusiness(rows, null)?.id, "odin");
+});
+
+test("a claimed row still wins among rows sharing the matched name", () => {
+  const rows = [
+    biz({ id: "shell", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-04T00:00:00Z" }),
+    biz({ id: "real", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-06T00:00:00Z", is_claimed: true }),
+    biz({ id: "odin", business_name: "Odin Living", created_at: "2026-08-18T00:00:00Z" }),
+  ];
+  assert.equal(pickCanonicalBusiness(rows, "Mūsu Bar & Bistro")?.id, "real");
+});
+
+test("a row with no name never matches an incoming name", () => {
+  const rows = [
+    biz({ id: "unnamed", business_name: null, created_at: "2026-08-18T00:00:00Z" }),
+    biz({ id: "musu", business_name: "Mūsu Bar & Bistro", created_at: "2026-09-04T00:00:00Z" }),
+  ];
+  assert.equal(pickCanonicalBusiness(rows, "Mūsu Bar & Bistro")?.id, "musu");
+  // A nameless incoming listing must not latch onto the nameless row either;
+  // it falls back by age like any other unrecognised name.
+  assert.equal(pickCanonicalBusiness(rows, "")?.id, "unnamed");
 });

@@ -200,6 +200,7 @@ export async function POST(request: Request) {
   const { match: existingBiz, error: bizLookupErr } = await findBusinessByEmail(
     admin,
     businessEmail,
+    businessName,
   );
 
   if (bizLookupErr) {

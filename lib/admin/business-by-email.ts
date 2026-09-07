@@ -34,6 +34,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface BusinessMatch {
   id: string;
+  business_name: string | null;
   is_claimed: boolean;
   claim_token: string | null;
   nearby_town_id: string | null;
@@ -41,23 +42,59 @@ export interface BusinessMatch {
 }
 
 /** Columns every caller needs; a superset is cheaper than two near-identical queries. */
-const COLUMNS = "id, is_claimed, claim_token, nearby_town_id, created_at";
+const COLUMNS = "id, business_name, is_claimed, claim_token, nearby_town_id, created_at";
+
+/**
+ * Case, punctuation and spacing carry no meaning in a scraped business name —
+ * "Mūsu Bar & Bistro" and "Musu Bar and Bistro" are the same pub. Deliberately
+ * looser than an equality check and deliberately tighter than fuzzy matching:
+ * a near-miss here silently merges two real businesses.
+ */
+function normaliseName(name: string | null | undefined): string {
+  return (name ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\band\b/g, "&")
+    .replace(/[^a-z0-9&]+/g, "")
+    .trim();
+}
 
 /**
  * Which of several rows sharing an email is THE business.
  *
- * A claimed row wins outright: it is a real account with a real owner behind
- * it, and attaching a scraped listing to the shell next to it would hide that
- * listing from the person who can actually answer it. Otherwise the oldest
- * shell wins — it is the one that has been accumulating listings, EOIs, a
- * claim token and outreach history, so it is the row the business will be
- * invited to claim.
+ * ONE EMAIL CAN COVER SEVERAL REAL BUSINESSES. Odin Living's recruitment
+ * address advertises Odin Living, Mūsu Bar & Bistro and The Barn by Odin —
+ * three establishments a job seeker would rightly see as separate. So when the
+ * incoming post names a business that exactly matches one of the rows, that
+ * row wins: a Mūsu advert belongs to Mūsu, not to whichever record happens to
+ * be oldest.
  *
- * Pure, so the tie-breaking is testable without a database.
+ * When no name matches — a new venue, or a variant like "Odin Living / Odin
+ * Hills" — fall back to the canonical row rather than inserting. Attaching a
+ * listing to a slightly-wrong sibling is a cosmetic error somebody can fix;
+ * inserting is what produced eleven Odin records.
+ *
+ * The canonical row is the claimed one if any row is claimed — a real account
+ * with a real owner, where a listing will actually be seen — otherwise the
+ * oldest shell, which is the row holding the listings, EOIs, claim token and
+ * outreach history the business will be invited to claim.
+ *
+ * Pure, so every one of these rules is testable without a database.
  */
-export function pickCanonicalBusiness(matches: readonly BusinessMatch[]): BusinessMatch | null {
+export function pickCanonicalBusiness(
+  matches: readonly BusinessMatch[],
+  incomingName?: string | null,
+): BusinessMatch | null {
   if (matches.length === 0) return null;
   const oldestFirst = [...matches].sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const wanted = normaliseName(incomingName);
+  if (wanted) {
+    const byName = oldestFirst.filter((m) => normaliseName(m.business_name) === wanted);
+    if (byName.length > 0) return byName.find((m) => m.is_claimed) ?? byName[0];
+  }
+
   return oldestFirst.find((m) => m.is_claimed) ?? oldestFirst[0];
 }
 
@@ -73,9 +110,15 @@ export interface BusinessLookup {
   error: string | null;
 }
 
+/**
+ * `incomingName` is the business name on the listing being imported. Pass it
+ * whenever it is known: without it a Mūsu advert lands on Odin Living, since
+ * the fallback can only choose by age.
+ */
 export async function findBusinessByEmail(
   admin: SupabaseClient,
   email: string,
+  incomingName?: string | null,
 ): Promise<BusinessLookup> {
   const { data, error } = await admin
     .from("business_profiles")
@@ -87,5 +130,9 @@ export async function findBusinessByEmail(
   }
 
   const matches = (data ?? []) as unknown as BusinessMatch[];
-  return { match: pickCanonicalBusiness(matches), count: matches.length, error: null };
+  return {
+    match: pickCanonicalBusiness(matches, incomingName),
+    count: matches.length,
+    error: null,
+  };
 }

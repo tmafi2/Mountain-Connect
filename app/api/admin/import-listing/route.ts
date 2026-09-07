@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     // — see lib/admin/business-by-email.ts — and a claimed row wins the pick,
     // so the is_claimed guard below still fires when a shell sits beside a
     // real account on the same address.
-    const { match: existing, error: lookupErr } = await findBusinessByEmail(admin, email);
+    const { match: existing, error: lookupErr } = await findBusinessByEmail(admin, email, businessName);
 
     if (lookupErr) {
       console.error("Business lookup failed for", email, "—", lookupErr);
