@@ -77,8 +77,22 @@ export default function Header() {
     });
   }, []);
 
-  const dashboardHref =
-    user?.role === "business_owner" ? "/business/dashboard" : "/dashboard";
+  // Every role gets sent to ITS OWN portal. The admin case used to fall
+  // through to the worker branch, so an admin who navigated out to the public
+  // site was offered a "Dashboard" button that dropped them on /dashboard —
+  // a worker dashboard querying worker_profiles for an id that has no row.
+  // Middleware does not redirect them either (it only bounces business_owner
+  // off worker routes), so the portal was genuinely unreachable without
+  // logging out and back in, since login is the only other thing that routes
+  // to /admin/dashboard.
+  const portal =
+    user?.role === "admin"
+      // The admin portal has no inbox of its own, so the message bell keeps
+      // pointing at the shared one rather than a route that does not exist.
+      ? { href: "/admin/dashboard", label: "Admin", messages: "/messages" }
+      : user?.role === "business_owner"
+      ? { href: "/business/dashboard", label: "Dashboard", messages: "/business/messages" }
+      : { href: "/dashboard", label: "Dashboard", messages: "/messages" };
 
   const isHome = pathname === "/";
   const headerBg = isHome && !scrolled
@@ -148,15 +162,15 @@ export default function Header() {
               <>
                 <div className={`hidden sm:flex items-center gap-1 ${isHome && !scrolled ? "[&_button]:text-white/80 [&_button]:hover:bg-white/10" : ""}`}>
                   <MessageNotificationBell
-                    messagesHref={user.role === "business_owner" ? "/business/messages" : "/messages"}
+                    messagesHref={portal.messages}
                   />
                   <NotificationBell />
                 </div>
                 <Link
-                  href={dashboardHref}
+                  href={portal.href}
                   className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-secondary-light hover:shadow-lg hover:shadow-secondary/20"
                 >
-                  Dashboard
+                  {portal.label}
                 </Link>
                 <button
                   onClick={handleLogout}
