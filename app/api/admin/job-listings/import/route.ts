@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
+import { findBusinessByEmail } from "@/lib/admin/business-by-email";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
 
@@ -194,11 +195,20 @@ export async function POST(request: Request) {
   const inferredTownId = await resolveTownIdFromLocation(admin, location);
 
   let businessId: string;
-  const { data: existingBiz } = await admin
-    .from("business_profiles")
-    .select("id, is_claimed, nearby_town_id")
-    .eq("email", businessEmail)
-    .maybeSingle();
+  // Several rows can share an email — see lib/admin/business-by-email.ts for
+  // how that happened and why a broken lookup must never read as "not found".
+  const { match: existingBiz, error: bizLookupErr } = await findBusinessByEmail(
+    admin,
+    businessEmail,
+  );
+
+  if (bizLookupErr) {
+    console.error("Business lookup failed for", businessEmail, "—", bizLookupErr);
+    return NextResponse.json(
+      { error: "Could not look up the business for this listing" },
+      { status: 500 },
+    );
+  }
 
   if (existingBiz) {
     businessId = existingBiz.id;
