@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { logAdminAction } from "@/lib/audit/log";
 import { sendImportOutreachEmail } from "@/lib/email/send";
 import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
+import { findBusinessByEmail } from "@/lib/admin/business-by-email";
 
 /**
  * Resolve the site origin for the generated claim URL. Prefer the incoming
@@ -127,12 +128,19 @@ export async function POST(request: Request) {
       nearbyTownId ||
       (await resolveTownIdFromLocation(admin, location ?? null));
 
-    // Look up existing business_profile by email
-    const { data: existing } = await admin
-      .from("business_profiles")
-      .select("id, is_claimed, claim_token, nearby_town_id")
-      .eq("email", email)
-      .maybeSingle();
+    // Look up existing business_profile by email. Several rows can share one
+    // — see lib/admin/business-by-email.ts — and a claimed row wins the pick,
+    // so the is_claimed guard below still fires when a shell sits beside a
+    // real account on the same address.
+    const { match: existing, error: lookupErr } = await findBusinessByEmail(admin, email, businessName);
+
+    if (lookupErr) {
+      console.error("Business lookup failed for", email, "—", lookupErr);
+      return NextResponse.json(
+        { error: "Could not check whether this business already exists. Nothing was imported." },
+        { status: 500 },
+      );
+    }
 
     let businessId: string;
     let claimToken: string;
@@ -149,7 +157,43 @@ export async function POST(request: Request) {
       // otherwise leave any existing FK alone (don't overwrite a
       // deliberately-set value with an inferred one).
       businessId = existing.id;
-      claimToken = existing.claim_token;
+      // claim_token is nullable — the column default only fires on INSERT, so
+      // a row that lost its token never gets one back. Today every such row is
+      // claimed and the guard above has already returned, but the token is
+      // about to be emailed as a claim link, and `/claim/null` in an outreach
+      // email is worse than a slow import. Mint one rather than trust an
+      // invariant nothing enforces.
+      if (existing.claim_token) {
+        claimToken = existing.claim_token;
+      } else {
+        const minted = crypto.randomUUID();
+        const { data: tokenRow } = await admin
+          .from("business_profiles")
+          .update({ claim_token: minted })
+          .eq("id", existing.id)
+          .is("claim_token", null)
+          .select("claim_token")
+          .maybeSingle();
+        // A concurrent import may have won the race; that row's token is as
+        // good as ours, so re-read rather than overwrite it.
+        if (tokenRow?.claim_token) {
+          claimToken = tokenRow.claim_token;
+        } else {
+          const { data: reread } = await admin
+            .from("business_profiles")
+            .select("claim_token")
+            .eq("id", existing.id)
+            .maybeSingle();
+          if (!reread?.claim_token) {
+            console.error("Could not obtain a claim token for business", existing.id);
+            return NextResponse.json(
+              { error: "Could not prepare a claim link for this business. Nothing was imported." },
+              { status: 500 },
+            );
+          }
+          claimToken = reread.claim_token;
+        }
+      }
       if (!existing.nearby_town_id && businessTownId) {
         await admin
           .from("business_profiles")
