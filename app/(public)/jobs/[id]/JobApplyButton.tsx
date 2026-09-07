@@ -12,7 +12,9 @@ interface JobApplyButtonProps {
   visaSponsorship?: boolean;
   /** True when the business hasn't claimed the listing yet. Switches the
    *  button from the normal auth-required apply flow to an anonymous
-   *  "express interest" flow. */
+   *  one that needs no account. Both say "Apply" — the worker is doing the
+   *  same thing either way, and the first submission emails the business
+   *  within seconds, so the word is accurate. */
   isUnclaimed?: boolean;
   jobTitle?: string;
   businessName?: string;
@@ -28,17 +30,17 @@ export default function JobApplyButton({
 }: JobApplyButtonProps) {
   if (isUnclaimed) {
     return (
-      <ExpressInterestButton jobId={jobId} jobTitle={jobTitle} businessName={businessName} />
+      <AnonymousApplyForm jobId={jobId} jobTitle={jobTitle} businessName={businessName} />
     );
   }
   return <RegularApplyButton jobId={jobId} jobCountry={jobCountry} visaSponsorship={visaSponsorship} />;
 }
 
 /* ───────────────────────────────────────────────────────────── */
-/*  Express Interest (anonymous, for unclaimed listings)         */
+/*  Apply, anonymously (unclaimed listings)                      */
 /* ───────────────────────────────────────────────────────────── */
 
-function ExpressInterestButton({
+function AnonymousApplyForm({
   jobId,
   jobTitle,
   businessName,
@@ -52,6 +54,9 @@ function ExpressInterestButton({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  // Reported by the endpoint — see the confirmation copy below for why the
+  // page must not assume this.
+  const [notified, setNotified] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +74,7 @@ function ExpressInterestButton({
         setSubmitting(false);
         return;
       }
+      setNotified(!!data.businessNotified);
       setSubmitted(true);
     } catch {
       setError("Could not submit. Try again.");
@@ -82,9 +88,25 @@ function ExpressInterestButton({
         <svg className="mx-auto h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="mt-2 text-sm font-semibold text-green-700">Interest submitted</p>
+        <p className="mt-2 text-sm font-semibold text-green-700">Application sent</p>
+        {/* Only claim they were told if they actually were. The
+            first-applicant email is one-shot and a business with no address on
+            file never gets one, so "we emailed them" is false for most
+            submissions. */}
         <p className="mt-1 text-xs text-green-600 leading-relaxed">
-          {businessName ? `${businessName} hasn't joined Mountain Connects yet.` : "This business hasn't joined yet."} We&apos;ll pass your details on as soon as they claim this listing.
+          {notified ? (
+            <>
+              We&apos;ve let {businessName || "them"} know people are applying here.
+              If you haven&apos;t heard back within a week, it&apos;s worth
+              contacting them directly.
+            </>
+          ) : (
+            <>
+              {businessName || "This business"} will see your details when they
+              claim this listing. It&apos;s worth contacting them directly as well
+              if you can.
+            </>
+          )}
         </p>
       </div>
     );
@@ -94,7 +116,7 @@ function ExpressInterestButton({
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
         <p className="text-xs text-foreground/60 leading-relaxed">
-          This listing hasn&apos;t been claimed by the business yet. Leave your details and we&apos;ll pass them on once they join.
+          No account needed — your details go straight to {businessName || "the business"}.
         </p>
         <input
           required
@@ -138,7 +160,7 @@ function ExpressInterestButton({
           disabled={submitting || !form.name.trim() || !form.email.trim()}
           className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
         >
-          {submitting ? "Submitting..." : "Submit interest"}
+          {submitting ? "Sending..." : "Send application"}
         </button>
         <button
           type="button"
@@ -161,7 +183,7 @@ function ExpressInterestButton({
       onClick={() => setShowForm(true)}
       className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-white transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20"
     >
-      Express Interest
+      Apply now
     </button>
   );
 }

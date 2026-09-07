@@ -104,6 +104,17 @@ export async function POST(
       biz.claim_token &&
       (!biz.first_applicant_email_sent_at || !biz.eoi_nudge_sent_at);
 
+    // Whether this business has EVER been told people are applying. The
+    // confirmation the applicant sees says so, and it must not over-claim:
+    // the first-applicant email is one-shot, so applicant #2 triggers no
+    // send at all, and a business with no address on file is never emailed.
+    // Reachability is the thing the applicant actually needs to know.
+    let businessNotified = !!(
+      biz.email &&
+      biz.claim_token &&
+      biz.first_applicant_email_sent_at
+    );
+
     if (needsCount) {
       const { count } = await admin
         .from("expressions_of_interest")
@@ -116,6 +127,7 @@ export async function POST(
 
         // First-applicant nudge — fires the moment interest exists.
         if (!biz.first_applicant_email_sent_at && count >= 1) {
+          businessNotified = true;
           await admin
             .from("business_profiles")
             .update({ first_applicant_email_sent_at: new Date().toISOString() })
@@ -149,7 +161,7 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, businessNotified });
   } catch (err) {
     console.error("EOI error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobApplyButton from "./JobApplyButton";
-import UnclaimedBanner from "./UnclaimedBanner";
+import { ClaimPrompt, UnclaimedFootnote } from "./UnclaimedNotices";
 import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
 
@@ -347,10 +347,9 @@ export default async function JobDetailPage({ params }: JobPageProps) {
       {/* ── Content ───────────────────────────────────────────── */}
       <div className="mx-auto max-w-5xl px-6 py-8">
         {isUnclaimed && (
-          <UnclaimedBanner
+          <ClaimPrompt
             jobId={job.id}
             businessName={biz?.business_name || "this business"}
-            source={source}
           />
         )}
         {/* grid-cols-1 is explicit on purpose — without it, the grid
@@ -500,7 +499,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                 methods captured at import time. We render whenever any of the
                 three fields is populated so workers can see exactly how the
                 business wants to be contacted, in addition to the in-platform
-                Apply / Express Interest flow. */}
+                Apply flow — anonymous on unclaimed listings, auth-required otherwise. */}
             {(job.how_to_apply || job.application_email || job.application_url) && (
               <section className="rounded-2xl border border-accent bg-white p-6 shadow-sm">
                 <h2 className="flex items-center gap-2 text-base font-semibold text-primary">
@@ -726,23 +725,13 @@ export default async function JobDetailPage({ params }: JobPageProps) {
           </div>
         </div>
 
-        {isUnclaimed && source && (
-          <p className="mt-8 text-center text-xs text-foreground/40">
-            Sourced from {source}
-            {sourceUrl && (
-              <>
-                {" · "}
-                <a
-                  href={sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="underline hover:text-foreground/60"
-                >
-                  View original post →
-                </a>
-              </>
-            )}
-          </p>
+        {isUnclaimed && (
+          <UnclaimedFootnote
+            jobId={job.id}
+            businessName={biz?.business_name || "This business"}
+            source={source}
+            sourceUrl={sourceUrl}
+          />
         )}
 
         {/* ── Related jobs ─────────────────────────────────────────── */}

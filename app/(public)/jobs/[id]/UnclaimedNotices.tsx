@@ -2,44 +2,71 @@
 
 import { useState } from "react";
 
-interface UnclaimedBannerProps {
+/**
+ * Two notices for a listing whose business hasn't claimed their account.
+ *
+ * These used to be one amber warning box at the top of the page, and it was
+ * doing two jobs with opposite audiences: telling a job seeker the listing
+ * might be stale, and inviting the owner to claim it. Read as a whole it told
+ * every worker "this probably goes nowhere" — which is self-fulfilling, since
+ * fewer applications means less reason for the business to ever claim.
+ *
+ * So they are split by who they are for:
+ *
+ *   ClaimPrompt        for the OWNER. Stays where the banner was, because it
+ *                      is the funnel that turns an imported shell into a real
+ *                      account — 14 of 143 businesses have claimed, and this
+ *                      is one of the few things that moves that number. But it
+ *                      is styled as an invitation, not an alarm: a worker
+ *                      skims past it, an owner sees their own name and acts.
+ *
+ *   UnclaimedFootnote  for the WORKER. Fine print at the foot of the page,
+ *                      folded in with the "sourced from" line that already
+ *                      lives there. Still honest, no longer the first thing
+ *                      anyone reads.
+ *
+ * Note the wording changed too. The old heading said "Unverified listing",
+ * which conflated two different things: `verification_status` (has an admin
+ * vetted this business) and `is_claimed` (has anyone logged in). This renders
+ * on the second, so it now says unclaimed — accurate, and less alarming than
+ * the inaccurate version.
+ */
+
+interface UnclaimedProps {
   jobId: string;
   businessName: string;
-  source: string | null;
+  source?: string | null;
+  sourceUrl?: string | null;
 }
 
-/**
- * Shown at the top of a public job listing when the business hasn't
- * claimed the listing yet. Warns workers the business isn't on the
- * platform, and lets the business self-serve request a claim link.
- */
-export default function UnclaimedBanner({ jobId, businessName, source }: UnclaimedBannerProps) {
+/** Owner-facing. Calm by design — see the note above. */
+export function ClaimPrompt({ jobId, businessName }: UnclaimedProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-accent/60 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-            <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/10">
+            <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-900">
-              Unverified listing{source ? ` — sourced from ${source}` : ""}
+            <p className="text-sm font-semibold text-primary">
+              Is this your listing?
             </p>
-            <p className="mt-0.5 text-sm text-amber-800">
-              {businessName} hasn&apos;t joined Mountain Connects yet. You can still express interest and we&apos;ll pass it on once they claim the listing.
+            <p className="mt-0.5 text-sm text-foreground/70">
+              Claim {businessName} to see who&apos;s applied and reply to them directly.
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="shrink-0 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition-all hover:bg-amber-100"
+          className="shrink-0 rounded-xl border border-secondary/40 bg-secondary/5 px-4 py-2 text-sm font-semibold text-secondary transition-all hover:bg-secondary/10"
         >
-          Is this your business?
+          Claim this listing
         </button>
       </div>
 
@@ -51,6 +78,33 @@ export default function UnclaimedBanner({ jobId, businessName, source }: Unclaim
         />
       )}
     </>
+  );
+}
+
+/**
+ * Worker-facing fine print. Deliberately the quietest thing on the page: it
+ * has to be true and findable, it does not have to be the headline.
+ */
+export function UnclaimedFootnote({ businessName, source, sourceUrl }: UnclaimedProps) {
+  return (
+    <p className="mt-8 text-center text-xs leading-relaxed text-foreground/40">
+      {source && <>Sourced from {source} · </>}
+      {businessName} hasn&apos;t claimed their Mountain Connect account yet, so a
+      reply may come directly from them rather than through the site.
+      {sourceUrl && (
+        <>
+          {" · "}
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="underline hover:text-foreground/60"
+          >
+            View original post →
+          </a>
+        </>
+      )}
+    </p>
   );
 }
 
