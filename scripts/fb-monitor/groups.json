@@ -1,10 +1,8 @@
 {
-  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Run 'npm run fb:check' after editing to confirm every group is reachable.",
+  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Confirm a new group is reachable BEFORE adding it, or it silently returns nothing like the five already doing so: npm run fb:collect -- --group <url> --posts 5. One 'ok' in the summary means the join has gone through.",
   "_pending": {
     "_note": "Groups requested but not yet joined. The collector only sees groups the signed-in account is a member of, so these would return nothing. Move a URL back into its region once the join is approved.",
-    "canada": [
-      "https://www.facebook.com/groups/bowvalleyjobs"
-    ]
+    "canada": []
   },
   "japan": {
     "hour": 6,
@@ -46,7 +44,8 @@
       "https://www.facebook.com/groups/274004394095598",
       "https://www.facebook.com/groups/1077988816522870",
       "https://www.facebook.com/groups/935252240145563",
-      "https://www.facebook.com/groups/2268247500002247"
+      "https://www.facebook.com/groups/2268247500002247",
+      "https://www.facebook.com/groups/bowvalleyjobs"
     ]
   },
   "usa": {
