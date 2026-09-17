@@ -259,15 +259,19 @@ async function main(): Promise<void> {
   // miss and each pay the write premium.
   for (const [index, post] of triaged.entries()) {
     const label = `[${index + 1}/${triaged.length}] ${post.id}`;
-    const result = await extractPost(post, vision);
+    // usages is only appended on success, so it is the run's record of whether
+    // the request shape has ever worked — which is what makes a later 400
+    // post-specific rather than run-level.
+    const result = await extractPost(post, vision, usages.length > 0);
     results.push(result);
     // Recorded only on success: a post that failed — an empty balance, a
     // timeout — must be tried again tomorrow, not remembered as done.
     if (result.ok) record(ledger, post.id, post.text ?? "");
 
     if (!result.ok) {
-      // A run-level failure (bad key, no credits, wrong model) fails identically
-      // on every remaining post. Stop rather than write a file full of one error.
+      // A run-level failure (bad key, no credits, wrong model, or a rejected
+      // request shape before anything has worked) fails identically on every
+      // remaining post. Stop rather than write a file full of one error.
       if (result.fatal) fail(`${result.error}`);
       note(`${label}  ERROR  ${result.error}`);
       continue;

@@ -354,7 +354,7 @@ async function callModel(post: RawPost, withImages: boolean): Promise<Anthropic.
  * A truncated key, exhausted credits or a malformed schema will fail identically
  * on every post, so there is no point discovering it eight times.
  */
-function isFatalForRun(error: unknown): { fatal: boolean; hint?: string } {
+export function isFatalForRun(error: unknown, anySucceeded: boolean): { fatal: boolean; hint?: string } {
   if (error instanceof Anthropic.AuthenticationError) {
     return {
       fatal: true,
@@ -378,13 +378,31 @@ function isFatalForRun(error: unknown): { fatal: boolean; hint?: string } {
   if (error instanceof Anthropic.NotFoundError) {
     return { fatal: true, hint: `Model "${MODEL}" was not found for this account.` };
   }
-  // A rejected request shape (bad schema, bad parameter) is not post-specific —
-  // it will fail the same way on all of them. Beta-availability 400s are caught
-  // earlier in callModel and downgraded, so they never reach here.
+  // A 400 means the REQUEST was rejected rather than the model declining, and
+  // that has two quite different causes:
+  //
+  //   Before anything has succeeded, the likely cause is the request SHAPE —
+  //   a bad schema or parameter — which would fail identically on all of them.
+  //   Stopping saves 76 pointless calls.
+  //
+  //   After a post has succeeded, the shape is proven, so a 400 can only be
+  //   about THAT post's content: an oversized image, a malformed attachment.
+  //   Stopping there is expensive and wrong — on 16 September it discarded 33
+  //   posts that had already been extracted and paid for, because post 34
+  //   carried something the API would not accept. Skip the post, keep the run.
+  //
+  // Beta-availability 400s are caught earlier in callModel and downgraded, so
+  // they never reach here.
   if (error instanceof Anthropic.BadRequestError) {
+    if (anySucceeded) {
+      return {
+        fatal: false,
+        hint: "400 on this post only — the request shape already worked on an earlier one.",
+      };
+    }
     return {
       fatal: true,
-      hint: "The request itself was rejected, so every post would fail the same way.",
+      hint: "The request itself was rejected, and nothing has succeeded yet, so every post would fail the same way.",
     };
   }
   return { fatal: false };
@@ -470,6 +488,12 @@ function addUsage(a: Usage, b: Usage): Usage {
 export async function extractPost(
   post: RawPost,
   mode: VisionMode = "auto",
+  /**
+   * Whether any earlier post in this run extracted successfully. It is the
+   * evidence that decides whether a 400 is the request shape or this one post
+   * — see isFatalForRun.
+   */
+  anySucceeded = false,
 ): Promise<ExtractionResult> {
   const hasImages = Boolean(post.images?.length);
   const firstPassWithImages = mode === "always" && hasImages;
@@ -478,7 +502,7 @@ export async function extractPost(
   try {
     response = await callModel(post, firstPassWithImages);
   } catch (error) {
-    const { fatal, hint } = isFatalForRun(error);
+    const { fatal, hint } = isFatalForRun(error, anySucceeded);
     const base = error instanceof Error ? error.message : String(error);
     return { ok: false, post, error: hint ? `${base}\n\n  ${hint}` : base, fatal };
   }
