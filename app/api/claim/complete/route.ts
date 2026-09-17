@@ -195,10 +195,11 @@ export async function POST(request: Request) {
       },
     }).catch((err) => console.error("Failed to log claim audit:", err));
 
-    // Fetch admin users for notifications + emails
+    // In-app notification for every admin — that one IS per-person, and it is
+    // keyed on the user id rather than an address.
     const { data: adminUsers } = await admin
       .from("users")
-      .select("id, email")
+      .select("id")
       .eq("role", "admin");
 
     for (const adminUser of adminUsers || []) {
@@ -215,16 +216,25 @@ export async function POST(request: Request) {
           job_count: jobCount,
         },
       }).catch((err) => console.error("Failed to create admin claim notification:", err));
+    }
 
-      if (adminUser.email) {
-        sendAdminListingClaimedEmail({
-          to: adminUser.email,
-          businessName: business.business_name,
-          businessEmail: normalizedEmail,
-          jobCount,
-          adminBusinessUrl,
-        }).catch((err) => console.error("Failed to send admin claim email:", err));
-      }
+    // The alert email goes to ADMIN_NOTIFY_EMAIL, as every other admin alert
+    // does — /api/support/reports, /api/location-requests and the fb-monitor.
+    //
+    // It used to go to each admin's own users.email, which conflated two
+    // different things: the address you SIGN IN with and the address alerts
+    // should REACH. Here the sign-in identity is a Google account, so the
+    // notification was landing in a personal inbox with no way to redirect it
+    // short of changing the login itself.
+    const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
+    if (adminEmail) {
+      sendAdminListingClaimedEmail({
+        to: adminEmail,
+        businessName: business.business_name,
+        businessEmail: normalizedEmail,
+        jobCount,
+        adminBusinessUrl,
+      }).catch((err) => console.error("Failed to send admin claim email:", err));
     }
 
     // The parked count rides through login so the dashboard can open on the
