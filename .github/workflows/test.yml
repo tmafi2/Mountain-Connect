@@ -1,0 +1,35 @@
+name: Tests
+
+# Until this existed, nothing ran the test suite. Every "132 passing" was a
+# claim about somebody's laptop, and a change that broke a test merged green.
+#
+# The trigger for adding it was email: on 18 September every header and button
+# in every email rendered blank in Outlook for Windows, across 44 templates.
+# lib/email/templates/email-compat.test.ts now fails the moment a template —
+# including one that does not exist yet — reintroduces that. A guard that only
+# runs when someone remembers to run it does not guard anything, so it runs
+# here, on every push and pull request.
+#
+# The suite needs no secrets or network: it was verified passing with an empty
+# environment (`env -i`) before this was added. Tests that need a signing key
+# set a throwaway one with `??=` when none is present.
+#
+# A separate workflow rather than a job inside Typecheck, so the existing check
+# keeps its name and nothing that requires it by name is disturbed.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test

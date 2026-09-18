@@ -90,6 +90,7 @@ Apply migrations with `supabase db push` (always `--dry-run` first). When adding
 - Town slugs are lowercase hyphenated: "whistler-village", "hirafu-kutchan"
 - `snow_reliability` CHECK constraint: only "high", "medium", "low" (NOT "moderate")
 - Email from address: `Mountain Connect <notifications@mountainconnects.com>`
+- **Emails must render the same in Outlook for Windows**, which uses Microsoft Word's engine and silently drops CSS it does not know. Never write `background:linear-gradient(...)` — write `bgcolor="#hex"` on the `<td>` plus `background-color:#hex;background-image:linear-gradient(...)`, where `#hex` is the gradient's DARKEST stop (every gradient here carries light text). No `rgba()` except inside `box-shadow`, no flex/grid, no `background-image:url()`, no `<style>` blocks. On 2026-09-18 the shorthand blanked every header and button in 44 of 45 templates on a Lenovo. `lib/email/templates/email-compat.test.ts` scans the whole directory — a NEW template is checked the moment it is saved — and CI runs it via `.github/workflows/test.yml`. Rounded corners and shadows are allowed; Outlook just ignores them.
 - Site has an access gate (cookie `site-access=granted`) — middleware redirects to /access without it
 
 ## Colors
