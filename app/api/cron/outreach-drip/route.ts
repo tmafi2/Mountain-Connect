@@ -121,7 +121,7 @@ export async function GET(request: Request) {
     const locationName = town?.name || resort?.name;
     const hemisphere = hemisphereForCountry(resort?.country);
     const unsubscribeUrl = `${BASE_URL}/unsubscribe/${lead.unsubscribe_token}`;
-    const ctaUrl = `${BASE_URL}/signup`;
+    const ctaUrl = `${BASE_URL}/signup?role=business`;
 
     try {
       let resendId: string | undefined;

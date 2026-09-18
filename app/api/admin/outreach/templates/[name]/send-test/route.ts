@@ -55,7 +55,7 @@ export async function POST(
 
   const businessName = body.businessName?.trim() || "Thredbo Alpine Village";
   const locationName = body.locationName?.trim() || undefined;
-  const ctaUrl = `${SAMPLE_BASE_URL}/signup`;
+  const ctaUrl = `${SAMPLE_BASE_URL}/signup?role=business`;
   const unsubscribeUrl = `${SAMPLE_BASE_URL}/unsubscribe/preview-token`;
 
   const contactPersonName = body.contactPersonName?.trim() || undefined;

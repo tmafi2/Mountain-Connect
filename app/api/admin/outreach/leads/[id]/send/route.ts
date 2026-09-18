@@ -76,7 +76,7 @@ export async function POST(
   const locationName = town?.name || resort?.name;
   const hemisphere = hemisphereForCountry(resort?.country);
   const unsubscribeUrl = `${BASE_URL}/unsubscribe/${lead.unsubscribe_token}`;
-  const ctaUrl = `${BASE_URL}/signup`;
+  const ctaUrl = `${BASE_URL}/signup?role=business`;
 
   // Fire the right template. Add new branches as templates are added
   // to lib/outreach/sequence.ts.

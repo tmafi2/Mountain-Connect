@@ -158,7 +158,7 @@ export async function POST(request: Request) {
   // batch API. Each batch is a single API call, so 500 leads needs
   // 5 calls — way under any rate limit.
   const sentOutcomes: SendOutcome[] = [];
-  const ctaUrl = `${BASE_URL}/signup`;
+  const ctaUrl = `${BASE_URL}/signup?role=business`;
 
   for (let i = 0; i < sendable.length; i += RESEND_BATCH_SIZE) {
     const chunk = sendable.slice(i, i + RESEND_BATCH_SIZE);

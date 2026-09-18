@@ -35,7 +35,7 @@ export async function GET(
   const locationName = url.searchParams.get("locationName") || undefined;
   const contactPersonName = url.searchParams.get("contactPersonName") || undefined;
 
-  const ctaUrl = `${SAMPLE_BASE_URL}/signup`;
+  const ctaUrl = `${SAMPLE_BASE_URL}/signup?role=business`;
   const unsubscribeUrl = `${SAMPLE_BASE_URL}/unsubscribe/preview-token`;
 
   let html: string;
