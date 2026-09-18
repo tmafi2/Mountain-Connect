@@ -26,8 +26,12 @@ export function winterOutreachEmail({
 }: WinterOutreachEmailProps) {
   const north = hemisphere === "north";
   const seasonName = north ? "2026/27 winter season" : "2026 winter season";
+  // The location sits inside the hero h1, on the dark navy gradient. It was
+  // previously set in navy #0a1e33 — the page's own ink colour, invisible on
+  // that ground. Cyan is the brand highlight and already colours the season
+  // line directly beneath, so it both reads and ties the two together.
   const locationLine = locationName
-    ? `Workers ready to start at <strong style="color:#0a1e33;">${locationName}</strong> this winter`
+    ? `Workers ready to start at <strong style="color:#22d3ee;">${locationName}</strong> this winter`
     : `Workers want to work for you this winter`;
 
   return {
