@@ -45,7 +45,7 @@ export function winterFollowupFinalEmail({
           </td>
         </tr>
         <tr>
-          <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+          <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
             <p style="margin:0 0 10px;font-size:44px;">👋</p>
             <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Closing the loop</h1>
             <p style="margin:0;color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Final note</p>
@@ -80,7 +80,7 @@ export function winterFollowupFinalEmail({
 
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 16px;" align="center">
               <tr>
-                <td style="background:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:14px 32px;text-align:center;">
+                <td bgcolor="#3b82f6" style="background-color:#3b82f6;background-image:linear-gradient(135deg,#22d3ee,#3b82f6);border-radius:10px;padding:14px 32px;text-align:center;">
                   <a href="${ctaUrl}" style="color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">Set up if you change your mind →</a>
                 </td>
               </tr>

@@ -66,7 +66,7 @@ export function claimApplicantsWaitingEmail({
           </td>
         </tr>
         <tr>
-          <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+          <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
             <p style="margin:0 0 8px;font-size:52px;font-weight:800;color:#22d3ee;line-height:1;">${totalWaiting}</p>
             <h1 style="margin:0 0 6px;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">
               ${many ? "people are waiting to hear from you" : "person is waiting to hear from you"}

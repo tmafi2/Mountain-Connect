@@ -29,7 +29,7 @@ export function welcomeBusinessEmail({
             </td>
           </tr>
           <tr>
-            <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+            <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
               <p style="margin:0 0 10px;font-size:44px;">⛷️</p>
               <h1 style="margin:0 0 6px;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Welcome, ${businessName}!</h1>
               <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Start Hiring Seasonal Talent</p>
@@ -54,7 +54,7 @@ export function welcomeBusinessEmail({
               </table>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:10px;padding:15px 36px;text-align:center;">
+                  <td bgcolor="#6366f1" style="background-color:#6366f1;background-image:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:10px;padding:15px 36px;text-align:center;">
                     <a href="${profileUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">Set Up Your Profile →</a>
                   </td>
                 </tr>

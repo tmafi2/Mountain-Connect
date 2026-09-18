@@ -28,7 +28,7 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
           </tr>
           <!-- Professional Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0a1e33 0%,#132d4a 50%,#1a3a5c 100%);padding:40px 32px 32px;">
+            <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#132d4a 50%,#1a3a5c 100%);padding:40px 32px 32px;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
@@ -91,7 +91,7 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
               <!-- What's Next -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
                 <tr>
-                  <td style="padding:20px 24px;background:linear-gradient(135deg,#0a1e33,#132d4a);border-radius:12px;">
+                  <td bgcolor="#0a1e33" style="padding:20px 24px;background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33,#132d4a);border-radius:12px;">
                     <p style="margin:0 0 8px;color:#22d3ee;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">What happens next</p>
                     <p style="margin:0;color:#e0e8f0;font-size:14px;line-height:1.7;">
                       We'll be in touch to help set up your business account before launch. As an early adopter, you'll get priority onboarding and dedicated support to get your job listings live from day one.

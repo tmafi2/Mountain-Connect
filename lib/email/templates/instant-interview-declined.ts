@@ -22,7 +22,7 @@ export function instantInterviewDeclinedEmail({ businessName, workerName, jobTit
               <span style="display:inline-block;margin-left:10px;font-size:15px;font-weight:700;color:#0a1e33;letter-spacing:-0.3px;vertical-align:middle;">Mountain Connects</span>
             </td>
           </tr>
-          <tr><td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+          <tr><td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
               <p style="margin:0 0 10px;font-size:44px;">📋</p>
               <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">Interview Declined</h1>
               <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Try scheduling instead</p>

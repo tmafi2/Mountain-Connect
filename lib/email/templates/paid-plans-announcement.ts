@@ -56,7 +56,7 @@ export function paidPlansAnnouncementEmail({
             </td>
           </tr>
           <!-- Hero -->
-          <tr><td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
+          <tr><td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
               <p style="margin:0 0 10px;font-size:44px;">🏔️</p>
               <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Thank you for being early</h1>
               <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">What's changing, and what isn't</p>
@@ -116,7 +116,7 @@ export function paidPlansAnnouncementEmail({
               </p>
 
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 12px;" align="center">
-                <tr><td style="background:linear-gradient(135deg,#0a1e33,#1a3a5c);border-radius:10px;padding:15px 36px;text-align:center;">
+                <tr><td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33,#1a3a5c);border-radius:10px;padding:15px 36px;text-align:center;">
                     <a href="${plansUrl}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;">See the plans →</a>
                 </td></tr>
               </table>

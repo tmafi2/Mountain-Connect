@@ -26,7 +26,7 @@ export function businessUnverifiedEmail({
             </td>
           </tr>
           <tr>
-            <td style="background:linear-gradient(135deg,#0a1e33 0%,#78350f 100%);padding:44px 32px 36px;text-align:center;">
+            <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#78350f 100%);padding:44px 32px 36px;text-align:center;">
               <p style="margin:0 0 10px;font-size:44px;">⚠️</p>
               <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">Verification Removed</h1>
               <p style="margin:0;color:#fbbf24;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Action required</p>
@@ -68,7 +68,7 @@ export function businessUnverifiedEmail({
 
               <table cellpadding="0" cellspacing="0" style="margin:0 auto;" align="center">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#0a1e33,#1a3a5c);border-radius:10px;padding:14px 32px;text-align:center;">
+                  <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33,#1a3a5c);border-radius:10px;padding:14px 32px;text-align:center;">
                     <a href="${dashboardUrl}" style="color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">Go to Dashboard →</a>
                   </td>
                 </tr>

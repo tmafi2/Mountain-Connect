@@ -26,7 +26,7 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
           </tr>
           <!-- Hero Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:40px 32px 32px;text-align:center;">
+            <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:40px 32px 32px;text-align:center;">
               <p style="margin:0 0 8px;font-size:40px;">🏔️</p>
               <h1 style="margin:0 0 4px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Mountain Connects</h1>
               <p style="margin:0;color:#22d3ee;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Coming This Winter</p>
@@ -65,7 +65,7 @@ export function waitlistWorkerEmail({ email }: WaitlistWorkerEmailProps) {
               <!-- Share CTA -->
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;" align="center">
                 <tr>
-                  <td style="background:linear-gradient(135deg,#22d3ee,#3b9ede);border-radius:10px;padding:14px 32px;text-align:center;">
+                  <td bgcolor="#3b9ede" style="background-color:#3b9ede;background-image:linear-gradient(135deg,#22d3ee,#3b9ede);border-radius:10px;padding:14px 32px;text-align:center;">
                     <a href="https://www.mountainconnects.com/coming-soon" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.3px;">
                       Share Mountain Connects with Friends →
                     </a>

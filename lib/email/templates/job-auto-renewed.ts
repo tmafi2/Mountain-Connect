@@ -49,7 +49,7 @@ export function jobAutoRenewedEmail({
           </td>
         </tr>
         <tr>
-          <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:40px 32px 32px;text-align:center;">
+          <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:40px 32px 32px;text-align:center;">
             <p style="margin:0 0 10px;font-size:40px;">♻️</p>
             <h1 style="margin:0 0 6px;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">${many ? "Renewed for you" : "Renewed for you"}</h1>
             <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Nothing to do</p>
