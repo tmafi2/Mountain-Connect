@@ -10,10 +10,9 @@ interface WinterOutreachEmailProps {
   /** Optional location, used in the subject and hero heading only. The body
    *  says "in your area" rather than naming it. */
   locationName?: string;
-  /** Season framing. The BODY copy is otherwise identical either way — this
-   *  only decides which season is named, because the northern season is
-   *  2026/27 and telling a Canadian or Japanese business that "the 2026
-   *  winter season" is approaching would simply be wrong. */
+  /** Season framing, used only by the hero subtitle ("Winter 2026" vs
+   *  "Winter 2026/27"). The body deliberately names no year — "the winter
+   *  season" is true in both hemispheres, which a named year would not be. */
   hemisphere?: Hemisphere;
 }
 
@@ -25,7 +24,6 @@ export function winterOutreachEmail({
   hemisphere = "south",
 }: WinterOutreachEmailProps) {
   const north = hemisphere === "north";
-  const seasonName = north ? "2026/27 winter season" : "2026 winter season";
   // The location sits inside the hero h1, on the dark navy gradient. It was
   // previously set in navy #0a1e33 — the page's own ink colour, invisible on
   // that ground. Cyan is the brand highlight and already colours the season
@@ -67,10 +65,10 @@ export function winterOutreachEmail({
               Hi <strong style="color:#0a1e33;">${businessName}</strong>,
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              With the <strong style="color:#0a1e33;">${seasonName}</strong> approaching, Mountain Connects has seasonal workers actively looking for opportunities in your area — from chefs and housekeepers to baristas, instructors, lift operators and more.
+              With the <strong style="color:#0a1e33;">winter season</strong> approaching, Mountain Connects has seasonal workers actively looking for opportunities in your area — from lift operators to housekeepers and everything in between.
             </p>
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              We help mountain businesses reach the right seasonal workers and spend less time on recruitment by bringing jobs and candidates together in one dedicated platform.
+              We help businesses reach the right seasonal workers and spend less time on recruitment by bringing jobs and candidates together on one dedicated platform.
             </p>
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
               To get started, you can post your first job completely free.
