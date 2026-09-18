@@ -7,12 +7,13 @@ interface WinterOutreachEmailProps {
   /** Required for any funnel email — one-click unsubscribe link with the
    *  lead's per-row token. Footer renders this as "Unsubscribe". */
   unsubscribeUrl: string;
-  /** Optional location, used in the subject and hero heading only. The body
-   *  says "in your area" rather than naming it. */
+  /** Optional location, used in the SUBJECT line only. Neither the heading
+   *  nor the body names it — the body says "in your area". */
   locationName?: string;
-  /** Season framing, used only by the hero subtitle ("Winter 2026" vs
-   *  "Winter 2026/27"). The body deliberately names no year — "the winter
-   *  season" is true in both hemispheres, which a named year would not be. */
+  /** Accepted but unused by this template. Callers pass one shared object
+   *  to this and the four follow-ups, which do still use it. Nothing here
+   *  names a year any more — "winter" is true in both hemispheres — so there
+   *  is nothing for it to choose between. */
   hemisphere?: Hemisphere;
 }
 
@@ -21,16 +22,7 @@ export function winterOutreachEmail({
   ctaUrl,
   unsubscribeUrl,
   locationName,
-  hemisphere = "south",
 }: WinterOutreachEmailProps) {
-  const north = hemisphere === "north";
-  // The location sits inside the hero h1, on the dark navy gradient. It was
-  // previously set in navy #0a1e33 — the page's own ink colour, invisible on
-  // that ground. Cyan is the brand highlight and already colours the season
-  // line directly beneath, so it both reads and ties the two together.
-  const locationLine = locationName
-    ? `Workers ready to start at <strong style="color:#22d3ee;">${locationName}</strong> this winter`
-    : `Workers want to work for you this winter`;
 
   return {
     subject: locationName
@@ -54,8 +46,8 @@ export function winterOutreachEmail({
         <tr>
           <td style="background:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
             <p style="margin:0 0 10px;font-size:44px;">❄️</p>
-            <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">${locationLine}</h1>
-            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">${north ? "Winter 2026/27 — hiring season" : "Winter 2026 — hiring season"}</p>
+            <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Workers ready to start working for you this winter</h1>
+            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Winter — hiring season</p>
           </td>
         </tr>
         <!-- Body -->
