@@ -203,10 +203,16 @@ function WorkerSetup({
       }
     }
 
+    // preferred_job_types holds roles only — the profile editor's
+    // JOB_TYPE_OPTIONS ("Hospitality", "Lift Operator", …). Onboarding's own
+    // questions don't cover roles, so they come only from the quiz, and "Work"
+    // becomes a position_type default below. It used to write ["full_time"]
+    // here, a position_type value, which showed as a job type the editor
+    // couldn't remove (00099).
     const onboardingFields = {
       bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
       years_seasonal_experience: experience === "first_season" ? 0 : 1,
-      preferred_job_types: lookingForJob ? (fromQuiz.preferred_job_types ?? ["full_time"]) : [],
+      ...(lookingForJob && fromQuiz.preferred_job_types ? { preferred_job_types: fromQuiz.preferred_job_types } : {}),
       ...(fromQuiz.preferred_countries ? { preferred_countries: fromQuiz.preferred_countries } : {}),
       ...(fromQuiz.season_preference ? { season_preference: fromQuiz.season_preference } : {}),
       housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
@@ -244,6 +250,18 @@ function WorkerSetup({
         setLoading(false);
         return;
       }
+    }
+
+    // "Work" is all onboarding asks about work, so full-time is a default, not
+    // an answer. The null filter makes it fill an empty position_type only —
+    // it can never replace part-time or casual chosen in the profile editor.
+    if (lookingForJob) {
+      const { error: positionError } = await supabase
+        .from("worker_profiles")
+        .update({ position_type: "full_time" })
+        .eq("user_id", user.id)
+        .is("position_type", null);
+      if (positionError) console.error("Default position type failed (non-fatal):", positionError);
     }
 
     // Send welcome email (non-blocking)
