@@ -76,6 +76,12 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
+  // Meta domain verification for the Business portfolio that runs the ads and
+  // owns the pixel (lib/analytics/meta-pixel.ts). Meta checks the home page;
+  // mountainconnects.com redirects there. Invisible to visitors — leave it in.
+  verification: {
+    other: { "facebook-domain-verification": "m7c75nr6iew5ksidm73whhbmhgkdiq" },
+  },
 };
 
 const organizationJsonLd = {
