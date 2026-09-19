@@ -50,6 +50,15 @@ export async function POST(request: Request) {
     await admin.auth.signInWithPassword({ email, password });
 
   if (signInError || !signInData.user) {
+    // Right password, unconfirmed email: say so, so /login can offer a new
+    // confirmation link instead of a dead end. GoTrue checks the password
+    // before it reports this, so it tells nobody anything they didn't know.
+    if (signInError?.code === "email_not_confirmed") {
+      return NextResponse.json(
+        { error: "Please confirm your email address first.", code: "email_not_confirmed" },
+        { status: 403 }
+      );
+    }
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 

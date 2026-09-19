@@ -37,6 +37,9 @@ function LoginContent() {
   const [adminLoading, setAdminLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [turnstileError, setTurnstileError] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,12 +48,32 @@ function LoginContent() {
   // Show errors from URL (e.g., Google OAuth role mismatch)
   useEffect(() => {
     const urlError = searchParams.get("error");
+    const urlNotice = searchParams.get("notice");
     if (urlError && urlError !== "auth_failed") {
       setError(decodeURIComponent(urlError));
-    } else if (urlError === "auth_failed") {
-      setError("Authentication failed. Please try again.");
+    } else if (urlError === "auth_failed" || urlNotice === "link_invalid") {
+      // Nearly always an emailed link that was already used, by a mail
+      // scanner or an earlier click, or opened in another browser. The email
+      // is confirmed in both cases, so "Authentication failed" was untrue.
+      setNotice(
+        "That link has already been used or has expired. If you've just confirmed your email, you're all set: log in below. If it isn't confirmed yet, logging in will offer you a new link."
+      );
+    } else if (urlNotice === "confirmed") {
+      setNotice("Your account is set up. Log in to continue.");
     }
   }, [searchParams]);
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail) return;
+    setResendState("sending");
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: unconfirmedEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?type=${loginType}` },
+    });
+    setResendState(resendError ? "error" : "sent");
+  };
 
   const handleBusinessClick = () => {
     setLoginType("business");
@@ -124,6 +147,9 @@ function LoginContent() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
+    setUnconfirmedEmail(null);
+    setResendState("idle");
     setLoading(true);
 
     try {
@@ -137,6 +163,10 @@ function LoginContent() {
       const checkData = await checkRes.json();
 
       if (!checkRes.ok) {
+        if (checkData.code === "email_not_confirmed") {
+          setUnconfirmedEmail(email);
+          return;
+        }
         setError(checkData.error || "Invalid email or password");
         return;
       }
@@ -308,6 +338,12 @@ function LoginContent() {
             </div>
           )}
 
+          {notice && (
+            <div className="mb-4 rounded-lg border border-secondary/30 bg-secondary/10 px-4 py-3">
+              <p className="text-sm text-primary">{notice}</p>
+            </div>
+          )}
+
           <h1 className="text-3xl font-extrabold text-primary">Welcome back</h1>
           <p className="mt-2 text-sm text-foreground/60">
             Log in to continue your mountain adventure.
@@ -435,6 +471,27 @@ function LoginContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
                 {error}
+              </div>
+            )}
+
+            {unconfirmedEmail && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p>Your email address isn&apos;t confirmed yet. Use the link we emailed you, or get a new one.</p>
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendState === "sending" || resendState === "sent"}
+                  className="mt-2 font-semibold text-primary underline disabled:no-underline disabled:opacity-70"
+                >
+                  {resendState === "sending"
+                    ? "Sending..."
+                    : resendState === "sent"
+                      ? `New link sent to ${unconfirmedEmail}`
+                      : "Email me a new link"}
+                </button>
+                {resendState === "error" && (
+                  <p className="mt-1 text-xs text-red-600">Couldn&apos;t send it just now. Try again in a minute.</p>
+                )}
               </div>
             )}
 
