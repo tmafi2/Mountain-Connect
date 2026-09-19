@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 const TEST_PORTAL_CODE = process.env.TEST_PORTAL_CODE || "mountainconnectaccess";
 
 export async function POST(request: NextRequest) {
+  // middleware.ts only honours the test-mode cookie in development, so
+  // anywhere else there is nothing to hand out.
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     const { code } = await request.json();
 
@@ -13,7 +19,6 @@ export async function POST(request: NextRequest) {
         maxAge: 60 * 60 * 4, // 4 hours
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
       });
       return response;
     }

@@ -119,11 +119,13 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Allow test mode access
-  const hasTestCookie = request.cookies.get("test-mode")?.value === "true";
-  if (hasTestCookie) return response;
-
+  // Test mode: browse the portal shells logged out, on the pages' demo data.
+  // Development only — until 2026-09-19 the cookie was honoured in
+  // production too, which let anyone past auth on every route above.
   if (process.env.NODE_ENV === "development") {
+    const hasTestCookie = request.cookies.get("test-mode")?.value === "true";
+    if (hasTestCookie) return response;
+
     const isTestParam = request.nextUrl.searchParams.get("test") === "true";
     if (isTestParam) {
       response.cookies.set("test-mode", "true", {
