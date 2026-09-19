@@ -11,9 +11,9 @@ import WorkerLayoutShell from "./WorkerLayoutShell";
  * all 16 pages inherited the public job-search title. The interactive part
  * moved to WorkerLayoutShell unchanged; this file only adds the metadata.
  *
- * `noindex` because every page here is for a signed-in worker. That includes
- * /employers/{slug}, which is reachable anonymously and still renders seed
- * data — it should not be in an index either.
+ * `noindex` because every page here is for a signed-in worker. (The one
+ * anonymous exception, the seed-data /employers/{slug} pages, was removed on
+ * 2026-09-19; those URLs now 404.)
  *
  * The `default` deliberately carries NO " | Mountain Connects" suffix: the
  * root layout's template appends it, and spelling it out here produced

@@ -2,14 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { seedBusinesses, getCategoryLabel } from "@/lib/data/businesses";
-import type { SeedBusiness } from "@/lib/data/businesses";
+import { getCategoryLabel } from "@/lib/data/businesses";
+import type { BusinessCategory } from "@/types/database";
 
-/* ─── Demo followed businesses ───────────────────────────── */
+/* ─── Types ──────────────────────────────────────────────── */
 
-const demoFollowed = seedBusinesses
-  .filter((b) => ["biz-1", "biz-2", "biz-6", "biz-9"].includes(b.id))
-  .map((b) => ({ ...b, followedAt: "2026-02-15T00:00:00Z" }));
+// Real follows only. This page used to fall back to four demo businesses
+// (Whistler Blackcomb, Fairmont, NZSki…) badged "Verified" whenever the API
+// failed, showing workers follows they never made of companies that are not
+// on the platform.
+interface FollowedBusiness {
+  id: string;
+  business_name: string;
+  location: string;
+  category: BusinessCategory;
+  verification_status: string;
+  followedAt: string;
+}
 
 const VERIFICATION_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   verified: { bg: "bg-green-50", text: "text-green-700", label: "Verified" },
@@ -23,21 +32,21 @@ const VERIFICATION_BADGE: Record<string, { bg: string; text: string; label: stri
 /* ─── Page ───────────────────────────────────────────────── */
 
 export default function FollowingPage() {
-  const [followed, setFollowed] = useState<typeof demoFollowed>([]);
+  const [followed, setFollowed] = useState<FollowedBusiness[]>([]);
   const [unfollowLoading, setUnfollowLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | string>("all");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch("/api/follow");
-        if (!res.ok) {
-          // Not authenticated or error — show demo data
-          setFollowed(demoFollowed);
-          setLoading(false);
-          return;
-        }
+        // 404 = no worker profile yet, so nothing can have been followed.
+        // Any other failure is an error, NOT an empty list: telling someone
+        // they follow no one because the request failed would be untrue.
+        if (res.status === 404) return;
+        if (!res.ok) throw new Error(`GET /api/follow answered ${res.status}`);
         const { follows } = await res.json();
 
         if (follows && follows.length > 0) {
@@ -47,25 +56,20 @@ export default function FollowingPage() {
             return {
               id: biz.id as string,
               business_name: (biz.business_name as string) || "Unknown",
-              description: (biz.description as string) || "",
               location: (biz.location as string) || "",
-              category: (biz.category as string) || "other",
+              category: (biz.category as BusinessCategory) || "other",
               verification_status: (biz.verification_status as string) || "unverified",
-              slug: (biz.slug as string) || "",
-              logo_url: (biz.logo_url as string) || null,
-              open_positions: 0,
-              standard_perks: [],
               followedAt: f.created_at as string,
             };
-          }).filter(Boolean);
+          }).filter(Boolean) as FollowedBusiness[];
           setFollowed(mapped);
         }
         // else: authenticated but no follows — keep empty array
       } catch {
-        // On error, show demo data for non-auth visitors
-        setFollowed(demoFollowed);
+        setLoadError(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, []);
 
@@ -107,9 +111,11 @@ export default function FollowingPage() {
               Employers you follow. You&apos;ll get notified when they post new jobs.
             </p>
           </div>
-          <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-white backdrop-blur-sm">
-            {followed.length} employer{followed.length !== 1 ? "s" : ""}
-          </span>
+          {!loadError && (
+            <span className="rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-white backdrop-blur-sm">
+              {followed.length} employer{followed.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </div>
 
@@ -138,7 +144,7 @@ export default function FollowingPage() {
                     : "border border-accent/50 bg-white/70 text-foreground/70 backdrop-blur-sm hover:border-secondary/50 hover:bg-white"
                 }`}
               >
-                {getCategoryLabel(cat as SeedBusiness["category"])} ({count})
+                {getCategoryLabel(cat as BusinessCategory)} ({count})
               </button>
             );
           })}
@@ -146,7 +152,12 @@ export default function FollowingPage() {
       )}
 
       {/* Followed businesses list */}
-      {filtered.length === 0 ? (
+      {loadError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <p className="text-sm text-red-700">We couldn&apos;t load the employers you follow.</p>
+          <p className="mt-1 text-sm text-red-700/70">Refresh the page to try again.</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-accent/50 bg-white/70 p-12 text-center backdrop-blur-sm">
           <div className="relative mx-auto mb-6 h-20 w-20">
             <div className="absolute inset-0 rounded-full bg-secondary/10" />
@@ -188,7 +199,7 @@ export default function FollowingPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/employers/${biz.slug}`}
+                        href={`/business/${biz.id}`}
                         className="font-semibold text-primary hover:text-secondary hover:underline truncate"
                       >
                         {biz.business_name}
@@ -200,29 +211,12 @@ export default function FollowingPage() {
                     <p className="mt-0.5 text-sm text-foreground/60 truncate">
                       {getCategoryLabel(biz.category)} · {biz.location}
                     </p>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-foreground/50">
-                      <span className="flex items-center gap-1">
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        {biz.open_positions} open position{biz.open_positions !== 1 ? "s" : ""}
-                      </span>
-                      {biz.standard_perks && biz.standard_perks.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          {biz.standard_perks.slice(0, 2).join(", ")}
-                          {biz.standard_perks.length > 2 && ` +${biz.standard_perks.length - 2}`}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex shrink-0 items-center gap-2">
                     <Link
-                      href={`/employers/${biz.slug}`}
+                      href={`/business/${biz.id}`}
                       className="rounded-xl border border-accent/50 bg-white/80 px-3 py-2 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-secondary/40 hover:shadow-sm"
                     >
                       View

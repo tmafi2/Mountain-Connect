@@ -73,8 +73,9 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         disallow: [
           // Hidden feature, not a private area — drops off this list the
-          // moment EMPLOYERS_DIRECTORY_ENABLED goes back to true. Covers the
-          // worker portal's /employers/{slug} pages too.
+          // moment EMPLOYERS_DIRECTORY_ENABLED goes back to true. Nothing
+          // lives under /employers/ any more: the seed-data /employers/{slug}
+          // pages were removed on 2026-09-19 and those URLs 404.
           ...(EMPLOYERS_DIRECTORY_ENABLED ? [] : ["/employers"]),
           "/admin",
           ...WORKER_PATHS,

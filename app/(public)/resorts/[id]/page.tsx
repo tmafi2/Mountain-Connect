@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
 import { formatPay } from "@/lib/utils/format-pay";
-
-import { getVerifiedBusinessesForResort, getCategoryLabel } from "@/lib/data/businesses";
 import ResortMap from "@/components/ui/ResortMap";
 import { ResortBanner } from "@/components/ResortBanner";
 import { flagForCountry } from "@/lib/resort-banner";
