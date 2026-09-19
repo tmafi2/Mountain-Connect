@@ -6,6 +6,11 @@ import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
+import { loadSignupContext, signupMetadata } from "@/lib/campaigns/attribution";
+import { parseAnswers, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
+
+/** Long enough to cover signup → email confirmation → first login. */
+const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export default function OnboardingPage() {
   return (
@@ -172,10 +177,38 @@ function WorkerSetup({
     // back to an insert that pulls names from auth metadata.
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver";
 
+    // "Find My Season" answers from /go-for-a-season, if this worker came
+    // through it. An email signup carries them in auth metadata, written at
+    // signUp, which survives the confirmation link opening in another browser.
+    // A Google signup cannot set metadata, so it falls back to what this
+    // browser stored before leaving for Google.
+    const stored = loadSignupContext();
+    const createdAt = Date.parse(user.created_at);
+    const seasonAnswers = parseAnswers(user.user_metadata?.season_intent) ?? stored?.answers ?? null;
+    const fromQuiz = seasonAnswers ? profileFieldsFromAnswers(seasonAnswers) : {};
+
+    // Attribute a Google signup to its ad the way signUp() does for email.
+    // Only a new account, and only for a visit recorded before the account
+    // existed, so no one is credited to a campaign they saw afterwards.
+    if (
+      stored &&
+      !user.user_metadata?.signup_source &&
+      Date.now() - createdAt < NEW_ACCOUNT_WINDOW_MS &&
+      stored.capturedAt <= createdAt + 10 * 60 * 1000
+    ) {
+      try {
+        await supabase.auth.updateUser({ data: signupMetadata(stored, "worker") });
+      } catch (err) {
+        console.error("Signup attribution failed (non-fatal):", err);
+      }
+    }
+
     const onboardingFields = {
       bio: discipline === "snowboarder" ? "Snowboarder" : discipline === "skier" ? "Skier" : "",
       years_seasonal_experience: experience === "first_season" ? 0 : 1,
-      preferred_job_types: lookingForJob ? ["full_time"] : [],
+      preferred_job_types: lookingForJob ? (fromQuiz.preferred_job_types ?? ["full_time"]) : [],
+      ...(fromQuiz.preferred_countries ? { preferred_countries: fromQuiz.preferred_countries } : {}),
+      ...(fromQuiz.season_preference ? { season_preference: fromQuiz.season_preference } : {}),
       housing_preference: lookingForAccommodation ? "staff_housing" : "no_preference",
       work_history: [],
       contact_email: user.email || null,

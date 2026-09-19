@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LAUNCH_LOCATION_NAMES } from "@/lib/config/launch-locations";
@@ -10,6 +10,16 @@ import { validatePassword } from "@/lib/utils/password";
 import PasswordStrength from "@/components/ui/PasswordStrength";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import { Turnstile } from "@marsidev/react-turnstile";
+import {
+  contextFromParams,
+  loadSignupContext,
+  mergeContexts,
+  saveSignupContext,
+  signupMetadata,
+  type SignupContext,
+} from "@/lib/campaigns/attribution";
+import { answerLabels, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
+import { isInAppBrowser } from "@/lib/utils/in-app-browser";
 
 type AccountType = "worker" | "business";
 
@@ -56,6 +66,37 @@ function SignupContent() {
   }
   const [pendingImports, setPendingImports] = useState<PendingImport[]>([]);
   const [showImportsModal, setShowImportsModal] = useState(false);
+
+  // Campaign context — the ad's UTMs and any "Find My Season" answers — from
+  // the link that brought the visitor here, else from an earlier visit's
+  // storage. It is written to auth user_metadata at signUp, which is how a
+  // signup is traced back to its ad (see lib/campaigns/attribution.ts). The
+  // URL copy renders straight away; storage is only readable after mount.
+  const urlContext = useMemo(
+    () => contextFromParams(new URLSearchParams(searchParams.toString()), "signup"),
+    [searchParams],
+  );
+  const [storedContext, setStoredContext] = useState<SignupContext | null>(null);
+  useEffect(() => {
+    const stored = loadSignupContext();
+    setStoredContext(stored);
+    // Keep a copy for the Google path: OAuth leaves this page and comes back
+    // through /onboarding, which picks the context up from storage.
+    const merged = mergeContexts(urlContext, stored);
+    if (merged) saveSignupContext(merged);
+  }, [urlContext]);
+  const signupContext = mergeContexts(urlContext, storedContext);
+  const seasonAnswers = accountType === "worker" ? signupContext?.answers : undefined;
+
+  // Google will not sign anyone in from inside the Instagram or Facebook app
+  // ("Error 403: disallowed_useragent"), and paid Meta traffic lands in
+  // exactly those browsers. Hide the button there rather than offer a dead
+  // end; email signup works everywhere. A layout effect, so it is gone before
+  // the first paint instead of flashing up and disappearing.
+  const [inAppBrowser, setInAppBrowser] = useState(false);
+  useLayoutEffect(() => {
+    setInAppBrowser(isInAppBrowser(navigator.userAgent));
+  }, []);
 
   // Load resorts on mount
   useEffect(() => {
@@ -137,6 +178,7 @@ function SignupContent() {
             business_name: accountType === "business" ? firstName.trim() : undefined,
             account_type: accountType,
             signup_resort_id: accountType === "business" && selectedResortId ? selectedResortId : undefined,
+            ...signupMetadata(signupContext, accountType),
           },
           emailRedirectTo: `${window.location.origin}/auth/callback?type=${accountType}`,
         },
@@ -340,7 +382,21 @@ function SignupContent() {
           </div>
 
 
-          {/* Google OAuth — prominent */}
+          {/* What they told "Find My Season" on /go-for-a-season, echoed back
+              so the form feels like the next step of the same thing. */}
+          {seasonAnswers && (
+            <div className="mt-5 rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-secondary">Your season</p>
+              <p className="mt-1 text-sm font-semibold text-primary">{answerLabels(seasonAnswers).join(" · ")}</p>
+              {Object.keys(profileFieldsFromAnswers(seasonAnswers)).length > 0 && (
+                <p className="mt-0.5 text-xs text-foreground/60">We&apos;ll use this to start your profile.</p>
+              )}
+            </div>
+          )}
+
+          {/* Google OAuth — prominent, except inside the Instagram/Facebook
+              in-app browsers, where Google refuses to sign anyone in. */}
+          {!inAppBrowser && (<>
           <button
             onClick={handleGoogleSignup}
             disabled={loading}
@@ -361,8 +417,9 @@ function SignupContent() {
             <span className="text-xs font-medium text-foreground/30">or sign up with email</span>
             <div className="h-px flex-1 bg-accent" />
           </div>
+          </>)}
 
-          <form onSubmit={handleSignup} className="space-y-4">
+          <form onSubmit={handleSignup} className={`space-y-4 ${inAppBrowser ? "mt-6" : ""}`}>
             {accountType === "business" ? (
               <div>
                 <label htmlFor="businessName" className="block text-sm font-medium text-foreground/70">

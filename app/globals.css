@@ -16,9 +16,27 @@
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Campaign display face. `inline` matters: the variable is set by next/font on
+   the campaign layout's wrapper, not on :root, so the utility must read it
+   where it is used. A plain @theme token would resolve at :root, find nothing,
+   and silently fall back to the body font. */
+@theme inline {
+  --font-display: var(--font-league-gothic), "Arial Narrow", Impact, sans-serif;
+}
+
 html {
   scroll-behavior: smooth;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Screens with little height to spare. Inside Instagram's browser a small
+   iPhone has ~560px, and the cookie banner takes the bottom quarter of that. */
+@custom-variant short (@media (max-height: 700px));
 
 body {
   background-color: var(--color-background);
@@ -60,6 +78,39 @@ body {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+/* ── Campaign pages (/go-for-a-season) ────────────────────── */
+/* Short and small on purpose: a quiz step should feel quick, not staged.
+   Every use is wrapped in motion-safe:, so reduced motion gets none of it. */
+@keyframes stepInNext {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes stepInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* The hero photo settles from a slight zoom once, on load. */
+@keyframes heroSettle {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
   }
 }
 
