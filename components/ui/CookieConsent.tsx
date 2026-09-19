@@ -5,6 +5,7 @@ import { safeGet, safeSet } from "@/lib/utils/safe-storage";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Script from "next/script";
+import { META_PIXEL_ID, metaPixelAllowedOn, metaPixelBootstrap } from "@/lib/analytics/meta-pixel";
 
 const COOKIE_KEY = "cookie-consent";
 
@@ -42,6 +43,12 @@ export default function CookieConsent() {
   };
 
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  // Consent is only ever read on the client, so `window` exists whenever this
+  // can be true. The host check keeps localhost and preview deployments out of
+  // the ad data (see lib/analytics/meta-pixel.ts).
+  const loadMetaPixel =
+    consent === "granted" &&
+    metaPixelAllowedOn(typeof window === "undefined" ? undefined : window.location.hostname);
 
   return (
     <>
@@ -63,12 +70,19 @@ export default function CookieConsent() {
         </>
       )}
 
+      {/* Meta Pixel, for measuring the Instagram/Facebook ads — also only with consent */}
+      {loadMetaPixel && (
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {metaPixelBootstrap(META_PIXEL_ID)}
+        </Script>
+      )}
+
       {/* Banner */}
       {visible && !hiddenForRoute && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-accent/30 bg-white p-4 shadow-lg sm:p-5">
           <div className="mx-auto flex max-w-5xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-foreground/70">
-              We use cookies to analyse site usage and improve your experience. See our{" "}
+              We use cookies to analyse site usage, measure our ads and improve your experience. See our{" "}
               <Link href="/privacy" className="font-medium text-secondary underline">
                 Privacy Policy
               </Link>{" "}

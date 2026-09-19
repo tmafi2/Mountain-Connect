@@ -20,6 +20,7 @@ import {
 } from "@/lib/campaigns/attribution";
 import { answerLabels, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
 import { isInAppBrowser } from "@/lib/utils/in-app-browser";
+import { track } from "@/lib/analytics/track";
 
 type AccountType = "worker" | "business";
 
@@ -254,6 +255,18 @@ function SignupContent() {
             { onConflict: "user_id" }
           ).then(() => {}).catch(() => {});
         }
+      }
+
+      // The conversion the Meta ads are optimised for: a worker account now
+      // exists. Supabase answers an already-registered email with a lookalike
+      // user whose `identities` is empty rather than an error, so that is not
+      // counted. Quiz answers only — never who they are (lib/analytics/track.ts).
+      if (accountType === "worker" && signUpData.user && signUpData.user.identities?.length !== 0) {
+        track("worker_signup_completed", {
+          destination: signupContext?.answers?.destination,
+          season: signupContext?.answers?.season,
+          work_type: signupContext?.answers?.workType,
+        });
       }
 
       // Record referral if applicable

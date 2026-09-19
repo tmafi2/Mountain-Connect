@@ -1,22 +1,25 @@
 /**
- * Funnel events for paid-traffic landing pages.
+ * Funnel events for paid-traffic landing pages and the signup they lead to.
  *
- * WHERE THEY GO: Google Analytics 4, the only analytics this site loads.
- * components/ui/CookieConsent.tsx injects gtag.js once a visitor accepts
- * cookies and NEXT_PUBLIC_GA_MEASUREMENT_ID is set (it is, in production).
- * Until then window.gtag does not exist and nothing is sent.
+ * WHERE THEY GO: Google Analytics 4 and the Meta Pixel, and only after the
+ * visitor accepts cookies — components/ui/CookieConsent.tsx loads both behind
+ * the banner (GA4 when NEXT_PUBLIC_GA_MEASUREMENT_ID is set, the pixel on the
+ * production domain; see lib/analytics/meta-pixel.ts). Until a script loads,
+ * its window.gtag / window.fbq does not exist and nothing is sent to it.
  *
- * WHY THERE IS A QUEUE: the view event fires on load, while the cookie banner
- * is still up, so without one it would be lost for nearly every visitor.
+ * WHY THERE ARE QUEUES: the view event fires on load, while the cookie banner
+ * is still up, so without them it would be lost for nearly every visitor.
  * Events raised before consent wait in memory — never in storage — and go out
- * with the next event after gtag appears. Nothing leaves the device unless the
- * visitor accepts; after a decline the queue is discarded with the page.
+ * with the next event after a destination appears. Each destination has its
+ * own queue, because the two scripts load independently: one flushing first
+ * must not take the other's events with it. Nothing leaves the device unless
+ * the visitor accepts; after a decline the queues are discarded with the page.
  *
- * WHAT IS NOT HERE: there is no Meta Pixel on this site, and this file does
- * not pretend there is. To add one, load it behind the same consent check in
- * CookieConsent (and allow connect.facebook.net in the CSP in next.config.ts),
- * then forward from send() below. `Lead` on worker_signup_clicked is the event
- * to optimise the campaign for.
+ * META: the two moments the ads are optimised for go as Meta's standard events
+ * — `Lead` when someone taps "Create my free profile", `CompleteRegistration`
+ * when a worker account is actually created. Everything else goes as a custom
+ * event under its own name, for building audiences (e.g. finished the quiz but
+ * did not sign up).
  *
  * NO PERSONAL DATA: FunnelProps is a closed set of keys, and cleanProps drops
  * anything else, so a caller cannot slip an email or a name into an event.
@@ -30,7 +33,8 @@ export type FunnelEvent =
   | "work_type_selected"
   | "find_my_season_completed"
   | "worker_signup_clicked"
-  | "browse_jobs_clicked";
+  | "browse_jobs_clicked"
+  | "worker_signup_completed";
 
 export interface FunnelProps {
   destination?: string;
@@ -43,12 +47,21 @@ export interface FunnelProps {
 const PROP_KEYS = ["destination", "season", "work_type", "placement"] as const;
 const MAX_QUEUE = 50;
 
-type Gtag = (command: "event", name: string, params: Record<string, string>) => void;
+/** Meta's standard event for a funnel event, where one fits; the rest are custom. */
+export const META_STANDARD_EVENTS: Partial<Record<FunnelEvent, string>> = {
+  worker_signup_clicked: "Lead",
+  worker_signup_completed: "CompleteRegistration",
+};
 
-const queue: Array<[FunnelEvent, Record<string, string>]> = [];
+type Params = Record<string, string>;
+type Queued = [FunnelEvent, Params];
+type Gtag = (command: "event", name: string, params: Params) => void;
+type Fbq = (command: "track" | "trackCustom", name: string, params: Params) => void;
 
-export function cleanProps(props: FunnelProps): Record<string, string> {
-  const out: Record<string, string> = {};
+const queues: Record<"ga" | "meta", Queued[]> = { ga: [], meta: [] };
+
+export function cleanProps(props: FunnelProps): Params {
+  const out: Params = {};
   for (const key of PROP_KEYS) {
     const v = props[key];
     if (typeof v === "string" && v) out[key] = v.slice(0, 64);
@@ -56,8 +69,21 @@ export function cleanProps(props: FunnelProps): Record<string, string> {
   return out;
 }
 
-function send(gtag: Gtag, event: FunnelEvent, params: Record<string, string>) {
-  gtag("event", event, params);
+function sendToMeta(fbq: Fbq, event: FunnelEvent, params: Params) {
+  const standard = META_STANDARD_EVENTS[event];
+  if (standard) fbq("track", standard, params);
+  else fbq("trackCustom", event, params);
+}
+
+/** Delivers whatever each destination has waiting, if its script has loaded. */
+function flush() {
+  const w = window as unknown as { gtag?: Gtag; fbq?: Fbq };
+  if (typeof w.gtag === "function") {
+    for (const [event, params] of queues.ga.splice(0)) w.gtag("event", event, params);
+  }
+  if (typeof w.fbq === "function") {
+    for (const [event, params] of queues.meta.splice(0)) sendToMeta(w.fbq, event, params);
+  }
 }
 
 export function track(event: FunnelEvent, props: FunnelProps = {}): void {
@@ -68,19 +94,13 @@ export function track(event: FunnelEvent, props: FunnelProps = {}): void {
     console.debug("[track]", event, params);
   }
 
-  const gtag = (window as unknown as { gtag?: Gtag }).gtag;
-  if (typeof gtag !== "function") {
+  for (const queue of Object.values(queues)) {
     if (queue.length < MAX_QUEUE) queue.push([event, params]);
-    return;
   }
-  while (queue.length > 0) {
-    const [queuedEvent, queuedParams] = queue.shift()!;
-    send(gtag, queuedEvent, queuedParams);
-  }
-  send(gtag, event, params);
+  flush();
 }
 
-/** Test-only: the events still waiting for consent. */
-export function pendingEventsForTest(): ReadonlyArray<[FunnelEvent, Record<string, string>]> {
-  return queue;
+/** Test-only: the events each destination still has waiting. */
+export function pendingEventsForTest(): Readonly<Record<"ga" | "meta", ReadonlyArray<Queued>>> {
+  return queues;
 }

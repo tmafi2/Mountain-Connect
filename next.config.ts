@@ -41,12 +41,17 @@ const nextConfig: NextConfig = {
                 "script-src 'self' 'unsafe-inline'",
                 ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
                 "https://www.googletagmanager.com https://maps.googleapis.com https://maps.gstatic.com",
+                // Meta Pixel (lib/analytics/meta-pixel.ts): fbevents.js and its
+                // per-pixel config script. Loads only after cookie consent.
+                "https://connect.facebook.net",
               ].join(" "),
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com https://streetviewpixels-pa.googleapis.com",
+              "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com https://streetviewpixels-pa.googleapis.com https://www.facebook.com",
               "media-src 'self' https://cdn.coverr.co",
-              "connect-src 'self' https://kafekhemktqoczxclthy.supabase.co wss://kafekhemktqoczxclthy.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://maps.googleapis.com",
+              // www.facebook.com (here and in img-src) is where the Meta Pixel
+              // sends its events — as a beacon/fetch or as an image request.
+              "connect-src 'self' https://kafekhemktqoczxclthy.supabase.co wss://kafekhemktqoczxclthy.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://maps.googleapis.com https://www.facebook.com",
               "frame-src 'self' https://*.daily.co https://kafekhemktqoczxclthy.supabase.co",
               "worker-src blob:",
               "frame-ancestors 'none'",
