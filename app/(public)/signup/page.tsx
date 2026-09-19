@@ -23,6 +23,18 @@ import { isInAppBrowser } from "@/lib/utils/in-app-browser";
 
 type AccountType = "worker" | "business";
 
+// The desktop panel's lines about what a worker gets. Each has to hold for
+// every listing, and nearly all are unclaimed imports (248 of 253 live on
+// 2026-09-19): those take an anonymous apply form, not the worker's profile,
+// and have nobody to message until the business claims. Hence no "apply with
+// one profile" or "message businesses directly". And no testimonial unless a
+// real person gave it and agreed to its use.
+const WORKER_POINTS = [
+  "Find seasonal jobs at ski resorts",
+  "Apply straight from the listing",
+  "Free for workers",
+];
+
 export default function SignupPage() {
   return (
     <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-secondary border-t-transparent" /></div>}>
@@ -311,22 +323,17 @@ function SignupContent() {
               building your dream team — Mountain Connects brings it all together.
             </p>
 
-            {/* Testimonial-style callout */}
-            <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
-              <p className="text-sm italic text-white/80">
-                &ldquo;Mountain Connects made it so easy to find my dream ski instructor
-                job in Whistler. Best season of my life!&rdquo;
-              </p>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/30 text-xs font-bold text-white">
-                  EJ
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-white">Emma Johansson</p>
-                  <p className="text-xs text-white/40">Ski Instructor, Whistler</p>
-                </div>
-              </div>
-            </div>
+            {/* What a worker gets — see WORKER_POINTS */}
+            <ul className="mt-8 space-y-3">
+              {WORKER_POINTS.map((point) => (
+                <li key={point} className="flex items-center gap-3 text-sm font-medium text-white/80">
+                  <svg className="h-5 w-5 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {point}
+                </li>
+              ))}
+            </ul>
           </div>
 
           <p className="text-xs text-white/30">
