@@ -58,6 +58,7 @@ function SignupContent() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
@@ -122,6 +123,7 @@ function SignupContent() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setExistingAccount(false);
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.isValid) {
@@ -164,6 +166,7 @@ function SignupContent() {
   const proceedSignup = async (claimExistingImports: boolean) => {
     setShowImportsModal(false);
     setError(null);
+    setExistingAccount(false);
     setLoading(true);
 
     try {
@@ -199,6 +202,16 @@ function SignupContent() {
 
       if (signUpError) {
         setError(signUpError.message);
+        return;
+      }
+
+      // An address that already has a confirmed account gets neither an
+      // email nor an error: Supabase answers with a lookalike user whose
+      // `identities` is empty. Sending that person to "check your email" left
+      // them waiting for nothing (Tyler's own retest, 2026-09-19), and the
+      // steps below would write rows for a user id that doesn't exist.
+      if (signUpData.user && signUpData.user.identities?.length === 0) {
+        setExistingAccount(true);
         return;
       }
 
@@ -648,6 +661,20 @@ function SignupContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>
                 {error}
+              </div>
+            )}
+
+            {existingAccount && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                You already have an account with this email.{" "}
+                <Link href="/login" className="font-semibold text-primary underline">
+                  Log in instead
+                </Link>
+                , or{" "}
+                <Link href="/forgot-password" className="font-semibold text-primary underline">
+                  reset your password
+                </Link>{" "}
+                if you&apos;ve forgotten it.
               </div>
             )}
 
