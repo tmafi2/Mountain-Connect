@@ -37,6 +37,35 @@
 export const EMPLOYERS_DIRECTORY_ENABLED = false;
 
 /**
+ * Google Maps on the public site.
+ *
+ * Turned off on 2026-09-20. Billing is not enabled on the Google Cloud
+ * project behind NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, so the Maps JavaScript API
+ * answers `BillingNotEnabledMapError`: anyone who opened a map got Google's
+ * "This page can't load Google Maps correctly" dialog over a grey tile
+ * watermarked "For development purposes only". A page with no map reads as a
+ * design decision; a page with a broken one reads as a broken site, and the
+ * job board is where paid traffic lands.
+ *
+ * While false:
+ *   - the list/map toggle on /jobs is hidden, and the board opens in list
+ *     view as it always did, so nothing else about that page changes
+ *   - the map cards on resort and town pages are not rendered; the
+ *     coordinates and "nearest town" text beside them stay
+ *   - <ResortMap> itself renders nothing, so a call site added later cannot
+ *     put the error back by accident
+ *
+ * Nothing is deleted. The components, the pins passed to them, the API key
+ * and the @react-google-maps/api dependency are all untouched, and no
+ * request reaches Google while this is false.
+ *
+ * To restore: enable billing on the Google Cloud project, set this to true,
+ * deploy, then open /jobs in map view and confirm the browser console is
+ * free of BillingNotEnabledMapError.
+ */
+export const MAPS_ENABLED = false;
+
+/**
  * How far the job-post expiry sweep is switched on.
  *
  * The sweep can pause every expired listing on the board in one run, so it

@@ -4,6 +4,7 @@ import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
 import { formatPay } from "@/lib/utils/format-pay";
 import ResortMap from "@/components/ui/ResortMap";
+import { MAPS_ENABLED } from "@/lib/config/features";
 import { ResortBanner } from "@/components/ResortBanner";
 import { flagForCountry } from "@/lib/resort-banner";
 import ResortBusinesses from "./ResortBusinesses";
@@ -1191,22 +1192,26 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
                 Nearest town: {resort.nearest_town}
               </p>
             )}
-            <div className="mt-3">
-              <ResortMap
-                pins={[
-                  {
-                    id: resort.id,
-                    lat: resort.latitude,
-                    lng: resort.longitude,
-                    label: resort.name,
-                    sublabel: resort.nearest_town || resort.country,
-                  },
-                ]}
-                height="180px"
-                zoom={11}
-                singlePin
-              />
-            </div>
+            {/* Hidden while MAPS_ENABLED is false (billing). The coordinates
+                and nearest town above stay either way. */}
+            {MAPS_ENABLED && (
+              <div className="mt-3">
+                <ResortMap
+                  pins={[
+                    {
+                      id: resort.id,
+                      lat: resort.latitude,
+                      lng: resort.longitude,
+                      label: resort.name,
+                      sublabel: resort.nearest_town || resort.country,
+                    },
+                  ]}
+                  height="180px"
+                  zoom={11}
+                  singlePin
+                />
+              </div>
+            )}
           </div>
 
           {/* Languages Card */}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ResortMap from "@/components/ui/ResortMap";
+import { MAPS_ENABLED } from "@/lib/config/features";
 import { ResortBanner } from "@/components/ResortBanner";
 import TownBusinesses from "./TownBusinesses";
 import type { Metadata } from "next";
@@ -575,8 +576,8 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
           {/* ── SIDEBAR ───────────────────────────────────────── */}
           <div className="w-full space-y-6 lg:w-80 lg:shrink-0">
 
-            {/* Map */}
-            {town.latitude && town.longitude && (
+            {/* Map — hidden while MAPS_ENABLED is false (billing), card and all */}
+            {MAPS_ENABLED && town.latitude && town.longitude && (
               <div className="overflow-hidden rounded-2xl border border-accent/30 bg-white shadow-sm">
                 <ResortMap
                   pins={[{

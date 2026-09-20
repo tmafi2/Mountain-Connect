@@ -9,6 +9,7 @@ import {
 import { resorts } from "@/lib/data/resorts";
 import ResortMap from "@/components/ui/ResortMap";
 import type { MapPin } from "@/components/ui/Map";
+import { MAPS_ENABLED } from "@/lib/config/features";
 import { createClient } from "@/lib/supabase/client";
 import { formatPay } from "@/lib/utils/format-pay";
 
@@ -659,7 +660,10 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* View toggle */}
+                {/* View toggle — hidden while MAPS_ENABLED is false (billing).
+                    The board opens in list view regardless, so with the toggle
+                    gone the map view below is simply unreachable. */}
+                {MAPS_ENABLED && (
                 <div className="flex rounded-lg border border-accent overflow-hidden">
                   <button
                     onClick={() => setViewMode("list")}
@@ -689,6 +693,7 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
                     </svg>
                   </button>
                 </div>
+                )}
 
                 <label className="text-xs text-foreground/60">Sort by</label>
                 <select

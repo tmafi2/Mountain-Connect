@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { MapPin } from "./Map";
+import { MAPS_ENABLED } from "@/lib/config/features";
 
 const Map = dynamic(() => import("./Map"), {
   ssr: false,
@@ -22,5 +23,11 @@ interface ResortMapProps {
 }
 
 export default function ResortMap(props: ResortMapProps) {
+  // The single choke point while maps are switched off: no dynamic import, so
+  // no request to Google and no BillingNotEnabledMapError, wherever a map is
+  // called for. Call sites hide their own surrounding card as well, or they
+  // would leave an empty box behind.
+  if (!MAPS_ENABLED) return null;
+
   return <Map {...props} />;
 }
