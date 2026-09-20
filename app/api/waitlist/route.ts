@@ -1,14 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWaitlistWorkerEmail, sendWaitlistBusinessEmail } from "@/lib/email/send";
 import { rateLimit } from "@/lib/rate-limit";
 
-export async function POST(request: Request, req: NextRequest) {
+// The second argument a route handler receives is the route context, not a
+// request. This read it as one and called `.json()` on it, so every waitlist
+// signup on /coming-soon threw and answered 500. The body comes from
+// `request`, which the rate limiter above was already using correctly.
+export async function POST(request: Request) {
   const rateLimited = await rateLimit(request, { identifier: "waitlist" });
   if (rateLimited) return rateLimited;
 
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { type, email, business_name, country, resort } = body;
 
     // Validate type
