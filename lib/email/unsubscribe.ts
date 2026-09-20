@@ -15,7 +15,15 @@
  * the requirement.
  */
 
-export const UNSUBSCRIBE_MAILTO = "mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe";
+/**
+ * Tyler's own address, on purpose (2026-09-20). It used to be
+ * unsubscribe@mountainconnects.com, an address nothing proves is a real
+ * mailbox — and a mailto unsubscribe that bounces is worse than none, since
+ * the recipient's next move is "Report spam". The https one-click address is
+ * what providers use anyway; this is the fallback for clients that only do
+ * mailto. The subject stays "Unsubscribe" so it filters in one rule.
+ */
+export const UNSUBSCRIBE_MAILTO = "mailto:tyler@mountainconnects.com?subject=Unsubscribe";
 
 const PAGE_PATH = "/unsubscribe/";
 const ONE_CLICK_PATH = "/api/unsubscribe/";

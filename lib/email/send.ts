@@ -45,7 +45,7 @@ import { winterFollowup3Email } from "./templates/winter-followup-3";
 import { winterFollowupFinalEmail } from "./templates/winter-followup-final";
 import { salesDropinEmail } from "./templates/sales-dropin";
 import { areaJobsUpdateEmail } from "./templates/area-jobs-update";
-import { unsubscribeHeaders } from "./unsubscribe";
+import { unsubscribeHeaders, UNSUBSCRIBE_MAILTO } from "./unsubscribe";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -628,7 +628,7 @@ export async function sendAreaJobsUpdateEmail(params: {
     html,
     text,
     headers: {
-      "List-Unsubscribe": "<mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe>",
+      "List-Unsubscribe": `<${UNSUBSCRIBE_MAILTO}>`,
     },
   });
 }
@@ -670,8 +670,7 @@ export async function sendAreaJobsUpdateEmailBatch(params: {
       html,
       text,
       headers: {
-        "List-Unsubscribe":
-          "<mailto:unsubscribe@mountainconnects.com?subject=Unsubscribe>",
+        "List-Unsubscribe": `<${UNSUBSCRIBE_MAILTO}>`,
       },
     };
   });
