@@ -45,6 +45,7 @@ import { winterFollowup3Email } from "./templates/winter-followup-3";
 import { winterFollowupFinalEmail } from "./templates/winter-followup-final";
 import { salesDropinEmail } from "./templates/sales-dropin";
 import { areaJobsUpdateEmail } from "./templates/area-jobs-update";
+import { unsubscribeHeaders } from "./unsubscribe";
 
 const FROM_EMAIL = "Mountain Connects <notifications@mountainconnects.com>";
 const TYLER_FROM_EMAIL = "Tyler @ Mountain Connects <tyler@mountainconnects.com>";
@@ -496,6 +497,7 @@ export async function sendWinterOutreachEmail(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    headers: unsubscribeHeaders(params.unsubscribeUrl),
   });
 }
 
@@ -515,6 +517,7 @@ export async function sendWinterFollowup1Email(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    headers: unsubscribeHeaders(params.unsubscribeUrl),
   });
 }
 
@@ -534,6 +537,7 @@ export async function sendWinterFollowup2Email(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    headers: unsubscribeHeaders(params.unsubscribeUrl),
   });
 }
 
@@ -554,6 +558,7 @@ export async function sendWinterFollowup3Email(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    headers: unsubscribeHeaders(params.unsubscribeUrl),
   });
 }
 
@@ -573,6 +578,7 @@ export async function sendWinterFollowupFinalEmail(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    headers: unsubscribeHeaders(params.unsubscribeUrl),
   });
 }
 
@@ -591,6 +597,7 @@ export async function sendSalesDropinEmail(params: {
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
+    headers: unsubscribeHeaders(params.unsubscribeUrl),
   });
 }
 
@@ -767,6 +774,7 @@ export async function sendWinterSequenceBatch(params: {
       replyTo: TYLER_REPLY_TO,
       subject,
       html,
+      headers: unsubscribeHeaders(r.unsubscribeUrl),
     };
   });
   return sendEmailBatch(entries);

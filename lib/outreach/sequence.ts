@@ -42,6 +42,21 @@ export interface StandaloneTemplate {
   description: string;
 }
 
+/**
+ * TWO TOUCHES, cut from five on 2026-09-20.
+ *
+ * These addresses are scraped from Facebook posts; nobody on this list asked
+ * to hear from us. By that date outreach stood at 219 emails to 41 leads —
+ * 5.3 touches each — and mail from this domain was landing in spam, which
+ * costs us the transactional mail and Tyler's Workspace inbox too, because
+ * they share the domain's reputation. Complaints come from repetition more
+ * than from any one email, so the sequence is the lever.
+ *
+ * The three later emails are NOT deleted. They moved to STANDALONE_TEMPLATES,
+ * where the admin can still send one by hand to a lead worth chasing, but the
+ * cron will never fire them at anybody automatically. To restore the old
+ * funnel, move the rows back — nothing else needs changing.
+ */
 export const OUTREACH_SEQUENCE: OutreachStep[] = [
   {
     template: "winter-outreach",
@@ -51,22 +66,7 @@ export const OUTREACH_SEQUENCE: OutreachStep[] = [
   {
     template: "winter-followup-1",
     delayDaysAfterPrevious: 3,
-    label: "Quick follow-up — bumping the inbox",
-  },
-  {
-    template: "winter-followup-2",
-    delayDaysAfterPrevious: 7,
-    label: "Workers near you — live demand pitch",
-  },
-  {
-    template: "winter-followup-3",
-    delayDaysAfterPrevious: 14,
-    label: "Want me to set you up? — friction removal",
-  },
-  {
-    template: "winter-followup-final",
-    delayDaysAfterPrevious: 14,
-    label: "Last note — graceful breakup",
+    label: "Quick follow-up — bumping the inbox (last automatic email)",
   },
 ];
 
@@ -75,6 +75,21 @@ export const STANDALONE_TEMPLATES: StandaloneTemplate[] = [
     template: "sales-dropin",
     label: "Sales drop-in follow-up",
     description: "Send after visiting a business in person",
+  },
+  {
+    template: "winter-followup-2",
+    label: "Workers near you — live demand pitch",
+    description: "Was step 2 of the funnel; now by hand only, one lead at a time",
+  },
+  {
+    template: "winter-followup-3",
+    label: "Want me to set you up? — friction removal",
+    description: "Was step 3 of the funnel; now by hand only, one lead at a time",
+  },
+  {
+    template: "winter-followup-final",
+    label: "Last note — graceful breakup",
+    description: "Was step 4 of the funnel; now by hand only, one lead at a time",
   },
 ];
 
