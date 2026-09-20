@@ -98,6 +98,34 @@ export function pickCanonicalBusiness(
   return oldestFirst.find((m) => m.is_claimed) ?? oldestFirst[0];
 }
 
+/**
+ * Misspellings of a real address that a scrape keeps producing.
+ *
+ * The lookup matches on email, so a typo is invisible to it: a post carrying
+ * `recuritment@odin-living.com` inserted its own "The Barn by Odin" row on
+ * 2026-09-09, two days after 00097 collapsed eleven Odin rows, because one
+ * edit is as good as a different company to an equality check. Retiring that
+ * row (00101) only holds while this map exists — otherwise the next scrape of
+ * the same post builds it again.
+ *
+ * Keep this to addresses PROVEN to recur. "Within two edits" is how
+ * `lib/admin/duplicate-businesses.ts` flags candidates for a human; it is not
+ * a licence to merge two real businesses automatically.
+ */
+const EMAIL_ALIASES: Record<string, string> = {
+  "recuritment@odin-living.com": "recruitment@odin-living.com",
+};
+
+/**
+ * The address to look up. Anything not in the alias map comes back exactly as
+ * given — stored addresses are matched with `.eq`, so silently changing an
+ * unknown address's case or spacing here could turn a match into an insert,
+ * which is the failure this module exists to prevent.
+ */
+export function canonicalEmail(email: string): string {
+  return EMAIL_ALIASES[email.trim().toLowerCase()] ?? email;
+}
+
 export interface BusinessLookup {
   /** The business to attach to, or null when this email is genuinely new. */
   match: BusinessMatch | null;
@@ -123,7 +151,7 @@ export async function findBusinessByEmail(
   const { data, error } = await admin
     .from("business_profiles")
     .select(COLUMNS)
-    .eq("email", email);
+    .eq("email", canonicalEmail(email));
 
   if (error) {
     return { match: null, count: 0, error: error.message };

@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickCanonicalBusiness, findBusinessByEmail, type BusinessMatch } from "./business-by-email";
+import {
+  pickCanonicalBusiness,
+  findBusinessByEmail,
+  canonicalEmail,
+  type BusinessMatch,
+} from "./business-by-email";
 
 const biz = (over: Partial<BusinessMatch> & { id: string }): BusinessMatch => ({
   business_name: over.id,
@@ -184,4 +189,42 @@ test("a row with no name never matches an incoming name", () => {
   // A nameless incoming listing must not latch onto the nameless row either;
   // it falls back by age like any other unrecognised name.
   assert.equal(pickCanonicalBusiness(rows, "")?.id, "unnamed");
+});
+
+/**
+ * The misspelled Odin address. 00097 collapsed eleven Odin rows on 7 Sep; on
+ * 9 Sep a post carrying `recuritment@` created a twelfth, because the lookup
+ * matches on email and one edit is as good as a different company to an
+ * equality check. 00101 retires that row, and this mapping is the half that
+ * stops the next scrape rebuilding it.
+ */
+test("a known misspelling is looked up as the real address", async () => {
+  const asked: string[] = [];
+  const recordingAdmin = {
+    from: () => ({
+      select: () => ({
+        eq: async (_column: string, value: string) => {
+          asked.push(value);
+          return { data: [], error: null };
+        },
+      }),
+    }),
+  } as never;
+
+  await findBusinessByEmail(recordingAdmin, "recuritment@odin-living.com");
+  await findBusinessByEmail(recordingAdmin, "  RECURITMENT@Odin-Living.com ");
+  assert.deepEqual(asked, [
+    "recruitment@odin-living.com",
+    "recruitment@odin-living.com",
+  ]);
+});
+
+test("every other address is looked up exactly as given", () => {
+  assert.equal(canonicalEmail("recruitment@odin-living.com"), "recruitment@odin-living.com");
+  // Case and spacing are left alone on purpose: stored addresses are matched
+  // with .eq, so "tidying" an unknown one could turn a match into an insert.
+  assert.equal(canonicalEmail(" Hiring@Example.COM "), " Hiring@Example.COM ");
+  // A typo of somebody else's address is a candidate for a human to judge,
+  // not something to merge automatically.
+  assert.equal(canonicalEmail("recuritment@other-company.com"), "recuritment@other-company.com");
 });
