@@ -36,17 +36,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .select("id, created_at, is_claimed"),
   ]);
 
-  // A failed query used to look exactly like an empty table, which is how the
-  // job and business pages went missing without anyone noticing. Say so.
-  for (const [name, result] of [
-    ["nearby_towns", townsResult],
-    ["job_posts", jobsResult],
-    ["blog_posts", blogResult],
-    ["business_profiles", businessResult],
-  ] as const) {
-    if (result.error) {
-      console.error(`sitemap: ${name} query failed:`, result.error.message);
+  const failures = ([
+    ["nearby_towns", townsResult.error],
+    ["job_posts", jobsResult.error],
+    ["blog_posts", blogResult.error],
+    ["business_profiles", businessResult.error],
+  ] as const).filter(([, error]) => error);
+
+  if (failures.length > 0) {
+    for (const [table, error] of failures) {
+      console.error(`sitemap: ${table} query failed:`, error?.message);
     }
+    // Throw rather than publish a short sitemap. A failed query used to look
+    // exactly like an empty table, so a single bad moment cached a sitemap
+    // missing hundreds of URLs for a full hour — which is precisely what
+    // Supabase's JWT-rejection incident did on 2026-09-19. When regeneration
+    // throws, ISR keeps serving the last good copy instead.
+    throw new Error(
+      `sitemap: query failed for ${failures.map(([table]) => table).join(", ")}`
+    );
   }
 
   const towns = townsResult.data || [];
