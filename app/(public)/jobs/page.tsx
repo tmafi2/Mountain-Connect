@@ -1,5 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
-import { type SeedJob } from "@/lib/data/jobs";
+import { type JobListing } from "@/lib/data/jobs";
 import JobsClient from "./JobsClient";
 
 // Cache the rendered HTML for 2 minutes. Public job listings change
@@ -15,7 +15,7 @@ export const metadata = {
 
 export default async function FindAJobPage() {
   // Fetch all active jobs server-side — no loading spinner needed
-  let jobs: SeedJob[] = [];
+  let jobs: JobListing[] = [];
 
   try {
     const supabase = createPublicClient();
