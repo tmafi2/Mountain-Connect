@@ -19,17 +19,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [townsResult, jobsResult, blogResult, businessResult] = await Promise.all([
     admin.from("nearby_towns").select("slug, updated_at"),
     admin
+      // ⚠️ job_posts has no updated_at. Asking for one made PostgREST answer
+      // with an error, `|| []` turned that into "no jobs", and every listing
+      // silently vanished from the sitemap — on a job board. business_id is
+      // here for the business-page filter below, not for the job pages.
       .from("job_posts")
-      .select("id, updated_at")
+      .select("id, published_at, created_at, business_id")
       .eq("status", "active"),
     admin
       .from("blog_posts")
       .select("slug, updated_at")
       .eq("status", "published"),
     admin
+      // business_profiles has no updated_at either — same silent loss.
       .from("business_profiles")
-      .select("id, updated_at"),
+      .select("id, created_at, is_claimed"),
   ]);
+
+  // A failed query used to look exactly like an empty table, which is how the
+  // job and business pages went missing without anyone noticing. Say so.
+  for (const [name, result] of [
+    ["nearby_towns", townsResult],
+    ["job_posts", jobsResult],
+    ["blog_posts", blogResult],
+    ["business_profiles", businessResult],
+  ] as const) {
+    if (result.error) {
+      console.error(`sitemap: ${name} query failed:`, result.error.message);
+    }
+  }
 
   const towns = townsResult.data || [];
   const jobs = jobsResult.data || [];
@@ -218,7 +236,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Job pages (from database)
   const jobPages: MetadataRoute.Sitemap = jobs.map((job) => ({
     url: `${BASE_URL}/jobs/${job.id}`,
-    lastModified: job.updated_at ? new Date(job.updated_at) : new Date(),
+    lastModified: new Date(job.published_at ?? job.created_at),
     changeFrequency: "daily" as const,
     priority: 0.8,
   }));
@@ -231,13 +249,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  // Business profile pages (from database)
-  const businessPages: MetadataRoute.Sitemap = businesses.map((biz) => ({
-    url: `${BASE_URL}/business/${biz.id}`,
-    lastModified: biz.updated_at ? new Date(biz.updated_at) : new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
-  }));
+  // Business profile pages — only the ones with something on them: a live
+  // listing, or an owner who claimed the account. Every row used to be listed,
+  // and on 2026-09-19 that was 64 of 191 pages with neither: import shells
+  // that were never claimed, plus the retired duplicates of migrations 00095,
+  // 00097 and 00101. Empty pages offered to Google compete with the real ones,
+  // and the retired shells share their names.
+  const businessesWithLiveJobs = new Set(
+    jobs.map((job) => job.business_id).filter(Boolean)
+  );
+
+  const businessPages: MetadataRoute.Sitemap = businesses
+    .filter((biz) => businessesWithLiveJobs.has(biz.id) || biz.is_claimed)
+    .map((biz) => ({
+      url: `${BASE_URL}/business/${biz.id}`,
+      lastModified: new Date(biz.created_at),
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    }));
 
   return [
     ...staticPages,
