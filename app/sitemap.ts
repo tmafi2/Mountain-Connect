@@ -6,11 +6,22 @@ import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
-// Generate the sitemap on-demand instead of at build time. The four Supabase
-// queries below were timing out the Vercel static-page generation step (60s
-// limit) whenever Supabase was slow, breaking deploys. ISR re-generates after
-// each request older than an hour, which is plenty for crawler traffic.
-export const revalidate = 3600;
+// Generated per request, never at build time — and `revalidate` alone did NOT
+// achieve that, which hid a real fault for months.
+//
+// The deploy workflow builds with `vercel pull` + `vercel build`, and Vercel
+// withholds env vars marked Sensitive from that step. So the build had no
+// working SUPABASE_SERVICE_ROLE_KEY: all four queries below answered "Invalid
+// API key", `|| []` turned each one into an empty table, and every deploy
+// shipped a prerendered sitemap with no towns, jobs, businesses or blog posts
+// in it — 150 URLs instead of 628. It only ever filled in if the page happened
+// to be revalidated at runtime, where the key does work.
+//
+// Rendering on demand also answers the original reason for the ISR: at build
+// time these queries could exceed the 60s static-generation limit and break
+// the deploy. Crawlers fetch this a handful of times a day, so four queries
+// per request costs nothing.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
