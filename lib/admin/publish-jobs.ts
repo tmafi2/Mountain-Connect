@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendImportOutreachEmail } from "@/lib/email/send";
+import { loadUnsubscribed, suppressed } from "@/lib/outreach/suppression";
 import { logAdminAction } from "@/lib/audit/log";
 import { notifyGoogleIndexing } from "@/lib/seo/google-indexing";
 
@@ -98,11 +99,20 @@ export async function publishJobs(
     .select("id, business_name, email, is_claimed, claim_token, import_outreach_sent_at")
     .in("id", [...byBusiness.keys()]);
 
+  // Publishing a listing is not a reason to email somebody who asked us to
+  // stop. Read once for the batch; a failed read suppresses, and publishing
+  // still happens — only the email waits.
+  const optOuts = await loadUnsubscribed(admin);
+
   for (const business of businesses ?? []) {
     const theirJobs = byBusiness.get(business.id) ?? [];
     if (theirJobs.length === 0) continue;
 
     const name = business.business_name || "(unnamed)";
+    if (suppressed(optOuts, business.email)) {
+      result.emailsSkipped.push({ businessName: name, reason: "unsubscribed" });
+      continue;
+    }
     if (business.is_claimed) {
       result.emailsSkipped.push({ businessName: name, reason: "already claimed" });
       continue;

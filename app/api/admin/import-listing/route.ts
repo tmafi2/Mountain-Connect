@@ -4,6 +4,7 @@ import { logAdminAction } from "@/lib/audit/log";
 import { sendImportOutreachEmail } from "@/lib/email/send";
 import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
 import { findBusinessByEmail } from "@/lib/admin/business-by-email";
+import { hasUnsubscribed } from "@/lib/outreach/suppression";
 
 /**
  * Resolve the site origin for the generated claim URL. Prefer the incoming
@@ -311,7 +312,9 @@ export async function POST(request: Request) {
     // explicitly approves them.
     let emailSent = false;
     let emailError: string | null = null;
-    if (isPublish) {
+    if (isPublish && (await hasUnsubscribed(admin, email))) {
+      emailError = "Business has unsubscribed";
+    } else if (isPublish) {
       try {
         const result = await sendImportOutreachEmail({
           to: email,

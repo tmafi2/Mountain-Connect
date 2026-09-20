@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEoiThresholdNudgeEmail, sendFirstApplicantNudgeEmail } from "@/lib/email/send";
+import { hasUnsubscribed } from "@/lib/outreach/suppression";
 
 const EOI_NUDGE_THRESHOLD = 5;
 
@@ -99,7 +100,10 @@ export async function POST(
     //   2. eoi_nudge_sent_at             — fires on count >= 5
     //
     // We only need to count when at least one trigger could still fire.
+    const optedOut = await hasUnsubscribed(admin, biz.email);
+
     const needsCount =
+      !optedOut &&
       biz.email &&
       biz.claim_token &&
       (!biz.first_applicant_email_sent_at || !biz.eoi_nudge_sent_at);

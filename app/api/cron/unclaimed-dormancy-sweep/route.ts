@@ -7,6 +7,7 @@ import {
   sendClaimRemovalNoticeEmail,
   sendClaimApplicantsWaitingEmail,
 } from "@/lib/email/send";
+import { loadUnsubscribed, suppressed } from "@/lib/outreach/suppression";
 
 // Two warnings and four weeks, changed from one warning and three on
 // 2026-08-30. The first email arrives cold — from a company the business has
@@ -76,6 +77,10 @@ export async function GET(request: Request) {
     errors: [] as string[],
   };
 
+  // Every email below is unsolicited, so anyone who unsubscribed is
+  // dropped from all three passes before we look at their timers.
+  const optOuts = await loadUnsubscribed(admin);
+
   // ─── Pass 0: missed first-applicant + threshold nudges ──────
   const { data: nudgeCandidates, error: nudgeQueryErr } = await admin
     .from("business_profiles")
@@ -93,6 +98,7 @@ export async function GET(request: Request) {
   }
 
   for (const biz of nudgeCandidates ?? []) {
+    if (suppressed(optOuts, biz.email)) continue;
     try {
       // Count both EOIs and applications against this business — they're
       // both signals of worker interest that should nudge a claim.
@@ -234,6 +240,7 @@ export async function GET(request: Request) {
   }
 
   for (const biz of toWarn ?? []) {
+    if (suppressed(optOuts, biz.email)) continue;
     try {
       if (!biz.email || !biz.claim_token) continue;
 
@@ -316,6 +323,7 @@ export async function GET(request: Request) {
   }
 
   for (const biz of toFinal ?? []) {
+    if (suppressed(optOuts, biz.email)) continue;
     try {
       if (!biz.email || !biz.claim_token) continue;
 

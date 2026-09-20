@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { hasUnsubscribed } from "@/lib/outreach/suppression";
 import { logAdminAction } from "@/lib/audit/log";
 import { sendImportOutreachEmail } from "@/lib/email/send";
 
@@ -59,6 +60,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Missing claim token — listing may be in an inconsistent state." },
         { status: 500 }
+      );
+    }
+
+    if (await hasUnsubscribed(admin, business.email)) {
+      return NextResponse.json(
+        { error: "That business has unsubscribed — resending would ignore their opt-out." },
+        { status: 400 }
       );
     }
 
