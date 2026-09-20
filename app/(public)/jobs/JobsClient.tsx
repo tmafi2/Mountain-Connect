@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  type SeedJob,
+  type JobListing,
 } from "@/lib/data/jobs";
 import { resorts } from "@/lib/data/resorts";
 import ResortMap from "@/components/ui/ResortMap";
@@ -71,7 +71,7 @@ function daysUntil(dateStr: string): string {
 /*  PAGE COMPONENT                                            */
 /* ═══════════════════════════════════════════════════════════ */
 interface JobsClientProps {
-  initialJobs: SeedJob[];
+  initialJobs: JobListing[];
 }
 
 export default function JobsClient({ initialJobs }: JobsClientProps) {
@@ -88,11 +88,11 @@ export default function JobsClient({ initialJobs }: JobsClientProps) {
   );
 }
 
-function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
+function FindAJobContent({ initialJobs }: { initialJobs: JobListing[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [allJobs] = useState<SeedJob[]>(initialJobs);
+  const [allJobs] = useState<JobListing[]>(initialJobs);
   const [loadError] = useState(false);
   const [townResortIds, setTownResortIds] = useState<string[]>([]);
   const [townBusinessIds, setTownBusinessIds] = useState<string[]>([]);
@@ -171,7 +171,7 @@ function FindAJobContent({ initialJobs }: { initialJobs: SeedJob[] }) {
   });
   const [showFilters, setShowFilters] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  const [selectedJob, setSelectedJob] = useState<SeedJob | null>(() => {
+  const [selectedJob, setSelectedJob] = useState<JobListing | null>(() => {
     // Auto-open a specific job if ?open=jobId is in the URL
     const openId = searchParams.get("open");
     if (openId) {
@@ -919,7 +919,7 @@ function JobCard({
   onToggleSave,
   onClick,
 }: {
-  job: SeedJob;
+  job: JobListing;
   isSelected: boolean;
   isSaved: boolean;
   onToggleSave: () => void;
@@ -1062,7 +1062,7 @@ function JobDetailPanel({
   job,
   onClose,
 }: {
-  job: SeedJob;
+  job: JobListing;
   onClose: () => void;
 }) {
   const [applying, setApplying] = useState(false);
