@@ -7,7 +7,7 @@ import { OUTREACH_SEQUENCE, STANDALONE_TEMPLATES } from "@/lib/outreach/sequence
 
 /* ─── Types ──────────────────────────────────────────────── */
 
-type LeadStatus = "active" | "signed_up" | "unsubscribed";
+type LeadStatus = "active" | "signed_up" | "unsubscribed" | "bounced";
 
 interface Lead {
   id: string;
@@ -38,7 +38,25 @@ const STATUS_STYLES: Record<LeadStatus, { bg: string; text: string; label: strin
   active: { bg: "bg-blue-50", text: "text-blue-700", label: "Active" },
   signed_up: { bg: "bg-green-50", text: "text-green-700", label: "Signed up" },
   unsubscribed: { bg: "bg-gray-100", text: "text-gray-600", label: "Unsubscribed" },
+  bounced: { bg: "bg-amber-50", text: "text-amber-700", label: "Bounced" },
 };
+
+/**
+ * The status column is a CHECK constraint in the database, and the database
+ * gained 'bounced' (00104) while this map still had three keys — which threw
+ * on `status.bg` and took the whole page down, because a missing key here is
+ * undefined rather than a type error at runtime. Never index this map bare:
+ * an unknown status should render as itself, not blank the lead list.
+ */
+function styleFor(status: string) {
+  return (
+    STATUS_STYLES[status as LeadStatus] ?? {
+      bg: "bg-gray-100",
+      text: "text-gray-600",
+      label: status,
+    }
+  );
+}
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "—";
@@ -235,8 +253,8 @@ export default function AdminOutreachPage() {
   }, [leads, search, statusFilter, locationFilter]);
 
   const counts = useMemo(() => {
-    const c = { active: 0, signed_up: 0, unsubscribed: 0 };
-    for (const l of leads) c[l.status]++;
+    const c: Record<LeadStatus, number> = { active: 0, signed_up: 0, unsubscribed: 0, bounced: 0 };
+    for (const l of leads) if (l.status in c) c[l.status]++;
     return c;
   }, [leads]);
 
@@ -374,10 +392,11 @@ export default function AdminOutreachPage() {
       </div>
 
       {/* Counts */}
-      <div className="mt-6 grid grid-cols-3 gap-3 sm:max-w-md">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:max-w-2xl sm:grid-cols-4">
         <CountTile label="Active" value={counts.active} tone="blue" />
         <CountTile label="Signed up" value={counts.signed_up} tone="green" />
         <CountTile label="Unsubscribed" value={counts.unsubscribed} tone="gray" />
+        <CountTile label="Bounced" value={counts.bounced} tone="amber" />
       </div>
 
       {/* Add-lead form */}
@@ -478,6 +497,7 @@ export default function AdminOutreachPage() {
           <option value="active">Active</option>
           <option value="signed_up">Signed up</option>
           <option value="unsubscribed">Unsubscribed</option>
+          <option value="bounced">Bounced</option>
         </select>
         <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="input w-auto">
           <option value="">All locations</option>
@@ -564,7 +584,7 @@ export default function AdminOutreachPage() {
                 </tr>
               ) : (
                 filtered.map((lead) => {
-                  const status = STATUS_STYLES[lead.status];
+                  const status = styleFor(lead.status);
                   const location = lead.nearby_towns?.name || lead.resorts?.name || "—";
                   const isBusy = busyId === lead.id;
                   return (
@@ -674,11 +694,12 @@ export default function AdminOutreachPage() {
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
-function CountTile({ label, value, tone }: { label: string; value: number; tone: "blue" | "green" | "gray" }) {
+function CountTile({ label, value, tone }: { label: string; value: number; tone: "blue" | "green" | "gray" | "amber" }) {
   const tones: Record<string, string> = {
     blue: "border-blue-200 bg-blue-50 text-blue-900",
     green: "border-green-200 bg-green-50 text-green-900",
     gray: "border-gray-200 bg-gray-50 text-gray-700",
+    amber: "border-amber-200 bg-amber-50 text-amber-900",
   };
   return (
     <div className={`rounded-xl border px-4 py-3 ${tones[tone]}`}>

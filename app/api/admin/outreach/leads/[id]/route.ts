@@ -25,7 +25,7 @@ export async function PATCH(
     resortId?: string | null;
     townId?: string | null;
     notes?: string | null;
-    status?: "active" | "signed_up" | "unsubscribed";
+    status?: "active" | "signed_up" | "unsubscribed" | "bounced";
   };
   try {
     body = await request.json();
@@ -39,7 +39,8 @@ export async function PATCH(
   if (body.townId !== undefined) update.town_id = body.townId || null;
   if (body.notes !== undefined) update.notes = body.notes?.trim() || null;
   if (body.status !== undefined) {
-    if (!["active", "signed_up", "unsubscribed"].includes(body.status)) {
+    // Mirrors the outreach_leads CHECK constraint — 00104 added 'bounced'.
+    if (!["active", "signed_up", "unsubscribed", "bounced"].includes(body.status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
     update.status = body.status;

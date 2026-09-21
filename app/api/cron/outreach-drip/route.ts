@@ -135,19 +135,19 @@ export async function GET(request: Request) {
       };
       if (next.template === "winter-outreach") {
         const r = await sendWinterOutreachEmail(common);
-        resendId = r?.data?.id;
+        resendId = r?.id;
       } else if (next.template === "winter-followup-1") {
         const r = await sendWinterFollowup1Email(common);
-        resendId = r?.data?.id;
+        resendId = r?.id;
       } else if (next.template === "winter-followup-2") {
         const r = await sendWinterFollowup2Email(common);
-        resendId = r?.data?.id;
+        resendId = r?.id;
       } else if (next.template === "winter-followup-3") {
         const r = await sendWinterFollowup3Email(common);
-        resendId = r?.data?.id;
+        resendId = r?.id;
       } else if (next.template === "winter-followup-final") {
         const r = await sendWinterFollowupFinalEmail(common);
-        resendId = r?.data?.id;
+        resendId = r?.id;
       } else {
         // Add new template branches as templates land in the sequence.
         result.errors.push(`Lead ${lead.id}: no send handler for template "${next.template}"`);

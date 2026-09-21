@@ -85,7 +85,7 @@ export async function POST(
       default:
         return NextResponse.json({ error: `Template "${name}" has no send handler` }, { status: 500 });
     }
-    return NextResponse.json({ success: true, resendId: r?.data?.id ?? null, sentTo: to });
+    return NextResponse.json({ success: true, resendId: r?.id ?? null, sentTo: to });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 502 });

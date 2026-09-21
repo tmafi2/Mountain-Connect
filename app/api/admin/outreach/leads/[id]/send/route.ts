@@ -80,6 +80,15 @@ export async function POST(
 
   // Fire the right template. Add new branches as templates are added
   // to lib/outreach/sequence.ts.
+  //
+  // ⚠️ `sendEmail()` returns Resend's DATA object ({ id }), not the SDK's
+  // { data, error } envelope — it unwraps the envelope and throws on error,
+  // which is the whole point of the wrapper. Reading `result.data.id` here
+  // therefore always yielded undefined, and every single send was recorded
+  // with a null resend_id while the email itself went out fine. Fixed
+  // 2026-09-21 after an outreach run looked like it had lost an email that
+  // Resend had in fact delivered. Typecheck is the guard: the old form is a
+  // type error, which is where it hid for months inside a tolerated count.
   let sendResult: { id?: string; error?: string };
   try {
     if (template === "winter-outreach") {
@@ -91,7 +100,7 @@ export async function POST(
         locationName,
         hemisphere,
       });
-      sendResult = { id: result?.data?.id };
+      sendResult = { id: result?.id };
     } else if (template === "winter-followup-1") {
       const result = await sendWinterFollowup1Email({
         to: lead.email,
@@ -101,7 +110,7 @@ export async function POST(
         locationName,
         hemisphere,
       });
-      sendResult = { id: result?.data?.id };
+      sendResult = { id: result?.id };
     } else if (template === "winter-followup-2") {
       const result = await sendWinterFollowup2Email({
         to: lead.email,
@@ -111,7 +120,7 @@ export async function POST(
         locationName,
         hemisphere,
       });
-      sendResult = { id: result?.data?.id };
+      sendResult = { id: result?.id };
     } else if (template === "winter-followup-3") {
       const result = await sendWinterFollowup3Email({
         to: lead.email,
@@ -121,7 +130,7 @@ export async function POST(
         locationName,
         hemisphere,
       });
-      sendResult = { id: result?.data?.id };
+      sendResult = { id: result?.id };
     } else if (template === "winter-followup-final") {
       const result = await sendWinterFollowupFinalEmail({
         to: lead.email,
@@ -131,7 +140,7 @@ export async function POST(
         locationName,
         hemisphere,
       });
-      sendResult = { id: result?.data?.id };
+      sendResult = { id: result?.id };
     } else if (template === "sales-dropin") {
       const result = await sendSalesDropinEmail({
         to: lead.email,
@@ -141,7 +150,7 @@ export async function POST(
         ctaUrl,
         unsubscribeUrl,
       });
-      sendResult = { id: result?.data?.id };
+      sendResult = { id: result?.id };
     } else {
       return NextResponse.json(
         { error: `Template "${template}" has no send handler wired up` },
