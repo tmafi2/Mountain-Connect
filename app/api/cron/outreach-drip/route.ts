@@ -10,6 +10,7 @@ import {
 import { OUTREACH_SEQUENCE, findNextStep } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
 import { businessSignupCta } from "@/lib/outreach/cta";
+import { paceDaily, outreachSentInLastDay, deferredMessage } from "@/lib/outreach/pacing";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient();
-  const result = { sent: 0, skipped: 0, errors: [] as string[] };
+  const result = { sent: 0, skipped: 0, deferred: 0, errors: [] as string[] };
 
   // Pull every active lead with at least one prior send. We grab the
   // most recent send per lead via a single ordered query and reduce in
@@ -95,6 +96,16 @@ export async function GET(request: Request) {
   const now = Date.now();
   const DAY_MS = 24 * 60 * 60 * 1000;
 
+  // ── PHASE 1: decide who is due, sending nothing yet ──────────────────
+  // Working out the whole set first is what makes pacing possible: you
+  // cannot spread a list evenly while you are already halfway through it.
+  type DueLead = {
+    lead: (typeof leads)[number];
+    next: NonNullable<ReturnType<typeof findNextStep>>;
+    dueAt: number;
+  };
+  const due: DueLead[] = [];
+
   for (const lead of leads) {
     const last = lastSendByLead.get(lead.id as string);
     if (!last) {
@@ -116,6 +127,27 @@ export async function GET(request: Request) {
       continue;
     }
 
+    due.push({ lead, next, dueAt });
+  }
+
+  // ── PHASE 2: pace it ─────────────────────────────────────────────────
+  // A bulk send puts every lead on the same clock, so their follow-ups all
+  // fall due in the same minute: after the 2026-09-21 run, 209 of them were
+  // queued for 00:43 on the 24th. Unpaced, this loop would have made 209
+  // sequential Resend calls — past the per-second rate limit that once cost a
+  // campaign all but five of its deliveries — and dropped another spike on a
+  // domain that also carries signup confirmations.
+  //
+  // Longest-overdue first, so nobody is starved by a lead that joined later.
+  due.sort((a, b) => a.dueAt - b.dueAt);
+  const alreadySentToday = await outreachSentInLastDay(admin);
+  const plan = paceDaily(due, alreadySentToday);
+  result.deferred = plan.deferred.length;
+  if (plan.deferred.length > 0) {
+    console.log(`[outreach-drip] ${plan.deferred.length} deferred. ${deferredMessage(plan.roomToday)}`);
+  }
+
+  for (const { lead, next } of plan.send) {
     // Due — fire the template.
     const resort = lead.resorts as { name: string; country: string | null } | null;
     const town = lead.nearby_towns as { name: string; country: string | null } | null;

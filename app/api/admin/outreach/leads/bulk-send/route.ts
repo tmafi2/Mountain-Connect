@@ -5,6 +5,7 @@ import { sendWinterSequenceBatch } from "@/lib/email/send";
 import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
 import { businessSignupCta } from "@/lib/outreach/cta";
+import { paceDaily, outreachSentInLastDay, deferredMessage } from "@/lib/outreach/pacing";
 
 const BASE_URL = "https://www.mountainconnects.com";
 const MAX_LEADS_PER_REQUEST = 500;
@@ -155,14 +156,31 @@ export async function POST(request: Request) {
     sendable.push({ lead });
   }
 
+  // Pace it before anything goes out. The batch API means 500 leads is only
+  // five calls, so nothing here would fail — which is exactly the problem:
+  // 180 emails left in one second on 2026-09-21, from a domain that normally
+  // sends a few dozen a day and also carries the signup confirmations. What
+  // does not fit today is DEFERRED, not dropped; it goes on the next run.
+  const alreadySentToday = await outreachSentInLastDay(admin);
+  const paced = paceDaily(sendable, alreadySentToday);
+  for (const { lead } of paced.deferred) {
+    skippedOutcomes.push({
+      leadId: lead.id,
+      email: lead.email,
+      business_name: lead.business_name,
+      status: "skipped",
+      message: deferredMessage(paced.roomToday),
+    });
+  }
+
   // Send the active leads in 100-recipient batches via Resend's
   // batch API. Each batch is a single API call, so 500 leads needs
   // 5 calls — way under any rate limit.
   const sentOutcomes: SendOutcome[] = [];
   const ctaUrl = businessSignupCta(template, BASE_URL);
 
-  for (let i = 0; i < sendable.length; i += RESEND_BATCH_SIZE) {
-    const chunk = sendable.slice(i, i + RESEND_BATCH_SIZE);
+  for (let i = 0; i < paced.send.length; i += RESEND_BATCH_SIZE) {
+    const chunk = paced.send.slice(i, i + RESEND_BATCH_SIZE);
     const recipients = chunk.map(({ lead }) => ({
       to: lead.email,
       businessName: lead.business_name,
