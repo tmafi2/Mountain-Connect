@@ -9,6 +9,7 @@ import {
 } from "@/lib/email/send";
 import { OUTREACH_SEQUENCE, findNextStep } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
+import { businessSignupCta } from "@/lib/outreach/cta";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -121,7 +122,7 @@ export async function GET(request: Request) {
     const locationName = town?.name || resort?.name;
     const hemisphere = hemisphereForLead(resort, town);
     const unsubscribeUrl = `${BASE_URL}/unsubscribe/${lead.unsubscribe_token}`;
-    const ctaUrl = `${BASE_URL}/signup?role=business`;
+    const ctaUrl = businessSignupCta(next.template, BASE_URL);
 
     try {
       let resendId: string | undefined;

@@ -10,6 +10,7 @@ import {
   sendSalesDropinEmail,
 } from "@/lib/email/send";
 import { allManualTemplates } from "@/lib/outreach/sequence";
+import { businessSignupCta } from "@/lib/outreach/cta";
 
 const SAMPLE_BASE_URL = "https://www.mountainconnects.com";
 
@@ -55,7 +56,7 @@ export async function POST(
 
   const businessName = body.businessName?.trim() || "Thredbo Alpine Village";
   const locationName = body.locationName?.trim() || undefined;
-  const ctaUrl = `${SAMPLE_BASE_URL}/signup?role=business`;
+  const ctaUrl = businessSignupCta(name, SAMPLE_BASE_URL);
   const unsubscribeUrl = `${SAMPLE_BASE_URL}/unsubscribe/preview-token`;
 
   const contactPersonName = body.contactPersonName?.trim() || undefined;

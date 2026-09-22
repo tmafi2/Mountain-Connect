@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { sendWinterSequenceBatch } from "@/lib/email/send";
 import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
+import { businessSignupCta } from "@/lib/outreach/cta";
 
 const BASE_URL = "https://www.mountainconnects.com";
 const MAX_LEADS_PER_REQUEST = 500;
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
   // batch API. Each batch is a single API call, so 500 leads needs
   // 5 calls — way under any rate limit.
   const sentOutcomes: SendOutcome[] = [];
-  const ctaUrl = `${BASE_URL}/signup?role=business`;
+  const ctaUrl = businessSignupCta(template, BASE_URL);
 
   for (let i = 0; i < sendable.length; i += RESEND_BATCH_SIZE) {
     const chunk = sendable.slice(i, i + RESEND_BATCH_SIZE);

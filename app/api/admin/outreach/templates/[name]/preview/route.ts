@@ -7,6 +7,7 @@ import { winterFollowup3Email } from "@/lib/email/templates/winter-followup-3";
 import { winterFollowupFinalEmail } from "@/lib/email/templates/winter-followup-final";
 import { salesDropinEmail } from "@/lib/email/templates/sales-dropin";
 import { allManualTemplates } from "@/lib/outreach/sequence";
+import { businessSignupCta } from "@/lib/outreach/cta";
 
 const SAMPLE_BASE_URL = "https://www.mountainconnects.com";
 
@@ -35,7 +36,7 @@ export async function GET(
   const locationName = url.searchParams.get("locationName") || undefined;
   const contactPersonName = url.searchParams.get("contactPersonName") || undefined;
 
-  const ctaUrl = `${SAMPLE_BASE_URL}/signup?role=business`;
+  const ctaUrl = businessSignupCta(name, SAMPLE_BASE_URL);
   const unsubscribeUrl = `${SAMPLE_BASE_URL}/unsubscribe/preview-token`;
 
   let html: string;

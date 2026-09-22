@@ -11,6 +11,7 @@ import {
 } from "@/lib/email/send";
 import { allManualTemplates } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
+import { businessSignupCta } from "@/lib/outreach/cta";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -76,7 +77,7 @@ export async function POST(
   const locationName = town?.name || resort?.name;
   const hemisphere = hemisphereForLead(resort, town);
   const unsubscribeUrl = `${BASE_URL}/unsubscribe/${lead.unsubscribe_token}`;
-  const ctaUrl = `${BASE_URL}/signup?role=business`;
+  const ctaUrl = businessSignupCta(template, BASE_URL);
 
   // Fire the right template. Add new branches as templates are added
   // to lib/outreach/sequence.ts.
