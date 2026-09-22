@@ -283,7 +283,7 @@ export default function AboutClient({ stats }: { stats: PlatformStats }) {
               { value: formatStat(stats.resorts), label: "Ski Resorts" },
               { value: formatStat(stats.countries), label: "Countries" },
               { value: formatStat(stats.towns), label: "Mountain Towns" },
-              { value: "Free", label: "To Join" },
+              { value: formatStat(stats.liveJobs), label: "Live Jobs" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <p className="text-4xl font-extrabold text-primary">{s.value}</p>
