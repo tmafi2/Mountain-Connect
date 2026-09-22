@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NextRequest } from "next/server";
+import { NextRequest, type NextFetchEvent } from "next/server";
 import { middleware } from "./middleware";
 
 /**
@@ -36,11 +36,19 @@ async function inEnv<T>(nodeEnv: "development" | "production", fn: () => Promise
   }
 }
 
+/**
+ * Middleware takes Next's fetch event as its second argument — it is what the
+ * campaign visit counter hands its insert to, so it never delays a response.
+ * The stub drops the promise, which keeps these tests free of network calls.
+ */
+const noopEvent = { waitUntil: () => {} } as unknown as NextFetchEvent;
+
 function visit(path: string, cookie?: string) {
   return middleware(
     new NextRequest(`https://www.mountainconnects.com${path}`, {
       headers: cookie ? { cookie } : {},
     }),
+    noopEvent,
   );
 }
 

@@ -1,6 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { withTimeout } from "@/lib/utils/with-timeout";
+import { isCampaignPath, recordCampaignVisit, visitFromRequest } from "@/lib/campaigns/visit-log";
 
 // Short-lived cookie that caches the user's role so we do not hit Supabase
 // on every protected-route request. Format is "<userId>:<role>" so a stale
@@ -55,8 +56,24 @@ const BUSINESS_PORTAL_ROUTES = [
 // Routes that require the "admin" role
 const ADMIN_ROUTES_PREFIX = "/admin";
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
+
+  // ── Count campaign landing page hits, before anything can return early ──
+  // This is the only measurement of paid traffic that does not depend on the
+  // cookie banner: GA4 and the Meta pixel both load on consent, so they saw 6
+  // people on a page the ad reported 115 views of. Middleware runs on every
+  // request even though the page itself is static and cached, which is why
+  // the count lives here rather than in the page.
+  //
+  // waitUntil, so the insert never delays the response, and recordCampaignVisit
+  // swallows its own errors: a missed count costs a number, a thrown counter
+  // would cost an ad click.
+  if (isCampaignPath(pathname)) {
+    event.waitUntil(
+      recordCampaignVisit(visitFromRequest(request.nextUrl, request.headers.get("user-agent")))
+    );
+  }
 
   // ── Fast path: skip everything for API routes (they handle their own auth) ──
   if (pathname.startsWith("/api/")) {
