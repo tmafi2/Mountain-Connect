@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   if (!isBillingEnabled()) {
     return NextResponse.json(
-      { error: "Online billing isn't switched on yet. Email hello@mountainconnects.com and we'll set you up." },
+      { error: "Online billing isn't switched on yet. Email contact@mountainconnects.com and we'll set you up." },
       { status: 503 }
     );
   }

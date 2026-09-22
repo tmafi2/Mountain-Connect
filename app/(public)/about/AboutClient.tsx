@@ -308,7 +308,7 @@ export default function AboutClient({ stats }: { stats: PlatformStats }) {
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <a
-              href="mailto:hello@mountainconnects.com"
+              href="mailto:contact@mountainconnects.com"
               className="group flex items-center gap-4 rounded-2xl border border-accent/30 bg-white p-6 transition-all hover-lift"
             >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary transition-all group-hover:scale-110">
@@ -318,7 +318,7 @@ export default function AboutClient({ stats }: { stats: PlatformStats }) {
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold text-primary">Email Us</p>
-                <p className="text-sm text-foreground/50">hello@mountainconnects.com</p>
+                <p className="text-sm text-foreground/50">contact@mountainconnects.com</p>
               </div>
             </a>
 

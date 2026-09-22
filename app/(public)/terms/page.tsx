@@ -162,7 +162,7 @@ export default function TermsOfServicePage() {
             If you have any questions about these Terms of Service, please contact us at:
           </p>
           <p className="mt-2">
-            <strong>Email:</strong> hello@mountainconnects.com
+            <strong>Email:</strong> contact@mountainconnects.com
           </p>
         </section>
       </div>

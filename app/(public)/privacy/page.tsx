@@ -140,9 +140,9 @@ export default function PrivacyPolicyPage() {
             <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
             <li><strong>Correction:</strong> Request that we correct any inaccurate or incomplete information</li>
             <li><strong>Deletion:</strong> Request that we delete your personal information and account. Account deletion removes your profile data, applications, job listings, messages, interviews, notifications, newsletter subscriptions, authentication credentials, and the files you uploaded — profile photo, resume, cover letter, logo, and business photos are deleted from our storage, not merely unlinked. The exceptions are the ones named in section 5: payment and subscription records, which we must keep for tax and accounting purposes and which Stripe also retains independently of us; our administrative audit log; and any contract PDF held under an employer&apos;s records</li>
-            <li><strong>Complaint:</strong> Complain to us first at hello@mountainconnects.com, and to your regulator if we do not resolve it</li>
+            <li><strong>Complaint:</strong> Complain to us first at contact@mountainconnects.com, and to your regulator if we do not resolve it</li>
           </ul>
-          <p className="mt-2">To exercise any of these rights, contact us at hello@mountainconnects.com. We do not charge for this and we will not treat you differently for asking.</p>
+          <p className="mt-2">To exercise any of these rights, contact us at contact@mountainconnects.com. We do not charge for this and we will not treat you differently for asking.</p>
 
           <p className="mt-4"><strong>Your regulator, by region:</strong></p>
           <ul className="mt-2 list-disc space-y-1 pl-6">
@@ -191,7 +191,7 @@ export default function PrivacyPolicyPage() {
             If you have any questions about this Privacy Policy or our data practices, please contact us at:
           </p>
           <p className="mt-2">
-            <strong>Email:</strong> hello@mountainconnects.com
+            <strong>Email:</strong> contact@mountainconnects.com
           </p>
         </section>
       </div>

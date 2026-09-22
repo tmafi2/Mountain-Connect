@@ -335,7 +335,7 @@ export default function UpgradePage() {
                   </div>
                 ) : tier === "enterprise" ? (
                   <a
-                    href="mailto:hello@mountainconnects.com?subject=Enterprise Plan Inquiry&body=Hi, I'd like to learn more about the Enterprise plan for my business on Mountain Connects."
+                    href="mailto:contact@mountainconnects.com?subject=Enterprise Plan Inquiry&body=Hi, I'd like to learn more about the Enterprise plan for my business on Mountain Connects."
                     className={`block w-full rounded-xl py-2.5 text-center text-sm font-bold text-white transition-colors ${colors.cta}`}
                   >
                     Talk to us

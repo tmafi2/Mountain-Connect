@@ -109,7 +109,7 @@ export function waitlistBusinessEmail({ email, businessName, resort }: WaitlistB
                 <tr>
                   <td style="padding:16px 24px;background-color:#f8fafc;border-radius:12px;border:1px solid #e8edf2;text-align:center;">
                     <p style="margin:0 0 8px;color:#0a1e33;font-size:13px;font-weight:700;">Get in touch</p>
-                    <a href="mailto:hello@mountainconnects.com" style="color:#3b9ede;text-decoration:none;font-size:15px;font-weight:600;">hello@mountainconnects.com</a>
+                    <a href="mailto:contact@mountainconnects.com" style="color:#3b9ede;text-decoration:none;font-size:15px;font-weight:600;">contact@mountainconnects.com</a>
                   </td>
                 </tr>
               </table>

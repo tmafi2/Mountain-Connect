@@ -80,7 +80,7 @@ export default function PlanPanel({ billing, activeJobs }: { billing: PlanPanelB
     tone = "success";
     title = "Enterprise plan";
     detail = "Unlimited listings, dedicated support. Contact us for any changes.";
-    cta = { href: "mailto:hello@mountainconnects.com?subject=Enterprise plan", label: "Contact us" };
+    cta = { href: "mailto:contact@mountainconnects.com?subject=Enterprise plan", label: "Contact us" };
   } else {
     // Free (incl. lapsed / cancelled)
     tone = "neutral";
