@@ -1,5 +1,5 @@
 import { safeGet, safeSet } from "@/lib/utils/safe-storage";
-import { parseAnswers, type SeasonAnswers } from "./season-quiz";
+import { parseAnswers, workTypesToParam, type SeasonAnswers } from "./season-quiz";
 
 /**
  * Carries a paid-traffic visitor's campaign context — which ad brought them
@@ -100,7 +100,7 @@ export function contextToParams(ctx: SignupContext): URLSearchParams {
   if (ctx.answers) {
     params.set("dest", ctx.answers.destination);
     params.set("season", ctx.answers.season);
-    params.set("work", ctx.answers.workType);
+    params.set("work", workTypesToParam(ctx.answers.workTypes));
   }
   for (const key of UTM_KEYS) {
     const v = ctx.utm?.[key];
@@ -183,7 +183,12 @@ export function signupMetadata(ctx: SignupContext | null, accountType: "worker" 
     out.season_intent = {
       destination: ctx.answers.destination,
       season: ctx.answers.season,
-      work_type: ctx.answers.workType,
+      // Comma-joined rather than an array, and still called work_type: the
+      // key is a registered GA4 custom dimension and sits on accounts created
+      // before question 3 took more than one answer. parseAnswers reads a
+      // single value, a joined string or an array, so nothing already stored
+      // stops meaning what it meant.
+      work_type: workTypesToParam(ctx.answers.workTypes),
     };
   }
   return out;

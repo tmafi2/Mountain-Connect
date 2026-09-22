@@ -16,7 +16,7 @@ import {
 } from "./attribution";
 
 const NOW = Date.UTC(2026, 8, 19);
-const answers = { destination: "canada", season: "northern-winter", workType: "hospitality" } as const;
+const answers: import("./season-quiz").SeasonAnswers = { destination: "canada", season: "northern-winter", workTypes: ["hospitality"] };
 
 test("UTMs: the five standard keys only, trimmed, stripped of control characters, capped", () => {
   const nul = String.fromCharCode(0);

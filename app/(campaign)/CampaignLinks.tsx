@@ -20,7 +20,7 @@ export function answerProps(answers: Partial<SeasonAnswers> | undefined): Funnel
   return {
     destination: answers?.destination,
     season: answers?.season,
-    work_type: answers?.workType,
+    work_type: answers?.workTypes?.join(","),
   };
 }
 

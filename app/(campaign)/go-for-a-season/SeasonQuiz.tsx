@@ -11,6 +11,7 @@ import {
   resultCopy,
   type QuizOption,
   type SeasonAnswers,
+  type WorkType,
 } from "@/lib/campaigns/season-quiz";
 import { setSeasonAnswers, useSignupContext } from "@/lib/campaigns/signup-context-store";
 import { BTN_GHOST, BTN_PRIMARY_XL } from "../buttons";
@@ -18,16 +19,24 @@ import { QUIZ_SECTION_ID, answerProps, markQuizStarted, prefersReducedMotion } f
 import { RESULT } from "./content";
 
 /**
- * Find My Season: three taps, one question per screen, then a result that
- * repeats the answers back and asks for the signup. Choosing an option moves
- * straight on — no Continue button to find — after a beat long enough to see
- * the choice land.
+ * Find My Season: hemisphere, then country, then what work — one question per
+ * screen, then a result that repeats the answers back and asks for the signup.
+ *
+ * The first two questions move straight on when you choose — no Continue
+ * button to find — after a beat long enough to see the choice land. The last
+ * one takes more than one answer, so it cannot: it needs a Continue, and that
+ * is the only screen with one.
  */
+
+/** The answer that means "no preference", so it cannot sit beside a
+ *  preference: choosing it clears the rest, and choosing anything else
+ *  clears it. */
+const NO_PREFERENCE: WorkType = "anything";
 
 const STEP_EVENTS: Record<keyof SeasonAnswers, FunnelEvent> = {
   destination: "destination_selected",
   season: "season_selected",
-  workType: "work_type_selected",
+  workTypes: "work_type_selected",
 };
 
 const ADVANCE_DELAY_MS = 260;
@@ -118,9 +127,41 @@ export default function SeasonQuiz({ countriesWithJobs }: { countriesWithJobs: s
     }, ADVANCE_DELAY_MS);
   }
 
+  /** Question 3 only: tapping an option adds or removes it, nothing advances. */
+  function toggleWorkType(value: WorkType) {
+    markQuizStarted("quiz");
+    setAnswers((prev) => {
+      const chosen = prev.workTypes ?? [];
+      let next: WorkType[];
+      if (value === NO_PREFERENCE) {
+        next = chosen.includes(value) ? [] : [value];
+      } else {
+        const without = chosen.filter((v) => v !== value && v !== NO_PREFERENCE);
+        next = chosen.includes(value) ? without : [...without, value];
+      }
+      return { ...prev, workTypes: next };
+    });
+  }
+
+  /**
+   * Finishing question 3. The step event fires here rather than on each tap:
+   * selecting and deselecting four options should be one answer in the
+   * funnel, not eight.
+   */
+  function finishWorkTypes() {
+    const chosen = answers.workTypes ?? [];
+    if (chosen.length === 0) return;
+    const finished = { ...answers, workTypes: chosen } as SeasonAnswers;
+    track(STEP_EVENTS.workTypes, answerProps(finished));
+    setSeasonAnswers(finished);
+    track("find_my_season_completed", answerProps(finished));
+    goTo(RESULT_STEP, "next");
+  }
+
   const complete = step === RESULT_STEP ? (answers as SeasonAnswers) : null;
   const current = complete ? null : QUIZ_STEPS[step];
-  // Ordered by the answers so far: question 2 leads with the destination's winter.
+  const chosenWorkTypes = answers.workTypes ?? [];
+  // Question 2 shows only the countries in the hemisphere chosen in question 1.
   const options = current ? optionsForStep(current, answers) : [];
 
   return (
@@ -181,11 +222,41 @@ export default function SeasonQuiz({ countriesWithJobs }: { countriesWithJobs: s
                   key={option.value}
                   option={option}
                   tile={options.length === 3}
-                  selected={(pending ?? answers[current.key]) === option.value}
-                  onSelect={() => choose(current.key, option.value)}
+                  multi={current.multi}
+                  selected={
+                    current.multi
+                      ? chosenWorkTypes.includes(option.value as WorkType)
+                      : (pending ?? answers[current.key]) === option.value
+                  }
+                  onSelect={() =>
+                    current.multi
+                      ? toggleWorkType(option.value as WorkType)
+                      : choose(current.key, option.value)
+                  }
                 />
               ))}
             </div>
+
+            {/* Only the multi-select question has a Continue: the other two
+                advance on tap, and giving them a button nobody needs is how a
+                three-tap quiz becomes a six-tap one. */}
+            {current.multi ? (
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={finishWorkTypes}
+                  disabled={chosenWorkTypes.length === 0}
+                  className={`${BTN_PRIMARY_XL} w-full disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:w-auto`}
+                >
+                  Continue
+                </button>
+                <p aria-live="polite" className="min-h-5 text-sm text-white/70">
+                  {chosenWorkTypes.length === 0
+                    ? "Pick at least one."
+                    : `${chosenWorkTypes.length} selected`}
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -231,12 +302,17 @@ function QuizOptionButton({
   option,
   selected,
   tile,
+  multi,
   onSelect,
 }: {
   option: QuizOption;
   selected: boolean;
   /** One of three equal tiles: from md up, the emoji sits above the label. */
   tile: boolean;
+  /** On the multi-select question, a tick makes it visible that choosing one
+   *  option does not un-choose the last — the colour change alone reads the
+   *  same as the single-select questions before it. */
+  multi?: boolean;
   onSelect: () => void;
 }) {
   return (
@@ -261,6 +337,16 @@ function QuizOptionButton({
           className={`shrink-0 whitespace-nowrap text-[1.6rem] leading-none ${tile ? "min-w-[5.5rem] md:min-w-0" : ""}`}
         >
           {option.emoji}
+        </span>
+      ) : null}
+      {multi ? (
+        <span
+          aria-hidden="true"
+          className={`absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded border text-[11px] font-black ${
+            selected ? "border-primary/40 bg-primary/15 text-primary" : "border-white/30 text-transparent"
+          }`}
+        >
+          ✓
         </span>
       ) : null}
       <span className="min-w-0 flex-1">

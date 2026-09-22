@@ -278,7 +278,7 @@ function SignupContent() {
         track("worker_signup_completed", {
           destination: signupContext?.answers?.destination,
           season: signupContext?.answers?.season,
-          work_type: signupContext?.answers?.workType,
+          work_type: signupContext?.answers?.workTypes?.join(","),
         });
       }
 

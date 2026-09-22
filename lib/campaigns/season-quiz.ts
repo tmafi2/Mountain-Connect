@@ -1,5 +1,13 @@
 /**
- * "Find My Season" — the three-question quiz on /go-for-a-season.
+ * "Find My Season" — the three-question quiz on /go-for-a-season:
+ * hemisphere, then country, then what work (pick as many as you like).
+ *
+ * ORDER MATTERS AND CHANGED 2026-09-22. It used to ask the country first and
+ * the hemisphere second, which asked the harder question first: plenty of
+ * people know they want a northern winter long before they know whether that
+ * means Canada or Japan. Asking the hemisphere first also lets question 2
+ * show only the countries that HAVE that winter, so the list is short and
+ * every option is a real answer.
  *
  * Content lives here rather than in the components so destinations, seasons
  * and work types can change without touching layout code.
@@ -25,9 +33,15 @@ export type WorkType =
   | "anything";
 
 export interface SeasonAnswers {
-  destination: Destination;
+  /** Question 1 — the hemisphere. The VALUES are unchanged from when this was
+   *  question 2, so every signup, analytics row and GA4 dimension recorded
+   *  before the reorder still means what it meant. */
   season: Season;
-  workType: WorkType;
+  /** Question 2 — the country, filtered to the hemisphere chosen above. */
+  destination: Destination;
+  /** Question 3 — one or more. Was a single value until 2026-09-22; anything
+   *  reading it must cope with both (see parseAnswers). */
+  workTypes: WorkType[];
 }
 
 export interface QuizOption<V extends string = string> {
@@ -86,14 +100,18 @@ export const DESTINATIONS: readonly DestinationOption[] = [
   { value: "usa", label: "USA", emoji: "🇺🇸", country: "USA", hemisphere: "north", calling: "The USA is calling" },
   { value: "australia", label: "Australia", emoji: "🇦🇺", country: "Australia", hemisphere: "south", calling: "Australia is calling" },
   { value: "new-zealand", label: "New Zealand", emoji: "🇳🇿", country: "New Zealand", hemisphere: "south", calling: "New Zealand is calling" },
-  { value: "anywhere", label: "Anywhere", emoji: "🌎", country: null, hemisphere: null, calling: "The mountains are calling" },
+  // Value stays "anywhere" — it is stored on accounts and in analytics — but
+  // the wording is now the honest one: this is the answer for somebody who has
+  // not decided. It deliberately does NOT promise a recommendation; nothing
+  // here matches anyone to anywhere, and the copy must not pretend it does.
+  { value: "anywhere", label: "Not sure yet", emoji: "🌎", country: null, hemisphere: null, calling: "The mountains are calling" },
 ];
 
 export const SEASONS: readonly SeasonOption[] = [
   {
     value: "northern-winter",
-    label: "Northern Hemisphere Winter",
-    shortLabel: "Northern Winter",
+    label: "Northern Hemisphere",
+    shortLabel: "Northern",
     emoji: "🇨🇦 🇺🇸 🇯🇵",
     phrase: "chasing a Northern Hemisphere winter",
     seasonPreference: "northern_winter",
@@ -101,8 +119,8 @@ export const SEASONS: readonly SeasonOption[] = [
   },
   {
     value: "southern-winter",
-    label: "Southern Hemisphere Winter",
-    shortLabel: "Southern Winter",
+    label: "Southern Hemisphere",
+    shortLabel: "Southern",
     emoji: "🇦🇺 🇳🇿",
     phrase: "chasing a Southern Hemisphere winter",
     seasonPreference: "southern_winter",
@@ -110,7 +128,7 @@ export const SEASONS: readonly SeasonOption[] = [
   },
   {
     value: "exploring",
-    label: "Just Exploring",
+    label: "Not sure yet",
     emoji: "🌎",
     phrase: "keeping your options open",
     seasonPreference: null,
@@ -151,12 +169,15 @@ export interface QuizStep {
   key: keyof SeasonAnswers;
   question: string;
   options: readonly QuizOption[];
+  /** Takes more than one answer, so it cannot auto-advance on tap — the step
+   *  needs its own Continue. Only question 3. */
+  multi?: true;
 }
 
 export const QUIZ_STEPS: readonly QuizStep[] = [
-  { key: "destination", question: "Where could your next season take you?", options: DESTINATIONS },
-  { key: "season", question: "Which season are you chasing?", options: SEASONS },
-  { key: "workType", question: "What could you see yourself doing?", options: WORK_TYPES },
+  { key: "season", question: "Which hemisphere are you thinking?", options: SEASONS },
+  { key: "destination", question: "Anywhere in particular?", options: DESTINATIONS },
+  { key: "workTypes", question: "What kind of work? Pick as many as you like.", options: WORK_TYPES, multi: true },
 ];
 
 function byValue<V extends string, O extends QuizOption<V>>(options: readonly O[], value: unknown): O | undefined {
@@ -168,24 +189,27 @@ export const seasonOption = (v: Season) => byValue(SEASONS, v)!;
 export const workTypeOption = (v: WorkType) => byValue(WORK_TYPES, v)!;
 
 /**
- * Question 2's options in the order to show them: the winter the destination
- * actually has first (Southern Hemisphere Winter leads for Australia and New
- * Zealand), then the other hemisphere, then "Just Exploring". "Anywhere", or
- * no destination yet, keeps the default order.
+ * Question 2's countries, narrowed to the hemisphere chosen in question 1.
+ * Pick Northern and you are offered Canada, Japan and the USA; pick Southern
+ * and you get Australia and New Zealand. "Not sure yet" in question 1 shows
+ * every country, which is the whole point of that answer.
  *
- * Nothing is removed or preselected — someone going to Canada may still want
- * a southern season too. The order only makes the likely answer the easy one.
+ * "Not sure yet" always survives the filter: a visitor who knows the
+ * hemisphere but not the country must still have an answer that is true.
+ *
+ * Filtering rather than reordering, because a country in the wrong hemisphere
+ * is not merely unlikely — it does not have that winter at all, and offering
+ * it invites an answer we would then have to argue with.
  */
-export function seasonOptionsFor(destination: Destination | undefined): readonly SeasonOption[] {
-  const hemisphere = destination ? destinationOption(destination).hemisphere : null;
-  if (!hemisphere) return SEASONS;
-  const rank = (s: SeasonOption) => (s.hemisphere === hemisphere ? 0 : s.hemisphere ? 1 : 2);
-  return [...SEASONS].sort((a, b) => rank(a) - rank(b));
+export function destinationsFor(season: Season | undefined): readonly DestinationOption[] {
+  const hemisphere = season ? seasonOption(season).hemisphere : null;
+  if (!hemisphere) return DESTINATIONS;
+  return DESTINATIONS.filter((d) => d.hemisphere === hemisphere || d.hemisphere === null);
 }
 
 /** The options a quiz step shows, given the answers so far. */
 export function optionsForStep(step: QuizStep, answers: Partial<SeasonAnswers>): readonly QuizOption[] {
-  return step.key === "season" ? seasonOptionsFor(answers.destination) : step.options;
+  return step.key === "destination" ? destinationsFor(answers.season) : step.options;
 }
 
 /**
@@ -194,14 +218,46 @@ export function optionsForStep(step: QuizStep, answers: Partial<SeasonAnswers>):
  * well as `workType`, because metadata is stored snake_case like the rest of
  * user_metadata.
  */
+function parseWorkTypes(input: unknown): WorkType[] | null {
+  // An array (the new shape), a comma-joined string (how it travels in a URL
+  // and in auth metadata), or a single value (every answer recorded before
+  // 2026-09-22). All three have to keep working: the old ones are on real
+  // accounts and cannot be rewritten.
+  const raw = Array.isArray(input) ? input : typeof input === "string" ? input.split(",") : [];
+  const out: WorkType[] = [];
+  for (const candidate of raw) {
+    const value = byValue(WORK_TYPES, typeof candidate === "string" ? candidate.trim() : candidate)?.value;
+    if (value && !out.includes(value)) out.push(value);
+  }
+  return out.length > 0 ? out : null;
+}
+
 export function parseAnswers(input: unknown): SeasonAnswers | null {
   if (!input || typeof input !== "object") return null;
   const o = input as Record<string, unknown>;
   const destination = byValue(DESTINATIONS, o.destination)?.value;
   const season = byValue(SEASONS, o.season)?.value;
-  const workType = byValue(WORK_TYPES, o.workType ?? o.work_type)?.value;
-  if (!destination || !season || !workType) return null;
-  return { destination, season, workType };
+  const workTypes = parseWorkTypes(o.workTypes ?? o.work_types ?? o.workType ?? o.work_type);
+  if (!destination || !season || !workTypes) return null;
+  return { season, destination, workTypes };
+}
+
+/** How several work types travel in a URL or in auth metadata. */
+export function workTypesToParam(values: readonly WorkType[]): string {
+  return values.join(",");
+}
+
+/**
+ * One work type keeps its own phrase, which is written to read well. Several
+ * cannot — "you're interested in hospitality work and you want to work on the
+ * mountain and you're interested in retail work" is not a sentence anyone
+ * wrote on purpose — so a list of labels is used instead.
+ */
+function workPhrase(values: readonly WorkType[]): string {
+  if (values.length === 1) return workTypeOption(values[0]).phrase;
+  const labels = values.map((v) => workTypeOption(v).label);
+  const last = labels[labels.length - 1];
+  return `you're interested in ${labels.slice(0, -1).join(", ")} and ${last}`;
 }
 
 /** "Canada is calling" + flag, and the sentence that repeats the answers back. */
@@ -210,7 +266,7 @@ export function resultCopy(a: SeasonAnswers): { heading: string; emoji: string; 
   return {
     heading: d.calling,
     emoji: d.emoji ?? "",
-    summary: `You're ${seasonOption(a.season).phrase} and ${workTypeOption(a.workType).phrase}.`,
+    summary: `You're ${seasonOption(a.season).phrase} and ${workPhrase(a.workTypes)}.`,
   };
 }
 
@@ -219,7 +275,12 @@ export function resultCopy(a: SeasonAnswers): { heading: string; emoji: string; 
 export function answerLabels(a: SeasonAnswers): string[] {
   const d = destinationOption(a.destination);
   const s = seasonOption(a.season);
-  return [`${d.emoji} ${d.label}`, s.shortLabel ?? s.label, workTypeOption(a.workType).label];
+  // The strip is one line. Two work types fit; beyond that it counts the rest
+  // rather than wrapping onto a second line on a phone.
+  const work = a.workTypes.map((w) => workTypeOption(w).label);
+  const workLabel =
+    work.length <= 2 ? work.join(", ") : `${work[0]}, ${work[1]} +${work.length - 2}`;
+  return [`${d.emoji} ${d.label}`, s.shortLabel ?? s.label, workLabel];
 }
 
 export interface IntentProfileFields {
@@ -238,11 +299,16 @@ export interface IntentProfileFields {
 export function profileFieldsFromAnswers(a: SeasonAnswers): IntentProfileFields {
   const d = destinationOption(a.destination);
   const s = seasonOption(a.season);
-  const w = workTypeOption(a.workType);
   const out: IntentProfileFields = {};
   if (d.country) out.preferred_countries = [d.country];
   if (s.seasonPreference) out.season_preference = s.seasonPreference;
-  if (w.jobTypes.length > 0) out.preferred_job_types = [...w.jobTypes];
+  // The union of every chosen work type, deduped — two answers can name the
+  // same job type, and the profile editor would show a duplicate chip.
+  const jobTypes: string[] = [];
+  for (const w of a.workTypes) {
+    for (const t of workTypeOption(w).jobTypes) if (!jobTypes.includes(t)) jobTypes.push(t);
+  }
+  if (jobTypes.length > 0) out.preferred_job_types = jobTypes;
   return out;
 }
 
