@@ -937,18 +937,20 @@ function JobCard({
     >
       <button type="button" onClick={onClick} className="w-full text-left">
         <div className="flex items-start gap-3">
-          {/* Business logo */}
+          {/* Business logo, or nothing at all.
+              There is no initials placeholder on purpose: 272 of the 273 live
+              listings have no logo, because almost all of them are unclaimed
+              imports. A grey box on every card advertised the absence rather
+              than filling it, and made a board of real jobs read as a board of
+              empty profiles. The flex gap only applies between children, so
+              the title simply starts at the left edge when there is no logo. */}
           {job.business_logo_url ? (
             <img
               src={job.business_logo_url}
               alt={job.business_name}
               className="h-10 w-10 shrink-0 rounded-lg border border-accent/30 object-cover"
             />
-          ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-xs font-bold text-primary/60">
-              {job.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-            </div>
-          )}
+          ) : null}
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1180,13 +1182,10 @@ function JobDetailPanel({
               href={`/business/${job.business_id}`}
               className="mt-2 inline-flex items-center gap-2 group"
             >
+              {/* Same rule as the card above: no logo, no placeholder. */}
               {job.business_logo_url ? (
                 <img src={job.business_logo_url} alt={job.business_name} className="h-7 w-7 rounded-lg border border-accent/30 object-cover" />
-              ) : (
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/20 text-[10px] font-bold text-primary/60">
-                  {job.business_name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-                </div>
-              )}
+              ) : null}
               <span className="text-sm font-medium text-foreground group-hover:text-secondary transition-colors">
                 {job.business_name}
               </span>
