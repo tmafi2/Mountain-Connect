@@ -124,8 +124,29 @@ export default function SeasonQuiz({ countriesWithJobs }: { countriesWithJobs: s
   const options = current ? optionsForStep(current, answers) : [];
 
   return (
-    <section id={QUIZ_SECTION_ID} ref={sectionRef} aria-label="Find my season" className="bg-primary">
-      <div className="mx-auto min-h-[31rem] max-w-3xl px-4 pb-16 pt-8 sm:min-h-[36rem] sm:px-6 sm:pb-24 sm:pt-14">
+    // The quiz fills the viewport so nothing of the next section shows beneath
+    // it. A sliver of the story section used to peek in on both desktop and
+    // phone, which reads as "scroll past this" at exactly the moment we are
+    // asking someone to answer a question.
+    //
+    // 100dvh, not 100vh: on a phone, vh is the viewport with the browser
+    // chrome HIDDEN, so a vh-tall section is taller than what you can actually
+    // see and the next section peeks in anyway. dvh tracks the visible area,
+    // which is the whole point here — and it matters most in the Instagram
+    // in-app browser, where the chrome never collapses. A browser too old for
+    // dvh drops the declaration and falls back to the rem min-heights below,
+    // which is exactly today's layout.
+    //
+    // min-height, never height: the result screen is taller than a question,
+    // and a short viewport (small phone, or landscape) must be able to scroll
+    // rather than clip the options.
+    <section
+      id={QUIZ_SECTION_ID}
+      ref={sectionRef}
+      aria-label="Find my season"
+      className="flex min-h-[100dvh] flex-col justify-center bg-primary"
+    >
+      <div className="mx-auto w-full min-h-[31rem] max-w-3xl px-4 pb-16 pt-8 sm:min-h-[36rem] sm:px-6 sm:pb-24 sm:pt-14">
         {complete ? (
           <QuizResult
             answers={complete}
