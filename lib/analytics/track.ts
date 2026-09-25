@@ -25,16 +25,26 @@
  * anything else, so a caller cannot slip an email or a name into an event.
  */
 
-export type FunnelEvent =
-  | "go_for_a_season_view"
-  | "find_my_season_started"
-  | "destination_selected"
-  | "season_selected"
-  | "work_type_selected"
-  | "find_my_season_completed"
-  | "worker_signup_clicked"
-  | "browse_jobs_clicked"
-  | "worker_signup_completed";
+import { recordServerSide } from "./server-funnel";
+
+/**
+ * The closed set, as a value as well as a type: POST /api/campaign-event is a
+ * public write endpoint and validates against this, so the list cannot drift
+ * from what the client is allowed to send.
+ */
+export const FUNNEL_EVENTS = [
+  "go_for_a_season_view",
+  "find_my_season_started",
+  "destination_selected",
+  "season_selected",
+  "work_type_selected",
+  "find_my_season_completed",
+  "worker_signup_clicked",
+  "browse_jobs_clicked",
+  "worker_signup_completed",
+] as const;
+
+export type FunnelEvent = (typeof FUNNEL_EVENTS)[number];
 
 export interface FunnelProps {
   destination?: string;
@@ -93,6 +103,13 @@ export function track(event: FunnelEvent, props: FunnelProps = {}): void {
   if (process.env.NODE_ENV === "development") {
     console.debug("[track]", event, params);
   }
+
+  // Our own server first, and WITHOUT the consent gate below — a count with no
+  // identifier attached is not tracking, so it measures everybody rather than
+  // the minority who answer the cookie banner. It is deliberately outside the
+  // queues: those exist to hold events until a consent-gated script appears,
+  // and this has nothing to wait for.
+  recordServerSide(event, params);
 
   for (const queue of Object.values(queues)) {
     if (queue.length < MAX_QUEUE) queue.push([event, params]);
