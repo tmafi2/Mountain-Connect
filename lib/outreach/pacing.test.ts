@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { paceDaily, deferredMessage, DAILY_OUTREACH_LIMIT } from "./pacing";
+import { paceDaily, deferredMessage, DAILY_OUTREACH_LIMIT, PACING_WINDOW_HOURS } from "./pacing";
 
 const leads = (n: number) => Array.from({ length: n }, (_, i) => `lead-${i}`);
 
@@ -53,4 +53,20 @@ test("the deferred message says what happened rather than looking like an error"
 
 test("the shipped limit is a sane number", () => {
   assert.ok(DAILY_OUTREACH_LIMIT > 0 && DAILY_OUTREACH_LIMIT <= 200, String(DAILY_OUTREACH_LIMIT));
+});
+
+/**
+ * The cron fires daily at 10:00 UTC and its sends land seconds later. A
+ * 24-hour window measured from the next run's start still contains them, so
+ * the budget reads as spent and the run sends nothing — 50, 0, 50, 0, which
+ * looks like it is working while taking twice as long.
+ */
+test("the window is shorter than the gap between cron runs", () => {
+  const CRON_INTERVAL_HOURS = 24;
+  assert.ok(
+    PACING_WINDOW_HOURS < CRON_INTERVAL_HOURS,
+    `a ${PACING_WINDOW_HOURS}h window cannot clear a run ${CRON_INTERVAL_HOURS}h earlier`,
+  );
+  // And not so short that two runs could land inside one day.
+  assert.ok(PACING_WINDOW_HOURS >= 12, `${PACING_WINDOW_HOURS}h is short enough to allow a burst`);
 });

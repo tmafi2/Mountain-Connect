@@ -22,6 +22,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export const DAILY_OUTREACH_LIMIT = 50;
 
+/**
+ * 23 hours, not 24, and the hour matters.
+ *
+ * The drip cron fires at 10:00 UTC and its sends land a few seconds later —
+ * 10:00:13 to 10:00:37 on 2026-09-24. A 24-hour window measured from the next
+ * run's start (10:00:00) still contains every one of them, because they are
+ * INSIDE the boundary by thirteen seconds. The budget would read as spent and
+ * the run would send nothing, then clear the following day and send again:
+ * 50, 0, 50, 0, taking twice as long to work through a queue while looking
+ * like it was working.
+ *
+ * Shortening the window by an hour means a daily cron always finds yesterday's
+ * run behind it. It costs nothing in protection: the worst case is still 50
+ * and then 50 twenty-three hours later, which is the same shape as before.
+ */
+export const PACING_WINDOW_HOURS = 23;
+
 export interface PacedSplit<T> {
   send: T[];
   deferred: T[];
@@ -46,12 +63,12 @@ export function paceDaily<T>(
   };
 }
 
-/** Outreach actually put on the wire in the last 24 hours, by any path. */
+/** Outreach actually put on the wire in the pacing window, by any path. */
 export async function outreachSentInLastDay(
   admin: SupabaseClient,
   now: Date = new Date()
 ): Promise<number> {
-  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(now.getTime() - PACING_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
   const { count, error } = await admin
     .from("outreach_sends")
     .select("id", { count: "exact", head: true })
