@@ -9,6 +9,7 @@ import {
   sendJobAutoRenewedEmail,
 } from "@/lib/email/send";
 import { jobExpiryWrites, jobExpirySendsEmail } from "@/lib/config/features";
+import { SITE_ORIGIN } from "@/lib/config/site";
 
 /**
  * GET /api/cron/job-post-expiry
@@ -59,7 +60,9 @@ export async function GET(request: Request) {
     // email here: at emails_only nothing is paused, and sending that notice
     // would tell businesses something untrue. It ships with the pause, in
     // phase 4.
-    const origin = new URL(request.url).origin;
+    // Never `new URL(request.url).origin` here: a cron runs at the protected
+    // deployment url, and this carries the RENEWAL link. See lib/config/site.ts.
+    const origin = SITE_ORIGIN;
     const warnings = await sendExpiryWarnings(
       admin,
       report.warn,

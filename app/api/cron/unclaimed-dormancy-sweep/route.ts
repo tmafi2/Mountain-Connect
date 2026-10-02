@@ -8,6 +8,7 @@ import {
   sendClaimApplicantsWaitingEmail,
 } from "@/lib/email/send";
 import { loadUnsubscribed, suppressed } from "@/lib/outreach/suppression";
+import { SITE_ORIGIN } from "@/lib/config/site";
 
 // Two warnings and four weeks, changed from one warning and three on
 // 2026-08-30. The first email arrives cold — from a company the business has
@@ -64,7 +65,9 @@ export async function GET(request: Request) {
   const takedownCutoff = new Date(now - TAKEDOWN_AFTER_DAYS * DAY_MS).toISOString();
   const fmtDate = (ms: number) =>
     new Date(ms).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
-  const origin = new URL(request.url).origin;
+  // Never `new URL(request.url).origin` here: a cron runs at the protected
+  // deployment url, and these links go to businesses. See lib/config/site.ts.
+  const origin = SITE_ORIGIN;
 
   const result = {
     firstApplicantSent: 0,
