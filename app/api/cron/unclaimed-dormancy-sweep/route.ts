@@ -20,6 +20,33 @@ const FIRST_WARNING_DAYS = 14;  // import → "removed in two weeks"
 const FINAL_AFTER_DAYS = 7;     // first warning → "final notice"
 const TAKEDOWN_AFTER_DAYS = 7;  // final notice → listing comes down
 const EOI_NUDGE_THRESHOLD = 5;
+/**
+ * Businesses taken down per run, longest-overdue first. **0 TURNS THE
+ * TAKEDOWN OFF**, which is what it is set to now.
+ *
+ * The takedown never once worked: it wrote status='inactive', which the status
+ * CHECK does not allow, so every UPDATE was rejected and the error was
+ * swallowed (see 00107). By the time that was found on 2026-10-08 the backlog
+ * was 94 businesses and 210 listings against a board of 337 — so repairing it
+ * and letting it run would have paused more than half the job board, while
+ * paid traffic was being sent to that board.
+ *
+ * It is off rather than merely capped because those businesses were warned
+ * with BROKEN LINKS. Every final notice carried a claim url built from the
+ * cron's own request url, which is the protected Vercel deployment host, so
+ * the one action the email asked for was impossible (fixed in b71e55e, going
+ * forward only). Taking a listing down for not answering a notice that could
+ * not be answered is both unfair and self-defeating.
+ *
+ * The repair still matters with it off: the write is now legal, a failure is
+ * now logged, and the backlog stops silently growing while nobody can see it.
+ *
+ * To switch it on, set this above 0 — the cap then drains a backlog over days
+ * rather than discharging it at once, the same shape of answer as
+ * DAILY_OUTREACH_LIMIT in lib/outreach/pacing.ts, and it should stay capped
+ * permanently because the next outage would rebuild the same cliff.
+ */
+const TAKEDOWN_MAX_BUSINESSES_PER_RUN = 0;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -386,12 +413,23 @@ export async function GET(request: Request) {
   //
   // Gated on the FINAL notice, so a listing can never come down without both
   // warnings having gone out and had their week to be read.
-  const { data: toTakedown, error: tdErr } = await admin
-    .from("business_profiles")
-    .select("id")
-    .eq("is_claimed", false)
-    .not("dormancy_final_sent_at", "is", null)
-    .lte("dormancy_final_sent_at", takedownCutoff);
+  // At 0 the pass is skipped outright rather than queried with .limit(0):
+  // PostgREST does not treat a zero limit as "no rows" the way one would hope,
+  // and an off-switch must not depend on that.
+  const takedownEnabled = TAKEDOWN_MAX_BUSINESSES_PER_RUN > 0;
+
+  const { data: toTakedown, error: tdErr } = takedownEnabled
+    ? await admin
+        .from("business_profiles")
+        .select("id")
+        .eq("is_claimed", false)
+        .not("dormancy_final_sent_at", "is", null)
+        .lte("dormancy_final_sent_at", takedownCutoff)
+        // Longest-overdue first, so a capped run always drains the oldest end
+        // of the queue rather than an arbitrary slice of it.
+        .order("dormancy_final_sent_at", { ascending: true })
+        .limit(TAKEDOWN_MAX_BUSINESSES_PER_RUN)
+    : { data: [], error: null };
 
   if (tdErr) {
     console.error("dormancy-sweep takedown query failed:", tdErr);
@@ -401,7 +439,7 @@ export async function GET(request: Request) {
   // If the expressions-of-interest query failed, we cannot tell a wanted
   // listing from a dead one — so nothing comes down this run. Removing the
   // wrong listing is unrecoverable; a day's delay is not.
-  const takedownList = eoiQueryFailed ? [] : (toTakedown ?? []);
+  const takedownList = eoiQueryFailed || !takedownEnabled ? [] : (toTakedown ?? []);
   if (eoiQueryFailed) result.errors.push("takedown skipped: could not verify which listings have applicants");
 
   for (const biz of takedownList) {
@@ -420,7 +458,12 @@ export async function GET(request: Request) {
 
       let q = admin
         .from("job_posts")
-        .update({ status: "inactive" })
+        // 'paused' + a reason, NOT 'inactive': the status CHECK allows only
+        // active/paused/closed/draft, so the old value was rejected on every
+        // single run and the error was swallowed by the catch below. See
+        // migration 00107. The reason is deliberately not a billing one —
+        // restoreParkedJobs must never republish these on an upgrade.
+        .update({ status: "paused", paused_reason: "dormant_unclaimed" })
         .eq("business_id", biz.id)
         .eq("status", "active");
       if (spared.size > 0) q = q.not("id", "in", `(${[...spared].join(",")})`);
@@ -429,6 +472,11 @@ export async function GET(request: Request) {
       if (spared.size > 0) result.sparedWithApplicants += spared.size;
 
       if (updateErr) {
+        // console.error as well as result.errors. The ONLY record of the
+        // 'inactive' bug was this array, returned in a response body nobody
+        // reads, which is how a takedown that never once worked went
+        // unnoticed for the life of the feature.
+        console.error(`dormancy-sweep takedown ${biz.id} failed:`, updateErr);
         result.errors.push(`takedown ${biz.id}: ${updateErr.message}`);
         continue;
       }
@@ -439,6 +487,15 @@ export async function GET(request: Request) {
       result.errors.push(`takedown ${biz.id}: ${msg}`);
     }
   }
+
+  // One line per run in the Vercel log, whatever happens, so a sweep that
+  // stops doing its job is visible without anyone fetching the response.
+  const summary =
+    `[dormancy-sweep] warned=${result.warned} final=${result.finalNoticed} ` +
+    `takendown=${result.takendown} spared=${result.sparedWithApplicants} ` +
+    `nudged=${result.firstApplicantSent} errors=${result.errors.length}`;
+  if (result.errors.length > 0) console.error(summary, result.errors.slice(0, 10));
+  else console.log(summary);
 
   return NextResponse.json(result);
 }
