@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import { loadSignupContext, signupMetadata } from "@/lib/campaigns/attribution";
-import { parseAnswers, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
+import { browseJobsHref, parseAnswers, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
 
 /** Long enough to cover signup → email confirmation → first login. */
 const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -125,6 +125,19 @@ function WorkerSetup({
   const [discipline, setDiscipline] = useState<"snowboarder" | "skier" | "not_sure" | null>(null);
   const [experience, setExperience] = useState<"first_season" | "returning" | null>(null);
   const [lookingForJob, setLookingForJob] = useState<boolean | null>(null);
+  // Which countries actually have live jobs, so the post-onboarding link can
+  // filter to the one they chose WITHOUT risking an empty board. Three of the
+  // six quiz destinations (USA, Australia, New Zealand) have no live jobs at
+  // all today, and people pick them. Fetched rather than computed because this
+  // is a client component; [] means "unknown", which browseJobsHref treats as
+  // "show everything" — the safe direction.
+  const [countriesWithJobs, setCountriesWithJobs] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/jobs/countries")
+      .then((r) => r.json())
+      .then((d) => setCountriesWithJobs(Array.isArray(d?.countries) ? d.countries : []))
+      .catch(() => {});
+  }, []);
   const [lookingForAccommodation, setLookingForAccommodation] = useState<boolean | null>(null);
   const [slideDirection, setSlideDirection] = useState<"forward" | "back">("forward");
 
@@ -139,7 +152,7 @@ function WorkerSetup({
     setWorkerStep(step);
   };
 
-  const handleSave = async (destination: "explore" | "profile") => {
+  const handleSave = async (destination: "jobs" | "explore" | "profile") => {
     setLoading(true);
 
     const supabase = createClient();
@@ -277,7 +290,16 @@ function WorkerSetup({
     }).catch((err) => console.error("Failed to send welcome email:", err));
 
     setLoading(false);
-    router.push(destination === "explore" ? "/explore" : "/profile/edit");
+    // "jobs" is the whole point of the change: a worker who has just said they
+    // want a season is shown actual listings, filtered to the country they
+    // named, instead of a resort gallery or a profile form.
+    router.push(
+      destination === "jobs"
+        ? browseJobsHref(seasonAnswers?.destination, countriesWithJobs)
+        : destination === "explore"
+          ? "/explore"
+          : "/profile/edit",
+    );
   };
 
   const slideClass = slideDirection === "forward"
@@ -583,19 +605,31 @@ function WorkerSetup({
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <button
-              onClick={() => handleSave("explore")}
+              onClick={() => handleSave(lookingForJob ? "jobs" : "explore")}
               disabled={loading}
               className="group relative overflow-hidden rounded-2xl border-2 border-accent bg-white p-6 text-center transition-all duration-300 hover:border-secondary hover:-translate-y-1 hover:shadow-xl disabled:opacity-50 disabled:translate-y-0"
             >
               <div className="absolute inset-0 bg-gradient-to-b from-secondary/0 to-secondary/5 opacity-0 transition-opacity group-hover:opacity-100" />
               <div className="relative">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 text-4xl transition-transform duration-300 group-hover:scale-110">
-                  🌍
+                  {lookingForJob ? "🎿" : "🌍"}
                 </div>
-                <h2 className="mt-4 text-lg font-bold text-primary">Explore resorts</h2>
+                {/* Somebody who has just told us they want a season is shown
+                    jobs. Anyone who said they are not job-hunting still gets
+                    the resort gallery — this does not assume. */}
+                <h2 className="mt-4 text-lg font-bold text-primary">
+                  {lookingForJob ? "See jobs" : "Explore resorts"}
+                </h2>
                 <p className="mt-1 text-sm text-foreground/50">
-                  Browse ski resorts and see what&apos;s out there
+                  {lookingForJob
+                    ? "Seasonal roles hiring now, where you want to go"
+                    : "Browse ski resorts and see what's out there"}
                 </p>
+                {lookingForJob && (
+                  <span className="mt-3 inline-block rounded-full bg-secondary px-3 py-1 text-xs font-bold text-white shadow-sm">
+                    Recommended
+                  </span>
+                )}
               </div>
             </button>
 
@@ -610,12 +644,22 @@ function WorkerSetup({
                   📝
                 </div>
                 <h2 className="mt-4 text-lg font-bold text-primary">Finish my profile</h2>
+                {/* NOT "Stand out to employers". Businesses cannot browse
+                    worker profiles at all — 00085 limits them to workers who
+                    have applied, messaged or followed them, and the privacy
+                    page tells workers exactly that. On top of which 335 of the
+                    341 live listings (2026-10-08) belong to unclaimed imports
+                    with nobody behind them. This is the same false promise that
+                    was taken off the campaign page before it launched; see
+                    app/(campaign)/go-for-a-season/content.ts. */}
                 <p className="mt-1 text-sm text-foreground/50">
-                  Stand out to employers
+                  Keep every job you save in one place
                 </p>
-                <span className="mt-3 inline-block rounded-full bg-secondary px-3 py-1 text-xs font-bold text-white shadow-sm">
-                  Recommended
-                </span>
+                {!lookingForJob && (
+                  <span className="mt-3 inline-block rounded-full bg-secondary px-3 py-1 text-xs font-bold text-white shadow-sm">
+                    Recommended
+                  </span>
+                )}
               </div>
             </button>
           </div>

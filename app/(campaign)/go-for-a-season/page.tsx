@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
-import { createPublicClient } from "@/lib/supabase/public";
-import { withTimeout } from "@/lib/utils/with-timeout";
 import FinalCta from "./FinalCta";
 import Hero from "./Hero";
 import HowItWorks from "./HowItWorks";
 import LandingInit from "./LandingInit";
 import SeasonQuiz from "./SeasonQuiz";
 import StorySection from "./StorySection";
+import { countriesWithLiveJobs } from "@/lib/jobs/live-countries";
 
 /**
  * Landing page for the "Go For A Season" Meta campaign:
@@ -43,33 +42,6 @@ export const metadata: Metadata = {
     images: [defaultOgImage.url],
   },
 };
-
-/**
- * Countries with at least one live job, spelled as resorts.country spells
- * them. A visitor who picks one of these gets "Browse jobs first" filtered to
- * it; anyone else gets the full board, never an empty filter. Fails open to
- * the full board: this must never be what stops the page rendering.
- */
-async function countriesWithLiveJobs(): Promise<string[]> {
-  try {
-    const [result, timedOut] = await withTimeout(
-      Promise.resolve(createPublicClient().from("job_posts").select("resorts(country)").eq("status", "active")),
-      5000,
-    );
-    if (timedOut || !result || result.error || !result.data) return [];
-    // job_posts → resorts is many-to-one, so PostgREST returns one object;
-    // without generated types supabase-js assumes an array. Accept both.
-    type ResortRef = { country: string | null } | null;
-    const countries = new Set<string>();
-    for (const row of result.data as unknown as Array<{ resorts: ResortRef | ResortRef[] }>) {
-      const resort = Array.isArray(row.resorts) ? row.resorts[0] : row.resorts;
-      if (resort?.country) countries.add(resort.country);
-    }
-    return [...countries].sort();
-  } catch {
-    return [];
-  }
-}
 
 export default async function GoForASeasonPage() {
   const countriesWithJobs = await countriesWithLiveJobs();
