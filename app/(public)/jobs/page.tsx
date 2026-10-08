@@ -1,6 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { type JobListing } from "@/lib/data/jobs";
 import JobsClient from "./JobsClient";
+import CampaignCapture from "./CampaignCapture";
 
 // Cache the rendered HTML for 2 minutes. Public job listings change
 // gradually; serving from edge cache makes the page feel instant.
@@ -103,5 +104,10 @@ export default async function FindAJobPage() {
     console.error("Failed to fetch jobs server-side:", err);
   }
 
-  return <JobsClient initialJobs={jobs} />;
+  return (
+    <>
+      <CampaignCapture />
+      <JobsClient initialJobs={jobs} />
+    </>
+  );
 }

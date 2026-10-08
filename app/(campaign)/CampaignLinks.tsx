@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { track, type FunnelProps } from "@/lib/analytics/track";
-import { workerSignupHref } from "@/lib/campaigns/attribution";
+import { browseJobsHref, workerSignupHref } from "@/lib/campaigns/attribution";
 import type { SeasonAnswers } from "@/lib/campaigns/season-quiz";
 import { useSignupContext } from "@/lib/campaigns/signup-context-store";
 
@@ -66,7 +66,7 @@ export function BrowseJobsLink({
   const ctx = useSignupContext();
   return (
     <Link
-      href={href}
+      href={browseJobsHref(href, ctx)}
       className={className}
       onClick={() => track("browse_jobs_clicked", { ...answerProps(ctx?.answers), placement })}
     >

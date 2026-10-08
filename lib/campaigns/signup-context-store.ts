@@ -51,6 +51,20 @@ export function initSignupContext(source: string): void {
   });
 }
 
+/**
+ * For a page that is NOT a landing page but can be reached from one with the
+ * context in its URL — /jobs, via "Browse jobs". Unlike initSignupContext it
+ * never invents attribution: a URL carrying no campaign parameters at all
+ * leaves whatever is already held completely alone, so an ordinary visitor
+ * browsing the job board is not stamped as campaign traffic.
+ */
+export function captureSignupContextFromUrl(fallbackSource: string): void {
+  const fromUrl = contextFromParams(new URLSearchParams(window.location.search), fallbackSource);
+  if (!fromUrl) return;
+  const merged = mergeContexts(fromUrl, loadSignupContext());
+  if (merged) publish({ ...merged, capturedAt: Date.now() });
+}
+
 export function setSeasonAnswers(answers: SeasonAnswers): void {
   publish({
     source: current?.source ?? "go-for-a-season",

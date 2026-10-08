@@ -12,6 +12,7 @@ import {
   signupMetadata,
   utmFromParams,
   workerSignupHref,
+  browseJobsHref,
   type SignupContext,
 } from "./attribution";
 
@@ -133,4 +134,42 @@ test("even maximal UTMs keep the metadata small", () => {
   const ctx = contextFromParams(new URLSearchParams({ src: "go-for-a-season", ...long }), "signup", NOW);
   const size = JSON.stringify({ ...signupMetadata(ctx, "worker"), season_intent: { destination: "new-zealand", season: "exploring", work_type: "mountain-operations" } }).length;
   assert.ok(size < 800, `metadata is ${size} bytes`);
+});
+
+/**
+ * The "Browse jobs" route. Before browseJobsHref it pointed at a bare /jobs,
+ * so a visitor taking it carried their attribution in localStorage alone —
+ * and it is the route most of them take.
+ */
+test("browse-jobs links carry the context, so the popular route is not storage-only", () => {
+  const ctx = contextFromParams(
+    new URLSearchParams({ src: "go-for-a-season", utm_source: "ig", utm_campaign: "ca-winter26" }),
+    "signup",
+    NOW,
+  );
+  assert.ok(ctx);
+  const params = new URLSearchParams(browseJobsHref("/jobs", ctx).split("?")[1]);
+  assert.equal(params.get("src"), "go-for-a-season");
+  assert.equal(params.get("utm_source"), "ig");
+  assert.equal(params.get("utm_campaign"), "ca-winter26");
+});
+
+test("a browse-jobs link round-trips back into the same context", () => {
+  const ctx: SignupContext = { source: "go-for-a-season", utm: { utm_source: "ig" }, answers, capturedAt: NOW };
+  const href = browseJobsHref("/jobs", ctx);
+  const back = contextFromParams(new URLSearchParams(href.split("?")[1]), "jobs", NOW);
+  assert.deepEqual(back, ctx);
+});
+
+test("no context means the plain job board, with nothing appended", () => {
+  assert.equal(browseJobsHref("/jobs", null), "/jobs");
+});
+
+test("an existing query string is extended, not replaced", () => {
+  const ctx: SignupContext = { source: "go-for-a-season", capturedAt: NOW };
+  const href = browseJobsHref("/jobs?country=canada", ctx);
+  const params = new URLSearchParams(href.split("?")[1]);
+  assert.equal(params.get("country"), "canada");
+  assert.equal(params.get("src"), "go-for-a-season");
+  assert.equal(href.split("?").length, 2, "exactly one ? in the url");
 });

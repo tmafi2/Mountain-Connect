@@ -116,6 +116,23 @@ export function workerSignupHref(ctx: SignupContext | null): string {
 }
 
 /**
+ * A link to the job board that keeps the campaign context in the URL.
+ *
+ * WHY THIS EXISTS: "Browse jobs" used to point at a bare /jobs, so a visitor
+ * taking that route carried their attribution in localStorage and nowhere
+ * else — the one transport of the three that this audience breaks. Nearly all
+ * campaign traffic arrives in the Instagram or Facebook in-app browser, where
+ * storage can be unavailable or simply not shared with wherever they finish
+ * signing up, and "Browse jobs" is by far the more popular button (57 taps
+ * against 8 for "Create my profile" over 25 Sep - 8 Oct 2026). So the most
+ * travelled path depended entirely on the least reliable transport.
+ */
+export function browseJobsHref(path: string, ctx: SignupContext | null): string {
+  if (!ctx) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}${contextToParams(ctx).toString()}`;
+}
+
+/**
  * Combines a fresh context (from the URL) with a stored one. The fresh one
  * wins field by field, so a second ad click re-attributes the visitor (last
  * touch) but arriving without UTMs does not erase the ones already held.
