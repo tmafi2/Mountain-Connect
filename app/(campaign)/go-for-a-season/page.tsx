@@ -7,6 +7,7 @@ import LandingInit from "./LandingInit";
 import SeasonQuiz from "./SeasonQuiz";
 import StorySection from "./StorySection";
 import { countriesWithLiveJobs } from "@/lib/jobs/live-countries";
+import { getCountryJobStats } from "@/lib/stats/country-job-stats";
 
 /**
  * Landing page for the "Go For A Season" Meta campaign:
@@ -44,12 +45,17 @@ export const metadata: Metadata = {
 };
 
 export default async function GoForASeasonPage() {
-  const countriesWithJobs = await countriesWithLiveJobs();
+  // Canada is the campaign's market and the bigger half of the board; the
+  // hero's proof line is counted, never written down.
+  const [countriesWithJobs, canadaStats] = await Promise.all([
+    countriesWithLiveJobs(),
+    getCountryJobStats("Canada"),
+  ]);
 
   return (
     <>
       <LandingInit />
-      <Hero />
+      <Hero stats={canadaStats} />
       <SeasonQuiz countriesWithJobs={countriesWithJobs} />
       <StorySection />
       <HowItWorks />

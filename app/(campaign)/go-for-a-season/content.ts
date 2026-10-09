@@ -31,10 +31,28 @@ export const IMAGES = {
   },
 } as const;
 
+/**
+ * ⚠️ `proof` IS THE ONLY PLACE ON THIS PAGE THAT SAYS THE JOBS EXIST, and its
+ * numbers are counted live — never typed in. /about carried hardcoded figures
+ * for five months and understated the platform the whole time; see
+ * lib/stats/platform-stats.ts. `body` is kept as the line underneath because
+ * it sets the tone, but on its own it is atmosphere: a cold visitor learned
+ * nothing from it, and 88% left before touching the quiz.
+ *
+ * The heading stays. "Go for a Season." is the ad creative's own line and
+ * League Gothic was loaded for this route to carry it — the problem was never
+ * the headline, it was that nothing underneath proved there was anything here.
+ */
 export const HERO = {
   headingLines: ["Go for a", "Season."],
   subheading: "See where it takes you.",
+  /** `{jobs}` and `{accommodation}` are filled from live counts, or the whole
+   *  line is dropped when we could not count. Never a remembered number. */
+  proof: "{jobs} ski resort jobs in Canada. {accommodation} come with staff accommodation.",
   body: "Seasonal jobs. Mountain towns. New people. New places.",
+  /** The primary action. People have been choosing jobs over a profile 30 to 3
+   *  on the result screen; this offers that at the top, where the loss is. */
+  jobsCta: "See the jobs",
   cta: "Find my season",
   support: "Free for workers · Takes about 20 seconds",
 } as const;

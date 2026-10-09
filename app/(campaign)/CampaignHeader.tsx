@@ -25,7 +25,11 @@ export default function CampaignHeader() {
         <nav aria-label="Get started" className="flex shrink-0 items-center gap-5">
           <BrowseJobsLink
             placement="header"
-            className="hidden rounded-md py-2 text-sm font-semibold text-white/85 underline-offset-4 transition hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight sm:inline-block"
+            /* Shown on phones too. It was `hidden … sm:inline-block`, so the one
+               link to actual jobs was invisible to the 379-of-407 visitors who
+               arrive in the Instagram browser — and on the result screen they
+               choose jobs over a profile 30 to 3. */
+            className="inline-block rounded-md py-2 text-sm font-semibold text-white/85 underline-offset-4 transition hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-highlight"
           >
             Browse jobs
           </BrowseJobsLink>

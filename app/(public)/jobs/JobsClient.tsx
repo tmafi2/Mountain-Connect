@@ -163,10 +163,14 @@ function FindAJobContent({ initialJobs }: { initialJobs: JobListing[] }) {
     const category = searchParams.get("category");
     const country = searchParams.get("country");
     const town = searchParams.get("town");
+    // "yes" | "no" only: anything else is ignored rather than trusted, since
+    // this value is read straight off a public URL into a filter.
+    const accommodation = searchParams.get("accommodation");
     if (resort) initial.resort = resort;
     if (category) initial.category = category;
     if (country) initial.country = country;
     if (town) initial.town = town;
+    if (accommodation === "yes" || accommodation === "no") initial.accommodation = accommodation;
     return initial;
   });
   const [showFilters, setShowFilters] = useState(true);

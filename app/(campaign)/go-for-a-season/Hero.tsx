@@ -1,7 +1,8 @@
 import Image from "next/image";
-import { BTN_PRIMARY } from "../buttons";
-import { FindMySeasonButton } from "../CampaignLinks";
+import { BTN_GHOST, BTN_PRIMARY } from "../buttons";
+import { BrowseJobsLink, FindMySeasonButton } from "../CampaignLinks";
 import { HERO, IMAGES } from "./content";
+import { NO_COUNTRY_STATS, type CountryJobStats } from "@/lib/stats/country-job-stats";
 
 /**
  * Sells the idea before anything else: no form, one button. On short screens
@@ -9,7 +10,19 @@ import { HERO, IMAGES } from "./content";
  * because the cookie banner covers the bottom of a phone on a first visit —
  * which, for paid traffic, is every visit — and the button must clear it.
  */
-export default function Hero() {
+export default function Hero({ stats = NO_COUNTRY_STATS }: { stats?: CountryJobStats }) {
+  // No invented numbers and no "—": at zero the proof line is simply not
+  // rendered. A build-time prerender has no Supabase keys, so zero is a state
+  // that really happens, and a dash on an advert reads as broken.
+  const proof =
+    stats.liveJobs > 0 && stats.withAccommodation > 0
+      ? HERO.proof
+          .replace("{jobs}", stats.liveJobs.toLocaleString("en-GB"))
+          .replace("{accommodation}", stats.withAccommodation.toLocaleString("en-GB"))
+      : null;
+  // Only filter the board when we actually counted; otherwise send them to all
+  // of it rather than to a filter that might be empty.
+  const jobsHref = proof ? "/jobs?country=Canada&accommodation=yes" : "/jobs";
   return (
     <section
       aria-labelledby="gfas-hero-heading"
@@ -43,16 +56,22 @@ export default function Hero() {
           </span>
         </h1>
         <p className="mt-5 text-2xl font-extrabold tracking-tight text-white sm:text-3xl short:mt-3">{HERO.subheading}</p>
+        {proof && (
+          <p className="mt-3 max-w-lg text-lg font-bold leading-snug text-white sm:text-xl short:mt-2">{proof}</p>
+        )}
         <p className="mt-2 max-w-md text-base leading-relaxed text-white/85 sm:text-lg">{HERO.body}</p>
-        <div className="mt-8 short:mt-5">
-          <FindMySeasonButton placement="hero" className={`${BTN_PRIMARY} w-full max-w-xs sm:w-auto`}>
-            {HERO.cta}
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center short:mt-5">
+          <BrowseJobsLink placement="hero" href={jobsHref} className={`${BTN_PRIMARY} w-full max-w-xs sm:w-auto`}>
+            {HERO.jobsCta}
             <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-6-6m6 6l6-6" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
+          </BrowseJobsLink>
+          <FindMySeasonButton placement="hero" className={`${BTN_GHOST} w-full max-w-xs sm:w-auto`}>
+            {HERO.cta}
           </FindMySeasonButton>
-          <p className="mt-3 text-sm font-medium text-white/80">{HERO.support}</p>
         </div>
+        <p className="mt-3 text-sm font-medium text-white/80">{HERO.support}</p>
       </div>
 
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-6 hidden justify-center sm:flex">
