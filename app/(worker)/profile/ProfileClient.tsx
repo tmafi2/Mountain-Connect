@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkerProfile } from "@/types/database";
 import ResumeViewer from "@/components/ui/ResumeViewer";
+import BadgeShelf from "./BadgeShelf";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "Australia": "\u{1F1E6}\u{1F1FA}", "Austria": "\u{1F1E6}\u{1F1F9}", "Argentina": "\u{1F1E6}\u{1F1F7}", "Brazil": "\u{1F1E7}\u{1F1F7}",
@@ -458,6 +459,16 @@ export default function ProfileClient({ initialProfile, initialAvatarUrl }: Prof
           )}
 
           {/* -- Work History ------------------------------------- */}
+          {profile.work_history && profile.work_history.length > 0 && (
+            <Section
+              icon={<svg className="h-5 w-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" /></svg>}
+              iconBg="bg-secondary/15"
+              title="Badges"
+            >
+              <BadgeShelf seasons={profile.work_history} />
+            </Section>
+          )}
+
           {profile.work_history && profile.work_history.length > 0 && (
             <Section
               icon={<svg className="h-5 w-5 text-warm" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}

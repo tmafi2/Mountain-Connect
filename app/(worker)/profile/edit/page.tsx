@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { seasonLabel } from "@/lib/badges/season-label";
 import { validatePassword } from "@/lib/utils/password";
 import type {
   VisaStatus,
@@ -1549,6 +1550,41 @@ function ProfileEditContent() {
                       {/* Expanded read-only details */}
                       {expandedWorkIndex === i && editingWorkIndex !== i && (
                         <div className="border-t border-accent px-4 pb-4 pt-3">
+                          {/* The season badge. Needs a resort AND dates that
+                              make a season; without either there is nothing
+                              truthful to put on it, so we ask for the missing
+                              half instead of rendering a broken one. Only 25
+                              of 260 entries had a resort linked, because the
+                              field was optional with no reason attached. */}
+                          {(() => {
+                            const season = seasonLabel(entry.start_date, entry.end_date);
+                            if (!season) return null;
+                            if (!entry.resort_id) {
+                              return (
+                                <p className="mb-3 rounded-lg bg-secondary/10 px-3 py-2 text-xs text-foreground/70">
+                                  Link a ski resort to this season and you can share a{" "}
+                                  <strong className="text-primary">{season}</strong> badge for it.
+                                </p>
+                              );
+                            }
+                            return (
+                              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-secondary/10 px-3 py-2">
+                                <a
+                                  href={`/api/badge?resort=${encodeURIComponent(entry.resort_id)}&season=${encodeURIComponent(season)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded-md bg-secondary px-3 py-1.5 text-xs font-bold text-white transition hover:bg-primary"
+                                >
+                                  Get your {season} badge
+                                </a>
+                                {/* Both facts matter: it carries no name, and
+                                    nobody checked it. */}
+                                <span className="text-xs text-foreground/60">
+                                  Shows the mountain and the season, never your name · self-reported
+                                </span>
+                              </div>
+                            );
+                          })()}
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
                             <div>
                               <span className="text-foreground/50">Job Title</span>
@@ -1707,7 +1743,7 @@ function ProfileEditContent() {
                             </div>
                           </div>
                           <div className="mt-4 relative">
-                            <Label htmlFor={`edit_resort_${i}`}>Ski Resort <span className="text-foreground/40 font-normal">(optional)</span></Label>
+                            <Label htmlFor={`edit_resort_${i}`}>Ski Resort <span className="text-foreground/40 font-normal">— link one to get a shareable season badge</span></Label>
                             <div className="relative">
                               <input
                                 id={`edit_resort_${i}`}
