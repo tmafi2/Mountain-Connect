@@ -542,7 +542,8 @@ function ProfileEditContent() {
     category: "hospitality",
   });
 
-  // Verified business search state
+  // Whether the typed company matched a business on the platform. NOT a
+  // verification of any kind — see the chips rendered from it.
   const [businessQuery, setBusinessQuery] = useState("");
   const [businessResults, setBusinessResults] = useState<{ id: string; name: string; location: string; verified: boolean }[]>([]);
   const [businessSearchOpen, setBusinessSearchOpen] = useState(false);
@@ -1523,10 +1524,13 @@ function ProfileEditContent() {
                           <p className="font-medium text-primary truncate">{entry.title}</p>
                           <p className="text-sm text-foreground/70 truncate">
                             {entry.company}
+                            {/* NOT "Verified", and no tick. the worker picked this company from our search, nothing more. No employer confirmed anything, so it must never read as verification.
+                                The same chip is shown to businesses in the
+                                interview view; both must say the same true
+                                thing. */}
                             {entry.is_verified && (
-                              <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
-                                <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                Verified
+                              <span className="ml-1.5 inline-flex items-center rounded-full bg-accent/30 px-1.5 py-0.5 text-[10px] font-medium text-foreground/60">
+                                On Mountain Connects
                               </span>
                             )}
                             {entry.location && <> &middot; {entry.location}</>}
@@ -1654,15 +1658,14 @@ function ProfileEditContent() {
                                     setIsVerifiedBusiness(false);
                                     setSelectedBusinessId(null);
                                   }}
-                                  placeholder="Search verified businesses or type name..."
+                                  placeholder="Search businesses on Mountain Connects, or type a name..."
                                   className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
                                   onFocus={() => businessResults.length > 0 && setBusinessSearchOpen(true)}
                                   onBlur={() => setTimeout(() => setBusinessSearchOpen(false), 200)}
                                 />
                                 {isVerifiedBusiness && (
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                    <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                    Verified
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center rounded-full bg-accent/40 px-2 py-0.5 text-xs font-medium text-foreground/70">
+                                    Matched
                                   </span>
                                 )}
                               </div>
@@ -1875,15 +1878,14 @@ function ProfileEditContent() {
                             setIsVerifiedBusiness(false);
                             setSelectedBusinessId(null);
                           }}
-                          placeholder="Search verified businesses or type name..."
+                          placeholder="Search businesses on Mountain Connects, or type a name..."
                           className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
                           onFocus={() => businessResults.length > 0 && setBusinessSearchOpen(true)}
                           onBlur={() => setTimeout(() => setBusinessSearchOpen(false), 200)}
                         />
                         {isVerifiedBusiness && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                            Verified
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 flex items-center rounded-full bg-accent/40 px-2 py-0.5 text-xs font-medium text-foreground/70">
+                            Matched
                           </span>
                         )}
                       </div>

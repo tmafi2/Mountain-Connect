@@ -882,9 +882,13 @@ function CandidateSidebar({
                                     {formatLabel(w.category)}
                                   </span>
                                 )}
+                                {/* NOT "Verified", and not green. the worker picked this company from our search, nothing more. No employer confirmed anything, so it must never read as verification.
+                                    This chip is shown to the person deciding
+                                    whether to hire, which is the worst place
+                                    for a trust signal backed by nothing. */}
                                 {w.is_verified && (
-                                  <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-green-700">
-                                    Verified
+                                  <span className="rounded-full bg-accent/30 px-1.5 py-0.5 text-foreground/60">
+                                    On Mountain Connects
                                   </span>
                                 )}
                               </div>
