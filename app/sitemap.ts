@@ -36,7 +36,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // here for the business-page filter below, not for the job pages.
       .from("job_posts")
       .select("id, published_at, created_at, business_id")
-      .eq("status", "active"),
+      .eq("status", "active")
+      // ⚠️ Must agree with lib/jobs/expired-gone.ts. The expiry sweep runs once
+      // a day, so there is always a window where a listing is past its date and
+      // the row still says active — and in that window /jobs/<id> answers 410.
+      // Advertising a url in the sitemap that answers Gone is the kind of
+      // contradiction that costs crawl trust.
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
     admin
       .from("blog_posts")
       .select("slug, updated_at")

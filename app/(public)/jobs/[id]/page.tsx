@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobApplyButton from "./JobApplyButton";
 import { directApply, employmentTypes, isoCountry } from "@/lib/jobs/job-posting-schema";
+import { isExpired } from "@/lib/jobs/expired-gone";
 import { ClaimPrompt, UnclaimedFootnote } from "./UnclaimedNotices";
 import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
@@ -75,6 +76,16 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     .single();
 
   if (!job) {
+    notFound();
+  }
+
+  // Backstop. Middleware answers 410 for an expired listing, but it FAILS
+  // OPEN on any error or timeout — deliberately, since wrongly 410ing a live
+  // job would delete it from search results. If it fell open, this stops the
+  // page rendering an expired role as though it were still hiring, complete
+  // with JobPosting markup saying so. 404 rather than 410 because a page
+  // cannot set a status; notFound() also injects noindex.
+  if (isExpired(job)) {
     notFound();
   }
 

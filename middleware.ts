@@ -2,6 +2,7 @@ import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server
 import { updateSession } from "@/lib/supabase/middleware";
 import { withTimeout } from "@/lib/utils/with-timeout";
 import { isCampaignPath, recordCampaignVisit, visitFromRequest } from "@/lib/campaigns/visit-log";
+import { GONE_HTML, jobIdFromPath, jobIsGone } from "@/lib/jobs/expired-gone";
 
 // Short-lived cookie that caches the user's role so we do not hit Supabase
 // on every protected-route request. Format is "<userId>:<role>" so a stale
@@ -73,6 +74,25 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     event.waitUntil(
       recordCampaignVisit(visitFromRequest(request.nextUrl, request.headers.get("user-agent")))
     );
+  }
+
+  // ── Expired listings answer 410 Gone ────────────────────────────────────
+  // A page cannot set a status code in App Router — notFound() is 404 and
+  // there is no gone() — so the one place a request-time 410 can come from is
+  // here. It costs one indexed lookup, and only on a /jobs/<uuid> path.
+  //
+  // ⚠️ Fails open: any error serves the page. Wrongly 410ing a live listing
+  // would delete it from search results; wrongly serving an expired one for a
+  // few hours costs nothing, and the page carries its own backstop.
+  const jobId = jobIdFromPath(pathname);
+  if (jobId && request.method === "GET") {
+    const [gone] = await withTimeout(jobIsGone(jobId), 1200);
+    if (gone) {
+      return new NextResponse(GONE_HTML, {
+        status: 410,
+        headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" },
+      });
+    }
   }
 
   // ── Fast path: skip everything for API routes (they handle their own auth) ──
