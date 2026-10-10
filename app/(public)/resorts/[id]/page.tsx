@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { resorts } from "@/lib/data/resorts";
 import { regions } from "@/lib/data/regions";
 import { formatPay } from "@/lib/utils/format-pay";
@@ -13,6 +13,7 @@ import type { Metadata } from "next";
 
 interface ResortPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const BASE_URL = "https://www.mountainconnects.com";
@@ -152,17 +153,45 @@ function InfoRow({
   );
 }
 
-export default async function ResortDetailPage({ params }: ResortPageProps) {
+export default async function ResortDetailPage({ params, searchParams }: ResortPageProps) {
   const { id } = await params;
 
   // Accepts both a legacy id and the database UUID — see resolveResort.
   const { resort, uuid } = await resolveResort(id);
-  // Reassigned below when the route was entered by legacy id, which needs a
-  // second lookup to find the UUID the related queries key on.
-  let resortUuid = uuid;
+  // Always null past the redirect below — a request that arrived with the
+  // UUID never gets here — so the related queries always resolve it with the
+  // lookup further down. `uuid` exists only to decide that redirect.
+  let resortUuid: string | null = null;
 
   if (!resort) {
     notFound();
+  }
+
+  /**
+   * THE UUID FORM IS A PERMANENT REDIRECT to the legacy-id form.
+   *
+   * Both forms rendered the same page at two addresses. A canonical tag was
+   * added first, which tells a search engine which one to keep but leaves the
+   * duplicate reachable, crawlable and shareable — and a canonical is a hint,
+   * not an instruction. A 308 settles it: one resort, one url.
+   *
+   * `uuid` is only non-null when the route was ENTERED by UUID, so the legacy
+   * form never redirects and cannot loop. resolveResort has already proved
+   * the UUID maps to this resort, so the redirect costs no extra lookup.
+   *
+   * The query string is carried across because an inbound share can hold
+   * UTMs; the fragment needs no handling, since a browser re-applies it to a
+   * redirect target that has none (so /resorts/<uuid>#jobs still lands on the
+   * jobs section).
+   */
+  if (uuid) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries((await searchParams) ?? {})) {
+      if (Array.isArray(value)) value.forEach((v) => query.append(key, v));
+      else if (value !== undefined) query.append(key, value);
+    }
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    permanentRedirect(`/resorts/${resort.id}${suffix}`);
   }
 
   // Same rule as generateMetadata: the breadcrumb and JSON-LD name the

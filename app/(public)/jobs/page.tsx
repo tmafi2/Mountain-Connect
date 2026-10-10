@@ -54,7 +54,7 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
     const { data } = await supabase
       .from("job_posts")
       .select(
-        "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country), nearby_towns(name, slug), business_venues(name, slug, is_primary)"
+        "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country, legacy_id), nearby_towns(name, slug), business_venues(name, slug, is_primary)"
       )
       .eq("status", "active");
 
@@ -65,7 +65,7 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
           verification_status: string;
           logo_url: string | null;
         } | null;
-        const resort = j.resorts as { name: string; country: string } | null;
+        const resort = j.resorts as { name: string; country: string; legacy_id: string | null } | null;
         const nearbyTown = j.nearby_towns as {
           name: string;
           slug: string;
@@ -95,6 +95,7 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
           business_logo_url: bp?.logo_url || null,
           resort_name: resort?.name || "",
           resort_country: resort?.country || "",
+          resort_legacy_id: resort?.legacy_id || null,
           nearby_town_id: (j.nearby_town_id as string) || null,
           nearby_town_name: nearbyTown?.name || null,
           nearby_town_slug: nearbyTown?.slug || null,

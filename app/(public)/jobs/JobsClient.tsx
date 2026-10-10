@@ -13,6 +13,7 @@ import { MAPS_ENABLED } from "@/lib/config/features";
 import { createClient } from "@/lib/supabase/client";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobsStaticList from "./JobsStaticList";
+import { resortPath } from "@/lib/data/resort-url";
 
 /* ─── filter state ────────────────────────────────────────── */
 interface Filters {
@@ -1364,7 +1365,9 @@ function JobDetailPanel({
 
             {/* Resort link */}
             <Link
-              href={`/resorts/${job.resort_id}`}
+              // Legacy id, not resort_id — see lib/data/resort-url.ts.
+              // job_posts.resort_id is the UUID, whose url now redirects.
+              href={resortPath(job.resort_legacy_id, job.resort_id)}
               className="flex items-center gap-3 rounded-lg border border-accent p-4 transition-colors hover:bg-accent/20"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/20 text-lg">

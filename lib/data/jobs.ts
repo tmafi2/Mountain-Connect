@@ -29,6 +29,12 @@ export interface JobListing extends Omit<JobPost, "venue_id"> {
   business_logo_url: string | null;
   resort_name: string;
   resort_country: string;
+  /** The resort's legacy id — what /resorts/<id> is keyed on everywhere
+   *  else. job_posts.resort_id holds the UUID, so a link built from it
+   *  lands on the non-canonical form of the page. Optional because rows
+   *  assembled before it existed do not set it; link sites fall back to
+   *  resort_id, which still resolves. */
+  resort_legacy_id?: string | null;
   nearby_town_id: string | null;
   nearby_town_name: string | null;
   nearby_town_slug?: string | null;

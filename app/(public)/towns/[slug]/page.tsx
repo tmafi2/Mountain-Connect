@@ -6,6 +6,7 @@ import { MAPS_ENABLED } from "@/lib/config/features";
 import { ResortBanner } from "@/components/ResortBanner";
 import TownBusinesses from "./TownBusinesses";
 import type { Metadata } from "next";
+import { resortPath } from "@/lib/data/resort-url";
 
 interface TownPageProps {
   params: Promise<{ slug: string }>;
@@ -133,6 +134,18 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
     const r = l.resorts as unknown as { id: string; name: string; legacy_id: string; country: string };
     return { id: r.id, name: r.name, legacyId: r.legacy_id, country: r.country, distance_km: l.distance_km };
   });
+
+  /**
+   * Link resorts by LEGACY ID, not by the UUID this query returns.
+   *
+   * Town pages were the only pages on the site emitting the UUID form, and
+   * they emit four of them each across 89 towns. The resort page's canonical
+   * already named the legacy url, so these links asked search engines to
+   * crawl one address and were then told the real one is elsewhere. See
+   * lib/data/resort-url.ts; /resorts/<uuid> now redirects here too.
+   */
+  const resortHref = (r: { id: string; legacyId: string | null }) =>
+    resortPath(r.legacyId, r.id);
 
   // Town hero uses the same country-gradient banner as its linked resort's
   // page. Resorts use "USA" while towns use "United States", so prefer the
@@ -301,7 +314,7 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
               if (breadcrumbResort) {
                 return (
                   <>
-                    <Link href={`/resorts/${breadcrumbResort.id}`} className="hover:text-primary transition-colors">
+                    <Link href={resortHref(breadcrumbResort)} className="hover:text-primary transition-colors">
                       {breadcrumbResort.name}
                     </Link>
                     <span>/</span>
@@ -328,7 +341,7 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
               {linkedResorts.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/resorts/${r.id}`}
+                  href={resortHref(r)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-sm font-medium text-secondary hover:bg-secondary/20 transition-colors"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -653,7 +666,7 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
                       <div className="mt-1 space-y-1">
                         {linkedResorts.map((r) => (
                           <div key={r.id} className="flex items-center justify-between gap-2">
-                            <Link href={`/resorts/${r.id}`} className="text-sm font-medium text-secondary hover:underline">{r.name}</Link>
+                            <Link href={resortHref(r)} className="text-sm font-medium text-secondary hover:underline">{r.name}</Link>
                             {r.distance_km != null && (
                               <span className="text-xs text-foreground/40">{r.distance_km}km</span>
                             )}
@@ -730,7 +743,7 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
               <span>Resorts nearby:</span>
               {linkedResorts.map((r, i) => (
                 <span key={r.id}>
-                  <Link href={`/resorts/${r.id}`} className="font-medium text-secondary hover:underline">
+                  <Link href={resortHref(r)} className="font-medium text-secondary hover:underline">
                     {r.name}
                   </Link>
                   {i < linkedResorts.length - 1 && <span className="ml-1">&middot;</span>}
