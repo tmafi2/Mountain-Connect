@@ -225,10 +225,16 @@ type JobRow = {
   position_type: string | null;
   source: string | null;
   created_at: string;
-  resorts: { name: string; country: string } | null;
-  nearby_towns: { name: string } | null;
-  business_profiles: { is_claimed: boolean | null } | null;
+  // ⚠️ Typed as EITHER shape. These joins are many-to-one so PostgREST sends
+  // one object, but without generated types supabase-js infers an array —
+  // which is why `one()` below unwraps whatever arrives. Declaring only the
+  // object shape made the query itself fail to typecheck.
+  resorts: Ref<{ name: string; country: string }>;
+  nearby_towns: Ref<{ name: string }>;
+  business_profiles: Ref<{ is_claimed: boolean | null }>;
 };
+
+type Ref<T> = T | T[] | null;
 
 async function main() {
   if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
@@ -251,7 +257,7 @@ async function main() {
   );
 
   // PostgREST types a many-to-one join as an array without generated types.
-  const one = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? v[0] ?? null : v);
+  const one = <T,>(v: Ref<T>): T | null => (Array.isArray(v) ? v[0] ?? null : v);
 
   type Job = {
     id: string;
