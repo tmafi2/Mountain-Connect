@@ -137,7 +137,7 @@ export default async function StaffHousingPage() {
     {
       q: "Do ski resort jobs include accommodation?",
       a: best.length
-        ? `Some do and most do not, and it depends far more on the resort than on the role. ${best
+        ? `It depends far more on the resort than on the role, and more adverts stay silent on it than either offer or refuse it. ${best
             .map((r) => `At ${r.resort}, ${r.pctOffering}% of open listings include it`)
             .join("; ")}. The table above shows every resort with at least ${MIN_LISTINGS} open listings.`
         : `It depends on the resort far more than on the role. Right now no resort has enough open listings to give a reliable share.`,
@@ -356,6 +356,12 @@ export default async function StaffHousingPage() {
             className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"
           >
             Browse jobs that include housing
+          </Link>
+          <Link
+            href="/ski-pass-and-meals"
+            className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
+          >
+            Passes and meals
           </Link>
           <Link
             href="/ski-season-pay"

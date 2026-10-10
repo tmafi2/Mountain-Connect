@@ -100,7 +100,8 @@ Before writing a page, check it against this. Three of the planned figures do no
 - ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
 - ~~Week 2 page 1: ski season pay~~ — **SHIPPED 2026-10-10 at `/ski-season-pay`.** Pay by TOWN, not resort: a worker searching "ski season pay" is deciding where to live. Revelstoke, Furano and Fernie clear the floor; Hakuba appears with its job count and housing share but no wage. Article + BreadcrumbList + FAQPage schema, in the sitemap, linked from every town page.
 - ~~Week 2 page 2: staff housing~~ — **SHIPPED 2026-10-10 at `/staff-housing`.** Availability and type for all 10 resorts with 5+ open listings; cost for Niseko only, exactly as predicted. Rusutsu reads "mostly free" (4 of the 5 that say). Free and charged housing are counted separately, never averaged.
-- Week 2 still to do: resorts giving free passes/meals. The data is there — Niseko 23/97 passes, Whistler 20/123 — but it is the thinnest of the three, so check the pull first.
+- ~~Week 2 page 3: passes and meals~~ — **SHIPPED 2026-10-10 at `/ski-pass-and-meals`.** 56 of 355 listings advertise a pass, 59 advertise meals. ⚠️ It counts what adverts SAY, never what jobs include — see the lesson below.
+- **Week 2 is done.** Weeks 3-4 (the six guides) are next.
 - Week 2 addition now possible: **pay by town** for Revelstoke, Fernie and Furano. A worker searches for somewhere to LIVE, so the town is usually the real question behind "what does a season pay?".
 - Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
@@ -136,6 +137,17 @@ Before writing a page, check it against this. Three of the planned figures do no
   wrong twice — once contradicting itself ("Not stated — only 5 of 5 say"),
   once quietly ducking the 5-listing floor — before the decision moved into
   `costState()` where it is tested.
+- ⚠️ **`false` can mean "didn't say".** `ski_pass_included`, `meal_perks` and
+  `accommodation_included` are all `BOOLEAN NOT NULL DEFAULT false`, and the
+  importer omits the field when an advert is silent — so a `false` cannot be
+  told apart from a no. Measured: of 299 open listings with no pass recorded,
+  only **4** mention a pass anywhere in their text. "16% advertise a pass" is
+  therefore true; **"84% don't include one" is not supported**, and the perks
+  module deliberately has no field that would produce it. The same wording
+  trap was already live in the housing page's FAQ ("some do and most do not")
+  and was fixed in the same commit. **This is the `pay_currency = 'USD'`
+  pattern in three more columns** — the proper fix is to make them nullable
+  and re-read the adverts, the way 00109 and the housing-cost backfill did.
 - **The floor applies to the lead paragraph too.** It quoted "Rusutsu: 100%"
   with the sample size only in the table below. Every figure carries its
   denominator where it is stated.
