@@ -2,6 +2,16 @@
 
 Seasonal worker platform connecting workers with ski resort businesses worldwide.
 
+## ⚠️ Read AEO.md before any SEO, AEO, content, schema or stats work
+[AEO.md](AEO.md) holds the answer-engine strategy, the ChatGPT baseline, the
+honesty rules for any published figure, and — most usefully — **what the data
+can and cannot support**. Three commonly-wanted figures do not exist in the
+database (housing cost, whether housing is deducted from pay, and town), so
+checking it first is faster than discovering that halfway through a page. It
+also records one open question: the stated decision not to emit JobPosting
+JSON-LD on unclaimed listings is NOT what the code does. Keep it updated as
+things ship.
+
 ## Tech Stack
 - **Framework:** Next.js 15 (App Router), React 19, TypeScript 5
 - **Database:** Supabase (PostgreSQL + Auth + Realtime + Storage)
