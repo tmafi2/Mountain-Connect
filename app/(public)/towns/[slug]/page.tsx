@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import RelatedGuides from "@/components/ui/RelatedGuides";
+import { getRelatedGuides } from "@/lib/blog/related-guides.server";
 import ResortMap from "@/components/ui/ResortMap";
 import { MAPS_ENABLED } from "@/lib/config/features";
 import { ResortBanner } from "@/components/ResortBanner";
@@ -111,6 +113,7 @@ export async function generateMetadata({ params }: TownPageProps): Promise<Metad
 
 /* ── page ───────────────────────────────────────────────────── */
 export default async function TownDetailPage({ params, searchParams }: TownPageProps) {
+  const guides = await getRelatedGuides({ kind: "town" });
   const { slug } = await params;
   const { from: fromResortLegacyId } = await searchParams;
   const supabase = await createClient();
@@ -762,6 +765,12 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
           )}
         </div>
       </section>
+
+      <RelatedGuides
+        guides={guides}
+        heading="Working a season here"
+        intro="What a season in a mountain town actually costs, and what to ask before you accept a job in one."
+      />
     </div>
   );
 }

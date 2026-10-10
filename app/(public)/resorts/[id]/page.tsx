@@ -9,6 +9,8 @@ import { ResortBanner } from "@/components/ResortBanner";
 import { flagForCountry } from "@/lib/resort-banner";
 import ResortBusinesses from "./ResortBusinesses";
 import { createClient } from "@/lib/supabase/server";
+import RelatedGuides from "@/components/ui/RelatedGuides";
+import { getRelatedGuides } from "@/lib/blog/related-guides.server";
 import type { Metadata } from "next";
 
 interface ResortPageProps {
@@ -166,6 +168,8 @@ export default async function ResortDetailPage({ params, searchParams }: ResortP
   if (!resort) {
     notFound();
   }
+
+  const guides = await getRelatedGuides({ kind: "resort", country: resort.country ?? "" });
 
   /**
    * THE UUID FORM IS A PERMANENT REDIRECT to the legacy-id form.
@@ -1291,6 +1295,12 @@ export default async function ResortDetailPage({ params, searchParams }: ResortP
           )}
         </div>
       </div>
+
+      <RelatedGuides
+        guides={guides}
+        heading="Working a season here"
+        intro="Practical guides for seasonal workers, with every figure counted from the listings open right now."
+      />
     </div>
   );
 }

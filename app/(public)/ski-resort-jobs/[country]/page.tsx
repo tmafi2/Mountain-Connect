@@ -1,4 +1,6 @@
 import Link from "next/link";
+import RelatedGuides from "@/components/ui/RelatedGuides";
+import { getRelatedGuides } from "@/lib/blog/related-guides.server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -12,6 +14,12 @@ const BASE_URL = "https://www.mountainconnects.com";
 // structure but scoped to a single country and link out to that
 // country's resort guides and jobs.
 export const revalidate = 600;
+
+// ⚠️ The guide list is looked up at render. On an SSG prerender the
+// Supabase key is withheld, so the first build of a deploy returns none
+// and this section is absent until the first revalidation ten minutes
+// later — it then stays. That is the trade for not hard-coding titles
+// that would go stale the moment a post is renamed.
 
 interface CountryConfig {
   slug: string;
@@ -186,6 +194,8 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
   const cfg = COUNTRIES.find((c) => c.slug === slug);
   if (!cfg) notFound();
 
+  const guides = await getRelatedGuides({ kind: "country", country: cfg.country });
+
   const supabase = createPublicClient();
   const countryResorts = staticResorts.filter((r) => r.country === cfg.country);
 
@@ -349,6 +359,12 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
       </section>
 
       {/* ───────── CTA ───────── */}
+      <RelatedGuides
+        guides={guides}
+        heading={`Before you go to ${cfg.country}`}
+        intro="Written for seasonal workers, and counted from the listings open right now."
+      />
+
       <section className="px-6 py-16">
         <div className="mx-auto max-w-3xl rounded-3xl bg-primary p-10 text-center text-white">
           <h2 className="text-3xl font-bold tracking-tight">
