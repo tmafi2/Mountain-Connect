@@ -437,6 +437,28 @@ async function main() {
     .sort((a, b) => b.job_count - a.job_count || a.resort.localeCompare(b.resort));
   write("pay_by_resort", payByResort);
 
+  /* (a2) pay_by_town — buildable since migration 00113.
+     A worker searches for somewhere to LIVE, so the town is the question
+     behind "what does a season pay?". It was unanswerable while
+     nearby_town_id was NULL on 354 of 355 listings. Towns with no listing
+     carrying a town are simply absent rather than rendered empty. */
+  const payByTown = [...group(rows.filter((r) => r.town), (r) => r.town).entries()]
+    .map(([town, rs]) => {
+      const currencies = [...new Set(rs.filter((r) => r.hourly !== null).map((r) => r.currency))];
+      return {
+        town,
+        country: rs[0].country,
+        resorts: [...new Set(rs.map((r) => r.resort))].join(" + "),
+        currency: currencies.length === 0 ? "(no pay stated)" : currencies.join(" + "),
+        job_count: rs.length,
+        ...payStats(usable(rs)),
+        pct_offering_housing: share(rs.filter((r) => r.housing).length, rs.length),
+        town_source: "job_posts.nearby_town_id, inherited from the business where the town is linked to the job's resort (00113)",
+      };
+    })
+    .sort((a, b) => b.job_count - a.job_count || a.town.localeCompare(b.town));
+  write("pay_by_town", payByTown);
+
   /* (b) pay_by_role_country */
   const payByRole = [...group(rows, (r) => `${r.role}||${r.country}`).entries()]
     .map(([k, rs]) => {
@@ -631,11 +653,15 @@ async function main() {
     `${unclaimed} of ${rows.length} open jobs belong to unclaimed imported businesses, and job_posts.source is ${sources.length === 1 ? `"${sources[0]}" for all of them` : sources.map((s) => `"${s}"`).join(" / ")}. The employer-posted segment is ${employerPosted} job${employerPosted === 1 ? "" : "s"}${employerPosted >= MIN_SAMPLE ? ` — it clears the ${MIN_SAMPLE}-job floor, so its percentages render in coverage.csv while resting on ${employerPosted} rows. Treat them as indicative, not publishable` : `, below the ${MIN_SAMPLE}-job floor, so those splits read "${INSUFFICIENT}"`}, and do not caption the board as employer-reported pay.`
   );
 
-  if (noTown > 0) {
-    problems.push(
-      `${noTown} of ${rows.length} open jobs have no nearby_town_id, so the town column is empty on ${noTown === rows.length ? "every resort" : "all but a few"}. A "pay by town" page cannot be built from this yet — only "pay by resort".`
-    );
-  }
+  const towned = rows.length - noTown;
+  const townsOverFloor = [...group(rows.filter((r) => r.town), (r) => r.town).entries()].filter(
+    ([, rs]) => rs.filter((r) => r.hourly !== null).length >= MIN_SAMPLE
+  );
+  (townsOverFloor.length === 0 ? problems : clean).push(
+    townsOverFloor.length === 0
+      ? `Only ${towned} of ${rows.length} open jobs carry a nearby_town_id and no town has ${MIN_SAMPLE} priced listings, so "pay by town" is still unpublishable. A town can only be inherited from a business that has one AND is linked to the job's resort (00113).`
+      : `${towned} of ${rows.length} open jobs carry a town, and ${townsOverFloor.length} town${townsOverFloor.length === 1 ? "" : "s"} clear the ${MIN_SAMPLE}-listing floor for pay: ${townsOverFloor.map(([t, rs]) => `${t} (${rs.filter((r) => r.hourly !== null).length})`).join(", ")}. See pay_by_town.csv.`
+  );
 
   (outliers.length > 0 ? problems : clean).push(
     outliers.length > 0

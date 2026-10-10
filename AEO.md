@@ -89,7 +89,7 @@ Before writing a page, check it against this. Three of the planned figures do no
 | ⏳ **Housing deducted from pay** | Stated on 2 of 355 — adverts rarely say. ⚠️ **NULLABLE boolean with no default** on purpose: "unknown" must never render as "paid separately", so this stays unpublishable rather than becoming quietly wrong. |
 | **Passes / meals** | `ski_pass_included`, `meal_perks` — booleans, usable. |
 | **Role category** | Populated on 349 of 355 since migration 00110. The 6 without carry titles with no signal and are NULL on purpose. |
-| ❌ **Town** | `nearby_town_id` is null on 354 of 355. **"Pay by town" is not buildable** — only "pay by resort". 75 are recoverable from the business, but a business with venues in two towns would get the wrong one stamped on all its jobs. |
+| **Town** | Carried by 76 of 355 after the 2026-10-10 backfill. **Three towns clear the 5-listing floor for pay** — Revelstoke (10 priced), Fernie (5), Furano (5) — so `pay_by_town.csv` is now a real output. Hakuba has 13 listings but only 4 priced: a town page yes, a pay figure no. A town is inherited from the business ONLY where it is linked to that job's resort (00113). |
 | **Employer-posted split** | 6 of 355. `job_posts.source` is `"Facebook"` for all 355, so the split must come from `business_profiles.is_claimed`, not `source`. 6 clears the 5-job floor by one — indicative, not publishable. |
 
 ⚠️ **The 00112 columns have no defaults, and the database enforces coherence.** A housing currency or period with no amount beside it is refused by a CHECK constraint — the `pay_currency` mistake below, written down where it cannot be repeated. Verified against production: currency-without-amount, period-without-amount, a bad period and a negative cost are all rejected; a complete row, and a deduction stated with no figure, are both accepted.
@@ -99,6 +99,7 @@ Before writing a page, check it against this. Three of the planned figures do no
 ## 6-week plan
 - ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
 - Week 2: Three data pages: ski season pay by resort 2026/27; staff housing **availability and type** by resort, plus **cost for Niseko only** (the one resort over the 5-listing floor); resorts giving free passes/meals.
+- Week 2 addition now possible: **pay by town** for Revelstoke, Fernie and Furano. A worker searches for somewhere to LIVE, so the town is usually the real question behind "what does a season pay?".
 - Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
