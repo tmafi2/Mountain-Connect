@@ -1051,7 +1051,11 @@ export default async function ResortDetailPage({ params, searchParams }: ResortP
           )}
 
           {/* Open Positions — Real jobs from Supabase */}
-          <section>
+          {/* id="jobs" is the target of the "More jobs at X" cta on business
+              pages, which has linked to #jobs since it was written. There was
+              no such anchor, so the link silently landed at the top of the
+              page and the visitor had to find this section themselves. */}
+          <section id="jobs">
             <SectionHeading>Open Positions</SectionHeading>
             {realJobs.length === 0 ? (
               <div className="mt-4 rounded-xl border border-accent bg-white p-6 text-center">

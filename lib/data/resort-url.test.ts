@@ -61,6 +61,19 @@ test("the job board links the resort by legacy id, not job_posts.resort_id", () 
   assert.match(code, /resortPath\(job\.resort_legacy_id/);
 });
 
+test("the public business page links resorts by legacy id too", () => {
+  // Its two links come from a Supabase `resorts` select, so they were the
+  // last pages emitting the UUID form. They were correct via the redirect,
+  // which is exactly why this needs a test rather than a reader noticing.
+  const src = source("app/(public)/business/[id]/page.tsx");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const raw = code.match(/\/resorts\/\$\{[^}]*\}/g) ?? [];
+  assert.deepEqual(raw, [], `build these with resortPath: ${raw.join(", ")}`);
+  // The select has to carry it, or resortPath quietly falls back to the UUID
+  // and the link is a redirect again with nothing to show for it.
+  assert.match(src, /\.select\("id, name, legacy_id"\)/);
+});
+
 test("the jobs query selects the legacy id, or the fallback silently takes over", () => {
   // resortPath falls back to the UUID, so forgetting this in the select is a
   // regression that shows up as a redirect rather than as a broken link.

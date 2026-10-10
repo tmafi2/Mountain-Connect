@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import { formatPay } from "@/lib/utils/format-pay";
+import { resortPath } from "@/lib/data/resort-url";
 
 interface BusinessPageProps {
   params: Promise<{ id: string }>;
@@ -108,11 +109,14 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
     .select("resort_id")
     .eq("business_id", id);
 
-  let resortData: { id: string; name: string }[] = [];
+  // legacy_id rides along because /resorts/<id> is addressed by it —
+  // this query returns the UUID, whose url is a redirect. See
+  // lib/data/resort-url.ts.
+  let resortData: { id: string; name: string; legacy_id: string | null }[] = [];
   if (bizResorts && bizResorts.length > 0) {
     const { data: resorts } = await supabase
       .from("resorts")
-      .select("id, name")
+      .select("id, name, legacy_id")
       .in("id", bizResorts.map((br) => br.resort_id));
     resortData = resorts || [];
   }
@@ -135,7 +139,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
   if (business.resort_id && resortData.length === 0) {
     const { data: resort } = await supabase
       .from("resorts")
-      .select("id, name")
+      .select("id, name, legacy_id")
       .eq("id", business.resort_id)
       .single();
     if (resort) resortData = [resort];
@@ -433,7 +437,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
               {resortData.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/resorts/${r.id}`}
+                  href={resortPath(r.legacy_id, r.id)}
                   className="inline-flex items-center gap-1.5 rounded-full border border-highlight/40 bg-highlight/5 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-highlight/15"
                 >
                   <svg className="h-3 w-3 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1015,7 +1019,7 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
             const ctaSub = ctaTown || ctaResort
               ? "See other employers hiring nearby"
               : "Browse all open positions across resorts";
-            const ctaHref = ctaResort ? `/resorts/${ctaResort.id}#jobs` : "/jobs";
+            const ctaHref = ctaResort ? `${resortPath(ctaResort.legacy_id, ctaResort.id)}#jobs` : "/jobs";
             return (
               <div className="rounded-2xl border border-secondary/20 bg-gradient-to-br from-primary/[0.04] via-secondary/[0.04] to-highlight/[0.06] p-5">
                 <div className="flex items-center gap-3">
