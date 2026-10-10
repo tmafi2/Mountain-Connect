@@ -8,6 +8,7 @@ import { isExpired } from "@/lib/jobs/expired-gone";
 import { ClaimPrompt, UnclaimedFootnote } from "./UnclaimedNotices";
 import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
+import { formatHousingCost, housingDeductedLabel, hasHousingCostInfo } from "@/lib/jobs/housing-cost";
 
 interface JobPageProps {
   params: Promise<{ id: string }>;
@@ -495,16 +496,57 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                 <PerkCard label="Visa Sponsorship" included={job.visa_sponsorship} icon="🛂" />
               </div>
 
-              {/* Housing details */}
-              {job.accommodation_included && (job.housing_details || job.accommodation_type) && (
+              {/* Housing details.
+                  ⚠️ Cost and "is it deducted from my pay" are the two things
+                  workers ask about staff housing, and until migration 00112
+                  there was nowhere to put either — accommodation_cost was free
+                  text with ONE value on the whole board. Both render only when
+                  the advert actually said; see lib/jobs/housing-cost.ts, where
+                  silence is deliberately silent rather than "not specified". */}
+              {job.accommodation_included &&
+                (job.housing_details ||
+                  job.accommodation_type ||
+                  hasHousingCostInfo(
+                    {
+                      amount: job.accommodation_cost_amount,
+                      currency: job.accommodation_cost_currency,
+                      period: job.accommodation_cost_period,
+                    },
+                    job.accommodation_cost_deducted
+                  )) && (
                 <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-4">
                   <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1">Accommodation Details</p>
                   {job.housing_details && (
                     <p className="text-sm text-emerald-700">{job.housing_details}</p>
                   )}
+                  {(() => {
+                    const cost = formatHousingCost({
+                      amount: job.accommodation_cost_amount,
+                      currency: job.accommodation_cost_currency,
+                      period: job.accommodation_cost_period,
+                    });
+                    const deducted = housingDeductedLabel(job.accommodation_cost_deducted);
+                    if (!cost && !deducted) return null;
+                    return (
+                      <p className="text-sm font-semibold text-emerald-800 mt-1">
+                        {cost ?? "Cost not stated"}
+                        {deducted && (
+                          <span className="ml-2 font-normal text-emerald-700">· {deducted}</span>
+                        )}
+                      </p>
+                    );
+                  })()}
                   {job.accommodation_type && (
                     <p className="text-xs text-emerald-600 mt-1">
-                      {job.accommodation_type}{job.accommodation_cost && ` · ${job.accommodation_cost}`}
+                      {job.accommodation_type}
+                      {/* The legacy free-text cost shows only when there is no
+                          structured figure above it. The one row that has both
+                          rendered "¥60,000/month" and "¥60k per month" two
+                          lines apart — the same fact twice, which reads like
+                          two different facts. The column is kept, not shown. */}
+                      {job.accommodation_cost &&
+                        job.accommodation_cost_amount === null &&
+                        ` · ${job.accommodation_cost}`}
                     </p>
                   )}
                 </div>

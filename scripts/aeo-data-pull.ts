@@ -144,6 +144,26 @@ const PLAUSIBLE: Record<string, { lo: number; hi: number }> = {
   GBP: { lo: 9, hi: 100 },
 };
 
+/**
+ * A housing cost as a weekly figure, so night/month/season quotes can sit in
+ * one column. Only the periods the database allows (00112) are handled, and
+ * anything else returns null rather than a guess.
+ *
+ * A month is 52/12 weeks, not 4 — "4 weeks" understates a monthly rent by 8%.
+ * A season is 24 weeks, which is `JOB_POST_LIFESPAN_DAYS`-ish and roughly the
+ * November–April window the listings describe; it is the one approximation
+ * here, so a season-quoted cost is coarser than the rest.
+ */
+function toWeekly(amount: number, period: string): number | null {
+  switch (period) {
+    case "night": return amount * 7;
+    case "week": return amount;
+    case "month": return amount * 12 / 52;
+    case "season": return amount / 24;
+    default: return null;
+  }
+}
+
 /* ─── stats ───────────────────────────────────────────────────────────── */
 
 /** Linear-interpolation percentile, the common definition. */
@@ -204,6 +224,10 @@ type JobRow = {
   accommodation_included: boolean;
   accommodation_type: string | null;
   accommodation_cost: string | null;
+  accommodation_cost_amount: number | null;
+  accommodation_cost_currency: string | null;
+  accommodation_cost_period: string | null;
+  accommodation_cost_deducted: boolean | null;
   housing_details: string | null;
   ski_pass_included: boolean;
   meal_perks: boolean;
@@ -236,7 +260,7 @@ async function main() {
       db
         .from("job_posts")
         .select(
-          "id, title, business_id, description, pay_amount, pay_currency, salary_range, accommodation_included, accommodation_type, accommodation_cost, housing_details, ski_pass_included, meal_perks, category, position_type, source, created_at, resorts(name, country), nearby_towns(name), business_profiles(is_claimed)"
+          "id, title, business_id, description, pay_amount, pay_currency, salary_range, accommodation_included, accommodation_type, accommodation_cost, accommodation_cost_amount, accommodation_cost_currency, accommodation_cost_period, accommodation_cost_deducted, housing_details, ski_pass_included, meal_perks, category, position_type, source, created_at, resorts(name, country), nearby_towns(name), business_profiles(is_claimed)"
         )
         .eq("status", "active")
         .or(notExpired)
@@ -255,6 +279,10 @@ async function main() {
     businessId: string;
     description: string;
     housingCost: string | null;
+    housingCostAmount: number | null;
+    housingCostCurrency: string | null;
+    housingCostPeriod: string | null;
+    housingDeducted: boolean | null;
     resort: string;
     town: string;
     country: string;
@@ -332,6 +360,10 @@ async function main() {
       businessId: j.business_id,
       description: j.description ?? "",
       housingCost: (j.accommodation_cost ?? "").trim() || null,
+      housingCostAmount: j.accommodation_cost_amount,
+      housingCostCurrency: (j.accommodation_cost_currency ?? "").trim() || null,
+      housingCostPeriod: (j.accommodation_cost_period ?? "").trim() || null,
+      housingDeducted: j.accommodation_cost_deducted,
       resort: resort?.name ?? "(no resort)",
       town: town?.name ?? "",
       country: resort?.country ?? "(no country)",
@@ -436,10 +468,27 @@ async function main() {
           : [...group(rs.filter((r) => r.housingType), (r) => r.housingType as string).entries()].sort(
               (a, b) => b[1].length - a[1].length
             )[0]?.[0] ?? "not stated",
-      median_weekly_housing_cost: "not captured",
-      pct_housing_deducted_from_pay: "not captured",
-      housing_cost_note:
-        "accommodation_cost is non-empty on 1 of 341 open jobs and is free text; there is no column recording whether housing is deducted from pay",
+      // Weekly, so resorts quoting per night/month/season are comparable.
+      // ⚠️ Currencies are NOT converted, so a resort is only summarised when
+      // its priced listings agree on one — which they do, a resort being in
+      // one country.
+      ...(() => {
+        const priced = rs.filter((r) => r.housingCostAmount !== null && r.housingCostPeriod);
+        const currencies = [...new Set(priced.map((r) => r.housingCostCurrency))];
+        const weekly = priced
+          .map((r) => toWeekly(r.housingCostAmount as number, r.housingCostPeriod as string))
+          .filter((n): n is number => n !== null)
+          .sort((a, b) => a - b);
+        const known = rs.filter((r) => r.housingDeducted !== null);
+        return {
+          housing_cost_currency: currencies.length === 1 ? currencies[0] ?? "" : currencies.join(" + "),
+          n_with_housing_cost: priced.length,
+          median_weekly_housing_cost:
+            weekly.length >= MIN_SAMPLE ? r2(pct(weekly, 0.5)) : INSUFFICIENT,
+          n_deduction_stated: known.length,
+          pct_housing_deducted_from_pay: share(known.filter((r) => r.housingDeducted).length, known.length),
+        };
+      })(),
     }))
     .sort((a, b) => b.job_count - a.job_count || a.resort.localeCompare(b.resort));
   write("housing_by_resort", housingByResort);
@@ -559,14 +608,17 @@ async function main() {
       : `job_posts.category is populated on ${rows.length - noCategory} of ${rows.length} open jobs; the ${noCategory} without one carry titles with no signal ("Team Member", "Support Staff"), which is left NULL deliberately rather than labelled "Other".`
   );
 
-  if (housingCosts.length < MIN_SAMPLE) {
-    problems.push(
-      `accommodation_cost is non-empty on ${housingCosts.length} of ${rows.length} open jobs${housingCosts.length ? ` (${housingCosts.slice(0, 3).map((c) => `"${c}"`).join(", ")})` : ""} and is free text, so a median weekly housing cost cannot be produced anywhere. Reported as "not captured" rather than computed from ${housingCosts.length} row${housingCosts.length === 1 ? "" : "s"}.`
-    );
-  }
-
-  problems.push(
-    `There is no column recording whether housing is deducted from pay. ${mentionsRent} descriptions mention deduction or rent in prose. Add a field before publishing a stat about it.`
+  const costed = rows.filter((r) => r.housingCostAmount !== null).length;
+  const deductionKnown = rows.filter((r) => r.housingDeducted !== null).length;
+  (costed < MIN_SAMPLE ? problems : clean).push(
+    costed < MIN_SAMPLE
+      ? `Housing COST is stated on ${costed} of ${rows.length} open jobs, so no resort clears the ${MIN_SAMPLE}-listing floor and "staff housing cost by resort" is still unpublishable. The columns exist (migration 00112) and the extractor now asks for it, but only re-scraped listings carry it — ${mentionsRent} descriptions mention rent in prose and were captured before the field existed.`
+      : `Housing cost is stated on ${costed} of ${rows.length} open jobs and aggregates per resort in housing_by_resort.csv.`
+  );
+  (deductionKnown < MIN_SAMPLE ? problems : clean).push(
+    deductionKnown < MIN_SAMPLE
+      ? `Whether housing is DEDUCTED FROM PAY is stated on ${deductionKnown} of ${rows.length} open jobs. The column exists (00112) and is NULLABLE with no default, so "unknown" stays unknown rather than becoming "no" — which means the stat simply cannot be published yet rather than being quietly wrong.`
+      : `Housing deduction is stated on ${deductionKnown} of ${rows.length} open jobs.`
   );
 
   if (nonHourly.length > 0) {

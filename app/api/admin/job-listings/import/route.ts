@@ -103,6 +103,13 @@ export async function POST(request: Request) {
     return undefined;
   };
   const accommodationIncluded = pickBool("accommodationIncluded", "accommodation_included");
+  // What the WORKER pays for staff housing, and whether it comes out of
+  // wages — the question workers ask most about staff housing, and until
+  // migration 00112 there was no column for it at all.
+  const housingCostRaw = pick("housingCostAmount", "accommodation_cost_amount");
+  const housingCostCurrency = pick("housingCostCurrency", "accommodation_cost_currency").toUpperCase();
+  const housingCostPeriod = pick("housingCostPeriod", "accommodation_cost_period").toLowerCase();
+  const housingDeducted = pickBool("housingDeductedFromPay", "accommodation_cost_deducted");
   const skiPassIncluded = pickBool("skiPassIncluded", "ski_pass_included");
   const mealPerks = pickBool("mealPerks", "meal_perks");
   const visaSponsorship = pickBool("visaSponsorship", "visa_sponsorship");
@@ -122,6 +129,14 @@ export async function POST(request: Request) {
   const positionType = POSITION_TYPES[positionTypeRaw.toLowerCase()];
 
   const payAmount = payAmountRaw && !Number.isNaN(Number(payAmountRaw)) ? Number(payAmountRaw) : undefined;
+  const housingCost =
+    housingCostRaw && !Number.isNaN(Number(housingCostRaw)) && Number(housingCostRaw) >= 0
+      ? Number(housingCostRaw)
+      : undefined;
+  // Must match the CHECK in 00112; anything else is dropped rather than
+  // rejected, so one odd value cannot fail an otherwise good import.
+  const HOUSING_PERIODS = ["night", "week", "month", "season"];
+  const housingPeriod = HOUSING_PERIODS.includes(housingCostPeriod) ? housingCostPeriod : "";
   const positionsAvailable =
     positionsRaw && Number.isInteger(Number(positionsRaw)) && Number(positionsRaw) > 0
       ? Number(positionsRaw)
@@ -362,6 +377,20 @@ export async function POST(request: Request) {
     show_positions: false,
     ...(accommodationIncluded !== undefined ? { accommodation_included: accommodationIncluded } : {}),
     ...(accommodationType ? { accommodation_type: accommodationType } : {}),
+    // ⚠️ THE CURRENCY AND PERIOD ONLY GO WITH AN AMOUNT. The database refuses
+    // the other combination (00112), because a currency with nothing to
+    // denominate is how 'USD' came to mean "no pay found" on 177 listings.
+    ...(housingCost !== undefined
+      ? {
+          accommodation_cost_amount: housingCost,
+          ...(housingCostCurrency ? { accommodation_cost_currency: housingCostCurrency } : {}),
+          ...(housingPeriod ? { accommodation_cost_period: housingPeriod } : {}),
+        }
+      : {}),
+    // Separate from the amount: a post can say "rent is deducted" without
+    // naming a figure, and that is still worth knowing. Omitted when the
+    // post did not say, so it stays NULL rather than becoming "no".
+    ...(housingDeducted !== undefined ? { accommodation_cost_deducted: housingDeducted } : {}),
     ...(skiPassIncluded !== undefined ? { ski_pass_included: skiPassIncluded } : {}),
     ...(mealPerks !== undefined ? { meal_perks: mealPerks } : {}),
     ...(visaSponsorship !== undefined ? { visa_sponsorship: visaSponsorship } : {}),

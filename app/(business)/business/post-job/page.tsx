@@ -33,6 +33,10 @@ interface JobFormData {
   housingDetails: string;
   accommodationType: string;
   accommodationCost: string;
+  accommodationCostAmount: string;
+  accommodationCostPeriod: string;
+  /** "" = not specified, "yes" = deducted from pay, "no" = paid separately. */
+  accommodationDeducted: string;
   urgentlyHiring: boolean;
   positions: number;
   showPositions: boolean;
@@ -46,6 +50,14 @@ interface JobFormData {
 
 
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Casual"];
+
+/** The typed cost as a number, or null when blank or nonsense. */
+function housingAmount(form: { accommodationCostAmount: string }): number | null {
+  const raw = form.accommodationCostAmount.trim();
+  if (raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 
 const ACCOMMODATION_TYPES = [
   "Staff housing",
@@ -171,6 +183,9 @@ export default function PostJobPage() {
     housingDetails: "",
     accommodationType: "",
     accommodationCost: "",
+    accommodationCostAmount: "",
+    accommodationCostPeriod: "",
+    accommodationDeducted: "",
     urgentlyHiring: false,
     positions: 1,
     showPositions: true,
@@ -364,6 +379,18 @@ export default function PostJobPage() {
       positions_available: form.positions,
       accommodation_type: form.accommodationType || null,
       accommodation_cost: form.accommodationCost.trim() || null,
+      // ⚠️ The currency and period only travel WITH an amount — the database
+      // refuses the other combination (00112), because a currency with
+      // nothing to denominate is how 'USD' came to mean "no pay found" on 177
+      // listings. And "not specified" is written as NULL, never as false:
+      // saying "paid separately" about a job that never mentioned rent would
+      // be the same mistake in a new place.
+      accommodation_cost_amount: housingAmount(form),
+      accommodation_cost_currency: housingAmount(form) === null ? null : form.payCurrency || null,
+      accommodation_cost_period:
+        housingAmount(form) === null ? null : form.accommodationCostPeriod || null,
+      accommodation_cost_deducted:
+        form.accommodationDeducted === "" ? null : form.accommodationDeducted === "yes",
       custom_perks: form.customPerks.length > 0 ? form.customPerks : null,
       show_positions: form.showPositions,
       nearby_town_id: selectedTownId || null,
@@ -519,6 +546,18 @@ export default function PostJobPage() {
       accommodation_included: form.housingIncluded,
       accommodation_type: form.accommodationType || null,
       accommodation_cost: form.accommodationCost.trim() || null,
+      // ⚠️ The currency and period only travel WITH an amount — the database
+      // refuses the other combination (00112), because a currency with
+      // nothing to denominate is how 'USD' came to mean "no pay found" on 177
+      // listings. And "not specified" is written as NULL, never as false:
+      // saying "paid separately" about a job that never mentioned rent would
+      // be the same mistake in a new place.
+      accommodation_cost_amount: housingAmount(form),
+      accommodation_cost_currency: housingAmount(form) === null ? null : form.payCurrency || null,
+      accommodation_cost_period:
+        housingAmount(form) === null ? null : form.accommodationCostPeriod || null,
+      accommodation_cost_deducted:
+        form.accommodationDeducted === "" ? null : form.accommodationDeducted === "yes",
       housing_details: form.housingDetails.trim() || null,
       ski_pass_included: form.skiPassIncluded,
       meal_perks: form.mealsIncluded,
@@ -1158,17 +1197,54 @@ export default function PostJobPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground">
-                Accommodation Cost
+                What it costs the worker
               </label>
-              <input
-                value={form.accommodationCost}
-                onChange={(e) =>
-                  updateField("accommodationCost", e.target.value)
-                }
-                placeholder="e.g. $500/month"
-                className={inputClass}
-              />
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.accommodationCostAmount}
+                  onChange={(e) => updateField("accommodationCostAmount", e.target.value)}
+                  placeholder="0 if free"
+                  className={`${inputClass} flex-1`}
+                />
+                <select
+                  value={form.accommodationCostPeriod}
+                  onChange={(e) => updateField("accommodationCostPeriod", e.target.value)}
+                  className={`${inputClass} w-32`}
+                >
+                  <option value="">per…</option>
+                  <option value="night">night</option>
+                  <option value="week">week</option>
+                  <option value="month">month</option>
+                  <option value="season">season</option>
+                </select>
+              </div>
+              <p className="mt-1 text-xs text-foreground/50">
+                In {form.payCurrency || "the pay currency"}. Leave blank if you would rather not say.
+              </p>
             </div>
+          </div>
+
+          {/* The question workers ask most about staff housing, and one the
+              platform could not answer at all until migration 00112.
+              ⚠️ "Not specified" must stay a real option and the default:
+              defaulting it to "paid separately" would answer for every
+              business that skipped the field. */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-foreground">
+              Is the rent taken out of pay?
+            </label>
+            <select
+              value={form.accommodationDeducted}
+              onChange={(e) => updateField("accommodationDeducted", e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Not specified</option>
+              <option value="yes">Deducted from pay</option>
+              <option value="no">Paid separately</option>
+            </select>
           </div>
         </div>
       </div>

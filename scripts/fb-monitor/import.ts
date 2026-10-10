@@ -336,6 +336,16 @@ async function main(): Promise<void> {
           positionsAvailable: role.positionsAvailable ?? "",
           accommodationIncluded: role.accommodationIncluded,
           accommodationType: role.accommodationType ?? "",
+          // ⚠️ Sent as undefined, NOT "" or false, when the post did not say.
+          // The import route omits undefined fields, and the columns have no
+          // defaults, so "not stated" stays NULL. Sending false here would
+          // assert "housing is not deducted from pay" about a post that never
+          // mentioned it — the mistake pay_currency's 'USD' default made.
+          housingCostAmount: role.housingCostAmount ?? undefined,
+          housingCostCurrency: role.housingCostCurrency ?? undefined,
+          housingCostPeriod: role.housingCostPeriod ?? undefined,
+          housingDeductedFromPay:
+            role.housingDeductedFromPay === null ? undefined : role.housingDeductedFromPay,
           skiPassIncluded: role.skiPassIncluded,
           mealPerks: role.mealPerks,
           // The column is a boolean; the extractor returns which programmes

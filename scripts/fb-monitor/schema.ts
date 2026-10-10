@@ -79,6 +79,13 @@ export const CURRENCIES = ["CAD", "USD", "JPY"] as const;
 
 export const PAY_PERIODS = ["hour", "day", "week", "month", "season", "total"] as const;
 
+/**
+ * What staff housing is charged per. Deliberately NOT the pay list: nobody
+ * rents a bed by the hour, and "total" is the ambiguity that already makes 14
+ * pay rows unusable. Must stay in step with the CHECK in migration 00112.
+ */
+export const HOUSING_COST_PERIODS = ["night", "week", "month", "season"] as const;
+
 export const CONTACT_METHODS = [
   "email",
   "phone",
@@ -116,6 +123,11 @@ export type ExtractedRole = {
   endDate: string | null;
   accommodationIncluded: boolean | null;
   accommodationType: (typeof ACCOMMODATION_TYPES)[number] | null;
+  housingCostAmount: number | null;
+  housingCostCurrency: (typeof CURRENCIES)[number] | null;
+  housingCostPeriod: (typeof HOUSING_COST_PERIODS)[number] | null;
+  /** null = the post did not say. Never assume "not deducted". */
+  housingDeductedFromPay: boolean | null;
   skiPassIncluded: boolean | null;
   mealPerks: boolean | null;
   visaSponsorship: string | null;
@@ -207,6 +219,23 @@ const ROLE_SCHEMA: JsonSchema = {
       `"yes" if accommodation is provided or subsidised, "no" if the post explicitly says it is not, "${NOT_STATED}" if unmentioned.`,
     ),
     accommodationType: optionalEnum(ACCOMMODATION_TYPES, "Only when the post is specific."),
+    housingCostAmount: nullable({
+      type: "number",
+      description:
+        "What the WORKER pays for staff housing, if the post states it. For a range, the LOWER bound. Use 0 only when the post says housing is free. Null if not stated — do NOT infer a cost from the fact that housing is offered.",
+    }),
+    housingCostCurrency: optionalEnum(
+      CURRENCIES,
+      "Currency of housingCostAmount. Null when there is no amount.",
+    ),
+    housingCostPeriod: optionalEnum(
+      HOUSING_COST_PERIODS,
+      "What housingCostAmount is per.",
+    ),
+    housingDeductedFromPay: enumOf(
+      TRI_STATE,
+      `"yes" if the post says housing is taken out of wages ("rent deducted from pay", "taken from your paycheque"), "no" if it says it is paid separately, "${NOT_STATED}" if unmentioned. This is the question workers ask most about staff housing, and guessing it is worse than leaving it blank.`,
+    ),
     skiPassIncluded: enumOf(
       TRI_STATE,
       `"yes" if a season or lift pass is offered, "no" if explicitly excluded, "${NOT_STATED}" if unmentioned.`,
@@ -234,6 +263,10 @@ const ROLE_SCHEMA: JsonSchema = {
     "endDate",
     "accommodationIncluded",
     "accommodationType",
+    "housingCostAmount",
+    "housingCostCurrency",
+    "housingCostPeriod",
+    "housingDeductedFromPay",
     "skiPassIncluded",
     "mealPerks",
     "visaSponsorship",
@@ -372,6 +405,11 @@ export function normaliseExtraction(raw: unknown): ExtractedPost {
         endDate: fromOptionalString(role.endDate),
         accommodationIncluded: fromTriState(role.accommodationIncluded),
         accommodationType: fromOptionalEnum(role.accommodationType, ACCOMMODATION_TYPES),
+        housingCostAmount:
+          typeof role.housingCostAmount === "number" ? role.housingCostAmount : null,
+        housingCostCurrency: fromOptionalEnum(role.housingCostCurrency, CURRENCIES),
+        housingCostPeriod: fromOptionalEnum(role.housingCostPeriod, HOUSING_COST_PERIODS),
+        housingDeductedFromPay: fromTriState(role.housingDeductedFromPay),
         skiPassIncluded: fromTriState(role.skiPassIncluded),
         mealPerks: fromTriState(role.mealPerks),
         visaSponsorship: fromOptionalString(role.visaSponsorship),

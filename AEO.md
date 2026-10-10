@@ -83,18 +83,20 @@ Before writing a page, check it against this. Three of the planned figures do no
 | ⚠️ **Pay period** | Read it from the `salary_range` suffix, **never infer it from the number**. `JPY 3500/hour` is about CAD 32 — a magnitude rule mislabels the entire Japanese board. |
 | **Non-hourly pay** | ~14 jobs priced per season/total/month. Hours are recorded nowhere, and only 1 mentions them even in prose, so they are **excluded and counted**, never normalised. |
 | **Housing offered** | `accommodation_included` on 355, `accommodation_type` on ~147. Usable. |
-| ❌ **Housing cost** | `accommodation_cost` has **one** non-empty value on the whole board (`"¥60k per month"`), free text. A "staff housing cost by resort" page cannot be built yet. |
-| ❌ **Housing deducted from pay** | **No column exists.** 36 descriptions mention it in prose. Needs a scraper field and a column first. |
+| ⏳ **Housing cost** | Columns exist since migration 00112 (`accommodation_cost_amount` / `_currency` / `_period`) and the extractor asks for it, but **only newly scraped listings carry it** — 1 of 355 today. Not publishable until a few resorts clear the 5-listing floor. The `aeo-data-pull` reports the count each run and aggregates a **median weekly** figure (night/month/season normalised; a month is 52/12 weeks, not 4). |
+| ⏳ **Housing deducted from pay** | Column exists since 00112 (`accommodation_cost_deducted`), stated on 0 of 355 so far. ⚠️ It is a **NULLABLE boolean with no default** on purpose: "unknown" must never render as "paid separately". 36 descriptions mention rent in prose and were captured before the field existed. |
 | **Passes / meals** | `ski_pass_included`, `meal_perks` — booleans, usable. |
 | **Role category** | Populated on 349 of 355 since migration 00110. The 6 without carry titles with no signal and are NULL on purpose. |
 | ❌ **Town** | `nearby_town_id` is null on 354 of 355. **"Pay by town" is not buildable** — only "pay by resort". 75 are recoverable from the business, but a business with venues in two towns would get the wrong one stamped on all its jobs. |
 | **Employer-posted split** | 6 of 355. `job_posts.source` is `"Facebook"` for all 355, so the split must come from `business_profiles.is_claimed`, not `source`. 6 clears the 5-job floor by one — indicative, not publishable. |
 
+⚠️ **The 00112 columns have no defaults, and the database enforces coherence.** A housing currency or period with no amount beside it is refused by a CHECK constraint — the `pay_currency` mistake below, written down where it cannot be repeated. Verified against production: currency-without-amount, period-without-amount, a bad period and a negative cost are all rejected; a complete row, and a deduction stated with no figure, are both accepted.
+
 ⚠️ **`pay_currency` used to mean "no pay found."** It carried a database default of `'USD'` and the importer omitted the field when extraction found no currency, so 177 of 341 open jobs said USD on a board with no US resorts. Fixed at the source in migration 00109 — nothing to denominate is now NULL, priced-but-unnamed derives from the resort's country (`lib/jobs/currency.ts`). If USD ever reappears outside the USA, check that default first.
 
 ## 6-week plan
 - ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
-- Week 2: Three data pages: ski season pay by resort 2026/27; ~~staff housing cost and availability by resort~~ (**cost half is not supportable — see the table above**; availability and type are); resorts giving free passes/meals.
+- Week 2: Three data pages: ski season pay by resort 2026/27; staff housing **availability and type** by resort (**cost is now captured but still thin — 1 of 355; check the pull before promising a cost page**); resorts giving free passes/meals.
 - Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
