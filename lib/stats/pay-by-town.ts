@@ -16,8 +16,11 @@
  * query, which is where the rows are.
  */
 
-/** Below this, a median says more about one employer than about a town. */
-export const MIN_LISTINGS = 5;
+import { MIN_LISTINGS, money, percentile, round2, symbolFor, digits, toWeekly } from "./figures";
+
+// Re-exported so this module's own callers and tests keep one import. The
+// definitions live in figures.ts, shared with the housing page.
+export { MIN_LISTINGS, money, percentile, round2, toWeekly };
 
 export type TownPay = {
   town: string;
@@ -41,35 +44,6 @@ export type TownPay = {
   housingCostCount: number;
 };
 
-/** Linear-interpolation percentile — the common definition. */
-export function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return Number.NaN;
-  if (sorted.length === 1) return sorted[0];
-  const idx = (sorted.length - 1) * p;
-  const lo = Math.floor(idx);
-  const hi = Math.ceil(idx);
-  return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
-}
-
-export const round2 = (n: number) => Math.round(n * 100) / 100;
-
-/**
- * A housing cost as a weekly figure, so night/month/season quotes compare.
- *
- * A month is 52/12 weeks, not 4 — treating it as 4 understates a monthly rent
- * by 8%. A season is 24 weeks, roughly the November–April window the listings
- * describe, and is the one approximation here.
- */
-export function toWeekly(amount: number, period: string | null): number | null {
-  switch (period) {
-    case "night": return amount * 7;
-    case "week": return amount;
-    case "month": return (amount * 12) / 52;
-    case "season": return amount / 24;
-    default: return null;
-  }
-}
-
 /** True when this town has enough priced listings to quote a wage. */
 export function canQuotePay(town: TownPay): boolean {
   return town.pricedCount >= MIN_LISTINGS && town.medianHourly !== null && town.currency !== null;
@@ -81,45 +55,17 @@ export function canQuoteHousing(town: TownPay): boolean {
 }
 
 /**
- * "CAD $25.50" — the code as well as the symbol.
+ * "CAD $20.25–$29" for the quartile range, or null when it cannot be shown.
  *
- * ⚠️ BOTH, ALWAYS. "$" is CAD, AUD, NZD and USD on this board. A worker
- * reading "$25.50/hour" on a page that also covers Japan has no way to know
- * which, and the page never converts between them.
+ * ⚠️ A range with identical ends is not a range. Fernie rendered "CAD
+ * $21–$21" and Furano "JPY ¥1,400–¥1,400", which reads as a broken template
+ * rather than as "every listing here pays the same". The median printed above
+ * it already carries the number.
  */
-const SYMBOLS: Record<string, string> = {
-  CAD: "$", AUD: "$", NZD: "$", USD: "$", EUR: "€", GBP: "£",
-  JPY: "¥", CHF: "CHF ", SEK: "kr ", CLP: "$", ARS: "$", GEL: "₾",
-};
-
-/**
- * Two decimals when there are any, none when there are not — so CAD 25.5
- * reads "$25.50" like money, while JPY 1400 reads "¥1,400" rather than
- * "¥1,400.00" for a currency with no minor unit. A bare `maximumFractionDigits`
- * gives "$25.5", which is not a price anyone writes.
- */
-function digits(amount: number): string {
-  const fractional = Math.abs(amount % 1) > Number.EPSILON;
-  return amount.toLocaleString("en-GB", {
-    minimumFractionDigits: fractional ? 2 : 0,
-    maximumFractionDigits: 2,
-  });
-}
-
-export function money(amount: number | null, currency: string | null): string | null {
-  if (amount === null || !Number.isFinite(amount) || currency === null) return null;
-  return `${currency} ${SYMBOLS[currency] ?? ""}${digits(amount)}`;
-}
-
-/** "CAD $20.25–$29" for the quartile range, or null when it cannot be shown. */
 export function range(town: TownPay): string | null {
   if (!canQuotePay(town) || town.p25Hourly === null || town.p75Hourly === null) return null;
-  // ⚠️ A range with identical ends is not a range. Fernie rendered "CAD
-  // $21–$21" and Furano "JPY ¥1,400–¥1,400", which reads as a broken template
-  // rather than as "every listing here pays the same". The median above it
-  // already says the number.
   if (town.p25Hourly === town.p75Hourly) return null;
-  const symbol = SYMBOLS[town.currency as string] ?? "";
+  const symbol = symbolFor(town.currency as string);
   return `${town.currency} ${symbol}${digits(town.p25Hourly)}–${symbol}${digits(town.p75Hourly)}`;
 }
 

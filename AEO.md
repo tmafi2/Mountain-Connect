@@ -99,7 +99,8 @@ Before writing a page, check it against this. Three of the planned figures do no
 ## 6-week plan
 - ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
 - ~~Week 2 page 1: ski season pay~~ — **SHIPPED 2026-10-10 at `/ski-season-pay`.** Pay by TOWN, not resort: a worker searching "ski season pay" is deciding where to live. Revelstoke, Furano and Fernie clear the floor; Hakuba appears with its job count and housing share but no wage. Article + BreadcrumbList + FAQPage schema, in the sitemap, linked from every town page.
-- Week 2 still to do: staff housing **availability and type** by resort, plus **cost for Niseko only** (the one resort over the 5-listing floor); resorts giving free passes/meals.
+- ~~Week 2 page 2: staff housing~~ — **SHIPPED 2026-10-10 at `/staff-housing`.** Availability and type for all 10 resorts with 5+ open listings; cost for Niseko only, exactly as predicted. Rusutsu reads "mostly free" (4 of the 5 that say). Free and charged housing are counted separately, never averaged.
+- Week 2 still to do: resorts giving free passes/meals. The data is there — Niseko 23/97 passes, Whistler 20/123 — but it is the thinnest of the three, so check the pull first.
 - Week 2 addition now possible: **pay by town** for Revelstoke, Fernie and Furano. A worker searches for somewhere to LIVE, so the town is usually the real question behind "what does a season pay?".
 - Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
@@ -107,7 +108,7 @@ Before writing a page, check it against this. Three of the planned figures do no
 
 ⚠️ **Weeks 3-4 target prompts about Australia and New Zealand, where we currently have no open jobs at all** (the board is Canada 182 / Japan 155 / France 4). The guides can still rank, but must not imply we have AU/NZ listings to apply to.
 
-## Lessons from the first data page (`/ski-season-pay`)
+## Lessons from the data pages (`/ski-season-pay`, `/staff-housing`)
 
 - ⚠️ **Read the rendered page, not the code.** The FAQ answer shipped into
   `FAQPage` schema as *"median hourly pay ranges from CAD $21 to CAD $1,400"*
@@ -123,7 +124,21 @@ Before writing a page, check it against this. Three of the planned figures do no
   job count and housing share with the wage column reading "not enough data".
 - **No founder tip was written.** The template asks for one and it is Tyler's
   to add — inventing it would be a fake testimonial. There is a marked place
-  for it in the page.
+  for it in both pages.
+- ⚠️ **Never average two different facts.** At Rusutsu four listings say staff
+  housing is free and one charges ¥35,000/month. A median across all five is
+  0, publishing "housing at Rusutsu is free" while one in five charges — true
+  on average, wrong for the reader. Free and charged are separate counts.
+- ⚠️ **An empty cell is read as good news.** "—" in a cost column reads as
+  "it's free". Every blank says WHY: "no listing says", "3 of 14 state a
+  cost", "mostly free — 4 of the 5 that say".
+- **A branch with four outcomes does not belong in JSX.** The cost cell got it
+  wrong twice — once contradicting itself ("Not stated — only 5 of 5 say"),
+  once quietly ducking the 5-listing floor — before the decision moved into
+  `costState()` where it is tested.
+- **The floor applies to the lead paragraph too.** It quoted "Rusutsu: 100%"
+  with the sample size only in the table below. Every figure carries its
+  denominator where it is stated.
 
 ## Guide template
 1. Title is the question people ask.

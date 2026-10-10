@@ -349,6 +349,12 @@ export default async function SkiSeasonPayPage() {
             Browse every open job
           </Link>
           <Link
+            href="/staff-housing"
+            className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
+          >
+            Which resorts include staff housing?
+          </Link>
+          <Link
             href="/towns"
             className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
           >
