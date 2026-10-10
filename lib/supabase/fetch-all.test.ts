@@ -70,6 +70,16 @@ test("a non-progressing read is refused rather than looped forever", async () =>
  * head count, or asks for an explicit `.limit(n)` — the three honest options.
  * A plain `.select(...).eq(...)` with none of them is the silent one.
  */
+const WRITE_PATHS = [
+  "lib/jobs/expiry-sweep.ts",
+  "lib/outreach/suppression.ts",
+  "app/api/cron/outreach-drip/route.ts",
+  "app/api/cron/unclaimed-dormancy-sweep/route.ts",
+  "app/api/cron/publish-scheduled/route.ts",
+  "app/api/admin/outreach/leads/route.ts",
+  "app/api/admin/outreach/leads/bulk-send/route.ts",
+];
+
 const PUBLIC_READS = [
   "app/sitemap.ts",
   "app/(public)/jobs/page.tsx",
@@ -102,4 +112,42 @@ test("every public read of a growing table is paged, counted or limited", () => 
     [],
     `these stop at 1000 rows with no error:\n  ${offenders.join("\n  ")}`
   );
+});
+
+/**
+ * The write paths matter more than the pages, because a capped read here does
+ * not show a wrong number — it skips rows, and then something acts on what is
+ * left as though it were everything:
+ *
+ *   - the expiry sweep never warns a post, so it never expires
+ *   - the dormancy sweep cannot see who applied, so it takes down a listing
+ *     somebody wanted
+ *   - the drip sees no prior send for a lead and emails them AGAIN
+ *   - the suppression list comes back short, so people who unsubscribed are
+ *     emailed anyway
+ *
+ * `outreach_sends` is the one to watch: it gains a row per EMAIL rather than
+ * per lead (631 on 2026-10-10, up to 50/day), so it reaches the cap first.
+ */
+test("every cron and sweep read is paged, counted or limited", () => {
+  const offenders: string[] = [];
+  for (const file of WRITE_PATHS) {
+    const src = readFileSync(join(process.cwd(), file), "utf8");
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    for (const m of code.matchAll(
+      /\.from\("(job_posts|business_profiles|outreach_leads|outreach_sends|expressions_of_interest|blog_posts)"\)([\s\S]{0,900}?);/g
+    )) {
+      const [, table, chain] = m;
+      if (!chain.includes(".select(")) continue;
+      if (chain.includes(".insert(") || chain.includes(".update(") || chain.includes(".delete(")) continue;
+      const bounded =
+        chain.includes(".range(") ||
+        chain.includes("head: true") ||
+        chain.includes(".limit(") ||
+        chain.includes(".single()") ||
+        chain.includes(".maybeSingle()");
+      if (!bounded) offenders.push(`${file} → ${table}`);
+    }
+  }
+  assert.deepEqual(offenders, [], `these skip rows past 1000 with no error:\n  ${offenders.join("\n  ")}`);
 });

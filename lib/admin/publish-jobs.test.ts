@@ -29,6 +29,9 @@ interface Business {
   import_outreach_sent_at: string | null;
 }
 
+/** PostgREST's db-max-rows on this project — see lib/supabase/fetch-all.ts. */
+const DB_MAX_ROWS = 1000;
+
 function fakeDb(jobs: Job[], businesses: Business[]) {
   const stamped: string[] = [];
 
@@ -38,6 +41,7 @@ function fakeDb(jobs: Job[], businesses: Business[]) {
       : (businesses as unknown as Array<Record<string, unknown>>);
     const filters: Array<(r: Record<string, unknown>) => boolean> = [];
     let payload: Record<string, unknown> | null = null;
+    let window: [number, number] | null = null;
 
     const api = {
       select: () => api,
@@ -53,6 +57,11 @@ function fakeDb(jobs: Job[], businesses: Business[]) {
         payload = p;
         return api;
       },
+      // Reads here are paged, because this project caps a select at 1000 rows
+      // with no error (lib/supabase/fetch-all.ts). The cap is applied whether
+      // or not .range() was called, so the fake matches the real database
+      // rather than a friendlier one.
+      range(from: number, to: number) { window = [from, to]; return api; },
       then(resolve: (v: unknown) => unknown) {
         const matched = rows.filter((r) => filters.every((f) => f(r)));
         if (payload) {
@@ -64,7 +73,9 @@ function fakeDb(jobs: Job[], businesses: Business[]) {
           }
           return resolve({ error: null });
         }
-        return resolve({ data: matched.map((r) => ({ ...r })), error: null });
+        const [lo, hi] = window ?? [0, DB_MAX_ROWS - 1];
+        const page = matched.slice(lo, Math.min(hi + 1, lo + DB_MAX_ROWS));
+        return resolve({ data: page.map((r) => ({ ...r })), error: null });
       },
     };
     return api;

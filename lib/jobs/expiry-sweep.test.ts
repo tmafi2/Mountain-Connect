@@ -36,6 +36,9 @@ interface BizRow {
   user_id: string | null;
 }
 
+/** PostgREST's db-max-rows on this project — see lib/supabase/fetch-all.ts. */
+const DB_MAX_ROWS = 1000;
+
 function fakeClient(jobs: JobRow[], businesses: BizRow[]) {
   const builder = (table: string) => {
     const rows: Array<Record<string, unknown>> =
@@ -44,6 +47,7 @@ function fakeClient(jobs: JobRow[], businesses: BizRow[]) {
       : (() => { throw new Error(`unexpected table ${table}`); })();
 
     const filters: Array<(r: Record<string, unknown>) => boolean> = [];
+    let window: [number, number] | null = null;
     const api = {
       select() { return api; },
       eq(col: string, val: unknown) { filters.push((r) => r[col] === val); return api; },
@@ -59,8 +63,21 @@ function fakeClient(jobs: JobRow[], businesses: BizRow[]) {
       },
       in(col: string, vals: unknown[]) { filters.push((r) => vals.includes(r[col])); return api; },
       order() { return api; },
+      range(from: number, to: number) { window = [from, to]; return api; },
       then(resolve: (v: unknown) => unknown) {
-        return resolve({ data: rows.filter((r) => filters.every((f) => f(r))), error: null });
+        const matched = rows.filter((r) => filters.every((f) => f(r)));
+        // ⚠️ THE CAP IS APPLIED WHETHER OR NOT .range() WAS CALLED, because
+        // that is what the real database does: this project sets PostgREST's
+        // db-max-rows, so a plain select silently returns the first 1000 rows
+        // with no error and no flag.
+        //
+        // A fake that only slices when asked is a database we do not have —
+        // and under it the two tests at the bottom of this file passed
+        // against the UNPAGED sweep, which is exactly the bug they exist to
+        // catch. Confirmed by running them both ways.
+        const [from, to] = window ?? [0, DB_MAX_ROWS - 1];
+        const data = matched.slice(from, Math.min(to + 1, from + DB_MAX_ROWS));
+        return resolve({ data, error: null });
       },
     };
     return api;
@@ -273,4 +290,30 @@ test("a business with no email is still reported, flagged for the caller", async
   );
   assert.equal(r.counts.expire, 1);
   assert.equal(r.expire[0].email, null, "the pause still applies; only the email cannot be sent");
+});
+
+/**
+ * The sweep used to read job_posts with one plain select. This project caps a
+ * select at 1000 rows with NO error, so past that point posts were silently
+ * left out of the sweep altogether: never warned, therefore never expired,
+ * therefore live for ever. Nothing would have reported it.
+ *
+ * 1001 rows is the smallest number that tells the two apart.
+ */
+test("every expiring post is swept, not just the first thousand", async () => {
+  const many = Array.from({ length: 1001 }, (_, i) =>
+    job({ id: `j${i}`, title: `Role ${i}`, business_id: "b1", expires_at: inDays(3) })
+  );
+  const r = await planExpirySweep(fakeClient(many, [biz()]), NOW, "log_only");
+  const warned = r.warn.reduce((n, b) => n + b.jobs.length, 0);
+  assert.equal(warned, 1001, "a capped read would warn 1000 and lose the rest with no error");
+});
+
+/** The owner lookup is an `.in()`, which is capped the same way — and a
+ *  missing owner reads as "no owner", which drops that owner's posts. */
+test("every owner is resolved, not just the first thousand", async () => {
+  const businesses = Array.from({ length: 1001 }, (_, i) => biz({ id: `b${i}`, email: `b${i}@x.com` }));
+  const jobs = businesses.map((b, i) => job({ id: `j${i}`, business_id: b.id, expires_at: inDays(3) }));
+  const r = await planExpirySweep(fakeClient(jobs, businesses), NOW, "log_only");
+  assert.equal(r.counts.businesses, 1001, "owners past the cap would have their posts dropped");
 });

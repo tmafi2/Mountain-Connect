@@ -11,6 +11,7 @@ import { OUTREACH_SEQUENCE, findNextStep } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
 import { businessSignupCta } from "@/lib/outreach/cta";
 import { paceDaily, outreachSentInLastDay, deferredMessage } from "@/lib/outreach/pacing";
+import { fetchAllRows, fetchAllByIds } from "@/lib/supabase/fetch-all";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -59,37 +60,70 @@ export async function GET(request: Request) {
   const result = { sent: 0, skipped: 0, deferred: 0, errors: [] as string[] };
 
   // Pull every active lead with at least one prior send. We grab the
-  // most recent send per lead via a single ordered query and reduce in
-  // memory — keeps it simple for the few hundred leads we'd realistically
-  // have. If this grows past ~10k leads, switch to a per-lead query.
-  const { data: leads, error: leadsErr } = await admin
-    .from("outreach_leads")
-    .select("id, email, business_name, unsubscribe_token, resorts(name, country), nearby_towns(name, country)")
-    .eq("status", "active");
-  if (leadsErr) {
-    return NextResponse.json({ error: leadsErr.message }, { status: 500 });
+  // most recent send per lead and reduce in memory — fine for the few
+  // hundred leads we'd realistically have.
+  //
+  // ⚠️ BOTH READS ARE PAGED, and the second one is the dangerous one. This
+  // project caps a select at 1000 rows with no error, and `outreach_sends`
+  // gains a row per email rather than per lead — 631 on 2026-10-10, growing
+  // by up to the 50/day cap. Once it passes 1000, a capped read means the
+  // leads whose sends fall past the cut look like they have NO prior send,
+  // and a lead with no prior send is one this cron CONTACTS. The failure is
+  // not a wrong number on a page; it is cold-emailing people who already
+  // heard from us, on a domain that already carries a 3.9% bounce rate
+  // (00104). See lib/supabase/fetch-all.ts.
+  let leads: Array<Record<string, unknown>>;
+  try {
+    leads = await fetchAllRows<Record<string, unknown>>(
+      (from, to) =>
+        admin
+          .from("outreach_leads")
+          .select("id, email, business_name, unsubscribe_token, resorts(name, country), nearby_towns(name, country)")
+          .eq("status", "active")
+          .range(from, to),
+      "outreach-drip leads"
+    );
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 
-  if (!leads || leads.length === 0) {
+  if (leads.length === 0) {
     return NextResponse.json(result);
   }
 
   const leadIds = leads.map((l) => l.id as string);
-  const { data: sends } = await admin
-    .from("outreach_sends")
-    .select("lead_id, template_name, sent_at, status")
-    .in("lead_id", leadIds)
-    .eq("status", "sent")
-    .order("sent_at", { ascending: false });
+  // Chunked by id as well as paged: see fetchAllByIds. The ordering that the
+  // reduction below relied on does not survive chunking, so it now compares
+  // timestamps explicitly rather than trusting the first row it sees.
+  let sends: Array<Record<string, unknown>> = [];
+  try {
+    sends = await fetchAllByIds<Record<string, unknown>>(
+      leadIds,
+      (chunk, from, to) =>
+        admin
+          .from("outreach_sends")
+          .select("lead_id, template_name, sent_at, status")
+          .in("lead_id", chunk)
+          .eq("status", "sent")
+          .order("sent_at", { ascending: false })
+          .range(from, to),
+      "outreach-drip sends"
+    );
+  } catch (err) {
+    // A failed send history would make every lead look un-contacted, which
+    // is the one outcome worse than skipping a run.
+    return NextResponse.json({ error: `send history: ${String(err)}` }, { status: 500 });
+  }
 
   const lastSendByLead = new Map<string, { template: string; at: number }>();
-  for (const s of sends ?? []) {
+  for (const s of sends) {
     const lid = s.lead_id as string;
-    if (!lastSendByLead.has(lid)) {
-      lastSendByLead.set(lid, {
-        template: s.template_name as string,
-        at: new Date(s.sent_at as string).getTime(),
-      });
+    const at = new Date(s.sent_at as string).getTime();
+    const seen = lastSendByLead.get(lid);
+    // ⚠️ Keep the LATEST, do not keep the first row seen. Rows arrive sorted
+    // within a chunk but not across chunks or pages.
+    if (!seen || at > seen.at) {
+      lastSendByLead.set(lid, { template: s.template_name as string, at });
     }
   }
 

@@ -9,6 +9,7 @@ import {
 } from "@/lib/email/send";
 import { loadUnsubscribed, suppressed } from "@/lib/outreach/suppression";
 import { SITE_ORIGIN } from "@/lib/config/site";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 // Two warnings and four weeks, changed from one warning and three on
 // 2026-08-30. The first email arrives cold — from a company the business has
@@ -112,15 +113,37 @@ export async function GET(request: Request) {
   const optOuts = await loadUnsubscribed(admin);
 
   // ─── Pass 0: missed first-applicant + threshold nudges ──────
-  const { data: nudgeCandidates, error: nudgeQueryErr } = await admin
-    .from("business_profiles")
-    .select(
-      "id, business_name, email, claim_token, first_applicant_email_sent_at, eoi_nudge_sent_at"
-    )
-    .eq("is_claimed", false)
-    .not("email", "is", null)
-    .not("claim_token", "is", null)
-    .or("first_applicant_email_sent_at.is.null,eoi_nudge_sent_at.is.null");
+  // ⚠️ Paged — a plain select stops at 1000 rows here with no error, and the
+  // businesses past the cut would simply never be nudged. 225 unclaimed
+  // today. See lib/supabase/fetch-all.ts.
+  type NudgeRow = {
+    id: string;
+    business_name: string;
+    email: string | null;
+    claim_token: string | null;
+    first_applicant_email_sent_at: string | null;
+    eoi_nudge_sent_at: string | null;
+  };
+  let nudgeCandidates: NudgeRow[] = [];
+  let nudgeQueryErr: { message: string } | null = null;
+  try {
+    nudgeCandidates = await fetchAllRows<NudgeRow>(
+      (from, to) =>
+        admin
+          .from("business_profiles")
+          .select(
+            "id, business_name, email, claim_token, first_applicant_email_sent_at, eoi_nudge_sent_at"
+          )
+          .eq("is_claimed", false)
+          .not("email", "is", null)
+          .not("claim_token", "is", null)
+          .or("first_applicant_email_sent_at.is.null,eoi_nudge_sent_at.is.null")
+          .range(from, to),
+      "dormancy nudge candidates"
+    );
+  } catch (err) {
+    nudgeQueryErr = { message: String(err) };
+  }
 
   if (nudgeQueryErr) {
     console.error("dormancy-sweep nudge query failed:", nudgeQueryErr);
@@ -219,9 +242,23 @@ export async function GET(request: Request) {
   // businesses get told who is waiting instead, on the same schedule.
   const waiting = new Map<string, { total: number; roles: Array<{ title: string; count: number }> }>();
   {
-    const { data: rows, error } = await admin
-      .from("expressions_of_interest")
-      .select("id, job_posts!inner(id, title, business_id)");
+    // ⚠️ Paged. This read decides which listings are WANTED, and the comment
+    // below is the reason it matters: a short read makes wanted listings look
+    // dead, and the takedown removes the ones people applied to.
+    let rows: Array<Record<string, unknown>> = [];
+    let error: { message: string } | null = null;
+    try {
+      rows = await fetchAllRows<Record<string, unknown>>(
+        (from, to) =>
+          admin
+            .from("expressions_of_interest")
+            .select("id, job_posts!inner(id, title, business_id)")
+            .range(from, to),
+        "dormancy eoi"
+      );
+    } catch (err) {
+      error = { message: String(err) };
+    }
     if (error) {
       // Without this the sweep cannot tell a wanted listing from a dead one,
       // and would remove both. Better to warn nobody than remove the wrong one.
@@ -257,12 +294,32 @@ export async function GET(request: Request) {
   // meant a Resend outage silently consumed the only warning a business
   // would ever get, and they would find their listing gone having been told
   // nothing.
-  const { data: toWarn, error: warnErr } = await admin
-    .from("business_profiles")
-    .select("id, business_name, email, claim_token, created_at")
-    .eq("is_claimed", false)
-    .is("dormancy_warning_sent_at", null)
-    .lte("created_at", firstWarningCutoff);
+  // Paged: past the cap a business is never warned, and because the final
+  // notice is gated on the first warning, never warned means never removed.
+  type WarnRow = {
+    id: string;
+    business_name: string;
+    email: string | null;
+    claim_token: string | null;
+    created_at: string;
+  };
+  let toWarn: WarnRow[] = [];
+  let warnErr: { message: string } | null = null;
+  try {
+    toWarn = await fetchAllRows<WarnRow>(
+      (from, to) =>
+        admin
+          .from("business_profiles")
+          .select("id, business_name, email, claim_token, created_at")
+          .eq("is_claimed", false)
+          .is("dormancy_warning_sent_at", null)
+          .lte("created_at", firstWarningCutoff)
+          .range(from, to),
+      "dormancy warn"
+    );
+  } catch (err) {
+    warnErr = { message: String(err) };
+  }
 
   if (warnErr) {
     console.error("dormancy-sweep warn query failed:", warnErr);
@@ -339,13 +396,25 @@ export async function GET(request: Request) {
   // is down for a fortnight, the first run back sends warning one and the
   // final waits another week — rather than firing both at once and removing
   // the listing days later.
-  const { data: toFinal, error: finalErr } = await admin
-    .from("business_profiles")
-    .select("id, business_name, email, claim_token")
-    .eq("is_claimed", false)
-    .not("dormancy_warning_sent_at", "is", null)
-    .is("dormancy_final_sent_at", null)
-    .lte("dormancy_warning_sent_at", finalCutoff);
+  type FinalRow = { id: string; business_name: string; email: string | null; claim_token: string | null };
+  let toFinal: FinalRow[] = [];
+  let finalErr: { message: string } | null = null;
+  try {
+    toFinal = await fetchAllRows<FinalRow>(
+      (from, to) =>
+        admin
+          .from("business_profiles")
+          .select("id, business_name, email, claim_token")
+          .eq("is_claimed", false)
+          .not("dormancy_warning_sent_at", "is", null)
+          .is("dormancy_final_sent_at", null)
+          .lte("dormancy_warning_sent_at", finalCutoff)
+          .range(from, to),
+      "dormancy final"
+    );
+  } catch (err) {
+    finalErr = { message: String(err) };
+  }
 
   if (finalErr) {
     console.error("dormancy-sweep final query failed:", finalErr);
@@ -448,13 +517,16 @@ export async function GET(request: Request) {
       // up, and the ones nobody wanted still come down. A business is not
       // all-or-nothing, and the row people are waiting on is precisely the
       // one worth keeping.
-      const { data: wanted } = await admin
-        .from("expressions_of_interest")
-        .select("job_post_id, job_posts!inner(business_id)")
-        .eq("job_posts.business_id", biz.id);
-      const spared = new Set(
-        ((wanted ?? []) as Array<{ job_post_id: string }>).map((r) => r.job_post_id)
+      const wanted = await fetchAllRows<{ job_post_id: string }>(
+        (from, to) =>
+          admin
+            .from("expressions_of_interest")
+            .select("job_post_id, job_posts!inner(business_id)")
+            .eq("job_posts.business_id", biz.id)
+            .range(from, to),
+        `dormancy spared ${biz.id}`
       );
+      const spared = new Set(wanted.map((r) => r.job_post_id));
 
       let q = admin
         .from("job_posts")

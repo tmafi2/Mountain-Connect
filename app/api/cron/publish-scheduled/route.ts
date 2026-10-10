@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 /**
  * GET /api/cron/publish-scheduled
@@ -28,15 +29,20 @@ export async function GET(request: Request) {
     const admin = createAdminClient();
 
     // Find all scheduled posts whose time has passed
-    const { data: posts, error: fetchError } = await admin
-      .from("blog_posts")
-      .select("id, scheduled_at")
-      .eq("status", "scheduled")
-      .lte("scheduled_at", new Date().toISOString());
+    // Paged: a plain select stops at 1000 rows with no error, and a post
+    // past the cut would simply never publish. See lib/supabase/fetch-all.ts.
+    const posts = await fetchAllRows<{ id: string; scheduled_at: string }>(
+      (from, to) =>
+        admin
+          .from("blog_posts")
+          .select("id, scheduled_at")
+          .eq("status", "scheduled")
+          .lte("scheduled_at", new Date().toISOString())
+          .range(from, to),
+      "publish-scheduled"
+    );
 
-    if (fetchError) throw fetchError;
-
-    if (!posts || posts.length === 0) {
+    if (posts.length === 0) {
       return NextResponse.json({ published: 0 });
     }
 

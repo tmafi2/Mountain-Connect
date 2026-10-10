@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 /**
  * Who has asked us to stop emailing them.
@@ -28,18 +29,27 @@ export interface SuppressionList {
 }
 
 export async function loadUnsubscribed(admin: SupabaseClient): Promise<SuppressionList> {
-  const { data, error } = await admin
-    .from("outreach_leads")
-    .select("email")
-    .eq("status", "unsubscribed");
-
-  if (error) {
-    console.error("suppression: could not read unsubscribes:", error.message);
+  // ⚠️ PAGED. This project caps a select at 1000 rows with no error, and a
+  // short read here does not fail — it silently returns a SHORTER opt-out
+  // list, so the people past the cut get emailed again. That is the one
+  // failure this module exists to prevent, and it would look like success.
+  //
+  // A throw is caught below and fails closed, exactly like a query error:
+  // everyone is treated as suppressed rather than nobody.
+  let data: { email: string | null }[];
+  try {
+    data = await fetchAllRows<{ email: string | null }>(
+      (from, to) =>
+        admin.from("outreach_leads").select("email").eq("status", "unsubscribed").range(from, to),
+      "suppression"
+    );
+  } catch (err) {
+    console.error("suppression: could not read unsubscribes:", err);
     return { unsubscribed: new Set(), lookupFailed: true };
   }
 
   const unsubscribed = new Set<string>();
-  for (const row of (data ?? []) as { email: string | null }[]) {
+  for (const row of data) {
     const address = (row.email ?? "").trim().toLowerCase();
     if (address) unsubscribed.add(address);
   }

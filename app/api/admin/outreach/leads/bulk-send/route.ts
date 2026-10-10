@@ -6,6 +6,7 @@ import { OUTREACH_SEQUENCE } from "@/lib/outreach/sequence";
 import { hemisphereForLead } from "@/lib/outreach/hemisphere";
 import { businessSignupCta } from "@/lib/outreach/cta";
 import { paceDaily, outreachSentInLastDay, deferredMessage } from "@/lib/outreach/pacing";
+import { fetchAllByIds } from "@/lib/supabase/fetch-all";
 
 const BASE_URL = "https://www.mountainconnects.com";
 const MAX_LEADS_PER_REQUEST = 500;
@@ -101,14 +102,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: leads, error: leadsErr } = await admin
-    .from("outreach_leads")
-    .select(
-      "id, email, business_name, status, unsubscribe_token, resorts(name, country), nearby_towns(name, country)"
-    )
-    .in("id", leadIds);
-
-  if (leadsErr) {
+  // Chunked by id and paged. leadIds comes from the request body, so a large
+  // selection would otherwise come back capped at 1000 — and a lead missing
+  // from this lookup is silently not sent to, while the caller is told the
+  // batch succeeded. See lib/supabase/fetch-all.ts.
+  let leads: Array<Record<string, unknown>>;
+  try {
+    leads = await fetchAllByIds<Record<string, unknown>>(
+      leadIds,
+      (chunk, from, to) =>
+        admin
+          .from("outreach_leads")
+          .select(
+            "id, email, business_name, status, unsubscribe_token, resorts(name, country), nearby_towns(name, country)"
+          )
+          .in("id", chunk)
+          .range(from, to),
+      "bulk-send leads"
+    );
+  } catch (err) {
+    const leadsErr = { message: String(err) };
     return NextResponse.json({ error: leadsErr.message }, { status: 500 });
   }
 

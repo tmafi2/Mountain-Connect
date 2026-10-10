@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 interface IncomingRow {
   email?: string;
@@ -70,15 +71,29 @@ export async function POST(request: Request) {
 
   // Build lookup maps for resorts and towns once so per-row resolution
   // is O(1). Keep names lowercased for case-insensitive matching.
-  const [{ data: resorts }, { data: towns }, { data: existingLeads }] = await Promise.all([
-    admin.from("resorts").select("id, name"),
-    admin.from("nearby_towns").select("id, name"),
-    admin.from("outreach_leads").select("id, email"),
+  // ⚠️ All three paged. The third is the one that bites: it is the
+  // duplicate check, and a capped read does not fail — it returns a SHORTER
+  // list of addresses we already hold, so the leads past the cut look new
+  // and get inserted again. 239 leads today, and this is an import endpoint,
+  // so the list is meant to grow. See lib/supabase/fetch-all.ts.
+  const [resorts, towns, existingLeads] = await Promise.all([
+    fetchAllRows<{ id: string; name: string }>(
+      (from, to) => admin.from("resorts").select("id, name").range(from, to),
+      "import: resorts"
+    ),
+    fetchAllRows<{ id: string; name: string }>(
+      (from, to) => admin.from("nearby_towns").select("id, name").range(from, to),
+      "import: towns"
+    ),
+    fetchAllRows<{ id: string; email: string | null }>(
+      (from, to) => admin.from("outreach_leads").select("id, email").range(from, to),
+      "import: existing leads"
+    ),
   ]);
   const resortByName = new Map<string, string>();
-  for (const r of resorts ?? []) resortByName.set((r.name as string).toLowerCase(), r.id as string);
+  for (const r of resorts) resortByName.set((r.name as string).toLowerCase(), r.id as string);
   const townByName = new Map<string, string>();
-  for (const t of towns ?? []) townByName.set((t.name as string).toLowerCase(), t.id as string);
+  for (const t of towns) townByName.set((t.name as string).toLowerCase(), t.id as string);
   const existingEmails = new Set(
     (existingLeads ?? []).map((l) => (l.email as string).toLowerCase())
   );
@@ -271,6 +286,11 @@ export async function POST(request: Request) {
   }
 
   // Map insert results back to the rows by email so we can attach leadIds.
+  //
+  // This RETURNING clause is capped at 1000 like any other read, and that is
+  // left alone deliberately: the insert itself still happens in full, and the
+  // only consequence of a short list is that some results come back without a
+  // leadId. Nothing is lost and nothing is inserted twice.
   const insertedByEmail = new Map<string, string>();
   for (const row of inserted ?? []) {
     insertedByEmail.set((row.email as string).toLowerCase(), row.id as string);

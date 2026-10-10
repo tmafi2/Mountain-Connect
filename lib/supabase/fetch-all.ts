@@ -55,3 +55,34 @@ export async function fetchAllRows<T>(
   }
   throw new Error(`${label}: still reading after ${MAX_PAGES} pages — refusing to loop`);
 }
+
+/**
+ * The same rule for an `.in("col", ids)` lookup.
+ *
+ * Two separate ways that breaks. The ROWS it returns are capped like any
+ * other select — ask for the sends belonging to 300 leads and you can get far
+ * more than 1000 rows back — and a very long id list also makes a very long
+ * URL, which servers and proxies cut off at their own limits. So the ids are
+ * chunked AND each chunk is paged.
+ *
+ * ⚠️ The caller must not assume order across chunks. Anything that depends on
+ * ordering (a "most recent per id" reduction, say) has to sort or reduce over
+ * the whole result, not rely on the order rows arrive in.
+ */
+const ID_CHUNK = 200;
+
+export async function fetchAllByIds<T>(
+  ids: readonly string[],
+  build: (chunk: string[], from: number, to: number) => PromiseLike<PageResult<T>>,
+  label: string
+): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    const chunk = ids.slice(i, i + ID_CHUNK);
+    if (chunk.length === 0) continue;
+    out.push(
+      ...(await fetchAllRows<T>((from, to) => build(chunk, from, to), `${label} [ids ${i}-${i + chunk.length - 1}]`))
+    );
+  }
+  return out;
+}

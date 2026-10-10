@@ -7,6 +7,7 @@ import {
   jobExpiryWrites,
   type JobExpiryMode,
 } from "@/lib/config/features";
+import { fetchAllRows, fetchAllByIds } from "@/lib/supabase/fetch-all";
 
 /**
  * The daily job-post expiry sweep.
@@ -133,13 +134,28 @@ export async function planExpirySweep(
   // Every active post with a window that is nearly up or already past. One
   // read covers all three passes; splitting them into three round trips
   // would let the board change underneath the sweep between queries.
-  const { data: jobRows, error: jobErr } = await admin
-    .from("job_posts")
-    .select("id, title, business_id, expires_at, auto_renew, expiry_warning_sent_at")
-    .eq("status", "active")
-    .not("expires_at", "is", null)
-    .lte("expires_at", warnCutoff.toISOString())
-    .order("expires_at", { ascending: true });
+  // ⚠️ PAGED. A capped read does not under-report here, it silently leaves
+  // posts out of the sweep entirely: never warned, so never expired, so live
+  // forever. Soonest-expiring first, so if anything ever does go wrong the
+  // rows that are lost are the least urgent. See lib/supabase/fetch-all.ts.
+  let jobRows: Array<SweepJob & { expiry_warning_sent_at: string | null }> = [];
+  let jobErr: { message: string } | null = null;
+  try {
+    jobRows = await fetchAllRows<SweepJob & { expiry_warning_sent_at: string | null }>(
+      (from, to) =>
+        admin
+          .from("job_posts")
+          .select("id, title, business_id, expires_at, auto_renew, expiry_warning_sent_at")
+          .eq("status", "active")
+          .not("expires_at", "is", null)
+          .lte("expires_at", warnCutoff.toISOString())
+          .order("expires_at", { ascending: true })
+          .range(from, to),
+      "expiry-sweep jobs"
+    );
+  } catch (err) {
+    jobErr = { message: String(err) };
+  }
 
   if (jobErr) {
     return {
@@ -156,7 +172,7 @@ export async function planExpirySweep(
     };
   }
 
-  const jobs = (jobRows ?? []) as Array<SweepJob & { expiry_warning_sent_at: string | null }>;
+  const jobs = jobRows;
   if (jobs.length === 0) {
     return {
       mode,
@@ -176,12 +192,27 @@ export async function planExpirySweep(
   // diagnostic override has something to switch off. The set is small — it
   // is the distinct owners of posts already narrowed to one expiry window.
   const businessIds = [...new Set(jobs.map((j) => j.business_id))];
-  const { data: bizRows, error: bizErr } = await admin
-    .from("business_profiles")
-    .select(
-      "id, business_name, email, tier, selected_tier, subscription_status, grace_period_ends_at, user_id"
-    )
-    .in("id", businessIds);
+  // Chunked and paged: an `.in()` is capped like any other read, and a
+  // missing owner here reads as "no owner", which drops that owner's posts
+  // from the sweep silently.
+  let bizRows: Array<SweepBusiness & { user_id: string | null }> = [];
+  let bizErr: { message: string } | null = null;
+  try {
+    bizRows = await fetchAllByIds<SweepBusiness & { user_id: string | null }>(
+      businessIds,
+      (chunk, from, to) =>
+        admin
+          .from("business_profiles")
+          .select(
+            "id, business_name, email, tier, selected_tier, subscription_status, grace_period_ends_at, user_id"
+          )
+          .in("id", chunk)
+          .range(from, to),
+      "expiry-sweep businesses"
+    );
+  } catch (err) {
+    bizErr = { message: String(err) };
+  }
 
   if (bizErr) errors.push(`business read failed: ${bizErr.message}`);
 
@@ -189,7 +220,7 @@ export async function planExpirySweep(
   // taken ownership of, and /api/cron/unclaimed-dormancy-sweep already takes
   // those posts down at day 21 — sooner than this would.
   const businesses = new Map<string, SweepBusiness>();
-  for (const b of (bizRows ?? []) as Array<SweepBusiness & { user_id: string | null }>) {
+  for (const b of bizRows) {
     if (!includeUnclaimed && b.user_id === null) continue;
     businesses.set(b.id, b);
   }
