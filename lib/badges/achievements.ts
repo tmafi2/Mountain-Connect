@@ -37,7 +37,6 @@ export interface BadgeDefinition {
   /** Shown under the label. Says what was done, not how good they are. */
   description: string;
   tier: BadgeTier;
-  emoji: string;
   earned: (s: SeasonStats) => boolean;
 }
 
@@ -110,6 +109,10 @@ function longestRun(years: readonly number[]): number {
  * ORDER IS THE SHELF ORDER, and the ids are stable: they will end up in
  * analytics and in share urls, so rename a label freely and a value never.
  *
+ * ⚠️ THE ID IS ALSO THE ARTWORK FILENAME — `public/badges/<id>.png`. Renaming
+ * one silently breaks its image, since a missing png is a broken img rather
+ * than a build error. A test pins every id to a file that exists.
+ *
  * Tiers are set against real coverage rather than taste. Over the 111 workers
  * who had history on 2026-10-08: 66 would hold two-seasons, 35 two-countries,
  * 13 five-seasons, 8 three-countries and only 4 two-resorts. A tier that
@@ -122,7 +125,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "First Season",
     description: "One season on the mountain",
     tier: "common",
-    emoji: "🎿",
     earned: (s) => s.seasons >= 1,
   },
   {
@@ -130,7 +132,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Three Seasons",
     description: "Three seasons recorded",
     tier: "uncommon",
-    emoji: "⛷️",
     earned: (s) => s.seasons >= 3,
   },
   {
@@ -138,7 +139,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Five Seasons",
     description: "Five seasons recorded",
     tier: "rare",
-    emoji: "🏔️",
     earned: (s) => s.seasons >= 5,
   },
   {
@@ -146,7 +146,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Ten Seasons",
     description: "Ten seasons recorded",
     tier: "rare",
-    emoji: "👑",
     earned: (s) => s.seasons >= 10,
   },
   {
@@ -154,7 +153,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Two Countries",
     description: "Seasons in two countries",
     tier: "uncommon",
-    emoji: "🌍",
     earned: (s) => s.distinctCountries >= 2,
   },
   {
@@ -162,7 +160,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Three Countries",
     description: "Seasons in three countries",
     tier: "rare",
-    emoji: "🧭",
     earned: (s) => s.distinctCountries >= 3,
   },
   {
@@ -170,7 +167,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Two Mountains",
     description: "Seasons at two different resorts",
     tier: "uncommon",
-    emoji: "🚡",
     earned: (s) => s.distinctResorts >= 2,
   },
   {
@@ -178,7 +174,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Five Mountains",
     description: "Seasons at five different resorts",
     tier: "rare",
-    emoji: "🗺️",
     earned: (s) => s.distinctResorts >= 5,
   },
   {
@@ -186,7 +181,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Back to Back",
     description: "Two seasons in consecutive years",
     tier: "uncommon",
-    emoji: "🔁",
     earned: (s) => s.longestStreak >= 2,
   },
   {
@@ -194,7 +188,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Three in a Row",
     description: "Three seasons in consecutive years",
     tier: "rare",
-    emoji: "🔥",
     earned: (s) => s.longestStreak >= 3,
   },
   {
@@ -202,7 +195,6 @@ export const BADGES: readonly BadgeDefinition[] = [
     label: "Endless Winter",
     description: "Seasons in both hemispheres",
     tier: "rare",
-    emoji: "❄️",
     earned: (s) => s.hemispheres >= 2,
   },
 ];

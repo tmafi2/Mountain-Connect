@@ -105,7 +105,7 @@ test("earned and unearned always partition the full set", () => {
  * is the same failure the "Verified" chip was: a trust signal backed by
  * nothing, rendered in front of a business.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 function filesUnder(dir: string): string[] {
@@ -117,6 +117,27 @@ function filesUnder(dir: string): string[] {
   }
   return out;
 }
+
+/**
+ * The badge id doubles as its artwork filename. A missing png is a broken
+ * image at runtime, not a build error, so nothing else would catch a rename.
+ */
+test("every badge has artwork at public/badges/<id>.png", () => {
+  const missing = BADGES.filter(
+    (b) => !existsSync(join(process.cwd(), "public/badges", `${b.id}.png`)),
+  ).map((b) => b.id);
+  assert.deepEqual(missing, [], "badge ids without artwork — the id IS the filename");
+});
+
+test("no stray artwork for a badge that no longer exists", () => {
+  const dir = join(process.cwd(), "public/badges");
+  const ids = new Set(BADGES.map((b) => b.id));
+  const orphans = readdirSync(dir)
+    .filter((f) => f.endsWith(".png"))
+    .map((f) => f.replace(/\.png$/, ""))
+    .filter((name) => !ids.has(name));
+  assert.deepEqual(orphans, [], "artwork with no badge behind it");
+});
 
 test("no business-facing view imports the badge shelf", () => {
   const businessDir = join(process.cwd(), "app/(business)");

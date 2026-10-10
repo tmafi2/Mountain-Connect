@@ -17,6 +17,11 @@ import { BADGES, earnedBadges, seasonStats, type WorkSeason } from "@/lib/badges
  * adding a season would get them.
  */
 
+/**
+ * The card behind the badge carries the tier, not the badge itself. The
+ * artwork tiers by METAL (copper / silver / gold) and that distinction is
+ * nearly invisible once a hexagon is 56px wide, so the card does the work.
+ */
 const TIER_STYLE = {
   common: "border-accent bg-white",
   uncommon: "border-secondary/40 bg-secondary/10",
@@ -58,13 +63,23 @@ export default function BadgeShelf({ seasons }: { seasons: readonly WorkSeason[]
             <div
               key={b.id}
               className={`rounded-xl border p-3 text-center transition ${
-                has ? TIER_STYLE[b.tier] : "border-accent/40 bg-accent/5 opacity-45"
+                has ? TIER_STYLE[b.tier] : "border-accent/40 bg-accent/5"
               }`}
             >
-              <div className="text-2xl" aria-hidden="true">
-                {has ? b.emoji : "🔒"}
-              </div>
-              <p className="mt-1 text-sm font-bold text-primary">{b.label}</p>
+              {/* `public/badges/<id>.png` — the id is the filename, so a
+                  renamed badge silently loses its artwork. 200x200 against a
+                  56px slot gives room on a retina screen. Locked badges are
+                  the same image desaturated, so the shelf shows the shape of
+                  what is missing rather than a row of padlocks. */}
+              <img
+                src={`/badges/${b.id}.png`}
+                alt=""
+                width={56}
+                height={56}
+                loading="lazy"
+                className={`mx-auto h-14 w-14 ${has ? "" : "opacity-60 grayscale"}`}
+              />
+              <p className={`mt-1 text-sm font-bold ${has ? "text-primary" : "text-foreground/45"}`}>{b.label}</p>
               <p className="mt-0.5 text-[11px] leading-tight text-foreground/60">{b.description}</p>
             </div>
           );
