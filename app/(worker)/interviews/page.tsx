@@ -5,7 +5,7 @@ import type { Interview } from "./InterviewsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Interviews | Mountain Connects",
+  title: "Interviews",
   description: "Manage your upcoming interviews, view your schedule, and prepare for your next opportunity.",
 };
 

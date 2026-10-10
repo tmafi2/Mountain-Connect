@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "About Mountain Connects — Connecting Seasonal Workers & Resorts",
+    // The root layout appends " | Mountain Connects" to every title; this
+  // one already names the brand, so it opts out rather than saying it twice.
+  title: { absolute: "About Mountain Connects — Connecting Seasonal Workers & Resorts" },
   description:
     "Mountain Connects is the platform connecting seasonal workers with ski resort businesses worldwide. Learn about our mission, values, and how we help the mountain community.",
   alternates: { canonical: "https://www.mountainconnects.com/about" },

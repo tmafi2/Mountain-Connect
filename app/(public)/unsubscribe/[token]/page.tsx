@@ -7,7 +7,7 @@ interface PageProps {
 }
 
 export const metadata: Metadata = {
-  title: "Unsubscribed — Mountain Connects",
+  title: "Unsubscribed",
   robots: { index: false, follow: false },
 };
 

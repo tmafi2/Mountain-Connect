@@ -5,7 +5,7 @@ import type { ActivityItem, UpcomingInterview } from "./DashboardClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Dashboard | Mountain Connects",
+  title: "Dashboard",
   description: "Your worker dashboard — track applications, interviews, and saved jobs.",
 };
 

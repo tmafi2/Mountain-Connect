@@ -9,7 +9,9 @@ import WelcomeClient from "./WelcomeClient";
    111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
    line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata: Metadata = {
-  title: "Welcome to Mountain Connects | Seasonal Jobs at Ski Resorts Worldwide",
+    // The root layout appends " | Mountain Connects" to every title; this
+  // one already names the brand, so it opts out rather than saying it twice.
+  title: { absolute: "Welcome to Mountain Connects | Seasonal Jobs at Ski Resorts Worldwide" },
   description:
     "The all-in-one platform for ski resort hiring. Businesses post jobs and manage applicants; workers find seasonal roles at resorts worldwide.",
   alternates: { canonical: "https://www.mountainconnects.com/welcome" },

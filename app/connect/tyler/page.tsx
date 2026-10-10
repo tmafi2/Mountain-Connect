@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Tyler Mafi — Mountain Connects",
+    // The root layout appends " | Mountain Connects" to every title; this
+  // one already names the brand, so it opts out rather than saying it twice.
+  title: { absolute: "Tyler Mafi — Mountain Connects" },
   description: "Founder of Mountain Connects — connecting seasonal workers with ski resorts worldwide.",
   robots: { index: false, follow: false },
 };
