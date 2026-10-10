@@ -8,6 +8,7 @@ import { evaluatePostGate } from "@/lib/tier";
 import type { BusinessTier } from "@/lib/tier";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
+import { COUNTRY_CURRENCY } from "@/lib/jobs/currency";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -84,21 +85,6 @@ const CURRENCIES = [
 // Default pay currency for a resort's country. Keys match the resort `country`
 // strings in the resorts data ("USA", not "United States"). Used to pre-fill the
 // currency when a resort is picked, unless the business has chosen one manually.
-const COUNTRY_CURRENCY: Record<string, string> = {
-  Australia: "AUD",
-  "New Zealand": "NZD",
-  Canada: "CAD",
-  USA: "USD",
-  Japan: "JPY",
-  Austria: "EUR",
-  France: "EUR",
-  Italy: "EUR",
-  Andorra: "EUR",
-  Switzerland: "CHF",
-  Sweden: "SEK",
-  Chile: "CLP",
-  Argentina: "ARS",
-};
 
 /* ─── Toggle Component ───────────────────────────────────── */
 

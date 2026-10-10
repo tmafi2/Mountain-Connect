@@ -40,7 +40,13 @@ export default async function InterviewsPage() {
             const bp = jp?.business_profiles as { id: string; business_name: string; location: string } | null;
             const statusVal = iv.status as string;
             const validStatuses = ["scheduled", "invited", "completed", "cancelled", "missed", "reschedule_requested", "rescheduled"];
-            const payDisplay = (jp?.pay_amount as string) ? `${(jp?.pay_currency as string) || "AUD"} ${jp?.pay_amount}` : (jp?.salary_range as string) || null;
+            // No invented currency: this read `|| "AUD"`, which labelled a
+            // Canadian or Japanese wage as Australian dollars whenever the
+            // currency was missing. An amount with no unit beats a wrong one.
+            const payCur = (jp?.pay_currency as string) || "";
+            const payDisplay = (jp?.pay_amount as string)
+              ? `${payCur ? payCur + " " : ""}${jp?.pay_amount}`
+              : (jp?.salary_range as string) || null;
             return {
               id: iv.id as string,
               job_id: (jp?.id as string) || null,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
 import { findBusinessByEmail } from "@/lib/admin/business-by-email";
+import { currencyForJob } from "@/lib/jobs/currency";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
 
@@ -186,6 +187,25 @@ export async function POST(request: Request) {
     resortId = resort.id;
   }
 
+  /**
+   * The currency to store.
+   *
+   * ⚠️ THE FIELD BELOW USED TO BE OMITTED when extraction found no currency,
+   * and `job_posts.pay_currency` carried a column default of 'USD'. So an
+   * omitted field meant US dollars — on a board with no US resorts. 177 of
+   * 341 open listings said USD, and every one of them was a row where there
+   * was no pay to denominate in the first place.
+   *
+   * A stated currency always wins. Where the advert priced the job but named
+   * no currency, the resort's country supplies one. See lib/jobs/currency.ts.
+   */
+  let resortCountry: string | null = null;
+  if (payAmount !== undefined && !payCurrency && resortId) {
+    const { data: r } = await admin.from("resorts").select("country").eq("id", resortId).maybeSingle();
+    resortCountry = r?.country ?? null;
+  }
+  const resolvedCurrency = currencyForJob(payAmount, payCurrency, resortCountry);
+
   // Find-or-create the business profile shell by email (same pattern as
   // the manual admin import). If already claimed, we attach to it but
   // never overwrite claimed data.
@@ -301,7 +321,16 @@ export async function POST(request: Request) {
     ...(requirements ? { requirements } : {}),
     ...(positionType ? { position_type: positionType } : {}),
     ...(payAmount !== undefined ? { pay_amount: payAmount } : {}),
-    ...(payCurrency ? { pay_currency: payCurrency } : {}),
+    // Written whenever THIS payload carries pay, so the currency always
+    // matches the amount beside it. Still omitted when the payload has no
+    // pay, because omitting is what preserves a richer earlier scrape — and
+    // with the column default dropped, omitting on an insert now yields NULL
+    // rather than a fictitious USD.
+    ...(payAmount !== undefined
+      ? { pay_currency: resolvedCurrency }
+      : payCurrency
+        ? { pay_currency: payCurrency }
+        : {}),
     ...(salaryRange ? { salary_range: salaryRange } : {}),
     // Positions: never published for an imported listing.
     //

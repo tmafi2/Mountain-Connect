@@ -112,7 +112,11 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
           position_type: posType as "full_time" | "part_time" | "casual",
           pay_amount:
             (j.pay_amount as string) || (j.salary_range as string) || "",
-          pay_currency: (j.pay_currency as string) || "USD",
+          // ⚠️ NO FALLBACK. This read `|| "USD"`, so a listing with no pay
+          // was handed to the board as US dollars — the display half of the
+          // same bug as the column default. formatPay already renders a
+          // missing currency by simply not prefixing one.
+          pay_currency: (j.pay_currency as string) || null,
           housing_details: (j.housing_details as string) || null,
           meal_perks: (j.meal_perks as boolean) || false,
           ski_pass_included: (j.ski_pass_included as boolean) || false,
