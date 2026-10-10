@@ -1,5 +1,8 @@
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
+// Every row, not the first thousand — this project caps selects at 1000
+// silently. See lib/supabase/fetch-all.ts.
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { EMPTY_STATS, type PlatformStats } from "./platform-stats";
 
 /**
@@ -13,42 +16,6 @@ import { EMPTY_STATS, type PlatformStats } from "./platform-stats";
  *  home page does not need a fresh count, and the page is force-dynamic for
  *  other reasons, so without this every request ran the queries again. */
 const TTL_SECONDS = 3600;
-
-/**
- * ⚠️ THIS PROJECT RETURNS AT MOST 1000 ROWS PER SELECT.
- *
- * PostgREST's db-max-rows is set, and it is silent: ask for a 1377-row table
- * and you get 1000 rows and no error, no warning, no truncation flag. So
- * `rows.length` is not a count — it is a count that becomes wrong, without a
- * symptom, the moment a table crosses the line. Measured against this project
- * on 2026-10-10, not assumed.
- *
- * That is precisely the failure this module exists to prevent, so:
- *   - anything that is only a COUNT uses { count: "exact", head: true },
- *     which the database computes and the cap does not touch (verified:
- *     head returns 1377 where a select returns 1000)
- *   - anything needing the rows themselves pages with .range()
- *
- * Today every table here is far below the cap — 111 resorts, 341 live jobs,
- * 243 businesses — so none of this changes a number. It stops the numbers
- * going quietly wrong later, which is the only way this bug ever arrives.
- */
-const PAGE = 1000;
-
-/** Every row, not the first thousand. Throws rather than returning a short
- *  list, so a failure can never be mistaken for a small table. */
-async function fetchAll<T>(
-  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
-): Promise<T[]> {
-  const all: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await build(from, from + PAGE - 1);
-    if (error) throw new Error(error.message);
-    const page = data ?? [];
-    all.push(...page);
-    if (page.length < PAGE) return all;
-  }
-}
 
 /**
  * Counts, or an exception.
@@ -75,24 +42,39 @@ async function queryStats(): Promise<PlatformStats> {
   const head = { count: "exact" as const, head: true };
 
   // The same filter twice, once as a count and once as rows. `select` has to
-  // come before the filters, so these cannot share a builder.
+  // come before the filters, so these cannot share a builder — and each one
+  // carries its own bound (head count / range) rather than relying on the
+  // caller to add it, so no read here is unbounded where it is written.
   const liveJobCount = () =>
-    supabase.from("job_posts").select("id", head).eq("status", "active").or(notExpired);
-  const liveJobRows = () =>
-    supabase.from("job_posts").select("resort_id").eq("status", "active").or(notExpired);
+    supabase
+      .from("job_posts")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active")
+      .or(notExpired);
+  const liveJobRows = (from: number, to: number) =>
+    supabase
+      .from("job_posts")
+      .select("resort_id")
+      .eq("status", "active")
+      .or(notExpired)
+      .range(from, to);
 
   const [resortRows, towns, jobCount, jobResortIds, bizTotal, bizClaimed, bizVerified] =
     await Promise.all([
       // Bounded by how many resorts exist (111) and needed in full for the
       // distinct-country count, but paged on the same rule as the rest.
-      fetchAll<{ country: string | null }>((from, to) =>
-        supabase.from("resorts").select("country").range(from, to)
+      fetchAllRows<{ country: string | null }>(
+        (from, to) => supabase.from("resorts").select("country").range(from, to),
+        "platform-stats: resorts"
       ),
       supabase.from("nearby_towns").select("id", head),
       liveJobCount(),
       // No COUNT(DISTINCT) over PostgREST, so these rows are genuinely
       // needed — and therefore genuinely need paging.
-      fetchAll<{ resort_id: string | null }>((from, to) => liveJobRows().range(from, to)),
+      fetchAllRows<{ resort_id: string | null }>(
+        (from, to) => liveJobRows(from, to),
+        "platform-stats: live job resorts"
+      ),
       supabase.from("business_profiles").select("id", head),
       supabase.from("business_profiles").select("id", head).eq("is_claimed", true),
       supabase.from("business_profiles").select("id", head).eq("verification_status", "verified"),

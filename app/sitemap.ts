@@ -4,6 +4,11 @@ import { resorts } from "@/lib/data/resorts";
 import { EMPLOYER_MARKETS } from "@/lib/data/employer-markets";
 import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
 import { businessBelongsInSitemap } from "@/lib/stats/sitemap-business";
+// ⚠️ Paged, not a plain select. This project caps a select at 1000 rows with
+// no error — and a sitemap silently missing urls is this file's own history
+// (57fb081 shipped 150 instead of 628). 762 urls today, so job_posts is the
+// one that reaches the cap first. See lib/supabase/fetch-all.ts.
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -28,44 +33,62 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
 
   // Fetch dynamic content in parallel
-  const [townsResult, jobsResult, blogResult, businessResult] = await Promise.all([
-    admin.from("nearby_towns").select("slug, updated_at"),
-    admin
-      // ⚠️ job_posts has no updated_at. Asking for one made PostgREST answer
-      // with an error, `|| []` turned that into "no jobs", and every listing
-      // silently vanished from the sitemap — on a job board. business_id is
-      // here for the business-page filter below, not for the job pages.
-      .from("job_posts")
-      .select("id, published_at, created_at, business_id")
-      .eq("status", "active")
-      // ⚠️ Must agree with lib/jobs/expired-gone.ts. The expiry sweep runs once
-      // a day, so there is always a window where a listing is past its date and
-      // the row still says active — and in that window /jobs/<id> answers 410.
-      // Advertising a url in the sitemap that answers Gone is the kind of
-      // contradiction that costs crawl trust.
-      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
-    admin
-      .from("blog_posts")
-      .select("slug, updated_at")
-      .eq("status", "published"),
-    admin
-      // business_profiles has no updated_at either — same silent loss.
-      .from("business_profiles")
-      // description is here to judge whether a claimed business has a page
-      // worth offering Google, not to render anything.
-      .select("id, created_at, is_claimed, description"),
+  const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
+
+  const [townsResult, jobsResult, blogResult, businessResult] = await Promise.allSettled([
+    fetchAllRows<{ slug: string; updated_at: string | null }>(
+      (from, to) => admin.from("nearby_towns").select("slug, updated_at").range(from, to),
+      "nearby_towns"
+    ),
+    fetchAllRows<{ id: string; published_at: string | null; created_at: string; business_id: string | null }>(
+      (from, to) =>
+        admin
+          // ⚠️ job_posts has no updated_at. Asking for one made PostgREST answer
+          // with an error, `|| []` turned that into "no jobs", and every listing
+          // silently vanished from the sitemap — on a job board. business_id is
+          // here for the business-page filter below, not for the job pages.
+          .from("job_posts")
+          .select("id, published_at, created_at, business_id")
+          .eq("status", "active")
+          // ⚠️ Must agree with lib/jobs/expired-gone.ts. The expiry sweep runs once
+          // a day, so there is always a window where a listing is past its date and
+          // the row still says active — and in that window /jobs/<id> answers 410.
+          // Advertising a url in the sitemap that answers Gone is the kind of
+          // contradiction that costs crawl trust.
+          .or(notExpired)
+          .range(from, to),
+      "job_posts"
+    ),
+    fetchAllRows<{ slug: string; updated_at: string | null }>(
+      (from, to) => admin.from("blog_posts").select("slug, updated_at").eq("status", "published").range(from, to),
+      "blog_posts"
+    ),
+    fetchAllRows<{ id: string; created_at: string; is_claimed: boolean | null; description: string | null }>(
+      (from, to) =>
+        admin
+          // business_profiles has no updated_at either — same silent loss.
+          .from("business_profiles")
+          // description is here to judge whether a claimed business has a page
+          // worth offering Google, not to render anything.
+          .select("id, created_at, is_claimed, description")
+          .range(from, to),
+      "business_profiles"
+    ),
   ]);
 
   const failures = ([
-    ["nearby_towns", townsResult.error],
-    ["job_posts", jobsResult.error],
-    ["blog_posts", blogResult.error],
-    ["business_profiles", businessResult.error],
-  ] as const).filter(([, error]) => error);
+    ["nearby_towns", townsResult],
+    ["job_posts", jobsResult],
+    ["blog_posts", blogResult],
+    ["business_profiles", businessResult],
+  ] as const).filter(([, result]) => result.status === "rejected");
 
   if (failures.length > 0) {
-    for (const [table, error] of failures) {
-      console.error(`sitemap: ${table} query failed:`, error?.message);
+    for (const [table, result] of failures) {
+      console.error(
+        `sitemap: ${table} query failed:`,
+        result.status === "rejected" ? result.reason : undefined
+      );
     }
     // Throw rather than publish a short sitemap. A failed query used to look
     // exactly like an empty table, so a single bad moment cached a sitemap
@@ -77,10 +100,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
   }
 
-  const towns = townsResult.data || [];
-  const jobs = jobsResult.data || [];
-  const blogPosts = blogResult.data || [];
-  const businesses = businessResult.data || [];
+  // Safe after the throw above: every settled result here is fulfilled.
+  const towns = townsResult.status === "fulfilled" ? townsResult.value : [];
+  const jobs = jobsResult.status === "fulfilled" ? jobsResult.value : [];
+  const blogPosts = blogResult.status === "fulfilled" ? blogResult.value : [];
+  const businesses = businessResult.status === "fulfilled" ? businessResult.value : [];
 
   // Get unique region IDs from static resort data
   const regionIds = [...new Set(resorts.map((r) => r.region_id))];
@@ -284,7 +308,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 00097 and 00101. Empty pages offered to Google compete with the real ones,
   // and the retired shells share their names.
   const businessesWithLiveJobs = new Set(
-    jobs.map((job) => job.business_id).filter(Boolean)
+    jobs.map((job) => job.business_id).filter((id): id is string => Boolean(id))
   );
 
   /**

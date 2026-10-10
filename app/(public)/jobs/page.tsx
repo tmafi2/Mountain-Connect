@@ -5,6 +5,7 @@ import JobsClient from "./JobsClient";
 import { SSR_JOB_COUNT } from "./JobsStaticList";
 import { SITE_ORIGIN } from "@/lib/config/site";
 import CampaignCapture from "./CampaignCapture";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 // Cache the rendered HTML for 2 minutes. Public job listings change
 // gradually; serving from edge cache makes the page feel instant.
@@ -51,12 +52,20 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
     const supabase = createPublicClient();
     // Show every active job regardless of the business's verification status.
     // We still expose the verified state on each row so the UI can badge them.
-    const { data } = await supabase
-      .from("job_posts")
-      .select(
-        "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country, legacy_id), nearby_towns(name, slug), business_venues(name, slug, is_primary)"
-      )
-      .eq("status", "active");
+    // ⚠️ Paged. A plain select stops at 1000 rows here with no error, and on
+    // a job board that is not a wrong number — it is listings that simply do
+    // not appear, with nothing to notice. 341 live today.
+    const data = await fetchAllRows<Record<string, unknown>>(
+      (from, to) =>
+        supabase
+          .from("job_posts")
+          .select(
+            "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country, legacy_id), nearby_towns(name, slug), business_venues(name, slug, is_primary)"
+          )
+          .eq("status", "active")
+          .range(from, to),
+      "jobs page"
+    );
 
     if (data && data.length > 0) {
       jobs = data.map((j: Record<string, unknown>) => {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createPublicClient } from "@/lib/supabase/public";
 import { resorts as staticResorts } from "@/lib/data/resorts";
 import type { Metadata } from "next";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -70,10 +71,26 @@ const COUNTRY_BLURB: Record<string, string> = {
 export default async function SkiResortJobsPage() {
   const supabase = createPublicClient();
 
-  const { data: jobs, count: totalJobs } = await supabase
-    .from("job_posts")
-    .select("id, resort_id", { count: "exact" })
-    .eq("status", "active");
+  // ⚠️ The total used to come from an exact count while the rows behind the
+  // per-resort breakdown came from one capped select, so past 1000 live jobs
+  // this page would have contradicted itself: a correct headline over
+  // per-resort numbers that summed to less. Both now come from the same rows.
+  //
+  // `expires_at` is filtered here to match the country pages, the sitemap and
+  // platform-stats — the expiry sweep runs daily, so "active" alone counts
+  // posts that are past their date and already answer 410.
+  const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
+  let jobs: { id: string; resort_id: string | null }[] = [];
+  try {
+    jobs = await fetchAllRows<{ id: string; resort_id: string | null }>(
+      (from, to) =>
+        supabase.from("job_posts").select("id, resort_id").eq("status", "active").or(notExpired).range(from, to),
+      "ski-resort-jobs hub"
+    );
+  } catch (err) {
+    console.error("ski-resort-jobs: job query failed:", err);
+  }
+  const totalJobs = jobs.length;
 
   // Group active job counts by resort, then resorts by country, using
   // the static resort data for names + countries (consistent labels).

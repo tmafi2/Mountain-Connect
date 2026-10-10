@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
 import { resorts as staticResorts } from "@/lib/data/resorts";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -210,19 +211,31 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
    * plus an explicit expires_at guard so a post that is past its date but
    * not yet swept is not counted as open.
    */
-  const { data: jobs, error: jobsError } = await supabase
-    .from("job_posts")
-    .select(
-      "id, title, salary_range, pay_amount, pay_currency, position_type, accommodation_included, resorts!inner(legacy_id, country), business_profiles!inner(business_name)"
-    )
-    .eq("status", "active")
-    .eq("resorts.country", cfg.country)
-    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
-
-  // The old code discarded this. A silently empty result is exactly how
-  // "Open roles: 0" survived on every country page.
-  if (jobsError) {
-    console.error(`ski-resort-jobs/${slug}: job count query failed:`, jobsError.message);
+  // ⚠️ Paged. A plain select stops at 1000 rows with no error, which on this
+  // page would understate the country's open roles AND drop listings from it.
+  // See lib/supabase/fetch-all.ts.
+  // Only the resort link and the row count are read downstream; the other
+  // columns are in the select already and left alone here.
+  type JobRow = { id: string; resorts: unknown };
+  let jobs: JobRow[] = [];
+  try {
+    jobs = await fetchAllRows<JobRow>(
+      (from, to) =>
+        supabase
+          .from("job_posts")
+          .select(
+            "id, title, salary_range, pay_amount, pay_currency, position_type, accommodation_included, resorts!inner(legacy_id, country), business_profiles!inner(business_name)"
+          )
+          .eq("status", "active")
+          .eq("resorts.country", cfg.country)
+          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+          .range(from, to),
+      `ski-resort-jobs/${slug}`
+    );
+  } catch (err) {
+    // The old code discarded the error. A silently empty result is exactly how
+    // "Open roles: 0" survived on every country page.
+    console.error(`ski-resort-jobs/${slug}: job count query failed:`, err);
   }
 
   type ResortRef = { legacy_id: string | null } | null;

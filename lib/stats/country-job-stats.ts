@@ -1,4 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 /**
  * How many live jobs one country has, and how many of them include staff
@@ -36,14 +37,18 @@ export const NO_COUNTRY_STATS: CountryJobStats = { liveJobs: 0, withAccommodatio
 export async function getCountryJobStats(country: string): Promise<CountryJobStats> {
   try {
     const supabase = createPublicClient();
-    const { data, error } = await supabase
-      .from("job_posts")
-      .select("accommodation_included, resorts(country), nearby_towns(country)")
-      .eq("status", "active");
-    if (error || !data) {
-      console.error("country-job-stats: query failed:", error?.message);
-      return NO_COUNTRY_STATS;
-    }
+    // ⚠️ Paged. A plain select stops at 1000 rows with no error, and the
+    // country test below is on a JOINED column with a fallback rule, so it
+    // cannot be pushed into a head count — these rows are genuinely needed.
+    const data = await fetchAllRows<unknown>(
+      (from, to) =>
+        supabase
+          .from("job_posts")
+          .select("accommodation_included, resorts(country), nearby_towns(country)")
+          .eq("status", "active")
+          .range(from, to),
+      "country-job-stats"
+    );
 
     // Both joins are many-to-one, so PostgREST returns an object; without
     // generated types supabase-js assumes an array. Accept either, the same
