@@ -187,20 +187,57 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
 
   const supabase = createPublicClient();
   const countryResorts = staticResorts.filter((r) => r.country === cfg.country);
-  const resortIds = countryResorts.map((r) => r.id);
 
-  const { data: jobs } = await supabase
+  /**
+   * ⚠️ TWO KINDS OF RESORT ID, AND THEY ARE NOT INTERCHANGEABLE.
+   *
+   * `lib/data/resorts.ts` is keyed on **legacy_id** ("1", "2"), which is what
+   * /resorts/[id] renders from and what the markup below asks for. But
+   * `job_posts.resort_id` is the database **UUID**.
+   *
+   * This page used to build `resortIds` from the static array and hand them
+   * to `.in("resort_id", …)`. A UUID column never matches "1", so the filter
+   * returned nothing and EVERY country page said "Open roles: 0" — while
+   * Canada alone had 182. Proven: `resort_id::text in ('1','2','3')` matches
+   * 0 rows; the same jobs joined through `resorts` give 182.
+   *
+   * So the country filter happens in the DATABASE, through the join, and the
+   * rows come back carrying `legacy_id` — the key the render actually uses.
+   * Nothing in this file converts between the two by hand.
+   *
+   * "Open" means published and not expired: `status='active'` (the expiry
+   * sweep moves lapsed posts to 'paused', and a filled role is 'closed'),
+   * plus an explicit expires_at guard so a post that is past its date but
+   * not yet swept is not counted as open.
+   */
+  const { data: jobs, error: jobsError } = await supabase
     .from("job_posts")
-    .select("id, title, resort_id, salary_range, pay_amount, pay_currency, position_type, accommodation_included, business_profiles!inner(business_name)")
+    .select(
+      "id, title, salary_range, pay_amount, pay_currency, position_type, accommodation_included, resorts!inner(legacy_id, country), business_profiles!inner(business_name)"
+    )
     .eq("status", "active")
-    .in("resort_id", resortIds);
+    .eq("resorts.country", cfg.country)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+
+  // The old code discarded this. A silently empty result is exactly how
+  // "Open roles: 0" survived on every country page.
+  if (jobsError) {
+    console.error(`ski-resort-jobs/${slug}: job count query failed:`, jobsError.message);
+  }
+
+  type ResortRef = { legacy_id: string | null } | null;
+  const legacyIdOf = (v: ResortRef | ResortRef[]): string | null =>
+    (Array.isArray(v) ? v[0] : v)?.legacy_id ?? null;
 
   const jobCount = jobs?.length ?? 0;
-  const jobsByResort = new Map<string, typeof jobs>();
+  const jobsByResort = new Map<string, NonNullable<typeof jobs>>();
   for (const j of jobs ?? []) {
-    const list = jobsByResort.get(j.resort_id) ?? [];
+    // PostgREST types a many-to-one join as an array without generated types.
+    const key = legacyIdOf((j as unknown as { resorts: ResortRef | ResortRef[] }).resorts);
+    if (!key) continue;
+    const list = jobsByResort.get(key) ?? [];
     list.push(j);
-    jobsByResort.set(j.resort_id, list);
+    jobsByResort.set(key, list);
   }
 
   const jsonLd = {

@@ -49,6 +49,25 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
 
   if (!resort) return { title: "Resort Not Found" };
 
+  /**
+   * ⚠️ CANONICAL IS ALWAYS THE LEGACY-ID FORM, whichever form was requested.
+   *
+   * This page answers 200 on BOTH /resorts/1 and
+   * /resorts/e45a1b9d-1f95-4143-9910-70c42eb6ac57 — the same resort at two
+   * URLs. The canonical used to echo back the id that was asked for, so each
+   * form declared ITSELF canonical and the duplicate was invisible to search
+   * engines.
+   *
+   * legacy_id wins because it is what everything else already uses: the
+   * sitemap lists 112 resort URLs and not one is a UUID, and the country
+   * pages, job pages and internal links all build /resorts/<legacy_id>. The
+   * UUID form is reachable mainly from town pages.
+   *
+   * Nothing is deleted or redirected here — the UUID URL still works and
+   * still renders. It now just points search engines at the other one.
+   */
+  const canonicalPath = `${BASE_URL}/resorts/${resort.id}`;
+
   const region = regions.find((r) => r.id === resort.region_id);
   const title = `${resort.name} — Ski Resort Jobs & Worker Guide`;
   const description = resort.description
@@ -58,11 +77,11 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
   return {
     title,
     description,
-    alternates: { canonical: `${BASE_URL}/resorts/${id}` },
+    alternates: { canonical: canonicalPath },
     openGraph: {
       title: `${resort.name} — Seasonal Jobs & Resort Guide`,
       description,
-      url: `${BASE_URL}/resorts/${id}`,
+      url: canonicalPath,
       siteName: "Mountain Connects",
       type: "website",
       // Image is auto-supplied by opengraph-image.tsx in this segment
@@ -145,6 +164,11 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
   if (!resort) {
     notFound();
   }
+
+  // Same rule as generateMetadata: the breadcrumb and JSON-LD name the
+  // legacy-id URL, never the one that happened to be requested, so a visit to
+  // the UUID form does not advertise itself as the address of this resort.
+  const canonicalPath = `${BASE_URL}/resorts/${resort.id}`;
 
   const region = regions.find((r) => r.id === resort.region_id);
 
@@ -436,7 +460,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     ...(region
       ? [{ name: region.name, url: `${BASE_URL}/regions/${region.id}` }]
       : []),
-    { name: resort.name, url: `${BASE_URL}/resorts/${id}` },
+    { name: resort.name, url: canonicalPath },
   ];
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -456,7 +480,7 @@ export default async function ResortDetailPage({ params }: ResortPageProps) {
     "@context": "https://schema.org",
     "@type": "Place",
     name: resort.name,
-    url: `${BASE_URL}/resorts/${id}`,
+    url: canonicalPath,
     ...(resort.description && { description: resort.description }),
     ...(resort.banner_image_url && { image: resort.banner_image_url }),
     address: {
