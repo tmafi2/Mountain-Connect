@@ -51,7 +51,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const short = `Find seasonal work at ski resorts worldwide. Browse jobs${scale}.`;
 
   return {
-    title: TITLE,
+    // `absolute` because TITLE already names the brand and the root layout's
+    // template appends " | Mountain Connects" to anything else — this page
+    // shipped as "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide
+    // | Mountain Connects". The same doubling was on eight other pages that
+    // wrote the suffix into their own title.
+    title: { absolute: TITLE },
     description,
     alternates: { canonical: "https://www.mountainconnects.com" },
     openGraph: {
