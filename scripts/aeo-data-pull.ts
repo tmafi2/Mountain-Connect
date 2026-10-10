@@ -41,6 +41,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { categoryForTitle } from "../lib/jobs/category";
 
 /* ─── env ─────────────────────────────────────────────────────────────── */
 
@@ -89,32 +90,17 @@ async function fetchAll<T>(
 /* ─── role classification ─────────────────────────────────────────────── */
 
 /**
- * Ordered — the FIRST rule that matches wins, so the list runs from the most
- * specific signal to the most general. "restaurant manager" lands in Food &
- * Beverage rather than Management because "restaurant" is the stronger signal
- * about what the job pays like; "operations manager" has no such signal and
- * lands in Management. Both are judgement calls, which is why the unmatched
- * and per-category counts are published alongside the pay.
+ * ⚠️ ONE TAXONOMY, and it is the app's. This script used to carry its own
+ * keyword rules because `job_posts.category` was empty on 354 of 355 open
+ * listings. Migration 00110 backfilled it from `categoryForTitle`, so the
+ * stored value is now the answer and a second set of rules here could only
+ * disagree with the board a reader is being pointed at.
+ *
+ * The title classifier is still the fallback for the handful of rows that
+ * carry no category — the same function, so it cannot drift.
  */
-const ROLE_RULES: Array<[string, RegExp]> = [
-  ["Instruction & Snow Sports", /\b(instructor|ski patrol|patroller|snowboard coach|coach|mountain guide|guide)\b/],
-  ["Childcare", /\b(nanny|childcare|child care|daycare|kids club|babysitt)/],
-  ["Wellness & Spa", /\b(spa|massage|nail|esthetic|aesthetic|therapist|beauty)/],
-  ["Driving & Transport", /\b(driver|shuttle|chauffeur|transfer)/],
-  ["Trades & Maintenance", /\b(carpenter|maintenance|technician|plumber|electrician|handyman|painter|skid steer|excavator|mechanic|labour|labor|builder|joiner)/],
-  ["Kitchen", /\b(chef|cook|kitchen|dishwash|dish wash|prep|pastry|baker|commis|sous|butcher)/],
-  ["Food & Beverage", /\b(server|bartender|barista|waiter|waitress|host|hostess|restaurant|bar staff|front of house|foh|busser|cafe|café|service staff|food)/],
-  ["Housekeeping & Cleaning", /\b(housekeep|cleaner|cleaning|room attendant|laundry|janitor|housman|houseperson)/],
-  ["Guest Services & Front Desk", /\b(front desk|reception|concierge|guest service|night audit|reservation|check-in|bell)/],
-  ["Retail", /\b(retail|sales associate|shop|cashier|store|merchandis|rental tech|boot fitter|bootfitter)/],
-  ["Lift & Mountain Operations", /\b(lift|snowmak|groomer|grooming|snow clearing|shovel|snow removal|mountain op|terrain park)/],
-  ["Management & Admin", /\b(manager|supervisor|director|administrat|coordinator|office|accounts|bookkeep|hr\b)/],
-];
-
-function roleOf(title: string): string {
-  const t = ` ${title.toLowerCase()} `;
-  for (const [name, re] of ROLE_RULES) if (re.test(t)) return name;
-  return "Other / unclassified";
+function roleOf(category: string | null, title: string): string {
+  return category ?? categoryForTitle(title) ?? "Other / unclassified";
 }
 
 /* ─── pay parsing ─────────────────────────────────────────────────────── */
@@ -341,7 +327,7 @@ async function main() {
     const job: Job = {
       id: j.id,
       title: j.title,
-      role: roleOf(j.title),
+      role: roleOf((j.category ?? "").trim() || null, j.title),
       category: (j.category ?? "").trim() || null,
       businessId: j.business_id,
       description: j.description ?? "",
@@ -430,7 +416,7 @@ async function main() {
         currency: currencies.length === 0 ? "(no pay stated)" : currencies.join(" + "),
         job_count: rs.length,
         ...payStats(usable(rs)),
-        role_source: "derived from job title — job_posts.category is empty on 340 of 341 open jobs",
+        role_source: "job_posts.category, with the title classifier as fallback (lib/jobs/category.ts)",
       };
     })
     .sort((a, b) => b.job_count - a.job_count || a.role_category.localeCompare(b.role_category));
@@ -564,11 +550,14 @@ async function main() {
       : `pay_currency is clean: no USD outside the USA, and every currency on the board denominates an actual amount. Migration 00109 dropped the 'USD' column default that made it mean "no pay found".`
   );
 
-  if (noCategory > 0) {
-    problems.push(
-      `job_posts.category is empty on ${noCategory} of ${rows.length} open jobs. The site looks populated only because /jobs defaults the blanks to "Other" in its view model. Role here is derived from the title; ${all.pct_role_classified}% matched a rule and the rest are "Other / unclassified".`
-    );
-  }
+  // A handful of unclassifiable titles is the designed outcome, not a fault;
+  // this only becomes a problem again if the column starts emptying out.
+  const categoryGap = noCategory / Math.max(rows.length, 1);
+  (categoryGap > 0.1 ? problems : clean).push(
+    categoryGap > 0.1
+      ? `job_posts.category is empty on ${noCategory} of ${rows.length} open jobs. It looks populated only because /jobs defaults blanks to "Other" in its view model — before migration 00110 that hid 354 of 355. Check that the import route is still calling categoryForTitle.`
+      : `job_posts.category is populated on ${rows.length - noCategory} of ${rows.length} open jobs; the ${noCategory} without one carry titles with no signal ("Team Member", "Support Staff"), which is left NULL deliberately rather than labelled "Other".`
+  );
 
   if (housingCosts.length < MIN_SAMPLE) {
     problems.push(
