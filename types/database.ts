@@ -401,8 +401,10 @@ export interface JobPost {
   pay_amount: string | null;
   pay_currency: string | null;
   housing_details: string | null;
-  meal_perks: boolean;
-  ski_pass_included: boolean;
+  /** NULL = the advert did not say. See migration 00114 — these used to be
+   *  NOT NULL DEFAULT false, so a false could not be told from silence. */
+  meal_perks: boolean | null;
+  ski_pass_included: boolean | null;
   language_required: string | null;
   visa_sponsorship: boolean;
   urgently_hiring: boolean;

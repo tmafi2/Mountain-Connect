@@ -23,8 +23,8 @@ type Row = {
   accommodation_cost_currency: string | null;
   accommodation_cost_period: string | null;
   accommodation_cost_deducted: boolean | null;
-  ski_pass_included: boolean;
-  meal_perks: boolean;
+  ski_pass_included: boolean | null;
+  meal_perks: boolean | null;
   resorts: Join<ResortRef>;
   nearby_towns: Join<TownRef>;
 };
@@ -111,8 +111,8 @@ export async function getHousingByResort(): Promise<HousingResult> {
 
       const deductionStated = rs.filter((r) => r.accommodation_cost_deducted !== null);
       const offering = rs.filter((r) => r.accommodation_included).length;
-      const passes = rs.filter((r) => r.ski_pass_included).length;
-      const meals = rs.filter((r) => r.meal_perks).length;
+      const passes = rs.filter((r) => r.ski_pass_included === true).length;
+      const meals = rs.filter((r) => r.meal_perks === true).length;
 
       return {
         resort: name,

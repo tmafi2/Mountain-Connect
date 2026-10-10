@@ -137,6 +137,14 @@ Before writing a page, check it against this. Three of the planned figures do no
   wrong twice — once contradicting itself ("Not stated — only 5 of 5 say"),
   once quietly ducking the 5-listing floor — before the decision moved into
   `costState()` where it is tested.
+- ⚠️ **FIXED 2026-10-10 for passes and meals (00114 + a rebuild).** The
+  columns are tri-state now and every advert was re-read. The rebuild found
+  the *confirmations* were wrong too — 12 pass and 21 meal `true` values had
+  no support in their advert, because the seventeen-field extraction inferred
+  perks from context. `/ski-pass-and-meals` was overstating by about a fifth.
+  Now: pass 47 true / 308 silent, meals 38 / 317, zero false positives.
+  **`accommodation_included` still has the old shape** and the same
+  ambiguity — it feeds `/staff-housing`.
 - ⚠️ **`false` can mean "didn't say".** `ski_pass_included`, `meal_perks` and
   `accommodation_included` are all `BOOLEAN NOT NULL DEFAULT false`, and the
   importer omits the field when an advert is silent — so a `false` cannot be

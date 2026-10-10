@@ -17,17 +17,13 @@ type Join<T> = T | T[] | null;
 type ResortRef = { name: string; country: string | null; legacy_id: string | null };
 
 type Row = {
-  ski_pass_included: boolean;
-  meal_perks: boolean;
+  ski_pass_included: boolean | null;
+  meal_perks: boolean | null;
   accommodation_included: boolean;
-  description: string | null;
   resorts: Join<ResortRef>;
 };
 
 const one = <T,>(v: Join<T>): T | null => (Array.isArray(v) ? v[0] ?? null : v);
-
-/** Words an advert uses when it talks about a lift pass at all. */
-const MENTIONS_PASS = /(lift pass|season pass|ski pass|liftpass|seasons pass|epic pass|ikon pass|season's pass)/i;
 
 export type PerksResult = {
   resorts: ResortPerks[];
@@ -56,7 +52,7 @@ export async function getPerksByResort(): Promise<PerksResult> {
         supabase
           .from("job_posts")
           .select(
-            "ski_pass_included, meal_perks, accommodation_included, description, resorts!inner(name, country, legacy_id)"
+            "ski_pass_included, meal_perks, accommodation_included, resorts!inner(name, country, legacy_id)"
           )
           .eq("status", "active")
           .or(notExpired)
@@ -75,8 +71,8 @@ export async function getPerksByResort(): Promise<PerksResult> {
 
     const resorts: ResortPerks[] = [...byResort.entries()].map(([name, rs]) => {
       const ref = one(rs[0].resorts) as ResortRef;
-      const saysPass = rs.filter((r) => r.ski_pass_included).length;
-      const saysMeals = rs.filter((r) => r.meal_perks).length;
+      const saysPass = rs.filter((r) => r.ski_pass_included === true).length;
+      const saysMeals = rs.filter((r) => r.meal_perks === true).length;
       return {
         resort: name,
         resortId: ref.legacy_id,
@@ -84,21 +80,19 @@ export async function getPerksByResort(): Promise<PerksResult> {
         jobCount: rs.length,
         saysPass,
         saysMeals,
-        saysBoth: rs.filter((r) => r.ski_pass_included && r.meal_perks).length,
+        saysBoth: rs.filter((r) => r.ski_pass_included === true && r.meal_perks === true).length,
         saysHousing: rs.filter((r) => r.accommodation_included).length,
         pctSaysPass: share(saysPass, rs.length),
         pctSaysMeals: share(saysMeals, rs.length),
       };
     });
 
-    // ⚠️ THE FIGURE THAT MAKES THE PAGE HONEST. How many listings with no
-    // pass recorded never mention one in their text — i.e. how much of that
-    // `false` is silence rather than refusal. It was 295 of 299 when this was
-    // written, which is why the page says "most adverts don't say" instead of
-    // "most jobs don't include one".
-    const silentOnPass = rows.filter(
-      (r) => !r.ski_pass_included && !MENTIONS_PASS.test(r.description ?? "")
-    ).length;
+    // ⚠️ NOW EXACT, where it used to be a guess. Before migration 00114 the
+    // column was NOT NULL DEFAULT false, so "the advert is silent" had to be
+    // inferred by searching the text for the word "pass" — which missed the
+    // Chinese-language listings that offer a 季票. The column itself answers
+    // it now: NULL means the advert did not say.
+    const silentOnPass = rows.filter((r) => r.ski_pass_included === null).length;
 
     return {
       resorts,

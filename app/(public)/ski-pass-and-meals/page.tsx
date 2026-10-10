@@ -15,17 +15,25 @@ import {
 /**
  * "Do ski resort jobs include a free season pass?" — the third AEO data page.
  *
- * ⚠️ THIS PAGE COUNTS ADVERTS, NOT JOBS, AND SAYS SO REPEATEDLY.
- * `ski_pass_included` and `meal_perks` are `NOT NULL DEFAULT false`, and the
- * import route omits the field when the advert never mentions a pass — so a
- * `false` cannot be told apart from silence. Measured: of 299 open listings
- * with no pass recorded, only FOUR mention a pass anywhere in their text.
+ * ⚠️ THIS PAGE COUNTS ADVERTS, NOT JOBS, AND SAYS SO REPEATEDLY — which is
+ * still true after migration 00114, but for a better reason than before.
  *
- * So "16% say a pass is included" is true and publishable, while "84% do not
- * include a pass" is not supported by anything here. The inverse is never
- * computed, never printed, and `perks-by-resort.ts` offers no field that
- * would produce it. The page states the gap outright instead, because a
- * reader shown "16%" will supply the other 84% themselves unless told.
+ * `ski_pass_included` and `meal_perks` used to be `NOT NULL DEFAULT false`
+ * with the import route omitting the field on silence, so a `false` could not
+ * be told apart from "never mentioned". 00114 made them tri-state and
+ * `scripts/backfill-pass-and-meals.ts --rebuild` re-read every advert.
+ *
+ * ⚠️ THAT REBUILD FOUND THE CONFIRMATIONS WERE WRONG TOO. 12 pass and 21 meal
+ * `true` values were not supported by their advert at all — the original
+ * seventeen-field extraction had been inferring perks from context rather
+ * than reading them. The headline was overstated by about a fifth before it
+ * was corrected.
+ *
+ * So the figures are now accurate, and the framing still holds: a listing
+ * that says nothing is silent, not negative. 308 of 355 do not mention a pass
+ * and NOT ONE says a pass is withheld. "13% say a pass is included" is
+ * publishable; "87% do not include a pass" is not, and `perks-by-resort.ts`
+ * offers no field that would produce it.
  *
  * ⚠️ NO FIRST-HAND TIP — Tyler's to write, as on the other two pages.
  */
@@ -112,7 +120,7 @@ export default async function SkiPassAndMealsPage() {
       q: "Do ski resort jobs include a free season pass?",
       a:
         totals.pctSaysPass !== null
-          ? `Fewer adverts say so than most people expect. ${totals.saysPass} of ${totals.listings} open listings — ${totals.pctSaysPass}% — state that a season or lift pass is included. The rest mostly do not mention a pass at all, which is not the same as saying there isn't one: of the listings with no pass recorded, only ${totals.listings - totals.saysPass - totals.silentOnPass} mention a pass anywhere in their text.`
+          ? `Fewer adverts say so than most people expect. ${totals.saysPass} of ${totals.listings} open listings — ${totals.pctSaysPass}% — state that a season or lift pass is included. The other ${totals.silentOnPass} do not mention a pass at all, which is not the same as saying there isn't one. Not a single advert on the board explicitly says a pass is withheld.`
           : `We count this from what open listings actually say. Right now there are not enough open listings to publish a reliable share.`,
     },
     {
@@ -132,7 +140,7 @@ export default async function SkiPassAndMealsPage() {
     },
     {
       q: "If a listing doesn't mention a pass, does that mean there isn't one?",
-      a: `No, and this is the most important thing on this page. Of the open listings with no pass recorded, ${totals.silentOnPass} never mention a pass anywhere in their text — they are silent, not negative. Plenty of employers hand out a staff pass without putting it in the advert. Ask before you accept; a season pass is worth more than a small difference in hourly pay.`,
+      a: `No, and this is the most important thing on this page. ${totals.silentOnPass} of the ${totals.listings} open listings do not mention a pass at all — they are silent, not negative, and none of them says a pass is withheld. Plenty of employers hand out a staff pass without putting it in the advert. Ask before you accept; a season pass is worth more than a small difference in hourly pay.`,
     },
     {
       q: "Where do these figures come from?",
@@ -219,10 +227,10 @@ export default async function SkiPassAndMealsPage() {
         <div className="mt-8 rounded-2xl border-l-4 border-warm bg-warm/5 p-5">
           <h2 className="font-bold text-primary">What a blank means here</h2>
           <p className="mt-2 leading-relaxed text-foreground/75">
-            These figures count what adverts <em>say</em>, not what jobs include. Of the open
-            listings with no pass recorded, <strong>{totals.silentOnPass}</strong> never mention a
-            pass anywhere in their text — they are silent, not negative. Plenty of employers hand
-            a staff pass to everyone and never think to write it down.
+            These figures count what adverts <em>say</em>, not what jobs include. Of the
+            open listings, <strong>{totals.silentOnPass}</strong> do not mention a
+            pass at all — they are silent, not negative, and none of them says a pass is
+            withheld. Plenty of employers hand a staff pass to everyone and never write it down.
           </p>
           <p className="mt-2 leading-relaxed text-foreground/75">
             So read the table as &ldquo;how often it is advertised&rdquo;, and ask the employer

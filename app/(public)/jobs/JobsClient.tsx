@@ -1555,18 +1555,33 @@ function InfoBox({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * ⚠️ `included` IS TRI-STATE, and the three cases are not the same thing.
+ * Since migration 00114, `ski_pass_included` and `meal_perks` are NULL when
+ * the advert never mentioned the perk — which is most of the board, 308 of
+ * 355 for a pass. The dash is deliberately the same for "not included" and
+ * "not stated" because neither is a tick, but the title attribute tells them
+ * apart for anyone who looks, and nothing here renders a cross.
+ */
 function PerkRow({
   label,
   included,
   detail,
 }: {
   label: string;
-  included: boolean;
+  included: boolean | null;
   detail?: string | null;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span
+        title={
+          included === true
+            ? `${label}: included`
+            : included === false
+              ? `${label}: not included`
+              : `${label}: this listing does not say`
+        }
         className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
           included
             ? "bg-emerald-100 text-emerald-600"
