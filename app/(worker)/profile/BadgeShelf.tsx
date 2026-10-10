@@ -5,12 +5,20 @@ import { BADGES, earnedBadges, seasonStats, type WorkSeason } from "@/lib/badges
 /**
  * What the worker has collected, and what is still out there.
  *
- * ⚠️ WORKER-FACING ONLY. Every badge here is computed from seasons the worker
- * entered about themselves; nobody confirmed any of it. A single self-reported
- * badge is harmless, but a collection with milestones is a status system, and
- * in front of a hiring decision it would read as a credential backed by
- * nothing — see the header of lib/badges/achievements.ts. Do not render this
- * on an applicant, interview or any other business-facing view.
+ * ⚠️ WORKER-FACING ONLY, AND NOW WITHOUT ITS OWN DISCLOSURE. Every badge here
+ * is computed from seasons the worker entered about themselves; nobody
+ * confirmed any of it. That is fine on this page, where the only reader is the
+ * person who typed the data in — the line that used to say so was removed on
+ * 2026-10-10 as clutter, which it was HERE and would not be anywhere else.
+ *
+ * So the guard is now entirely structural: a collection with milestones is a
+ * status system, and in front of a hiring decision it reads as a credential
+ * backed by nothing. Do NOT render this on an applicant, interview or any
+ * other business-facing view — a test in lib/badges/achievements.test.ts walks
+ * app/(business) and app/(admin) and fails on any import of it. If badges are
+ * ever shown to a reader who did not enter the data, the disclosure has to
+ * come back with them. The share image keeps its own ("Self-reported season"),
+ * because a stranger sees that one.
  *
  * Unearned badges are shown greyed rather than hidden: a shelf with gaps is
  * what makes it a collection, and it tells a worker what linking a resort or
@@ -86,11 +94,6 @@ export default function BadgeShelf({ seasons }: { seasons: readonly WorkSeason[]
         })}
       </div>
 
-      {/* Not a disclaimer in small print somewhere else: the honesty belongs
-          where the claim is made. */}
-      <p className="mt-4 text-xs text-foreground/50">
-        Badges come from the seasons you&apos;ve entered yourself. They&apos;re not verified by employers.
-      </p>
     </div>
   );
 }
