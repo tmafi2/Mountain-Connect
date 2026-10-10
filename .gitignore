@@ -46,3 +46,11 @@ scripts/fb-monitor/out/
 
 # supabase CLI scratch — project ref, pooler URL, cached tool versions
 supabase/.temp/
+
+# Documents dropped into public/ are served at the site root, with no auth and
+# nothing to stop a crawler. On 2026-10-08 a 9.2MB proof-of-address PDF was
+# sitting in public/images/ — untracked, so never exposed, but one `git add .`
+# away from living at mountainconnects.com/images/<name>.pdf forever. Nothing
+# in this project serves a PDF deliberately; if that ever changes, allow that
+# one file explicitly rather than removing this rule.
+public/**/*.pdf
