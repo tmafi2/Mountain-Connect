@@ -15,11 +15,20 @@ import { leagueGothicData } from "@/lib/badges/display-font";
  * which matters, because businesses cannot even browse those (00085) and a
  * publicly addressable page naming a worker would invert that completely.
  *
- * ⚠️ NOTHING HERE IS VERIFIED and the badge says so. The dates behind it are
- * what the worker typed about themselves; no employer confirmed anything. The
- * footer line carries that, and it is not decoration — see
- * lib/stats/work-history-claims.test.ts for the trust claim this platform
- * already had to take back once.
+ * ⚠️ NOTHING HERE IS VERIFIED, AND THE BADGE NO LONGER SAYS SO. The dates
+ * behind it are what the worker typed about themselves; no employer confirmed
+ * anything. A "Self-reported season" footer line was removed on 2026-10-10:
+ * this is a personal post, not a credential, and nobody reads a logged run or
+ * a listening-stats card as attested either.
+ *
+ * What makes that defensible is that the image CLAIMS nothing. It names a
+ * mountain and a season. The brand mark means "made with Mountain Connects",
+ * not "verified by" it, and no word on the face says otherwise.
+ *
+ * ⚠️ SO IF EMPLOYER CONFIRMATION EVER SHIPS, a confirmed badge must look
+ * VISIBLY DIFFERENT from this one — otherwise the distinction lives in the
+ * database and nowhere a human can see it, which is exactly how the
+ * "Verified" chip went wrong (lib/stats/work-history-claims.test.ts).
  *
  * Public and unauthenticated because the thing it draws is public: a resort
  * name and a season. Inputs are validated rather than trusted — an unknown
@@ -160,9 +169,7 @@ export async function GET(request: Request) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            {/* The honesty line. Not decoration: nobody verified this. */}
-            <div style={{ display: "flex", fontSize: 25, color: "rgba(255,255,255,0.6)" }}>Self-reported season</div>
-            <div style={{ display: "flex", marginTop: 14, fontSize: 31, color: "rgba(255,255,255,0.92)", fontWeight: 700 }}>
+            <div style={{ display: "flex", fontSize: 31, color: "rgba(255,255,255,0.92)", fontWeight: 700 }}>
               mountainconnects.com
             </div>
           </div>
