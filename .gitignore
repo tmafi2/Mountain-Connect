@@ -54,3 +54,8 @@ supabase/.temp/
 # in this project serves a PDF deliberately; if that ever changes, allow that
 # one file explicitly rather than removing this rule.
 public/**/*.pdf
+
+# Generated analysis output (scripts/aeo-data-pull.ts). Aggregates are
+# reproducible from the database in one command, and outliers.csv is
+# per-listing rather than aggregate, so the folder stays local.
+/aeo-data/
