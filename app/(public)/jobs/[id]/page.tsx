@@ -158,6 +158,32 @@ export default async function JobDetailPage({ params }: JobPageProps) {
   };
   const salary = parseSalary(job.pay_amount);
 
+  /**
+   * The pay period, read from `salary_range` ("CAD 25/hour", "JPY 3500/hour",
+   * "CAD 60000/season") — NOT inferred from the size of the number.
+   *
+   * ⚠️ A magnitude threshold is the obvious idea and it is wrong: JPY 3500 an
+   * hour is about USD 23, so any "big number means annual" rule mislabels
+   * every Japanese listing. 152 of the 165 priced listings are /hour, and the
+   * rest are /total, /season and /month.
+   *
+   * Schema.org's unitText has no value for a whole season, so a seasonal or
+   * total figure yields NULL and baseSalary is omitted entirely. Saying
+   * nothing about pay is neutral; telling Google someone earns 60,000 an hour
+   * is a quality problem on the page it is trying to rank.
+   */
+  const SALARY_UNITS: Record<string, string> = {
+    hour: "HOUR", hr: "HOUR", hourly: "HOUR",
+    day: "DAY", daily: "DAY",
+    week: "WEEK", weekly: "WEEK",
+    month: "MONTH", monthly: "MONTH",
+    year: "YEAR", yr: "YEAR", annum: "YEAR", annually: "YEAR",
+  };
+  const payPeriod = (() => {
+    const unit = job.salary_range?.toLowerCase().match(/\/\s*([a-z]+)/)?.[1];
+    return unit ? SALARY_UNITS[unit] ?? null : null;
+  })();
+
   const jobBenefits: string[] = [];
   if (job.accommodation_included) jobBenefits.push("Staff accommodation");
   if (job.ski_pass_included) jobBenefits.push("Ski/lift pass");
@@ -195,8 +221,12 @@ export default async function JobDetailPage({ params }: JobPageProps) {
       },
     },
     ...(job.category && { occupationalCategory: job.category }),
-    ...(job.end_date && { validThrough: job.end_date }),
-    ...(salary && job.pay_currency && {
+    // The date the POSTING stops being valid, which is what Google asks for —
+    // `expires_at`, set on every active row since job expiry shipped. It used
+    // to read `end_date`, the date the WORK ends, which is set on 20 of 341
+    // listings; validThrough was therefore absent from 94% of the board.
+    ...((job.expires_at || job.end_date) && { validThrough: job.expires_at || job.end_date }),
+    ...(salary && job.pay_currency && payPeriod && {
       baseSalary: {
         "@type": "MonetaryAmount",
         currency: job.pay_currency,
@@ -204,7 +234,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
           "@type": "QuantitativeValue",
           minValue: salary.min,
           maxValue: salary.max,
-          unitText: "HOUR",
+          unitText: payPeriod,
         },
       },
     }),
