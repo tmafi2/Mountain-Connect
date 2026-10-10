@@ -54,10 +54,16 @@ const RULES: Array<[JobCategory, RegExp]> = [
   // because `instructor|coach` has no snow in it. Both were visible only by
   // reading the assignments, not the rules.
   ["Hospitality", /\b(spa|massage|nail|esthetic|aesthetic|therapist|pilates|yoga|swim|skating|conditioning|gym|fitness|sauna|wellness|bike coach|bike instructor|cycling coach)/],
-  ["Ski Instruction", /\b(ski instructor|snowboard instructor|instructor|ski school|snowsport|coach)\b/],
+  ["Ski Instruction", /\b(ski instructor|snowboard instructor|instructor|ski school|snowboard school|snowsports school|ski.{0,14}school|snowsport|coach)\b/],
+  // ⚠️ BEFORE Lift Operations. A man-lift is an aerial work platform and a
+  // forklift is a forklift; neither is a chairlift, but `lift op` claimed
+  // both. "Man-Lift Operator" was the ONLY thing in Lift Operations, which
+  // is how it was noticed — the category looked populated by a job that had
+  // nothing to do with a mountain.
+  ["Maintenance", /\b(man.?lift|fork.?lift|scissor lift|boom lift|telehandler)/],
   ["Lift Operations", /\b(lift op|lift att|liftie|lift crew|chairlift|gondola)/],
   ["Housekeeping", /\b(housekeep|room attendant|cleaner|cleaning|laundry|janitor|houseperson|housman|turndown|linen|accommodation staff)/],
-  ["Food & Beverage", /\b(chef|cook|kitchen|dishwash|dish wash|prep|pastry|baker|commis|sous|butcher|server|waiter|waitress|bartender|bar staff|barista|busser|cafe|café|restaurant|food|beverage|front of house|foh|service staff|host|hostess|sommelier|deli\b|cheesemonger|bottle|floor staff|hall staff|wait staff|waitstaff|bar attendant|\bbar\b|catering|pizza|burger|sushi|ramen|izakaya|grill)/],
+  ["Food & Beverage", /\b(chef|cook|kitchen|dishwash|dish wash|prep|pastry|baker|commis|sous|butcher|server|waiter|waitress|bartender|bar staff|barista|busser|cafe|café|restaurant|food|beverage|front of house|foh|service staff|host|hostess|sommelier|deli\b|cheesemonger|bottle|floor staff|floor supervisor|floor manager|hall staff|wait staff|waitstaff|bar attendant|\bbar\b|catering|pizza|burger|sushi|ramen|izakaya|grill)/],
   ["Retail", /\b(retail|sales associate|shop assistant|shop|cashier|store|merchandis|rental tech|boot fit|bootfit|ski tech|sales assistant|rental|merchandise)/],
   ["Maintenance", /\b(maintenance|carpenter|plumber|electrician|handyman|painter|mechanic|technician|skid steer|excavator|builder|joiner|repair|labour|labor|carpentry|electrical|flooring|roofing|cladding|renovation|construction|landscap|install|refinish|weld|groundskeep|tradesperson|plumbing|hvac|warehouse)/],
   ["Resort Operations", /\b(ski patrol|patroller|snowmak|groomer|grooming|snow clearing|snow removal|shovel|terrain park|driver|shuttle|transport|guide|mountain op|operations|parking|security|valet|plow|loader operator|truck operator|machine operator)/],

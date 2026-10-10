@@ -26,18 +26,40 @@ Verify any of these the same way — raw HTML, never the deploy status:
 curl -s https://www.mountainconnects.com/ski-resort-jobs/canada | grep -i "open roles"
 ```
 
-## ⚠️ Open question: JobPosting schema on unclaimed listings
+## JobPosting schema on unclaimed listings — DECIDED 2026-10-10: KEEP IT
 
-**The decision below and the code disagree, and the code is winning.** Checked live on 2026-10-10: an unclaimed listing emits a full `JobPosting` node. Since 349 of 355 open listings are unclaimed imports, effectively the whole board emits it.
+Unclaimed listings emit a full `JobPosting` node, and that stays. 349 of 355
+open listings are unclaimed imports, so this is the whole board; removing it
+would take the site out of Google Jobs almost entirely.
 
-This is deliberately left as it is, pending a call, because it is not a small change in either direction:
-- **Honour the decision** → removes JobPosting from ~98% of listings, which takes the site out of Google Jobs almost entirely.
-- **Change the decision** → accept the job-policy exposure the decision was written to avoid.
+This supersedes the earlier "do NOT emit JobPosting for unclaimed listings"
+compromise. **Revisit only if Google Search Console flags them.**
 
-The schema itself is at least accurate now (`aee5657`): `directApply` was inverted and claiming true on all 341 listings, including the ones whose only route is an external email. Unclaimed listings also already carry a visible "hasn't claimed their Mountain Connects account yet" notice.
+What makes it defensible, each verified live rather than assumed:
+- **`validThrough` is emitted** from `expires_at`, and expired listings answer
+  **410** with the sitemap agreeing on the same filter. Stale postings are the
+  main thing Google's job policy is about.
+- `directApply` is now accurate. It was inverted and claiming `true` on all
+  341 listings, including ones whose only route is an external email
+  (`aee5657`).
+- No duplicate (business + title) listings — the importer's idempotency holds.
+- Pay and currency are correct at the source since migration 00109.
+- Each unclaimed listing already carries a visible "hasn't claimed their
+  Mountain Connects account yet" notice to the reader.
+
+⚠️ **This raises the stakes on `occupationalCategory`.** It is published in
+the schema on ~98% of the board, so a wrong category is a wrong claim to
+Google, not just an odd filter result. Three were wrong and were corrected in
+00111 — "Man-Lift Operator" (an aerial work platform) was the only job in
+Lift Operations. Check the rendered schema, not just the rules, after any
+change to `lib/jobs/category.ts`:
+
+```
+curl -s https://www.mountainconnects.com/jobs/<id> | grep -o '"occupationalCategory":"[^"]*"'
+```
 
 ## Decisions
-- Facebook-sourced / unclaimed listings stay indexed. Compromise: do NOT emit JobPosting JSON-LD for unclaimed listings (keeps Google job-policy risk low). Revisit if Google Search Console flags them. **— see the open question above; this is not what the code does.**
+- Facebook-sourced / unclaimed listings stay indexed, **and keep their JobPosting JSON-LD** (decided 2026-10-10 — see the section above, which replaces the earlier compromise).
 - Original data comes from our own live listings (no employer relationships yet). Most listings have pay and housing.
 - Guides are drafted by Claude, edited by the founder, who adds first-hand details (moved from Australia to Canada).
 

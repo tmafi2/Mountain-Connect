@@ -23,7 +23,7 @@ test("the obvious roles land where a worker would look for them", () => {
     ["Linen Runner", "Housekeeping"],
     ["Ski Instructor", "Ski Instruction"],
     ["Ski / Snowboard Instructor", "Ski Instruction"],
-    ["Man-Lift Operator", "Lift Operations"],
+    ["Lift Operator", "Lift Operations"],
     ["Retail Sales Assistant", "Retail"],
     ["Carpentry Apprentice", "Maintenance"],
     ["HVAC Technician", "Maintenance"],
@@ -53,6 +53,37 @@ test("a wellness role is not maintenance, and a Pilates coach is not a ski instr
   assert.equal(categoryForTitle("Bike Coach"), "Hospitality");
   // ...but the wellness rule must not reach past coaching into the workshop.
   assert.equal(categoryForTitle("Bike Mechanic"), "Maintenance");
+});
+
+/**
+ * ⚠️ A THIRD ROUND OF ORDER BUGS, found the same way as the first two — by
+ * reading what real titles were ASSIGNED, not by reading the rules. These
+ * matter more than they look: `occupationalCategory` is published in the
+ * JobPosting schema on ~98% of the board, so a wrong bin is a wrong claim to
+ * Google rather than just an odd filter result.
+ */
+test("a machinery lift is not a chairlift", () => {
+  // "Man-Lift Operator" was the ONLY job in Lift Operations — a category made
+  // to look populated by an aerial work platform.
+  assert.equal(categoryForTitle("Man-Lift Operator"), "Maintenance");
+  assert.equal(categoryForTitle("Forklift Operator"), "Maintenance");
+  assert.equal(categoryForTitle("Scissor Lift Operator"), "Maintenance");
+  // ...and the real thing still lands in Lift Operations.
+  assert.equal(categoryForTitle("Lift Operator"), "Lift Operations");
+  assert.equal(categoryForTitle("Lift Attendant"), "Lift Operations");
+});
+
+test("a ski school role is instruction, and a restaurant floor is F&B", () => {
+  // Both fell to Administration via `manager`/`supervisor`: the slash in
+  // "Ski/Snowboard School" means "ski school" never appears as contiguous
+  // text, and "floor supervisor" did not match the "floor staff" rule that
+  // already caught its colleagues.
+  assert.equal(categoryForTitle("Ski/Snowboard School Manager"), "Ski Instruction");
+  assert.equal(categoryForTitle("Snowboard School Manager"), "Ski Instruction");
+  assert.equal(categoryForTitle("Floor Supervisor"), "Food & Beverage");
+  assert.equal(categoryForTitle("Floor Staff"), "Food & Beverage");
+  // The seniority word still wins where the job has no other signal.
+  assert.equal(categoryForTitle("Night Manager"), "Administration");
 });
 
 test("nothing it cannot read becomes a category", () => {
