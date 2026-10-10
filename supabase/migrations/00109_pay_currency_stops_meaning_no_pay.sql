@@ -25,6 +25,16 @@
 
 BEGIN;
 
+-- ── 0. What the table looked like a moment ago ───────────────────────────
+-- ⚠️ A SNAPSHOT, NOT A LITERAL. The first version of this asserted "191 rows
+-- carry pay", which was true when it was written and false twenty minutes
+-- later — the scrapes and the expiry sweep move this table continuously, and
+-- the apply aborted on a board that had simply changed (185 by then). The
+-- guard was right to fire and the assertion was wrong: what matters is that
+-- THIS migration changes nobody's pay, not what the total happens to be.
+CREATE TEMP TABLE _pay_before ON COMMIT DROP AS
+  SELECT id, pay_amount, salary_range FROM job_posts;
+
 -- ── 1. The default itself ────────────────────────────────────────────────
 -- This is the actual bug. Everything below is cleaning up after it.
 ALTER TABLE job_posts ALTER COLUMN pay_currency DROP DEFAULT;
@@ -81,7 +91,8 @@ DECLARE
   priced_no_cur   int;
   wrong_country   int;
   unprefixed      int;
-  priced_total    int;
+  amount_changed  int;
+  range_changed   int;
 BEGIN
   SELECT column_default INTO still_default
     FROM information_schema.columns
@@ -121,14 +132,26 @@ BEGIN
     RAISE EXCEPTION '% salary_range values have no currency prefix', unprefixed;
   END IF;
 
-  -- Nothing was supposed to lose its pay. 191 rows carry pay text today.
-  SELECT count(*) INTO priced_total FROM job_posts
-   WHERE coalesce(btrim(pay_amount), '') <> '';
-  IF priced_total <> 191 THEN
-    RAISE EXCEPTION 'priced rows changed from 191 to % — this migration must not touch pay', priced_total;
+  -- NOBODY'S PAY MOVED. Compared row by row against the snapshot above, so
+  -- it holds whatever the board happens to contain when this runs.
+  SELECT count(*) INTO amount_changed
+    FROM job_posts j JOIN _pay_before b ON b.id = j.id
+   WHERE j.pay_amount IS DISTINCT FROM b.pay_amount;
+  IF amount_changed > 0 THEN
+    RAISE EXCEPTION '% rows had their pay_amount changed — this migration must not touch pay', amount_changed;
   END IF;
 
-  RAISE NOTICE 'pay_currency: default dropped, % priced rows intact, 0 phantom currencies', priced_total;
+  -- The only salary_range edit allowed is gaining a currency prefix, and the
+  -- text after that prefix has to be exactly what was there before.
+  SELECT count(*) INTO range_changed
+    FROM job_posts j JOIN _pay_before b ON b.id = j.id
+   WHERE j.salary_range IS DISTINCT FROM b.salary_range
+     AND j.salary_range IS DISTINCT FROM (j.pay_currency || ' ' || btrim(b.salary_range));
+  IF range_changed > 0 THEN
+    RAISE EXCEPTION '% salary_range values changed by more than gaining a prefix', range_changed;
+  END IF;
+
+  RAISE NOTICE 'pay_currency: default dropped, no pay amounts touched, 0 phantom currencies';
 END $$;
 
 COMMIT;
