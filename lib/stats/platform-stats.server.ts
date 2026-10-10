@@ -11,8 +11,44 @@ import { EMPTY_STATS, type PlatformStats } from "./platform-stats";
 
 /** One hour. These move by a handful of rows a week; a crawler hitting the
  *  home page does not need a fresh count, and the page is force-dynamic for
- *  other reasons, so without this every request ran five queries. */
+ *  other reasons, so without this every request ran the queries again. */
 const TTL_SECONDS = 3600;
+
+/**
+ * ⚠️ THIS PROJECT RETURNS AT MOST 1000 ROWS PER SELECT.
+ *
+ * PostgREST's db-max-rows is set, and it is silent: ask for a 1377-row table
+ * and you get 1000 rows and no error, no warning, no truncation flag. So
+ * `rows.length` is not a count — it is a count that becomes wrong, without a
+ * symptom, the moment a table crosses the line. Measured against this project
+ * on 2026-10-10, not assumed.
+ *
+ * That is precisely the failure this module exists to prevent, so:
+ *   - anything that is only a COUNT uses { count: "exact", head: true },
+ *     which the database computes and the cap does not touch (verified:
+ *     head returns 1377 where a select returns 1000)
+ *   - anything needing the rows themselves pages with .range()
+ *
+ * Today every table here is far below the cap — 111 resorts, 341 live jobs,
+ * 243 businesses — so none of this changes a number. It stops the numbers
+ * going quietly wrong later, which is the only way this bug ever arrives.
+ */
+const PAGE = 1000;
+
+/** Every row, not the first thousand. Throws rather than returning a short
+ *  list, so a failure can never be mistaken for a small table. */
+async function fetchAll<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await build(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    all.push(...page);
+    if (page.length < PAGE) return all;
+  }
+}
 
 /**
  * Counts, or an exception.
@@ -35,41 +71,50 @@ async function queryStats(): Promise<PlatformStats> {
   // expiry sweep runs once a day, so there is always a window where a row
   // still says active and /jobs/<id> already answers 410. Counting those
   // would quote a number bigger than the board actually shows.
-  const liveJobFilter = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
+  const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
+  const head = { count: "exact" as const, head: true };
 
-  const [resortRows, townCount, jobRows, bizRows] = await Promise.all([
-    supabase.from("resorts").select("id, country"),
-    supabase.from("nearby_towns").select("id", { count: "exact", head: true }),
-    // resort_id comes back so we can count DISTINCT resorts with a live job
-    // without a second round trip.
-    supabase.from("job_posts").select("resort_id").eq("status", "active").or(liveJobFilter),
-    supabase.from("business_profiles").select("is_claimed, verification_status"),
-  ]);
+  // The same filter twice, once as a count and once as rows. `select` has to
+  // come before the filters, so these cannot share a builder.
+  const liveJobCount = () =>
+    supabase.from("job_posts").select("id", head).eq("status", "active").or(notExpired);
+  const liveJobRows = () =>
+    supabase.from("job_posts").select("resort_id").eq("status", "active").or(notExpired);
 
-  const failed = [resortRows, townCount, jobRows, bizRows].find((r) => r.error);
+  const [resortRows, towns, jobCount, jobResortIds, bizTotal, bizClaimed, bizVerified] =
+    await Promise.all([
+      // Bounded by how many resorts exist (111) and needed in full for the
+      // distinct-country count, but paged on the same rule as the rest.
+      fetchAll<{ country: string | null }>((from, to) =>
+        supabase.from("resorts").select("country").range(from, to)
+      ),
+      supabase.from("nearby_towns").select("id", head),
+      liveJobCount(),
+      // No COUNT(DISTINCT) over PostgREST, so these rows are genuinely
+      // needed — and therefore genuinely need paging.
+      fetchAll<{ resort_id: string | null }>((from, to) => liveJobRows().range(from, to)),
+      supabase.from("business_profiles").select("id", head),
+      supabase.from("business_profiles").select("id", head).eq("is_claimed", true),
+      supabase.from("business_profiles").select("id", head).eq("verification_status", "verified"),
+    ]);
+
+  const failed = [towns, jobCount, bizTotal, bizClaimed, bizVerified].find((r) => r.error);
   if (failed?.error) {
     throw new Error(`platform-stats: query failed: ${failed.error.message}`);
   }
 
-  const resorts = (resortRows.data ?? []) as { id: string; country: string | null }[];
-  const jobs = (jobRows.data ?? []) as { resort_id: string | null }[];
-  const businesses = (bizRows.data ?? []) as {
-    is_claimed: boolean | null;
-    verification_status: string | null;
-  }[];
-
-  const countries = new Set(resorts.map((r) => (r.country ?? "").trim()).filter(Boolean));
-  const jobResorts = new Set(jobs.map((j) => j.resort_id).filter(Boolean));
+  const countries = new Set(resortRows.map((r) => (r.country ?? "").trim()).filter(Boolean));
+  const jobResorts = new Set(jobResortIds.map((j) => j.resort_id).filter(Boolean));
 
   return {
-    resorts: resorts.length,
+    resorts: resortRows.length,
     countries: countries.size,
-    towns: townCount.count ?? 0,
-    liveJobs: jobs.length,
+    towns: towns.count ?? 0,
+    liveJobs: jobCount.count ?? 0,
     resortsWithLiveJobs: jobResorts.size,
-    businessesTotal: businesses.length,
-    businessesClaimed: businesses.filter((b) => b.is_claimed).length,
-    businessesVerified: businesses.filter((b) => b.verification_status === "verified").length,
+    businessesTotal: bizTotal.count ?? 0,
+    businessesClaimed: bizClaimed.count ?? 0,
+    businessesVerified: bizVerified.count ?? 0,
   };
 }
 
