@@ -69,6 +69,8 @@ curl -s https://www.mountainconnects.com/jobs/<id> | grep -o '"occupationalCateg
 - Show employer-posted vs sourced/unclaimed splits in internal reports.
 - Flag outliers instead of silently dropping them.
 
+**Backfilling a new field:** `scripts/backfill-housing-cost.ts` is the pattern. It reads the answer out of `job_posts.description` — which IS the advert text — rather than re-scraping Facebook, asks the model FOUR questions instead of seventeen (the project measured that a narrow schema is far more accurate), caches every paid answer so a re-run costs nothing, and never overwrites a value that is already there. Dry run by default.
+
 **Enforced by `scripts/aeo-data-pull.ts`** — read-only, writes aggregates to `./aeo-data/` (gitignored). It applies all four rules and prints a measured, conditional data-quality report. Re-run it rather than quoting these numbers from memory.
 
 ## What the data can and cannot support (measured 2026-10-10, 355 open jobs)
@@ -83,8 +85,8 @@ Before writing a page, check it against this. Three of the planned figures do no
 | ⚠️ **Pay period** | Read it from the `salary_range` suffix, **never infer it from the number**. `JPY 3500/hour` is about CAD 32 — a magnitude rule mislabels the entire Japanese board. |
 | **Non-hourly pay** | ~14 jobs priced per season/total/month. Hours are recorded nowhere, and only 1 mentions them even in prose, so they are **excluded and counted**, never normalised. |
 | **Housing offered** | `accommodation_included` on 355, `accommodation_type` on ~147. Usable. |
-| ⏳ **Housing cost** | Columns exist since migration 00112 (`accommodation_cost_amount` / `_currency` / `_period`) and the extractor asks for it, but **only newly scraped listings carry it** — 1 of 355 today. Not publishable until a few resorts clear the 5-listing floor. The `aeo-data-pull` reports the count each run and aggregates a **median weekly** figure (night/month/season normalised; a month is 52/12 weeks, not 4). |
-| ⏳ **Housing deducted from pay** | Column exists since 00112 (`accommodation_cost_deducted`), stated on 0 of 355 so far. ⚠️ It is a **NULLABLE boolean with no default** on purpose: "unknown" must never render as "paid separately". 36 descriptions mention rent in prose and were captured before the field existed. |
+| **Housing cost** | Stated on 23 of 355 (15 priced, 8 explicitly free) after the 2026-10-10 backfill. **Only Niseko United clears the 5-listing floor** — 10 listings, median **JPY 4,615/week**. Aggregated as a median WEEKLY figure (night/month/season normalised; a month is 52/12 weeks, not 4). Check the pull before promising a cost page for any other resort. |
+| ⏳ **Housing deducted from pay** | Stated on 2 of 355 — adverts rarely say. ⚠️ **NULLABLE boolean with no default** on purpose: "unknown" must never render as "paid separately", so this stays unpublishable rather than becoming quietly wrong. |
 | **Passes / meals** | `ski_pass_included`, `meal_perks` — booleans, usable. |
 | **Role category** | Populated on 349 of 355 since migration 00110. The 6 without carry titles with no signal and are NULL on purpose. |
 | ❌ **Town** | `nearby_town_id` is null on 354 of 355. **"Pay by town" is not buildable** — only "pay by resort". 75 are recoverable from the business, but a business with venues in two towns would get the wrong one stamped on all its jobs. |
@@ -96,7 +98,7 @@ Before writing a page, check it against this. Three of the planned figures do no
 
 ## 6-week plan
 - ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
-- Week 2: Three data pages: ski season pay by resort 2026/27; staff housing **availability and type** by resort (**cost is now captured but still thin — 1 of 355; check the pull before promising a cost page**); resorts giving free passes/meals.
+- Week 2: Three data pages: ski season pay by resort 2026/27; staff housing **availability and type** by resort, plus **cost for Niseko only** (the one resort over the 5-listing floor); resorts giving free passes/meals.
 - Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
