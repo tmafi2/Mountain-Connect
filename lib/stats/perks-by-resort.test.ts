@@ -62,7 +62,7 @@ test("totals never double-count a listing offering both", () => {
 
 test("board-wide shares still respect the floor", () => {
   assert.equal(totals([resort({ saysPass: 1, saysMeals: 1, saysBoth: 0 })], 3, 2).pctSaysPass, null);
-  assert.equal(totals([resort({ saysPass: 56, saysMeals: 59, saysBoth: 13 })], 355, 295).pctSaysPass, 15.77);
+  assert.equal(totals([resort({ saysPass: 56, saysMeals: 59, saysBoth: 13 })], 355, 295).pctSaysPass, 16);
 });
 
 test("resorts are ordered by how often a pass is actually mentioned", () => {

@@ -50,7 +50,11 @@ test("a cost is quoted only from listings that actually charge", () => {
 
 test("where both facts are real, both are stated", () => {
   const s = costSummary(resort({ chargedCount: 10, freeCount: 1 }));
-  assert.ok(s?.includes("JPY ¥4,615.38"), s ?? "");
+  // ⚠️ No decimals on yen: 38 hundredths of a yen is not a unit that exists,
+  // and this figure is DERIVED (a weekly median built from monthly rents),
+  // which is exactly where spurious precision creeps in.
+  assert.ok(s?.includes("JPY ¥4,615"), s ?? "");
+  assert.ok(!s?.includes("4,615.38"), s ?? "");
   assert.ok(s?.includes("1 of 11 listings"), s ?? "");
 });
 

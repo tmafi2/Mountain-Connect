@@ -101,13 +101,19 @@ Before writing a page, check it against this. Three of the planned figures do no
 - ~~Week 2 page 1: ski season pay~~ — **SHIPPED 2026-10-10 at `/ski-season-pay`.** Pay by TOWN, not resort: a worker searching "ski season pay" is deciding where to live. Revelstoke, Furano and Fernie clear the floor; Hakuba appears with its job count and housing share but no wage. Article + BreadcrumbList + FAQPage schema, in the sitemap, linked from every town page.
 - ~~Week 2 page 2: staff housing~~ — **SHIPPED 2026-10-10 at `/staff-housing`.** Availability and type for all 10 resorts with 5+ open listings; cost for Niseko only, exactly as predicted. Rusutsu reads "mostly free" (4 of the 5 that say). Free and charged housing are counted separately, never averaged.
 - ~~Week 2 page 3: passes and meals~~ — **SHIPPED 2026-10-10 at `/ski-pass-and-meals`.** 56 of 355 listings advertise a pass, 59 advertise meals. ⚠️ It counts what adverts SAY, never what jobs include — see the lesson below.
-- **Week 2 is done.** Weeks 3-4 (the six guides) are next.
+- **Week 2 is done.**
 - Week 2 addition now possible: **pay by town** for Revelstoke, Fernie and Furano. A worker searches for somewhere to LIVE, so the town is usually the real question behind "what does a season pay?".
-- Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
+- ~~Weeks 3-4: six guides targeting the no-link prompts~~ — **SHIPPED 2026-10-10.** All six published, each with 5 FAQs in `FAQPage` schema (no blog post had any before):
+  - `/blog/australian-working-holiday-visa-ski-season` — do you need a visa to work a ski season in Australia?
+  - `/blog/new-zealand-vs-australia-ski-season-pay` — which pays more?
+  - `/blog/two-ski-seasons-in-one-year` — northern then southern hemisphere
+  - `/blog/questions-to-ask-before-accepting-ski-season-job` — **rewrote an existing 1,893-char post** (the version it replaced is archived in `docs/blog-originals/`, because `blog_posts` has no revision history); the other five are new
+  - `/blog/is-a-ski-season-worth-it` — and what you can actually save
+  - `/blog/how-to-avoid-ski-job-scams`
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
 
-⚠️ **Weeks 3-4 target prompts about Australia and New Zealand, where we currently have no open jobs at all** (the board is Canada 182 / Japan 155 / France 4). The guides can still rank, but must not imply we have AU/NZ listings to apply to.
+⚠️ **Weeks 3-4 target prompts about Australia and New Zealand, where we have no open jobs at all** (the board is Canada / Japan / France — re-measure with `npm run preview:expiry` or `scripts/aeo-data-pull.ts`, don't trust a number typed here; the split written into this file in the morning was already 14 listings stale by the afternoon). The guides rank without implying we have AU/NZ listings: each one says in its own words where our listings actually are, and `/blog/two-ski-seasons-in-one-year` states it outright.
 
 ## Lessons from the data pages (`/ski-season-pay`, `/staff-housing`)
 
@@ -167,6 +173,55 @@ Before writing a page, check it against this. Three of the planned figures do no
 - **The floor applies to the lead paragraph too.** It quoted "Rusutsu: 100%"
   with the sample size only in the table below. Every figure carries its
   denominator where it is stated.
+
+## Lessons from the six guides (Weeks 3-4)
+
+- ⚠️ **A guide must not contain a typed number.** `/about` carried "69 Ski
+  Resorts" for five months while the real figure was 111, because nobody
+  re-reads their own copy. So the guides carry `{{tokens}}` resolved at render
+  time from the live board (`lib/blog/live-figures.server.ts`), and the blog
+  route is `force-dynamic` for it.
+- ⚠️ **And a missing number must not be visible.** Tokens are legal ONLY on a
+  line beginning `::figures`, which the renderer DROPS WHOLE when the figures
+  cannot be read — so a guide still reads correctly with the database down,
+  and never renders "0", a dash mid-sentence or a raw `{{openJobs}}`. A line
+  whose tokens do not all resolve is dropped rather than published half
+  filled. `tokensInProse()` and `unknownTokens()` make both mistakes findable;
+  all 30 FAQ answers were checked to still read with the figures removed.
+- **The FAQ is parsed from the RENDERED markdown, not the source** — so no
+  token can reach `FAQPage` schema, which is the part an answer engine quotes.
+  `## FAQ` then `### question`; a post without one emits no node rather than
+  an empty one.
+- **The external facts are pointed at, not quoted.** Visa conditions and
+  minimum wages change on government timetables and would go stale silently in
+  our copy, exactly like the resort count. The guides name the official source
+  and link it; the only numbers they state are our own board's.
+- ⚠️ **The honest answer about our own listings is in the guides.** Most are
+  sourced from public adverts rather than posted by the employer, so the scams
+  guide says so when asked "are the listings on Mountain Connects verified?".
+  That answer contradicts the homepage, which still says "verified jobs" — a
+  separate open item, and the reason this one was written carefully.
+- **No founder tip was written, again.** Template item 6 is Tyler's; six
+  invented first-hand tips would be six fake testimonials.
+- ⚠️ **Every markdown link opened in a new tab.** `MarkdownRenderer` set
+  `target="_blank"` on all of them, so the moment a guide linked
+  `/staff-housing` it threw the reader out of the page and into a second copy
+  of our own site. Internal links now go through `next/link` and stay in the
+  tab; only external ones open away. It had never shown up because no blog
+  post had an internal link before.
+- ⚠️ **`/support` is behind the login wall** (307 to `/login?redirect=/support`).
+  The scams guide tells a reader how to report a fraudulent listing, so it
+  points at the published `contact@mountainconnects.com` instead — a reader
+  being warned about scams is, by definition, not logged in. Check a route
+  answers 200 to a logged-out request before linking it from a public page.
+- **The authority is linked, not just named.** Home Affairs, Immigration NZ,
+  Employment NZ, Fair Work and the Canadian IEC pages are cited by URL, each
+  one checked to answer 200 first. `fairwork.gov.au` blocks automated requests
+  from here, so only its root is linked — an unverifiable deep path is worse
+  than a shallow verified one.
+- **The data pages link back.** `/ski-season-pay`, `/staff-housing` and
+  `/ski-pass-and-meals` each carry a button to the matching guide, so the pair
+  reinforces rather than competing.
 
 ## Guide template
 1. Title is the question people ask.

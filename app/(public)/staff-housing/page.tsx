@@ -321,9 +321,9 @@ export default async function StaffHousingPage() {
         <section className="mt-10 rounded-2xl border border-accent/40 bg-white p-6">
           <h2 className="text-xl font-bold text-primary">What a blank actually means</h2>
           <p className="mt-3 leading-relaxed text-foreground/75">
-            These are counts of what adverts <em>say</em>, not of what jobs include. Since
-            migration 00115 a listing that never raises the subject is recorded as unknown rather
-            than as a no, and most of the board is exactly that. Only {listingsWithCost} of{" "}
+            These are counts of what adverts <em>say</em>, not of what jobs include. A listing
+            that never raises the subject is recorded as unknown rather than as a no, and most of
+            the board is exactly that. Only {listingsWithCost} of{" "}
             {listingsConsidered} open listings say what accommodation costs the worker, and fewer
             still say whether the rent comes out of your wages. Where this page says &ldquo;not
             stated&rdquo;, that is what it means — not a quiet way of saying the housing is free.
@@ -370,6 +370,12 @@ export default async function StaffHousingPage() {
             className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
           >
             See what they pay
+          </Link>
+          <Link
+            href="/blog/is-a-ski-season-worth-it"
+            className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
+          >
+            Can you save money on a season?
           </Link>
         </div>
       </div>

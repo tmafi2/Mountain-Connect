@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Image from "next/image";
+import Link from "next/link";
 
 interface MarkdownRendererProps {
   content: string;
@@ -30,16 +31,35 @@ export default function MarkdownRenderer({ content, className = "" }: MarkdownRe
           p: ({ children }) => (
             <p className="mb-4 text-base leading-7 text-foreground">{children}</p>
           ),
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-secondary underline hover:text-secondary/80"
-            >
-              {children}
-            </a>
-          ),
+          // ⚠️ Internal links must NOT open in a new tab. Every link here
+          // used to get target="_blank", so a guide pointing at /staff-housing
+          // threw the reader out of the page they were reading, into a second
+          // copy of our own site. Same-origin links go through next/link and
+          // stay in the tab; only genuinely external ones open away.
+          a: ({ href, children }) => {
+            const to = href ?? "";
+            const style = "text-secondary underline hover:text-secondary/80";
+            if (to.startsWith("/")) {
+              return (
+                <Link href={to} className={style}>
+                  {children}
+                </Link>
+              );
+            }
+            // An anchor or a mail/tel link is handled by the browser as-is.
+            if (to.startsWith("#") || to.startsWith("mailto:") || to.startsWith("tel:")) {
+              return (
+                <a href={to} className={style}>
+                  {children}
+                </a>
+              );
+            }
+            return (
+              <a href={to} target="_blank" rel="noopener noreferrer" className={style}>
+                {children}
+              </a>
+            );
+          },
           ul: ({ children }) => (
             <ul className="mb-4 ml-6 list-disc space-y-1 text-foreground">{children}</ul>
           ),

@@ -281,7 +281,8 @@ export default async function SkiSeasonPayPage() {
               The median open listing in {t.town} pays{" "}
               <strong className="text-primary">{money(t.medianHourly, t.currency)}</strong> an hour,
               from {t.pricedCount} of {t.jobCount} open {t.jobCount === 1 ? "listing" : "listings"}{" "}
-              that state a rate. The middle half fall between {range(t)}.
+              that state a rate.
+              {range(t) !== null && <> The middle half fall between {range(t)}.</>}
               {t.pctWithHousing !== null && (
                 <> {t.pctWithHousing}% of listings there include staff accommodation.</>
               )}
@@ -359,6 +360,12 @@ export default async function SkiSeasonPayPage() {
             className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
           >
             Explore mountain towns
+          </Link>
+          <Link
+            href="/blog/questions-to-ask-before-accepting-ski-season-job"
+            className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
+          >
+            What to ask before you accept
           </Link>
         </div>
       </div>

@@ -104,7 +104,7 @@ function PerkCell({ state }: { state: PerkState }) {
   return (
     <span className="text-foreground/40">
       No listing says
-      <span className="block text-xs">of {state.jobCount}</span>
+      <span className="block text-xs">0 of {state.jobCount}</span>
     </span>
   );
 }
@@ -120,7 +120,7 @@ export default async function SkiPassAndMealsPage() {
       q: "Do ski resort jobs include a free season pass?",
       a:
         totals.pctSaysPass !== null
-          ? `Fewer adverts say so than most people expect. ${totals.saysPass} of ${totals.listings} open listings — ${totals.pctSaysPass}% — state that a season or lift pass is included. The other ${totals.silentOnPass} do not mention a pass at all, which is not the same as saying there isn't one. Not a single advert on the board explicitly says a pass is withheld.`
+          ? `Fewer adverts say so than you might expect. ${totals.saysPass} of ${totals.listings} open listings — ${totals.pctSaysPass}% — state that a season or lift pass is included. The other ${totals.silentOnPass} do not mention a pass at all, which is not the same as saying there isn't one. Not a single advert on the board explicitly says a pass is withheld.`
           : `We count this from what open listings actually say. Right now there are not enough open listings to publish a reliable share.`,
     },
     {
@@ -199,7 +199,7 @@ export default async function SkiPassAndMealsPage() {
 
         {totals.pctSaysPass !== null ? (
           <p className="mt-5 text-lg leading-relaxed text-foreground/80">
-            Fewer adverts say so than most people expect.{" "}
+            Fewer adverts say so than you might expect.{" "}
             <strong className="text-primary">
               {totals.saysPass} of {totals.listings} open listings ({totals.pctSaysPass}%)
             </strong>{" "}
@@ -340,6 +340,12 @@ export default async function SkiPassAndMealsPage() {
             className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
           >
             What they pay
+          </Link>
+          <Link
+            href="/blog/questions-to-ask-before-accepting-ski-season-job"
+            className="rounded-xl border border-accent px-5 py-3 text-sm font-semibold text-primary transition hover:border-secondary"
+          >
+            What to ask before you accept
           </Link>
         </div>
       </div>

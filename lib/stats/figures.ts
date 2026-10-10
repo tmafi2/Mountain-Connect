@@ -22,10 +22,17 @@ export function percentile(sorted: number[], p: number): number {
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** A share as a percentage, or null when the denominator is too small. */
+/**
+ * A share as a WHOLE percentage, or null when the denominator is too small.
+ *
+ * ⚠️ No decimals. "14 of 23 (60.87%)" claims a precision twenty-three adverts
+ * cannot carry, and every share on these pages prints its fraction beside it,
+ * so the percentage is the gloss and the fraction is the evidence. A reader
+ * who wants the exact number already has it.
+ */
 export function share(numerator: number, denominator: number): number | null {
   if (denominator < MIN_LISTINGS) return null;
-  return round2((numerator / denominator) * 100);
+  return Math.round((numerator / denominator) * 100);
 }
 
 /**
@@ -56,16 +63,27 @@ const SYMBOLS: Record<string, string> = {
 };
 
 /**
- * Two decimals when there are any, none when there are not — so CAD 25.5
- * reads "$25.50" like money, while JPY 1400 reads "¥1,400" rather than
- * "¥1,400.00" for a currency with no minor unit. A bare `maximumFractionDigits`
- * gives "$25.5", which is not a price anyone writes.
+ * Currencies with no minor unit. A fraction of one of these is not money.
+ *
+ * ⚠️ A derived figure is where this bites. The median weekly housing cost at
+ * Niseko is calculated from monthly rents, and rendered "JPY ¥4,615.38 a
+ * week" — 38 hundredths of a yen, a unit that does not exist, on a page whose
+ * whole argument is that its numbers are real.
  */
-export function digits(amount: number): string {
-  const fractional = Math.abs(amount % 1) > Number.EPSILON;
-  return amount.toLocaleString("en-GB", {
+const ZERO_DECIMAL = new Set(["JPY", "CLP", "KRW", "VND", "ISK", "HUF"]);
+
+/**
+ * Two decimals when there are any, none when there are not — so CAD 25.5
+ * reads "$25.50" like money, while JPY 1400 reads "¥1,400". A bare
+ * `maximumFractionDigits` gives "$25.5", which is not a price anyone writes.
+ */
+export function digits(amount: number, currency?: string | null): string {
+  const whole = currency != null && ZERO_DECIMAL.has(currency);
+  const value = whole ? Math.round(amount) : amount;
+  const fractional = !whole && Math.abs(value % 1) > Number.EPSILON;
+  return value.toLocaleString("en-GB", {
     minimumFractionDigits: fractional ? 2 : 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: whole ? 0 : 2,
   });
 }
 
@@ -75,5 +93,5 @@ export function symbolFor(currency: string): string {
 
 export function money(amount: number | null, currency: string | null): string | null {
   if (amount === null || !Number.isFinite(amount) || currency === null) return null;
-  return `${currency} ${symbolFor(currency)}${digits(amount)}`;
+  return `${currency} ${symbolFor(currency)}${digits(amount, currency)}`;
 }

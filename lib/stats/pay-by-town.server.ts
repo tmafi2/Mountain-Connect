@@ -4,6 +4,7 @@ import {
   MIN_LISTINGS,
   percentile,
   round2,
+  share,
   toWeekly,
   type TownPay,
 } from "./pay-by-town";
@@ -153,10 +154,10 @@ export async function getPayByTown(): Promise<PayByTownResult> {
         medianHourly: enough ? round2(percentile(hourly, 0.5)) : null,
         p25Hourly: enough ? round2(percentile(hourly, 0.25)) : null,
         p75Hourly: enough ? round2(percentile(hourly, 0.75)) : null,
-        pctWithHousing:
-          rs.length >= MIN_LISTINGS
-            ? round2((rs.filter((r) => r.accommodation_included).length / rs.length) * 100)
-            : null,
+        pctWithHousing: share(
+          rs.filter((r) => r.accommodation_included === true).length,
+          rs.length
+        ),
         medianWeeklyHousing:
           weekly.length >= MIN_LISTINGS ? round2(percentile(weekly, 0.5)) : null,
         housingCostCount: weekly.length,

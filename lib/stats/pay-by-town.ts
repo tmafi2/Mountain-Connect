@@ -16,11 +16,11 @@
  * query, which is where the rows are.
  */
 
-import { MIN_LISTINGS, money, percentile, round2, symbolFor, digits, toWeekly } from "./figures";
+import { MIN_LISTINGS, money, percentile, round2, share, symbolFor, digits, toWeekly } from "./figures";
 
 // Re-exported so this module's own callers and tests keep one import. The
 // definitions live in figures.ts, shared with the housing page.
-export { MIN_LISTINGS, money, percentile, round2, toWeekly };
+export { MIN_LISTINGS, money, percentile, round2, share, toWeekly };
 
 export type TownPay = {
   town: string;
@@ -66,7 +66,7 @@ export function range(town: TownPay): string | null {
   if (!canQuotePay(town) || town.p25Hourly === null || town.p75Hourly === null) return null;
   if (town.p25Hourly === town.p75Hourly) return null;
   const symbol = symbolFor(town.currency as string);
-  return `${town.currency} ${symbol}${digits(town.p25Hourly)}–${symbol}${digits(town.p75Hourly)}`;
+  return `${town.currency} ${symbol}${digits(town.p25Hourly, town.currency)}–${symbol}${digits(town.p75Hourly, town.currency)}`;
 }
 
 /**

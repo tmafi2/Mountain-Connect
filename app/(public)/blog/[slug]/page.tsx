@@ -6,6 +6,15 @@ import { format } from "date-fns";
 import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
 import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
+import { getLiveFigures } from "@/lib/blog/live-figures.server";
+import { render as renderFigures } from "@/lib/blog/live-figures";
+import { faqJsonLd } from "@/lib/blog/faq";
+
+// Required now that this page quotes live board figures: `revalidate` still
+// prerenders at build time, where Vercel withholds the Sensitive Supabase
+// keys — every figures line would be dropped and that version cached.
+// See lib/stats/platform-stats.ts.
+export const dynamic = "force-dynamic";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -97,6 +106,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   };
   if (post.hero_image_url) jsonLd.image = post.hero_image_url;
 
+  // ⚠️ Figures are substituted here, not written into the post. A number
+  // typed into prose goes stale silently — see lib/blog/live-figures.ts —
+  // and when the stats cannot be read every figures line is dropped, so the
+  // guide reads as prose rather than claiming the board is empty.
+  const figures = await getLiveFigures();
+  const renderedContent = renderFigures(post.content, figures);
+
+  // FAQPage, from the guide's own `## FAQ` section. AEO.md's template asks
+  // every guide for one and no post had the schema — which is the half that
+  // an answer engine actually reads.
+  const faqNode = faqJsonLd(renderedContent);
+
   // BreadcrumbList — Home → Blog → {Post title}.
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -119,6 +140,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {faqNode && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqNode) }}
+        />
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
@@ -183,7 +210,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </div>
 
         {/* Content */}
-        <MarkdownRenderer content={post.content} />
+        <MarkdownRenderer content={renderedContent} />
 
         {/* Share */}
         <div className="mt-12 border-t border-accent/30 pt-6">
