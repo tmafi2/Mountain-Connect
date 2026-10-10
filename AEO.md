@@ -143,8 +143,16 @@ Before writing a page, check it against this. Three of the planned figures do no
   no support in their advert, because the seventeen-field extraction inferred
   perks from context. `/ski-pass-and-meals` was overstating by about a fifth.
   Now: pass 47 true / 308 silent, meals 38 / 317, zero false positives.
-  **`accommodation_included` still has the old shape** and the same
-  ambiguity — it feeds `/staff-housing`.
+  **`accommodation_included` fixed the same way in 00115** — wrong in BOTH
+  directions there (27 of 159 confirmations unsupported, 32 of 196 falses
+  actually offering housing). Now 139 offered / 9 refused / 207 unstated. All
+  three perk booleans are tri-state; none of them defaults.
+- ⚠️ **A rewritten extraction prompt needs its answers read, not its rules.**
+  The accommodation rebuild's first prompt got 3 of 6 definite answers wrong —
+  housing attached to a *different* role, a 20%-off *guest* hotel discount
+  read as staff housing, and "no" returned for plain silence. All three were
+  invisible in the prompt and obvious in the output. Each is now its own line
+  in it.
 - ⚠️ **`false` can mean "didn't say".** `ski_pass_included`, `meal_perks` and
   `accommodation_included` are all `BOOLEAN NOT NULL DEFAULT false`, and the
   importer omits the field when an advert is silent — so a `false` cannot be

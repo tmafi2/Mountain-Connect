@@ -48,7 +48,13 @@ export const HERO = {
   subheading: "See where it takes you.",
   /** `{jobs}` and `{accommodation}` are filled from live counts, or the whole
    *  line is dropped when we could not count. Never a remembered number. */
-  proof: "{jobs} ski resort jobs in Canada. {accommodation} come with staff accommodation.",
+  // ⚠️ "say they include" rather than "come with". Since migration 00115
+  // `accommodation_included` is tri-state and the count is what adverts
+  // STATE — 139 of 355 open listings, with 207 silent on it. "Come with" was
+  // a claim about the jobs; this is a claim about the adverts, which is the
+  // only one the data supports. It is also still the stronger, truer line:
+  // the number is a floor, not a ceiling.
+  proof: "{jobs} ski resort jobs in Canada. {accommodation} say they include staff accommodation.",
   body: "Seasonal jobs. Mountain towns. New people. New places.",
   /** The primary action. People have been choosing jobs over a profile 30 to 3
    *  on the result screen; this offers that at the top, where the loss is. */

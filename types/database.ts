@@ -389,7 +389,8 @@ export interface JobPost {
   title: string;
   description: string;
   requirements: string | null;
-  accommodation_included: boolean;
+  /** NULL = the advert did not say. See migration 00115. */
+  accommodation_included: boolean | null;
   salary_range: string | null;
   start_date: string | null;
   end_date: string | null;

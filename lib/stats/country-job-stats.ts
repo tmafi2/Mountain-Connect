@@ -68,7 +68,10 @@ export async function getCountryJobStats(country: string): Promise<CountryJobSta
       const where = one(row.nearby_towns)?.country ?? one(row.resorts)?.country;
       if (where !== country) continue;
       liveJobs++;
-      if (row.accommodation_included) withAccommodation++;
+      // ⚠️ === true, not truthy. Since 00115 this column is tri-state and
+      // NULL means the advert did not say; counting it would be the old bug
+      // in a new place.
+      if (row.accommodation_included === true) withAccommodation++;
     }
     return { liveJobs, withAccommodation };
   } catch (err) {

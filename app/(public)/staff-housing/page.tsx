@@ -77,7 +77,7 @@ function HousingCell({ r }: { r: ResortHousing }) {
     <span>
       <strong className="text-primary">{r.pctOffering}%</strong>
       <span className="block text-xs text-foreground/50">
-        {r.offeringCount} of {r.jobCount} listings
+        {r.offeringCount} of {r.jobCount} say so
       </span>
     </span>
   );
@@ -219,7 +219,7 @@ export default async function StaffHousingPage() {
             {best.map((r, i) => (
               <span key={r.resort}>
                 {i > 0 && (i === best.length - 1 ? " and " : ", ")}
-                <strong className="text-primary">{r.resort}</strong> includes it in{" "}
+                <strong className="text-primary">{r.resort}</strong> advertises it in{" "}
                 <strong className="text-primary">{r.pctOffering}%</strong> of listings (
                 {r.offeringCount} of {r.jobCount})
               </span>
@@ -244,7 +244,7 @@ export default async function StaffHousingPage() {
             <thead className="border-b border-accent/40 bg-accent/10 text-xs uppercase tracking-wider text-foreground/60">
               <tr>
                 <th className="px-4 py-3 font-semibold">Resort</th>
-                <th className="px-4 py-3 font-semibold">Include housing</th>
+                <th className="px-4 py-3 font-semibold">Advertise housing</th>
                 <th className="px-4 py-3 font-semibold">Usual arrangement</th>
                 <th className="px-4 py-3 font-semibold">Cost to you</th>
               </tr>
@@ -298,7 +298,7 @@ export default async function StaffHousingPage() {
               Staff accommodation at {r.resort} works out at {costSummary(r)}.{" "}
               {r.pctOffering !== null && (
                 <>
-                  {r.pctOffering}% of its {r.jobCount} open listings include accommodation
+                  {r.pctOffering}% of its {r.jobCount} open listings advertise accommodation
                   {r.commonType && <>, usually {r.commonType.toLowerCase()}</>}.
                 </>
               )}
@@ -321,10 +321,12 @@ export default async function StaffHousingPage() {
         <section className="mt-10 rounded-2xl border border-accent/40 bg-white p-6">
           <h2 className="text-xl font-bold text-primary">What a blank actually means</h2>
           <p className="mt-3 leading-relaxed text-foreground/75">
-            Only {listingsWithCost} of {listingsConsidered} open listings say what staff
-            accommodation costs the worker, and fewer still say whether the rent comes out of your
-            wages. Where this page says &ldquo;not stated&rdquo;, that is exactly what it means —
-            the advert did not say. It is not a quiet way of saying the housing is free.
+            These are counts of what adverts <em>say</em>, not of what jobs include. Since
+            migration 00115 a listing that never raises the subject is recorded as unknown rather
+            than as a no, and most of the board is exactly that. Only {listingsWithCost} of{" "}
+            {listingsConsidered} open listings say what accommodation costs the worker, and fewer
+            still say whether the rent comes out of your wages. Where this page says &ldquo;not
+            stated&rdquo;, that is what it means — not a quiet way of saying the housing is free.
           </p>
           <p className="mt-3 leading-relaxed text-foreground/75">
             It is worth asking before you accept an offer. A job paying a little less with rent

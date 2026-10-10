@@ -17,7 +17,7 @@ type ResortRef = { name: string; country: string | null; legacy_id: string | nul
 type TownRef = { name: string };
 
 type Row = {
-  accommodation_included: boolean;
+  accommodation_included: boolean | null;
   accommodation_type: string | null;
   accommodation_cost_amount: number | null;
   accommodation_cost_currency: string | null;
@@ -110,7 +110,9 @@ export async function getHousingByResort(): Promise<HousingResult> {
           : null;
 
       const deductionStated = rs.filter((r) => r.accommodation_cost_deducted !== null);
-      const offering = rs.filter((r) => r.accommodation_included).length;
+      // ⚠️ === true. 00115 made this tri-state; NULL means the advert did
+      // not say, and 207 of 355 open listings are NULL.
+      const offering = rs.filter((r) => r.accommodation_included === true).length;
       const passes = rs.filter((r) => r.ski_pass_included === true).length;
       const meals = rs.filter((r) => r.meal_perks === true).length;
 
