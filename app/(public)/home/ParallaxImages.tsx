@@ -3,7 +3,19 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-export default function ParallaxImages() {
+/**
+ * Counts come in as props. They used to be "50+ Resorts" / "12 Countries"
+ * typed into the markup, which read 50+/12 while the real figures were
+ * 111/14 — this is a client component, so it cannot query, and the server
+ * page that renders it already has the numbers.
+ */
+export default function ParallaxImages({
+  resorts,
+  countries,
+}: {
+  resorts: string;
+  countries: string;
+}) {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -45,8 +57,8 @@ export default function ParallaxImages() {
             <span className="text-lg">🏔️</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-primary">50+ Resorts</p>
-            <p className="text-xs text-foreground/50">12 Countries</p>
+            <p className="text-sm font-bold text-primary">{resorts} Resorts</p>
+            <p className="text-xs text-foreground/50">{countries} Countries</p>
           </div>
         </div>
       </div>

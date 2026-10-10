@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { defaultOgImage } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
+import { getPlatformStats } from "@/lib/stats/platform-stats.server";
+import { formatStat } from "@/lib/stats/platform-stats";
 
 /* Client components — only the interactive bits */
 import HeroSection from "./home/HeroSection";
@@ -11,28 +13,54 @@ import ParallaxImages from "./home/ParallaxImages";
 import ScrollAnimationInit from "./home/ScrollAnimationInit";
 import CtaButtons from "./home/CtaButtons";
 
-export const metadata: Metadata = {
-  title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
-  description:
-    "Find seasonal work at ski resorts worldwide. Browse jobs in hospitality, ski instruction, food & beverage, retail, and more across 69+ resorts in 12 countries.",
-  alternates: { canonical: "https://www.mountainconnects.com" },
-  openGraph: {
-    title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
-    description:
-      "Find seasonal work at ski resorts worldwide. Browse jobs across 69+ resorts in 12 countries.",
-    url: "https://www.mountainconnects.com",
-    siteName: "Mountain Connects",
-    type: "website",
-    images: [defaultOgImage],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide",
-    description:
-      "Find seasonal work at ski resorts worldwide. Browse jobs across 69+ resorts in 12 countries.",
-    images: [defaultOgImage.url],
-  },
-};
+const TITLE = "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide";
+
+/**
+ * The meta description is COUNTED, not remembered.
+ *
+ * It used to read "across 69+ resorts in 12 countries", typed in when those
+ * were the figures. By October 2026 the real numbers were 111 and 14, and the
+ * stale pair had been served to every crawler for months — Bing's AI answer
+ * was repeating "over 50 ski resorts across 12 countries" back to searchers,
+ * sourced from this tag. Exactly the /about failure (see
+ * lib/stats/platform-stats.ts), except /about's JSX was fixed in September and
+ * this was missed, because nobody reads the metadata.
+ *
+ * generateMetadata can await, and this page is ALREADY dynamic — it calls
+ * createClient() for the session, so there is no caching to give up.
+ *
+ * ⚠️ IT FALLS BACK TO NO NUMBER AT ALL, never to a remembered one. If the
+ * count is unavailable (a build-time render has no Supabase keys) the sentence
+ * simply omits the figures rather than inventing or recalling them. A vaguer
+ * true line beats a precise false one, which is the whole lesson here.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { resorts, countries } = await getPlatformStats();
+  const scale =
+    resorts > 0 && countries > 0 ? ` across ${resorts} resorts in ${countries} countries` : "";
+  const description = `Find seasonal work at ski resorts worldwide. Browse jobs in hospitality, ski instruction, food & beverage, retail, and more${scale}.`;
+  const short = `Find seasonal work at ski resorts worldwide. Browse jobs${scale}.`;
+
+  return {
+    title: TITLE,
+    description,
+    alternates: { canonical: "https://www.mountainconnects.com" },
+    openGraph: {
+      title: TITLE,
+      description: short,
+      url: "https://www.mountainconnects.com",
+      siteName: "Mountain Connects",
+      type: "website",
+      images: [defaultOgImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: TITLE,
+      description: short,
+      images: [defaultOgImage.url],
+    },
+  };
+}
 
 const organizationJsonLd = {
   "@context": "https://schema.org",
@@ -131,6 +159,11 @@ function FeatureCard({
 /* ═══════════════════════════════════════════════════════════ */
 
 export default async function HomePage() {
+  // The same counts the metadata uses. This page is already dynamic for the
+  // session lookup below, so there is no caching to give up — and the stats
+  // bar underneath used to be three numbers typed in by hand.
+  const stats = await getPlatformStats();
+
   // Fetch user role server-side — no client Supabase call needed
   let userRole: string | null = null;
   try {
@@ -175,18 +208,25 @@ export default async function HomePage() {
       <section className="relative -mt-16 z-20 mx-auto max-w-6xl px-6">
         <div className="animate-on-scroll-scale rounded-2xl border border-accent/30 bg-white p-8 shadow-xl shadow-primary/5">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {/* ⚠️ COUNTED, NOT TYPED. These read 69 / 12 / 50+ for months
+                while the real figures were 111 / 14 / 90 — the same failure
+                /about had, on a page with far more traffic. A zero means the
+                query failed, and renders "—" rather than animating to nought.
+                See lib/stats/platform-stats.ts. */}
             {[
-              { value: 69, suffix: "", label: "Ski Resorts" },
-              { value: 12, suffix: "", label: "Countries" },
-              { value: 50, suffix: "+", label: "Mountain Towns" },
+              { value: stats.resorts, suffix: "", label: "Ski Resorts" },
+              { value: stats.countries, suffix: "", label: "Countries" },
+              { value: stats.towns, suffix: "", label: "Mountain Towns" },
               { value: null, text: "Free", label: "To Join" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-3xl font-extrabold text-primary md:text-4xl">
-                  {stat.value !== null ? (
+                  {stat.value === null ? (
+                    stat.text
+                  ) : stat.value > 0 ? (
                     <AnimatedCounter target={stat.value} suffix={stat.suffix || ""} />
                   ) : (
-                    stat.text
+                    formatStat(stat.value)
                   )}
                 </p>
                 <p className="mt-1 text-sm font-medium text-foreground/50">{stat.label}</p>
@@ -220,7 +260,12 @@ export default async function HomePage() {
             {
               step: "02",
               title: "Discover & Apply",
-              desc: "Browse verified jobs at world-class resorts. Filter by location, role, perks, and apply instantly.",
+              // NOT "verified jobs": no live listing belongs to a verified
+              // business (0 of 341 on 2026-10-10), so the word was false on
+              // the busiest page on the site, and Bing's AI was quoting it.
+              // NOT "apply instantly" either — 335 of 341 listings are
+              // unclaimed imports that take an anonymous form.
+              desc: "Browse seasonal jobs at resorts worldwide. Filter by location, role and perks, and apply straight from the listing.",
               color: "from-highlight to-cyan-300",
             },
             {
@@ -275,7 +320,11 @@ export default async function HomePage() {
                 </svg>
               }
               title="Smart Profiles"
-              description="One profile, unlimited applications. Showcase your skills, certifications, and seasonal experience."
+              // NOT "one profile, unlimited applications": that is true for
+              // the ~2% of listings with a claimed business behind them. The
+              // same claim was stripped from /go-for-a-season and /signup
+              // before launch; the homepage was missed.
+              description="Keep every job you save in one place, with your skills, certifications and seasonal experience ready to go."
             />
             <FeatureCard
               delay="delay-200"
@@ -285,7 +334,10 @@ export default async function HomePage() {
                 </svg>
               }
               title="Global Resorts"
-              description="Explore 50+ ski resorts across 12 countries with our interactive 3D globe."
+              // No figure here on purpose: this is static JSX and cannot
+              // await the live count, and a number typed in is a number that
+              // goes stale. See generateMetadata above.
+              description="Explore ski resorts around the world with our interactive 3D globe."
             />
             <FeatureCard
               delay="delay-300"
@@ -294,8 +346,14 @@ export default async function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               }
-              title="Verified Jobs"
-              description="Every listing from verified businesses. Accommodation, pay, perks — all upfront."
+              // NOT "Verified Jobs" / "Every listing from verified
+              // businesses": ZERO of 341 live listings belong to a verified
+              // business. Verification is a trust signal a business can earn,
+              // never a gate anything passes through — see CLAUDE.md,
+              // "Business Registration Flow". What IS true is that the board
+              // shows you which is which.
+              title="Clear Listings"
+              description="Accommodation, pay and perks upfront — and you can see which businesses are verified and which aren't yet."
             />
             <FeatureCard
               delay="delay-400"
@@ -331,7 +389,7 @@ export default async function HomePage() {
                 {[
                   "Detailed resort profiles with terrain stats",
                   "Staff housing & living cost information",
-                  "Direct links to verified employers",
+                  "Direct links to the businesses hiring",
                   "Interactive 3D globe explorer",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3">
@@ -376,8 +434,8 @@ export default async function HomePage() {
                         <span className="text-base sm:text-lg">🏔️</span>
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-primary">50+ Resorts</p>
-                        <p className="text-xs text-foreground/50">12 Countries</p>
+                        <p className="text-sm font-bold text-primary">{formatStat(stats.resorts)} Resorts</p>
+                        <p className="text-xs text-foreground/50">{formatStat(stats.countries)} Countries</p>
                       </div>
                     </div>
                   </div>
@@ -385,7 +443,7 @@ export default async function HomePage() {
 
                 {/* Desktop: Parallax stacked cards (client component) */}
                 <div className="hidden lg:block">
-                  <ParallaxImages />
+                  <ParallaxImages resorts={formatStat(stats.resorts)} countries={formatStat(stats.countries)} />
                 </div>
               </div>
             </div>
@@ -466,7 +524,7 @@ export default async function HomePage() {
                   </svg>
                 ),
                 title: "Global Resort Network",
-                description: "Browse jobs at 69 ski resorts across 12 countries — from the Alps to the Rockies to Japan.",
+                description: "Browse jobs at ski resorts worldwide — from the Alps to the Rockies to Japan.",
               },
               {
                 icon: (
@@ -474,8 +532,13 @@ export default async function HomePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 ),
-                title: "Verified Businesses",
-                description: "Every business is reviewed before going live. See real positions with details on housing, ski passes, and perks.",
+                // NOT "Every business is reviewed before going live" — the
+                // opposite is true by design: a business can publish
+                // immediately and verification is a badge it earns afterwards.
+                // An unverified business carries an amber note on its profile,
+                // which is the honest version of this promise.
+                title: "Know Who's Hiring",
+                description: "Verified businesses carry a badge, and the ones that aren't yet are marked so you know. Positions show housing, ski passes and perks.",
               },
               {
                 icon: (
