@@ -89,7 +89,7 @@ export function UnclaimedFootnote({ businessName, source, sourceUrl }: Unclaimed
   return (
     <p className="mt-8 text-center text-xs leading-relaxed text-foreground/40">
       {source && <>Sourced from {source} · </>}
-      {businessName} hasn&apos;t claimed their Mountain Connect account yet, so a
+      {businessName} hasn&apos;t claimed their Mountain Connects account yet, so a
       reply may come directly from them rather than through the site.
       {sourceUrl && (
         <>

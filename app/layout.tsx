@@ -23,25 +23,6 @@ export const metadata: Metadata = {
   description:
     "Find ski resort jobs worldwide. Browse seasonal winter work — instructor, lift operator, hospitality, and more — with staff accommodation across Australia, New Zealand, Canada, Japan, and Europe.",
   applicationName: "Mountain Connects",
-  keywords: [
-    "Mountain Connects",
-    "MountainConnects",
-    "ski resort jobs",
-    "seasonal jobs",
-    "winter jobs",
-    "ski season work",
-    "snow season jobs",
-    "ski instructor jobs",
-    "hospitality jobs ski resort",
-    "seasonal worker platform",
-    "ski resort recruitment",
-    "winter season Australia",
-    "ski jobs New Zealand",
-    "ski jobs Canada",
-    "ski jobs Japan",
-    "gap year ski work",
-    "working holiday ski resort",
-  ],
   authors: [{ name: "Mountain Connects" }],
   creator: "Mountain Connects",
   publisher: "Mountain Connects",
@@ -93,15 +74,27 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  // A stable @id so other nodes on the site can reference this organisation
+  // rather than restating it, and so the same entity is recognisable across
+  // pages. The url is the identifier; the #organization fragment keeps it
+  // distinct from the WebSite node at the same address.
+  "@id": "https://www.mountainconnects.com/#organization",
   name: "Mountain Connects",
   alternateName: ["MountainConnects", "Mountain Connect"],
   url: "https://www.mountainconnects.com",
   logo: "https://www.mountainconnects.com/images/og-image-v2.jpg",
   description:
     "The seasonal worker platform for ski resorts. Find winter jobs at ski resorts worldwide.",
+  // ⚠️ MUST MATCH THE FOOTER. sameAs is how a search engine confirms the
+  // profiles belong to this organisation, so a url that is not the real
+  // profile confirms nothing. The Facebook entry here was
+  // facebook.com/MountainConnects, a vanity name we do not hold, while the
+  // footer links the actual page by id. TikTok was in the footer and missing
+  // here. Three profiles, three links, same as components/layout/Footer.tsx.
   sameAs: [
-    "https://www.facebook.com/MountainConnects",
-    "https://www.instagram.com/mountain.connects/",
+    "https://www.instagram.com/mountain.connects",
+    "https://www.facebook.com/profile.php?id=61574305621437",
+    "https://www.tiktok.com/@mountain.connects",
   ],
 };
 

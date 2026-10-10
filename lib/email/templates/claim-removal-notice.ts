@@ -30,7 +30,7 @@ export function claimRemovalNoticeEmail({
   const waiting = eoiCount > 0;
   const lead = waiting
     ? `<strong style="color:#0a1e33;">${eoiCount} ${eoiCount === 1 ? "person has" : "people have"}</strong> asked about your <strong style="color:#0a1e33;">${jobTitle}</strong> role, and ${eoiCount === 1 ? "is" : "are"} waiting to hear back.`
-    : `Your <strong style="color:#0a1e33;">${jobTitle}</strong> listing has been live on Mountain Connect, in front of workers looking for the season.`;
+    : `Your <strong style="color:#0a1e33;">${jobTitle}</strong> listing has been live on Mountain Connects, in front of workers looking for the season.`;
 
   return {
     subject: waiting
@@ -45,8 +45,8 @@ export function claimRemovalNoticeEmail({
       <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
         <tr>
           <td style="background-color:#ffffff;padding:24px 32px 0;text-align:center;">
-            <img src="https://www.mountainconnects.com/images/email-logo.png" alt="Mountain Connect" width="52" height="52" style="display:inline-block;width:52px;height:52px;border-radius:12px;vertical-align:middle;" />
-            <span style="display:inline-block;margin-left:10px;font-size:15px;font-weight:700;color:#0a1e33;letter-spacing:-0.3px;vertical-align:middle;">Mountain Connect</span>
+            <img src="https://www.mountainconnects.com/images/email-logo.png" alt="Mountain Connects" width="52" height="52" style="display:inline-block;width:52px;height:52px;border-radius:12px;vertical-align:middle;" />
+            <span style="display:inline-block;margin-left:10px;font-size:15px;font-weight:700;color:#0a1e33;letter-spacing:-0.3px;vertical-align:middle;">Mountain Connects</span>
           </td>
         </tr>
         <tr>
@@ -79,7 +79,7 @@ export function claimRemovalNoticeEmail({
         </tr>
         <tr>
           <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #eef2f6;">
-            <p style="margin:0;color:#7d8b99;font-size:12px;line-height:1.6;">Mountain Connect — seasonal jobs, simplified.</p>
+            <p style="margin:0;color:#7d8b99;font-size:12px;line-height:1.6;">Mountain Connects — seasonal jobs, simplified.</p>
           </td>
         </tr>
       </table>

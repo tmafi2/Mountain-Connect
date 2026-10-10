@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 // is no longer enforced by middleware. Tell Google not to index it so it
 // doesn't get confused with the homepage or trigger duplicate-content flags.
 export const metadata: Metadata = {
-  title: "Access | Mountain Connects",
+  title: "Access",
   robots: {
     index: false,
     follow: false,

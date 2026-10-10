@@ -8,7 +8,7 @@ import { defaultOgImage } from "@/lib/seo";
    111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
    line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata: Metadata = {
-  title: "Explore Ski Resorts — Interactive Globe & Resort Finder | Mountain Connects",
+  title: "Explore Ski Resorts — Interactive Globe & Resort Finder",
   description:
     "Explore ski resorts worldwide on our interactive globe. Compare resorts, discover seasonal work opportunities, and find your next mountain adventure.",
   alternates: { canonical: "https://www.mountainconnects.com/explore" },

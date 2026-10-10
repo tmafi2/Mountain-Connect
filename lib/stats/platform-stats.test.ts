@@ -21,3 +21,70 @@ test("a missing count renders as a dash, not as zero and not as a guess", () => 
   assert.equal(formatStat(-1), "—");
   for (const v of Object.values(EMPTY_STATS)) assert.equal(formatStat(v), "—");
 });
+
+/* ── The counters must be in the server HTML ─────────────────────────── */
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+/** Read a repo file relative to the project root. */
+function source(relative: string): string {
+  return readFileSync(join(process.cwd(), relative), "utf8");
+}
+
+/**
+ * The home page stats bar rendered `0` for every counter in its server HTML,
+ * because AnimatedCounter opened at zero and only reached the real figure on
+ * a client effect. The numbers were queried correctly and thrown away in the
+ * render, so the busiest page on the site told crawlers and AI answer
+ * engines the platform had zero resorts in zero countries.
+ *
+ * Nothing about that is visible to a human looking at the page, which is why
+ * it survived — and why it needs a test rather than a reader.
+ */
+test("the animated counter starts at its true value, never at zero", () => {
+  const src = source("app/(public)/home/AnimatedCounter.tsx");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  assert.match(
+    code,
+    /useState\(\s*target\s*\)/,
+    "useState(0) puts a zero in the server html where the real count belongs"
+  );
+  assert.ok(
+    !/useState\(\s*0\s*\)/.test(code),
+    "the first render is what a crawler reads — it must carry the number"
+  );
+});
+
+/**
+ * Every page that reads these counts has to be dynamic. `revalidate` alone
+ * still prerenders at build time, where Vercel withholds the Sensitive
+ * Supabase keys, so the queries fail and the page ships with "—" baked in.
+ * That is exactly how sitemap.xml lost its job and business urls.
+ */
+test("pages that quote platform stats are force-dynamic", () => {
+  const pages = [
+    "app/(public)/page.tsx",
+    "app/(public)/about/page.tsx",
+    "app/(public)/login/page.tsx",
+  ];
+  for (const page of pages) {
+    assert.match(
+      source(page),
+      /export const dynamic = "force-dynamic"/,
+      `${page} reads platform stats, so it must opt out of build-time prerender`
+    );
+  }
+});
+
+/**
+ * A cached count that failed is worse than an uncached one: `unstable_cache`
+ * stores what the function RETURNS, so returning zeros on error would pin
+ * "—" across the site for the full hour. Throwing is not cached.
+ */
+test("the stats query throws on failure rather than caching zeros", () => {
+  const src = source("lib/stats/platform-stats.server.ts");
+  assert.match(src, /throw new Error\(/, "a failed query must not be a cacheable value");
+  assert.match(src, /unstable_cache/);
+  assert.match(src, /revalidate: TTL_SECONDS/);
+});

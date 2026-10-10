@@ -12,7 +12,7 @@ interface ClaimPageProps {
 export async function generateMetadata({ params }: ClaimPageProps) {
   const { token } = await params;
   return {
-    title: "Claim your listing | Mountain Connects",
+    title: "Claim your listing",
     description: "Take ownership of your Mountain Connects listing.",
     alternates: { canonical: `https://www.mountainconnects.com/claim/${token}` },
     robots: { index: false, follow: false },

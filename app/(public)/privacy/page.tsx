@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Mountain Connects",
+  title: "Privacy Policy",
   description: "How Mountain Connects collects, uses, and protects your personal information.",
 };
 

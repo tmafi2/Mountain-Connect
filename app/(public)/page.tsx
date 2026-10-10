@@ -16,6 +16,15 @@ import CtaButtons from "./home/CtaButtons";
 const TITLE = "Mountain Connects — Seasonal Jobs at Ski Resorts Worldwide";
 
 /**
+ * The counts below must be queried per request, not baked in at build time
+ * where Vercel withholds the Sensitive Supabase keys and they come back
+ * empty. This page was already dynamic by accident — it calls createClient()
+ * for the session — but that is a side effect of an unrelated line, and
+ * deleting that line would silently prerender the stats bar as "—".
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * The meta description is COUNTED, not remembered.
  *
  * It used to read "across 69+ resorts in 12 countries", typed in when those
@@ -62,32 +71,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Mountain Connects",
-  url: "https://www.mountainconnects.com",
-  description:
-    "Mountain Connects is a seasonal worker platform connecting workers with ski resort businesses worldwide.",
-  sameAs: [],
-  contactPoint: {
-    "@type": "ContactPoint",
-    email: "notifications@mountainconnects.com",
-    contactType: "customer support",
-  },
-};
-
-const websiteJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "Mountain Connects",
-  url: "https://www.mountainconnects.com",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: "https://www.mountainconnects.com/jobs?search={search_term_string}",
-    "query-input": "required name=search_term_string",
-  },
-};
+/* ⚠️ NO Organization OR WebSite NODE HERE. app/layout.tsx emits both on
+   every page, so this file's copies made the home page carry TWO of each —
+   and they disagreed: the layout's Organization lists our social profiles
+   while this one declared `sameAs: []`, an explicit claim to have none, on
+   the single page most likely to be read as authoritative. Two nodes for one
+   organisation is worse than either node alone. Only the FAQ below is
+   page-specific, so only the FAQ stays. */
 
 /* ─── FAQ content — also emitted as FAQPage JSON-LD ────────
    Each entry targets a real search query we want to rank for. */
@@ -185,14 +175,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Compare Ski Resorts — Side-by-Side Resort Comparison | Mountain Connects",
+  title: "Compare Ski Resorts — Side-by-Side Resort Comparison",
   description:
     "Compare ski resorts side by side. Evaluate terrain, snowfall, staff housing, seasonal jobs, and living costs to find the best resort for your season.",
   alternates: { canonical: "https://www.mountainconnects.com/compare" },

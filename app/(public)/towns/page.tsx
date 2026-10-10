@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Explore Towns — Seasonal Worker Town Guides",
     description:
-      "Discover the towns where seasonal ski workers live. Housing, transport, cost of living, and insider tips for 50+ resort towns worldwide.",
+      "Discover the towns where seasonal ski workers live. Housing, transport, cost of living, and insider tips for resort towns worldwide.",
     url: "https://www.mountainconnects.com/towns",
     siteName: "Mountain Connects",
     type: "website",

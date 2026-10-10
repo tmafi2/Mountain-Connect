@@ -61,8 +61,8 @@ export function claimApplicantsWaitingEmail({
       <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
         <tr>
           <td style="background-color:#ffffff;padding:24px 32px 0;text-align:center;">
-            <img src="https://www.mountainconnects.com/images/email-logo.png" alt="Mountain Connect" width="52" height="52" style="display:inline-block;width:52px;height:52px;border-radius:12px;vertical-align:middle;" />
-            <span style="display:inline-block;margin-left:10px;font-size:15px;font-weight:700;color:#0a1e33;letter-spacing:-0.3px;vertical-align:middle;">Mountain Connect</span>
+            <img src="https://www.mountainconnects.com/images/email-logo.png" alt="Mountain Connects" width="52" height="52" style="display:inline-block;width:52px;height:52px;border-radius:12px;vertical-align:middle;" />
+            <span style="display:inline-block;margin-left:10px;font-size:15px;font-weight:700;color:#0a1e33;letter-spacing:-0.3px;vertical-align:middle;">Mountain Connects</span>
           </td>
         </tr>
         <tr>
@@ -79,7 +79,7 @@ export function claimApplicantsWaitingEmail({
             <p style="margin:0 0 16px;color:#3d4f5f;font-size:16px;line-height:1.6;">Hi ${businessName},</p>
             <p style="margin:0 0 22px;color:#3d4f5f;font-size:16px;line-height:1.6;">
               ${many ? "People have" : "Someone has"} applied to your ${roles.length > 1 ? "roles" : "role"}
-              on Mountain Connect and ${many ? "are" : "is"} waiting to hear back. We can't pass
+              on Mountain Connects and ${many ? "are" : "is"} waiting to hear back. We can't pass
               ${many ? "their details" : "their details"} on until the listing is yours.
             </p>
 
@@ -101,7 +101,7 @@ export function claimApplicantsWaitingEmail({
         </tr>
         <tr>
           <td style="background-color:#f7f9fb;padding:24px 32px;text-align:center;border-top:1px solid #eef2f6;">
-            <p style="margin:0;color:#7d8b99;font-size:12px;line-height:1.6;">Mountain Connect — seasonal jobs, simplified.</p>
+            <p style="margin:0;color:#7d8b99;font-size:12px;line-height:1.6;">Mountain Connects — seasonal jobs, simplified.</p>
           </td>
         </tr>
       </table>

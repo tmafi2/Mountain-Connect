@@ -4,7 +4,7 @@ import SupportForm from "./SupportForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Support | Mountain Connects",
+  title: "Support",
   description:
     "Report a bug, request a feature, or get help with your Mountain Connects account.",
 };
