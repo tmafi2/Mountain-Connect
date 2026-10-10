@@ -223,6 +223,8 @@ type JobRow = {
   meal_perks: boolean;
   category: string | null;
   position_type: string | null;
+  description: string | null;
+  business_id: string;
   source: string | null;
   created_at: string;
   // ⚠️ Typed as EITHER shape. These joins are many-to-one so PostgREST sends
@@ -248,7 +250,7 @@ async function main() {
       db
         .from("job_posts")
         .select(
-          "id, title, pay_amount, pay_currency, salary_range, accommodation_included, accommodation_type, accommodation_cost, housing_details, ski_pass_included, meal_perks, category, position_type, source, created_at, resorts(name, country), nearby_towns(name), business_profiles(is_claimed)"
+          "id, title, business_id, description, pay_amount, pay_currency, salary_range, accommodation_included, accommodation_type, accommodation_cost, housing_details, ski_pass_included, meal_perks, category, position_type, source, created_at, resorts(name, country), nearby_towns(name), business_profiles(is_claimed)"
         )
         .eq("status", "active")
         .or(notExpired)
@@ -264,6 +266,9 @@ async function main() {
     title: string;
     role: string;
     category: string | null;
+    businessId: string;
+    description: string;
+    housingCost: string | null;
     resort: string;
     town: string;
     country: string;
@@ -277,6 +282,7 @@ async function main() {
     pass: boolean;
     meals: boolean;
     employerPosted: boolean;
+    source: string | null;
     outlier: string | null;
   };
 
@@ -337,6 +343,9 @@ async function main() {
       title: j.title,
       role: roleOf(j.title),
       category: (j.category ?? "").trim() || null,
+      businessId: j.business_id,
+      description: j.description ?? "",
+      housingCost: (j.accommodation_cost ?? "").trim() || null,
       resort: resort?.name ?? "(no resort)",
       town: town?.name ?? "",
       country: resort?.country ?? "(no country)",
@@ -350,6 +359,7 @@ async function main() {
       pass: j.ski_pass_included,
       meals: j.meal_perks,
       employerPosted: biz?.is_claimed === true,
+      source: (j.source ?? "").trim() || null,
       outlier,
     };
 
@@ -507,19 +517,108 @@ async function main() {
   }
 
   const all = coverage[0];
-  console.log("\nData-quality problems to fix before publishing\n");
-  const problems = [
-    `pay_currency is a DEFAULT, not a fact: ${rows.filter((r) => r.currency === "USD").length} open jobs say USD and there is not one US resort on the board. Every USD row but one has no pay at all, so it is the stamp applied when extraction found nothing. Publishing currency straight from this column would caption Canadian and Japanese wages as US dollars.`,
-    `job_posts.category is empty on ${rows.length - rows.filter((r) => r.category).length} of ${rows.length} open jobs (the one value present is "Maintenance"). The site looks populated only because /jobs defaults the blank ones to "Other" in its view model. Role here is derived from the title; ${all.pct_role_classified}% matched a rule and the rest are "Other / unclassified".`,
-    `accommodation_cost has 1 non-empty value on the whole open board ("¥60k per month"), so a median weekly housing cost cannot be produced at any resort. It is reported as "not captured" rather than computed from one row.`,
-    `There is no column for whether housing is deducted from pay. 33 descriptions mention deduction or rent in prose. Add a field before publishing a stat about it.`,
-    `${all.pay_stated_but_not_hourly} jobs state pay per season/total/month with no hours recorded anywhere, so they cannot be made hourly. Only 1 of them mentions hours even in prose. They are excluded from pay stats and counted in every file.`,
-    `${rows.filter((r) => !r.employerPosted).length} of ${rows.length} open jobs belong to unclaimed imported businesses and job_posts.source is "Facebook" for all ${rows.length}. The employer-posted segment is only ${rows.filter((r) => r.employerPosted).length} jobs — it clears the ${MIN_SAMPLE}-job floor by one, so its percentages DO render in coverage.csv while resting on ${rows.filter((r) => r.employerPosted).length} rows. Treat them as indicative, not publishable, and do not caption the board as employer-reported pay.`,
-    `${rows.filter((r) => !r.town).length} of ${rows.length} open jobs have no nearby_town_id, so the town column is empty on every resort but one. A "pay by town" page cannot be built from this yet — only "pay by resort".`,
-    `${outliers.length} row${outliers.length === 1 ? " is" : "s are"} flagged in outliers.csv and left in the dataset. Check them before publishing: a wage below minimum or a currency that does not match the country usually means a bad extraction, not a bad employer.`,
-    `GOOD NEWS, so it does not get fixed by mistake: there are ZERO duplicate (business + title) open listings, so the importer's idempotency is holding. 32 jobs share a title and resort across DIFFERENT businesses, which is two pubs both hiring a bartender rather than a duplicate.`,
-  ];
+  /**
+   * ⚠️ EVERY LINE HERE IS MEASURED AND CONDITIONAL.
+   *
+   * These were static sentences describing problems that were real when the
+   * script was written. After migration 00109 fixed the currency default the
+   * report went on announcing "pay_currency is a DEFAULT, not a fact: 0 open
+   * jobs say USD" and "0 rows are flagged in outliers.csv — check them",
+   * which is the same failure as a stale literal on a public page: a number
+   * that cannot go wrong loudly. A problem that no longer exists must stop
+   * being printed, and a clean result should say so.
+   */
+  const usdRows = rows.filter((r) => r.currency === "USD" && r.country !== "USA").length;
+  const noCategory = rows.length - rows.filter((r) => r.category).length;
+  const housingCosts = rows.map((r) => r.housingCost).filter(Boolean) as string[];
+  const mentionsRent = rows.filter((r) => /deduct|rent is|rent of|rent:|per week|\/week|weekly rent/i.test(r.description)).length;
+  const nonHourly = rows.filter((r) => r.payExcludedReason?.startsWith("stated per"));
+  const nonHourlyWithHours = nonHourly.filter((r) => /\d{1,2}\s*(hours|hrs)\s*(per|a|\/)\s*week|hours per week/i.test(r.description)).length;
+  const noTown = rows.filter((r) => !r.town).length;
+  const unclaimed = rows.filter((r) => !r.employerPosted).length;
+  const employerPosted = rows.length - unclaimed;
+  const sources = [...new Set(rows.map((r) => r.source || "(none)"))];
+
+  const dupKeys = new Map<string, number>();
+  for (const r of rows) {
+    const k = `${r.businessId}||${r.title.trim().toLowerCase()}`;
+    dupKeys.set(k, (dupKeys.get(k) ?? 0) + 1);
+  }
+  const dupes = [...dupKeys.values()].filter((n) => n > 1).length;
+
+  const sameTitleResort = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const k = `${r.title.trim().toLowerCase()}||${r.resort}`;
+    const set = sameTitleResort.get(k) ?? new Set<string>();
+    set.add(r.businessId);
+    sameTitleResort.set(k, set);
+  }
+  const sharedTitles = [...sameTitleResort.values()].filter((s) => s.size > 1).length;
+
+  const problems: string[] = [];
+  const clean: string[] = [];
+
+  (usdRows > 0 ? problems : clean).push(
+    usdRows > 0
+      ? `${usdRows} open jobs are priced in USD at a non-US resort. Before migration 00109 this was 177 of 341, because pay_currency carried a column default of 'USD' and the importer omitted the field when it found no currency — so USD meant "no pay found". If it is back, check that default and lib/jobs/currency.ts.`
+      : `pay_currency is clean: no USD outside the USA, and every currency on the board denominates an actual amount. Migration 00109 dropped the 'USD' column default that made it mean "no pay found".`
+  );
+
+  if (noCategory > 0) {
+    problems.push(
+      `job_posts.category is empty on ${noCategory} of ${rows.length} open jobs. The site looks populated only because /jobs defaults the blanks to "Other" in its view model. Role here is derived from the title; ${all.pct_role_classified}% matched a rule and the rest are "Other / unclassified".`
+    );
+  }
+
+  if (housingCosts.length < MIN_SAMPLE) {
+    problems.push(
+      `accommodation_cost is non-empty on ${housingCosts.length} of ${rows.length} open jobs${housingCosts.length ? ` (${housingCosts.slice(0, 3).map((c) => `"${c}"`).join(", ")})` : ""} and is free text, so a median weekly housing cost cannot be produced anywhere. Reported as "not captured" rather than computed from ${housingCosts.length} row${housingCosts.length === 1 ? "" : "s"}.`
+    );
+  }
+
+  problems.push(
+    `There is no column recording whether housing is deducted from pay. ${mentionsRent} descriptions mention deduction or rent in prose. Add a field before publishing a stat about it.`
+  );
+
+  if (nonHourly.length > 0) {
+    problems.push(
+      `${nonHourly.length} jobs state pay per season/total/month with no hours recorded anywhere, so they cannot be made hourly — ${nonHourlyWithHours} of them mention${nonHourlyWithHours === 1 ? "s" : ""} hours even in prose. Excluded from pay stats and counted in every file.`
+    );
+  }
+
+  problems.push(
+    `${unclaimed} of ${rows.length} open jobs belong to unclaimed imported businesses, and job_posts.source is ${sources.length === 1 ? `"${sources[0]}" for all of them` : sources.map((s) => `"${s}"`).join(" / ")}. The employer-posted segment is ${employerPosted} job${employerPosted === 1 ? "" : "s"}${employerPosted >= MIN_SAMPLE ? ` — it clears the ${MIN_SAMPLE}-job floor, so its percentages render in coverage.csv while resting on ${employerPosted} rows. Treat them as indicative, not publishable` : `, below the ${MIN_SAMPLE}-job floor, so those splits read "${INSUFFICIENT}"`}, and do not caption the board as employer-reported pay.`
+  );
+
+  if (noTown > 0) {
+    problems.push(
+      `${noTown} of ${rows.length} open jobs have no nearby_town_id, so the town column is empty on ${noTown === rows.length ? "every resort" : "all but a few"}. A "pay by town" page cannot be built from this yet — only "pay by resort".`
+    );
+  }
+
+  (outliers.length > 0 ? problems : clean).push(
+    outliers.length > 0
+      ? `${outliers.length} row${outliers.length === 1 ? " is" : "s are"} flagged in outliers.csv and left in the dataset. A wage below minimum, or a currency that does not match the country, usually means a bad extraction rather than a bad employer.`
+      : `No outliers: every hourly wage sits inside its currency's plausible band and every currency matches its resort's country.`
+  );
+
+  (dupes > 0 ? problems : clean).push(
+    dupes > 0
+      ? `${dupes} (business + title) pairs appear more than once among open jobs — the importer's idempotency has slipped. See lib/admin/business-by-email.ts and the import_key lookup.`
+      : `No duplicate (business + title) open listings, so the importer's idempotency is holding. ${sharedTitles} title+resort pairs are shared across DIFFERENT businesses, which is two pubs both hiring a bartender rather than a duplicate.`
+  );
+
+  if (problems.length > 0) {
+    console.log("\nData-quality problems to fix before publishing\n");
+  } else {
+    console.log("\nNo data-quality problems found.\n");
+  }
   problems.forEach((p, i) => console.log(`  ${i + 1}. ${p}\n`));
+
+  if (clean.length > 0) {
+    console.log("Checks that came back clean — stated so they do not get 'fixed' by mistake\n");
+    clean.forEach((c) => console.log(`  ✓ ${c}\n`));
+  }
 }
 
 main().catch((err) => {

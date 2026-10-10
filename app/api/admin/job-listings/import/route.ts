@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTownIdFromLocation } from "@/lib/data/resolve-town";
 import { findBusinessByEmail } from "@/lib/admin/business-by-email";
 import { currencyForJob } from "@/lib/jobs/currency";
+import { categoryForTitle } from "@/lib/jobs/category";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mountainconnects.com";
 
@@ -81,6 +82,9 @@ export async function POST(request: Request) {
   // values already set by hand in the admin form.
   const requirements = pick("requirements");
   const positionTypeRaw = pick("positionType", "position_type");
+  // Accepted but almost never sent: the scraper has no category field, which
+  // is how this column came to be empty on the whole board.
+  const category = pick("category");
   const payAmountRaw = pick("payAmount", "pay_amount");
   const payCurrency = pick("payCurrency", "pay_currency").toUpperCase();
   const salaryRange = pick("salaryRange", "salary_range");
@@ -320,6 +324,16 @@ export async function POST(request: Request) {
     // alone, so re-syncing a thin payload cannot erase richer data.
     ...(requirements ? { requirements } : {}),
     ...(positionType ? { position_type: positionType } : {}),
+    // ⚠️ DERIVED FROM THE TITLE when the payload carries none, which is
+    // every scraped listing. Nothing wrote this field for imports, so
+    // job_posts.category was empty on 354 of 355 open jobs and the board's
+    // category filter offered two options for the whole board. A category a
+    // caller actually sends always wins. See lib/jobs/category.ts.
+    ...(category
+      ? { category }
+      : categoryForTitle(jobTitle)
+        ? { category: categoryForTitle(jobTitle) }
+        : {}),
     ...(payAmount !== undefined ? { pay_amount: payAmount } : {}),
     // Written whenever THIS payload carries pay, so the currency always
     // matches the amount beside it. Still omitted when the payload has no

@@ -9,6 +9,7 @@ import type { BusinessTier } from "@/lib/tier";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import { COUNTRY_CURRENCY } from "@/lib/jobs/currency";
+import { JOB_CATEGORIES } from "@/lib/jobs/category";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -43,19 +44,6 @@ interface JobFormData {
 
 /* ─── Constants ──────────────────────────────────────────── */
 
-const JOB_CATEGORIES = [
-  "Ski Instruction",
-  "Hospitality",
-  "Food & Beverage",
-  "Retail",
-  "Resort Operations",
-  "Lift Operations",
-  "Housekeeping",
-  "Maintenance",
-  "Administration",
-  "Entertainment",
-  "Other",
-];
 
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Casual"];
 
