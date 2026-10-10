@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resorts } from "@/lib/data/resorts";
 import { EMPLOYER_MARKETS } from "@/lib/data/employer-markets";
 import { EMPLOYERS_DIRECTORY_ENABLED } from "@/lib/config/features";
+import { businessBelongsInSitemap } from "@/lib/stats/sitemap-business";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -50,7 +51,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     admin
       // business_profiles has no updated_at either — same silent loss.
       .from("business_profiles")
-      .select("id, created_at, is_claimed"),
+      // description is here to judge whether a claimed business has a page
+      // worth offering Google, not to render anything.
+      .select("id, created_at, is_claimed, description"),
   ]);
 
   const failures = ([
@@ -284,8 +287,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     jobs.map((job) => job.business_id).filter(Boolean)
   );
 
+  /**
+   * A business page earns a sitemap entry when it has something on it.
+   *
+   * A LIVE JOB IS CONTENT. 163 of the 164 businesses with live listings have
+   * no description and no logo, and they are not thin pages — the listings are
+   * what the page is for. Judging them on profile fields alone would drop the
+   * most useful business pages on the site.
+   *
+   * Claiming is not content. It used to be enough on its own, which let in 13
+   * claimed businesses with no live listing — 8 of them with no description
+   * either, so the page is a name and nothing else. A claimed business between
+   * seasons keeps its entry if it has actually written something.
+   */
   const businessPages: MetadataRoute.Sitemap = businesses
-    .filter((biz) => businessesWithLiveJobs.has(biz.id) || biz.is_claimed)
+    .filter((biz) => businessBelongsInSitemap(biz, businessesWithLiveJobs))
     .map((biz) => ({
       url: `${BASE_URL}/business/${biz.id}`,
       lastModified: new Date(biz.created_at),
