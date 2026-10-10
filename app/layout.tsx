@@ -9,13 +9,19 @@ const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
 });
 
+/* ⚠️ NO FIGURE HERE ON PURPOSE. This is a static `metadata` export, which
+   cannot await the live counts, and a number typed into metadata is a number
+   that goes stale silently — nobody reads their own meta tags. This said
+   "80+ resorts" / "69 resorts in 12 countries" while the real figures were
+   111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
+   line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata: Metadata = {
   title: {
     default: "Ski Resort Jobs — Seasonal Winter Work Worldwide | Mountain Connects",
     template: "%s | Mountain Connects",
   },
   description:
-    "Find ski resort jobs at 80+ resorts worldwide. Browse seasonal winter work — instructor, lift operator, hospitality, and more — with staff accommodation across Australia, New Zealand, Canada, Japan, and Europe.",
+    "Find ski resort jobs worldwide. Browse seasonal winter work — instructor, lift operator, hospitality, and more — with staff accommodation across Australia, New Zealand, Canada, Japan, and Europe.",
   applicationName: "Mountain Connects",
   keywords: [
     "Mountain Connects",
@@ -46,7 +52,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Ski Resort Jobs — Seasonal Winter Work Worldwide | Mountain Connects",
     description:
-      "Find ski resort jobs at 80+ resorts worldwide. Seasonal winter work with staff accommodation.",
+      "Find ski resort jobs worldwide. Seasonal winter work with staff accommodation.",
     url: "https://www.mountainconnects.com",
     siteName: "Mountain Connects",
     type: "website",
@@ -57,7 +63,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Ski Resort Jobs — Seasonal Winter Work Worldwide | Mountain Connects",
     description:
-      "Find ski resort jobs at 80+ resorts worldwide. Seasonal winter work with staff accommodation.",
+      "Find ski resort jobs worldwide. Seasonal winter work with staff accommodation.",
     images: [defaultOgImage.url],
   },
   robots: {

@@ -2,10 +2,16 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 import WelcomeClient from "./WelcomeClient";
 
+/* ⚠️ NO FIGURE HERE ON PURPOSE. This is a static `metadata` export, which
+   cannot await the live counts, and a number typed into metadata is a number
+   that goes stale silently — nobody reads their own meta tags. This said
+   "80+ resorts" / "69 resorts in 12 countries" while the real figures were
+   111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
+   line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata: Metadata = {
   title: "Welcome to Mountain Connects | Seasonal Jobs at Ski Resorts Worldwide",
   description:
-    "The all-in-one platform for ski resort hiring. Businesses post jobs and manage applicants; workers find seasonal roles at 69 resorts across 12 countries.",
+    "The all-in-one platform for ski resort hiring. Businesses post jobs and manage applicants; workers find seasonal roles at resorts worldwide.",
   alternates: { canonical: "https://www.mountainconnects.com/welcome" },
   openGraph: {
     title: "Welcome to Mountain Connects",

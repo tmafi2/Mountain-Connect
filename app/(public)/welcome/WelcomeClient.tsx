@@ -144,7 +144,12 @@ export default function WelcomeClient({ initialView }: WelcomeClientProps) {
           <p className="mx-auto mt-6 max-w-2xl text-base text-white/70 sm:text-lg">
             {isBusiness
               ? "Post jobs, screen applicants, run interviews, and sign contracts — all in one place. Built for ski-resort businesses."
-              : "One profile. Unlimited applications to seasonal jobs at 69 ski resorts across 12 countries."}
+              // NOT "unlimited applications": 335 of 341 live listings are
+              // unclaimed imports taking an anonymous form, so the profile is
+              // what you apply with on ~2% of the board. Same claim already
+              // removed from the homepage, /go-for-a-season and /signup. And
+              // no figures: this is a client component and cannot count.
+              : "One place for your season search — seasonal jobs at ski resorts around the world."}
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
@@ -478,8 +483,13 @@ const BUSINESS_FEATURES: FeatureItem[] = [
 const WORKER_FEATURES: FeatureItem[] = [
   {
     accent: "secondary",
-    title: "One profile, unlimited applications",
-    description: "Add your skills, certifications, work history, and visa status once. Apply to as many roles as you like.",
+    // NOT "one profile, unlimited applications". 335 of 341 live listings are
+    // unclaimed imports that take an anonymous apply form and have nobody to
+    // message, so the profile is what you apply with on about 2% of the board.
+    // What IS true for every listing: fill it in once, and apply straight from
+    // the listing. See [[unclaimed-listings-copy-limits]].
+    title: "Fill it in once",
+    description: "Add your skills, certifications, work history and visa status once, then apply straight from any listing.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
@@ -488,7 +498,7 @@ const WORKER_FEATURES: FeatureItem[] = [
   },
   {
     accent: "highlight",
-    title: "Jobs at 69 resorts worldwide",
+    title: "Jobs at ski resorts worldwide",
     description: "From Thredbo to Whistler to Niseko. Real listings from real ski-resort businesses — verified employers get a trust badge so you know who's vetted.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -500,7 +510,7 @@ const WORKER_FEATURES: FeatureItem[] = [
   {
     accent: "warm",
     title: "Town guides, before you commit",
-    description: "50+ resort-town guides with cost of living, housing, transport, and seasonal vibes. Know where you're going.",
+    description: "Resort-town guides with cost of living, housing, transport, and seasonal vibes. Know where you're going.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />

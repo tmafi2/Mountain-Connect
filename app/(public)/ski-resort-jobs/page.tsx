@@ -11,15 +11,21 @@ const BASE_URL = "https://www.mountainconnects.com";
 // keep the content fresh between Search Console crawls.
 export const revalidate = 600;
 
+/* ⚠️ NO FIGURE HERE ON PURPOSE. This is a static `metadata` export, which
+   cannot await the live counts, and a number typed into metadata is a number
+   that goes stale silently — nobody reads their own meta tags. This said
+   "80+ resorts" / "69 resorts in 12 countries" while the real figures were
+   111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
+   line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata: Metadata = {
-  title: "Ski Resort Jobs — Hiring Now at 80+ Resorts Worldwide",
+  title: "Ski Resort Jobs Worldwide — Hiring Now for the Winter Season",
   description:
     "Find ski resort jobs hiring for the upcoming winter season. Browse instructor, lift operator, hospitality, and chalet roles at ski resorts in Australia, New Zealand, Canada, Japan, the US, and Europe — all on Mountain Connects.",
   alternates: { canonical: `${BASE_URL}/ski-resort-jobs` },
   openGraph: {
-    title: "Ski Resort Jobs — Hiring Now at 80+ Resorts Worldwide",
+    title: "Ski Resort Jobs Worldwide — Hiring Now for the Winter Season",
     description:
-      "Find ski resort jobs hiring for the upcoming winter season at 80+ resorts worldwide.",
+      "Find ski resort jobs hiring for the upcoming winter season at resorts worldwide.",
     url: `${BASE_URL}/ski-resort-jobs`,
     siteName: "Mountain Connects",
     type: "website",

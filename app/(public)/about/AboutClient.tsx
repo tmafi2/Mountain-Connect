@@ -211,7 +211,7 @@ export default function AboutClient({ stats }: { stats: PlatformStats }) {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-primary">50+ Towns</p>
+                  <p className="text-sm font-bold text-primary">{formatStat(stats.towns)} Towns</p>
                   <p className="text-xs text-foreground/50">Mountain communities</p>
                 </div>
               </div>

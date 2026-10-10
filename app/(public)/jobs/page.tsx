@@ -7,10 +7,16 @@ import CampaignCapture from "./CampaignCapture";
 // gradually; serving from edge cache makes the page feel instant.
 export const revalidate = 120;
 
+/* ⚠️ NO FIGURE HERE ON PURPOSE. This is a static `metadata` export, which
+   cannot await the live counts, and a number typed into metadata is a number
+   that goes stale silently — nobody reads their own meta tags. This said
+   "80+ resorts" / "69 resorts in 12 countries" while the real figures were
+   111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
+   line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata = {
   title: "Ski Resort Jobs Hiring Now",
   description:
-    "Browse open ski resort jobs across 80+ resorts in Australia, New Zealand, Canada, Japan, the US, and Europe. Filter by role, location, pay, housing, and visa support.",
+    "Browse open ski resort jobs in Australia, New Zealand, Canada, Japan, the US, and Europe. Filter by role, location, pay, housing, and visa support.",
   alternates: { canonical: "https://www.mountainconnects.com/jobs" },
 };
 

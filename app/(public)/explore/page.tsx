@@ -444,7 +444,11 @@ function ExploreContent() {
             <p className="mx-auto mt-4 max-w-xl text-lg text-white/40">
               <span className="hidden md:inline">Spin the globe, pick a mountain, start your adventure. </span>
               <span className="md:hidden">Pick a region, find your mountain. </span>
-              {resorts.length} resorts across 12 countries.
+              {/* Both counted from the same data. The resort count was
+                  already live here while "12 countries" was typed in, so the
+                  sentence drifted apart from itself. */}
+              {resorts.length} resorts across{" "}
+              {regionHierarchy.reduce((n, c) => n + c.countries.length, 0)} countries.
             </p>
           </div>
 
