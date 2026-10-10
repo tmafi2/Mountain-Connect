@@ -327,6 +327,15 @@ export default async function TownDetailPage({ params, searchParams }: TownPageP
           </nav>
 
           <h1 className="text-3xl font-bold text-primary md:text-4xl">{town.name}</h1>
+          {/* The question a worker reading a town guide is usually about to
+              ask. Linked rather than repeated here, so there is one page that
+              owns the figures and one place to keep them honest. */}
+          <Link
+            href="/ski-season-pay"
+            className="mt-2 inline-block text-sm font-semibold text-secondary hover:underline"
+          >
+            What do ski season jobs pay in {town.name}? &rarr;
+          </Link>
           <p className="mt-1 text-foreground/60">
             {[town.state_region, town.country].filter(Boolean).join(", ")}
           </p>

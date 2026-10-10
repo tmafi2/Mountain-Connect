@@ -98,13 +98,32 @@ Before writing a page, check it against this. Three of the planned figures do no
 
 ## 6-week plan
 - ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
-- Week 2: Three data pages: ski season pay by resort 2026/27; staff housing **availability and type** by resort, plus **cost for Niseko only** (the one resort over the 5-listing floor); resorts giving free passes/meals.
+- ~~Week 2 page 1: ski season pay~~ — **SHIPPED 2026-10-10 at `/ski-season-pay`.** Pay by TOWN, not resort: a worker searching "ski season pay" is deciding where to live. Revelstoke, Furano and Fernie clear the floor; Hakuba appears with its job count and housing share but no wage. Article + BreadcrumbList + FAQPage schema, in the sitemap, linked from every town page.
+- Week 2 still to do: staff housing **availability and type** by resort, plus **cost for Niseko only** (the one resort over the 5-listing floor); resorts giving free passes/meals.
 - Week 2 addition now possible: **pay by town** for Revelstoke, Fernie and Furano. A worker searches for somewhere to LIVE, so the town is usually the real question behind "what does a season pay?".
 - Weeks 3-4: Six guides targeting the no-link prompts: AU working holiday visa for ski seasons; NZ vs AU pay; Northern then Southern Hemisphere in one year; questions before accepting an offer; is a season worth it and what you can save; how to avoid ski job scams.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
 
 ⚠️ **Weeks 3-4 target prompts about Australia and New Zealand, where we currently have no open jobs at all** (the board is Canada 182 / Japan 155 / France 4). The guides can still rank, but must not imply we have AU/NZ listings to apply to.
+
+## Lessons from the first data page (`/ski-season-pay`)
+
+- ⚠️ **Read the rendered page, not the code.** The FAQ answer shipped into
+  `FAQPage` schema as *"median hourly pay ranges from CAD $21 to CAD $1,400"*
+  — 1,400 being **yen**, labelled as Canadian dollars. A plain `Math.min`/
+  `Math.max` across towns silently compared two currencies. `rangeByCurrency`
+  now groups by currency first. The schema block is the part an answer engine
+  quotes verbatim, so it deserves more scrutiny than the visible copy, not
+  less.
+- **A range with identical ends is not a range.** Fernie rendered "CAD
+  $21–$21". Suppressed — the median above already says the number.
+- **Keep towns that have jobs but no wage data.** Hakuba has 13 listings and
+  only 4 priced. Dropping it would imply there is no work there; it shows its
+  job count and housing share with the wage column reading "not enough data".
+- **No founder tip was written.** The template asks for one and it is Tyler's
+  to add — inventing it would be a fake testimonial. There is a marked place
+  for it in the page.
 
 ## Guide template
 1. Title is the question people ask.

@@ -154,6 +154,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      // The first of the AEO data pages. High priority because it answers the
+      // question the ad traffic and the search traffic are both asking.
+      url: `${BASE_URL}/ski-season-pay`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${BASE_URL}/towns`,
       lastModified: new Date(),
       changeFrequency: "weekly",
