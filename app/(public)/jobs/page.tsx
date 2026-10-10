@@ -1,6 +1,9 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { type JobListing } from "@/lib/data/jobs";
+import type { Metadata } from "next";
 import JobsClient from "./JobsClient";
+import { SSR_JOB_COUNT } from "./JobsStaticList";
+import { SITE_ORIGIN } from "@/lib/config/site";
 import CampaignCapture from "./CampaignCapture";
 
 // Cache the rendered HTML for 2 minutes. Public job listings change
@@ -13,14 +16,34 @@ export const revalidate = 120;
    "80+ resorts" / "69 resorts in 12 countries" while the real figures were
    111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
    line beats a precise false one. See lib/stats/platform-stats.ts. */
-export const metadata = {
-  title: "Ski Resort Jobs Hiring Now",
-  description:
-    "Browse open ski resort jobs in Australia, New Zealand, Canada, Japan, the US, and Europe. Filter by role, location, pay, housing, and visa support.",
-  alternates: { canonical: "https://www.mountainconnects.com/jobs" },
-};
+export async function generateMetadata({ searchParams }: JobsPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const isFiltered = FILTER_PARAMS.some((k) => typeof params[k] === "string" && params[k] !== "");
 
-export default async function FindAJobPage() {
+  return {
+    title: "Ski Resort Jobs Hiring Now",
+    description:
+      "Browse open ski resort jobs in Australia, New Zealand, Canada, Japan, the US, and Europe. Filter by role, location, pay, housing, and visa support.",
+    // Every filtered view is the same board sliced differently, so they all
+    // point at the unfiltered one.
+    alternates: { canonical: `${SITE_ORIGIN}/jobs` },
+    // ⚠️ noindex, FOLLOW on param variants. The filters combine into effectively
+    // unlimited urls and indexing them would bury /jobs under near-duplicates —
+    // but the links out of them lead to individual listings, which we very much
+    // want crawled. The sitemap lists only /jobs and the job urls themselves.
+    ...(isFiltered && { robots: { index: false, follow: true } }),
+  };
+}
+
+interface JobsPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/** Params the client filters on. Any of them makes the view a slice. */
+const FILTER_PARAMS = ["country", "town", "resort", "category", "accommodation", "open"] as const;
+
+export default async function FindAJobPage({ searchParams }: JobsPageProps) {
+  const params = await searchParams;
   // Fetch all active jobs server-side — no loading spinner needed
   let jobs: JobListing[] = [];
 
@@ -110,10 +133,54 @@ export default async function FindAJobPage() {
     console.error("Failed to fetch jobs server-side:", err);
   }
 
+  /**
+   * The first page, filtered and sorted HERE so it reaches the HTML.
+   *
+   * /ski-resort-jobs/[country] and the town pages link to ?country= and
+   * ?town=, so those variants have to render their own slice — otherwise a
+   * crawler following those links lands on an unfiltered board or, before
+   * this, on nothing at all.
+   */
+  const country = typeof params.country === "string" ? params.country : null;
+  const townSlug = typeof params.town === "string" ? params.town : null;
+
+  /**
+   * ⚠️ A TOWN IS NOT A FIELD ON A JOB. Only 1 of 341 active listings has
+   * `nearby_town_id` set, so filtering on the job's own town returns nothing.
+   * A town is connected to jobs through its RESORTS —
+   * nearby_towns → resort_nearby_towns.town_id → resorts → job_posts — which
+   * is how whistler-village reaches 112 listings. The client component
+   * resolves it the same way at runtime; this is the server half.
+   */
+  let townResortIds: string[] | null = null;
+  if (townSlug) {
+    try {
+      const supabase = createPublicClient();
+      const { data: town } = await supabase
+        .from("nearby_towns")
+        .select("id, resort_nearby_towns(resort_id)")
+        .eq("slug", townSlug)
+        .maybeSingle();
+      const links = (town?.resort_nearby_towns ?? []) as Array<{ resort_id: string }>;
+      townResortIds = links.map((l) => l.resort_id).filter(Boolean);
+    } catch (err) {
+      // A town we cannot resolve falls back to the unfiltered first page
+      // rather than an empty one — showing every job is wrong-ish, showing
+      // none is useless.
+      console.error(`jobs: could not resolve town "${townSlug}":`, err);
+    }
+  }
+
+  const ssrJobs = jobs
+    .filter((j) => (country ? j.resort_country === country : true))
+    .filter((j) => (townResortIds && townResortIds.length > 0 ? townResortIds.includes(j.resort_id ?? "") : true))
+    .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+    .slice(0, SSR_JOB_COUNT);
+
   return (
     <>
       <CampaignCapture />
-      <JobsClient initialJobs={jobs} />
+      <JobsClient initialJobs={jobs} ssrJobs={ssrJobs} />
     </>
   );
 }

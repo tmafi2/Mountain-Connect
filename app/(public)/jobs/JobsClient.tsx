@@ -12,6 +12,7 @@ import type { MapPin } from "@/components/ui/Map";
 import { MAPS_ENABLED } from "@/lib/config/features";
 import { createClient } from "@/lib/supabase/client";
 import { formatPay } from "@/lib/utils/format-pay";
+import JobsStaticList from "./JobsStaticList";
 
 /* ─── filter state ────────────────────────────────────────── */
 interface Filters {
@@ -72,17 +73,18 @@ function daysUntil(dateStr: string): string {
 /* ═══════════════════════════════════════════════════════════ */
 interface JobsClientProps {
   initialJobs: JobListing[];
+  /** The first page, already filtered and sorted on the server. */
+  ssrJobs: JobListing[];
 }
 
-export default function JobsClient({ initialJobs }: JobsClientProps) {
+export default function JobsClient({ initialJobs, ssrJobs }: JobsClientProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <p className="text-foreground/50">Loading jobs...</p>
-        </div>
-      }
-    >
+    // ⚠️ THE FALLBACK IS THE SERVER HTML FOR THIS ROUTE. FindAJobContent calls
+    // useSearchParams(), which Next forces client-side, so SSR emits whatever
+    // is here. It used to be "Loading jobs...", which is why /jobs shipped
+    // 814KB of markup with zero job links and read as an empty board to any
+    // crawler that does not run JavaScript. Keep it a real, hook-free list.
+    <Suspense fallback={<JobsStaticList jobs={ssrJobs} />}>
       <FindAJobContent initialJobs={initialJobs} />
     </Suspense>
   );
