@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobApplyButton from "./JobApplyButton";
+import { directApply, employmentTypes, isoCountry } from "@/lib/jobs/job-posting-schema";
 import { ClaimPrompt, UnclaimedFootnote } from "./UnclaimedNotices";
 import ShareButtons from "@/components/ui/ShareButtons";
 import type { Metadata } from "next";
@@ -67,7 +68,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     .select(`
       *,
       business_profiles!inner(id, business_name, logo_url, verification_status, location, description, is_claimed),
-      resorts(id, name, country, legacy_id),
+      resorts(id, name, country, legacy_id, state_province),
       nearby_towns(id, name, slug, state, country)
     `)
     .eq("id", id)
@@ -145,7 +146,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
   const payDisplay = formatPay(job.pay_amount, job.pay_currency, job.salary_range);
 
   // JobPosting JSON-LD structured data
-  const employmentType = job.position_type === "full_time" ? "FULL_TIME" : job.position_type === "part_time" ? "PART_TIME" : "TEMPORARY";
+  const employmentType = employmentTypes(job.position_type);
 
   const parseSalary = (raw: string | null | undefined): { min?: number; max?: number } | null => {
     if (!raw) return null;
@@ -191,7 +192,12 @@ export default async function JobDetailPage({ params }: JobPageProps) {
   if (job.visa_sponsorship) jobBenefits.push("Visa sponsorship");
   if (Array.isArray(job.custom_perks)) jobBenefits.push(...job.custom_perks.filter(Boolean));
 
-  const hasDirectApply = Boolean(job.application_email || job.application_url);
+  const directApplyFlag = directApply(job);
+
+  const locality = town?.name || biz?.location || resort?.name || null;
+  const region = resort?.state_province || town?.state || null;
+  const countryName = town?.country || resort?.country || null;
+  const countryCode = isoCountry(countryName);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -208,16 +214,28 @@ export default async function JobDetailPage({ params }: JobPageProps) {
     hiringOrganization: {
       "@type": "Organization",
       name: biz?.business_name || "Mountain Connects",
-      sameAs: `${BASE_URL}/business/${biz?.id}`,
+      // sameAs only when there is a real, public page behind it. /business/[id]
+      // renders for any row, but an unclaimed import shell is a stub nobody
+      // has ever edited — pointing Google at 335 of those as the employer's
+      // official page is a claim we cannot support. 6 of 341 qualify today.
+      ...(biz?.id && biz?.is_claimed && { sameAs: `${BASE_URL}/business/${biz.id}` }),
       ...(biz?.logo_url && { logo: biz.logo_url }),
     },
     jobLocation: {
       "@type": "Place",
       address: {
         "@type": "PostalAddress",
-        addressLocality: town?.name || biz?.location || resort?.name || "",
-        addressRegion: town?.state || "",
-        addressCountry: town?.country || resort?.country || "",
+        ...(locality && { addressLocality: locality }),
+        // ⚠️ The REGION comes from the resort, not the town. towns.state is
+        // empty on every row; resorts.state_province is set on all 341 active
+        // listings ("British Columbia", "Hokkaido", "New South Wales"). An
+        // empty string was being emitted before, which is worse than omitting
+        // the field.
+        ...(region && { addressRegion: region }),
+        // ISO 3166-1 alpha-2 where we recognise the country, the name
+        // otherwise. The code is unambiguous — "Georgia" is a country in this
+        // dataset and a US state in most others.
+        ...(countryCode || countryName ? { addressCountry: countryCode ?? countryName } : {}),
       },
     },
     ...(job.category && { occupationalCategory: job.category }),
@@ -239,7 +257,7 @@ export default async function JobDetailPage({ params }: JobPageProps) {
       },
     }),
     ...(jobBenefits.length > 0 && { jobBenefits }),
-    ...(hasDirectApply && { directApply: true }),
+    ...(directApplyFlag !== undefined && { directApply: directApplyFlag }),
   };
 
   // BreadcrumbList — Home → Jobs → {Job title}. Renders as the
