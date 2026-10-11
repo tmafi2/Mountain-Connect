@@ -1,17 +1,12 @@
 {
-  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Confirm a new group is reachable BEFORE adding it, or it silently returns nothing: npm run fb:collect -- --group <url> --posts 5, where a group name and a post count mean you are in and 'WARNING: 0 posts' means you are not. Audited 2026-10-08 across all 24 then-unproductive groups: FOUR are configured here but NOT joined and have always returned nothing - RevelstokeCashJobs, 889986741929213 (Revelstoke Employment), 1378531332445868 (Hakuba Buy Sell and Jobs) and 597143303806350 (Nozawa Onsen Buy, Sell, and Jobs). Join them or remove them; while they sit here they look like coverage that does not exist. Ten others ARE joined and simply carry no job adverts, which costs collection time but no extraction money. ITALY: the prefilter now carries Italian keywords (added 2026-10-11) and the local triage model is OFF for this region in install.ts — it is a 7B measured only on English, and anything it drops is dropped silently. Italy therefore pays full extraction per post until its loss rate is measured. Groups must be JOINED before they are listed here; verify each with: npm run fb:collect -- --group <url> --posts 5",
+  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. ⚠️ MEMBERSHIP IS NOT ALWAYS REQUIRED, which an earlier version of this note got wrong. A PUBLIC group is readable by a signed-in non-member: six Italian groups were added on 2026-10-11 without joining any of them, after Facebook started refusing joins. A PRIVATE or restricted group does need membership — the three flagged in the 2026-10-08 audit (RevelstokeCashJobs, 889986741929213, 1378531332445868) were re-tested the same day and are still unreadable. ⚠️ AND A SINGLE 'WARNING: 0 posts' PROVES NOTHING: lavorodolomiti returned 5 posts, then 0 twice, then 1 — it is readable and merely flaky. Re-test before concluding a group is dead. The one check that matters, before adding anything here: npm run fb:collect -- --group <url> --posts 5 — a group name and a post count means usable; 'WARNING: 0 posts' means try again, and if it stays dead, join it or drop it. ITALY: the prefilter carries Italian keywords (added 2026-10-11, drops 31% against English's 16%) and the local triage model is OFF for this region in install.ts — it is a 7B measured only on English, and anything it drops is dropped silently. Italy therefore pays full extraction per post until its loss rate is measured.",
   "_pending": {
     "_note": "Groups requested but not yet joined. The collector only sees groups the signed-in account is a member of, so these would return nothing. Move a URL back into its region once the join is approved.",
     "canada": [],
     "italy": [
-      "https://www.facebook.com/groups/lavorodolomiti  — CERCO-OFFRO Lavoro DOLOMITI, 80K members, 30+ posts/day. ⚠️ WENT DARK THE SAME DAY: verified with fb:collect at ~14:00 on 2026-10-11 (5 posts), returned 'WARNING: 0 posts' in the 15:23 run and again on a re-test. Membership was pulled or put back into review within hours. The biggest Italian group found — worth re-joining and re-verifying.",
-      "https://www.facebook.com/groups/236052184778971  — Cerco e offro lavoro settore turistico Val Gardena e Trentino Alto Adige, 31K, 20+/day. ⚠️ The Join button turned to 'Visit' and Facebook showed a 'you are now a member' dialog, but fb:collect reports NOT A MEMBER — membership is pending the admin answering its participant questions. The UI state is not proof; only fb:collect is.",
-      "https://www.facebook.com/groups/lavoroaltavaldisusa  — CERCO/OFFRO lavoro in Alta Val di Susa, 3.6K — THE group for Sauze d'Oulx and Sestriere",
-      "https://www.facebook.com/groups/  — Cerco/Offro lavoro stagionale in ristorazione 2026, 21K, 10/day",
-      "https://www.facebook.com/groups/  — Cerco e Offro Lavoro in Val Gardena, 38K, 30+/day",
-      "https://www.facebook.com/groups/  — Cerco Offro Lavoro VAL BADIA, 34K, 30/day",
-      "https://www.facebook.com/groups/  — Sauze d'Oulx Notizie, 2.9K, 5/day (noticeboard)",
-      "STILL TO SEARCH: Courmayeur / Valle d'Aosta, Cervinia, Bormio / Valtellina, Madonna di Campiglio"
+      "https://www.facebook.com/groups/426653614735017  — Cerco e Offro Lavoro in Val Gardena, 38K, 30+/day. The ONLY Italian group found that is not readable without joining. Lower priority: cercooffrolavorovalgardena (40K) is already live and covers the same valley.",
+      "https://www.facebook.com/groups/236052184778971  — Val Gardena e Trentino Alto Adige, 31K. Needs its participant questions answered BY TYLER — they go to a group admin.",
+      "STILL TO SEARCH: Courmayeur / Valle d'Aosta, Cervinia, Bormio / Valtellina."
     ]
   },
   "japan": {
@@ -80,7 +75,14 @@
       "https://www.facebook.com/groups/712220373308621",
       "https://www.facebook.com/groups/1221604875263385",
       "https://www.facebook.com/groups/job.trentino",
-      "https://www.facebook.com/groups/cercooffrolavoro.trentinoaltoadige"
+      "https://www.facebook.com/groups/cercooffrolavoro.trentinoaltoadige",
+      "https://www.facebook.com/groups/lavorodolomiti",
+      "https://www.facebook.com/groups/489118020735125",
+      "https://www.facebook.com/groups/1416605275535033",
+      "https://www.facebook.com/groups/269298476575746",
+      "https://www.facebook.com/groups/cercooffrolavorovalgardena",
+      "https://www.facebook.com/groups/cercooffrolavorovalbadia",
+      "https://www.facebook.com/groups/220488025093373"
     ]
   }
 }
