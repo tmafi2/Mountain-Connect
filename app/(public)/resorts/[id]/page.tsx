@@ -9,6 +9,7 @@ import { ResortBanner } from "@/components/ResortBanner";
 import { flagForCountry } from "@/lib/resort-banner";
 import ResortBusinesses from "./ResortBusinesses";
 import { createClient } from "@/lib/supabase/server";
+import { formatSeasonWithYear } from "@/lib/resorts/season";
 import RelatedGuides from "@/components/ui/RelatedGuides";
 import HiringAtResort from "@/components/ui/HiringAtResort";
 import { getHiringAtResort } from "@/lib/stats/hiring-by-resort.server";
@@ -456,18 +457,12 @@ export default async function ResortDetailPage({ params, searchParams }: ResortP
   // does not render — 93 of the 111 resorts have no live listing.
   const hiring = await getHiringAtResort(resortUuid ?? "", resort.name);
 
-  const formatSeason = () => {
-    if (!resort.season_start || !resort.season_end) return null;
-    const start = new Date(resort.season_start).toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    });
-    const end = new Date(resort.season_end).toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    });
-    return `${start} – ${end}`;
-  };
+  // This printed the STORED year, and 75 of 111 resorts store a season that
+  // has already ended — so most resort pages advertised a season finishing in
+  // April. The helper reads only month and day, projected onto the occurrence
+  // that has not finished yet. See lib/resorts/season.ts.
+  const formatSeason = () =>
+    formatSeasonWithYear(resort.season_start, resort.season_end);
 
   // Check which sections have data
   const hasEmployment =

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, Suspense } from "react";
+import { formatSeasonDays } from "@/lib/resorts/season";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { resorts } from "@/lib/data/resorts";
@@ -10,11 +11,10 @@ import { flagForCountry } from "@/lib/resort-banner";
 import { createClient } from "@/lib/supabase/client";
 
 /* ─── helpers ─────────────────────────────────────────────── */
+// Never showed a year, so it was never visibly stale — but it reads the same
+// stored dates, and one source for both keeps them agreeing.
 function formatSeason(start: string | null, end: string | null): string {
-  if (!start || !end) return "—";
-  const s = new Date(start);
-  const e = new Date(end);
-  return `${s.toLocaleDateString("en-AU", { month: "short", day: "numeric" })} – ${e.toLocaleDateString("en-AU", { month: "short", day: "numeric" })}`;
+  return formatSeasonDays(start, end) ?? "—";
 }
 
 function CompareValue({ value, unit, best }: { value: string | number | null | undefined; unit?: string; best?: boolean }) {
