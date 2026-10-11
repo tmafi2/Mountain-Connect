@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { getLiveFigures } from "@/lib/blog/live-figures.server";
 import { render as renderFigures } from "@/lib/blog/live-figures";
 import { faqJsonLd } from "@/lib/blog/faq";
+import PostTags from "@/components/ui/PostTags";
 
 // Required now that this page quotes live board figures: `revalidate` still
 // prerenders at build time, where Vercel withholds the Sensitive Supabase
@@ -208,6 +209,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             )}
           </div>
         </div>
+
+        <PostTags slug={slug} className="mt-6" />
 
         {/* Content */}
         <MarkdownRenderer content={renderedContent} />
