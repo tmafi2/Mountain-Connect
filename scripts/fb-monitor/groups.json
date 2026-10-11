@@ -4,6 +4,7 @@
     "_note": "Groups requested but not yet joined. The collector only sees groups the signed-in account is a member of, so these would return nothing. Move a URL back into its region once the join is approved.",
     "canada": [],
     "italy": [
+      "https://www.facebook.com/groups/lavorodolomiti  — CERCO-OFFRO Lavoro DOLOMITI, 80K members, 30+ posts/day. ⚠️ WENT DARK THE SAME DAY: verified with fb:collect at ~14:00 on 2026-10-11 (5 posts), returned 'WARNING: 0 posts' in the 15:23 run and again on a re-test. Membership was pulled or put back into review within hours. The biggest Italian group found — worth re-joining and re-verifying.",
       "https://www.facebook.com/groups/236052184778971  — Cerco e offro lavoro settore turistico Val Gardena e Trentino Alto Adige, 31K, 20+/day. ⚠️ The Join button turned to 'Visit' and Facebook showed a 'you are now a member' dialog, but fb:collect reports NOT A MEMBER — membership is pending the admin answering its participant questions. The UI state is not proof; only fb:collect is.",
       "https://www.facebook.com/groups/lavoroaltavaldisusa  — CERCO/OFFRO lavoro in Alta Val di Susa, 3.6K — THE group for Sauze d'Oulx and Sestriere",
       "https://www.facebook.com/groups/  — Cerco/Offro lavoro stagionale in ristorazione 2026, 21K, 10/day",
@@ -78,7 +79,6 @@
       "https://www.facebook.com/groups/1091583994952470",
       "https://www.facebook.com/groups/712220373308621",
       "https://www.facebook.com/groups/1221604875263385",
-      "https://www.facebook.com/groups/lavorodolomiti",
       "https://www.facebook.com/groups/job.trentino",
       "https://www.facebook.com/groups/cercooffrolavoro.trentinoaltoadige"
     ]
