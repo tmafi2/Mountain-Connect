@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FounderNote from "@/components/ui/FounderNote";
 import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 import { getHousingByResort } from "@/lib/stats/housing-by-resort.server";
@@ -313,6 +314,19 @@ export default async function StaffHousingPage() {
             )}
           </section>
         ))}
+
+        <FounderNote>
+          <p>
+            I did my first season at Big White in Canada, 2015/16. Finding the job turned out to
+            be the easy part — I had one lined up and still nowhere to live. I kept looking, and
+            what settled it was a second offer that came with accommodation. I sent that contract
+            back straight away.
+          </p>
+          <p>
+            Whether I got to do the season at all came down to that one thing, and back then it
+            was hard to find. It is why this page leads with housing rather than the hourly rate.
+          </p>
+        </FounderNote>
 
         {/* ⚠️ A first-hand note from the founder belongs here — AEO.md's guide
             template asks for 2-3 sentences. Deliberately empty: writing one on

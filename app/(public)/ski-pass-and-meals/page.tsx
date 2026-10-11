@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FounderNote from "@/components/ui/FounderNote";
 import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 import { getPerksByResort } from "@/lib/stats/perks-by-resort.server";
@@ -305,6 +306,19 @@ export default async function SkiPassAndMealsPage() {
             )}
           </section>
         ))}
+
+        <FounderNote>
+          <p>
+            A season pass is a perk people assume comes with the job. {totals.silentOnPass} of{" "}
+            {totals.listings} open listings say nothing either way. That usually means the
+            employer never thought to write it down, not that there is no pass.
+          </p>
+          <p>
+            I paid for my own pass in my first season — it was not something I thought about
+            when I planned it. The second time round I asked in my interviews, and the job I took
+            came with a free pass. That saved me money before I had even arrived.
+          </p>
+        </FounderNote>
 
         {/* ⚠️ A first-hand note from the founder belongs here — AEO.md's
             template asks for 2-3 sentences. Deliberately empty: writing one on
