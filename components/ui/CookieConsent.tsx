@@ -81,7 +81,7 @@ export default function CookieConsent() {
       {visible && !hiddenForRoute && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-accent/30 bg-white p-4 shadow-lg sm:p-5">
           <div className="mx-auto flex max-w-5xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-foreground/70">
+            <p className="text-sm text-foreground/80">
               We use cookies to analyse site usage, measure our ads and improve your experience. See our{" "}
               <Link href="/privacy" className="font-medium text-secondary underline">
                 Privacy Policy
@@ -91,7 +91,7 @@ export default function CookieConsent() {
             <div className="flex shrink-0 items-center gap-3">
               <button
                 onClick={handleDecline}
-                className="rounded-lg border border-accent/50 px-4 py-2 text-sm font-medium text-foreground/60 transition-colors hover:bg-accent/20"
+                className="rounded-lg border border-accent/50 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-accent/20"
               >
                 Decline
               </button>

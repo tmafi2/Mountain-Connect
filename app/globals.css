@@ -4,7 +4,7 @@
   /* ── Refined palette ─────────────────────────────────────── */
   --color-primary: #0a1e33;
   --color-primary-light: #132d4a;
-  --color-secondary: #3b9ede;
+  --color-secondary: #2577ad; /* was #3b9ede — 2.94:1 failed WCAG AA both as a button ground and as link text */
   --color-secondary-light: #6bb8eb;
   --color-background: #f5f7fa;
   --color-foreground: #3d4f5f;

@@ -114,7 +114,9 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-2.5">
             <Image
               src="/images/logo-source.png"
-              alt="Mountain Connects"
+              /* The wordmark is the very next element, so a screen reader
+                 read "Mountain Connects Mountain Connects". Decorative. */
+              alt=""
               width={36}
               height={36}
               className="h-9 w-9 rounded-lg object-contain"
@@ -202,6 +204,12 @@ export default function Header() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
+              // ⚠️ An icon-only button has no accessible name — a screen
+              // reader announced this one as just "button". The label states
+              // what the press DOES, and aria-expanded carries the state.
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
               className={`ml-2 rounded-lg p-2 md:hidden ${textColor} ${hoverColor}`}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,7 +225,7 @@ export default function Header() {
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="border-t border-accent/20 bg-white/95 backdrop-blur-lg md:hidden">
+          <div id="mobile-menu" className="border-t border-accent/20 bg-white/95 backdrop-blur-lg md:hidden">
             <nav className="mx-auto max-w-7xl space-y-1 px-6 py-4">
               {navLinks.map((link) => (
                 <Link

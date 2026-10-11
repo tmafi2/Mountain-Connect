@@ -57,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
       : "";
   // ⚠️ Trimmed from 229 chars; Google shows ~155 and cut the closing clause,
   // which is the one carrying the meaning. The figure survives, the rest goes.
-  const description = `How often ski resort job adverts offer a season pass or staff meals.${detail} Most do not mention either — which is not the same as a no.`;
+  const description = `How often ski resort job adverts offer a season pass or staff meals.${detail} Silence is not a no.`;
 
   return {
     title: TITLE,

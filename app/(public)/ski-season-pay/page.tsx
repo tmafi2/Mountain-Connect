@@ -58,7 +58,7 @@ export async function generateMetadata(): Promise<Metadata> {
       : "";
   // ⚠️ Google cuts at ~155 and this ran to 224, so the tail — the part that
   // says how we count — never appeared. The figure is what earns the click.
-  const description = `Hourly pay from open ski resort job listings, by mountain town.${detail} Counted live, with the sample size beside every figure.`;
+  const description = `Hourly pay from open ski resort job listings, by mountain town.${detail} Counted live, sample size shown.`;
 
   return {
     title: TITLE,

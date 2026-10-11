@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: ResortPageProps): Promise<Met
   const region = regions.find((r) => r.id === resort.region_id);
   const title = `${resort.name} Ski Season Jobs`;
   const description = resort.description
-    ? resort.description.slice(0, 155) + (resort.description.length > 155 ? "..." : "")
+    ? resort.description.slice(0, 150) + (resort.description.length > 150 ? "…" : "")
     : `Find seasonal work at ${resort.name}, ${resort.country}. Jobs, housing, and resort info for seasonal workers.`;
 
   return {

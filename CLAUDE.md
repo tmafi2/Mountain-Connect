@@ -112,7 +112,7 @@ Apply migrations with `supabase db push` (always `--dry-run` first). When adding
 
 ## Colors
 - Primary: #0a1e33 (dark navy)
-- Secondary: #3b9ede (bright blue)
+- Secondary: #2577ad (blue) — darkened from #3b9ede on 2026-10-11. ⚠️ The old value was 2.94:1 against white, which fails WCAG AA **both** as a button background with white text and as link text on white, across 1,252 usages. Do not lighten it back without re-checking contrast; `--color-secondary-light` (#6bb8eb) is for decoration, never for text or a text ground.
 - Highlight: #22d3ee (cyan)
 - Warm: #f59e0b (amber)
 - Background: #f5f7fa

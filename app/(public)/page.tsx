@@ -457,7 +457,7 @@ export default async function HomePage() {
                     className={`animate-on-scroll delay-${(i + 1) * 100} glass rounded-xl p-5 transition-all hover:bg-white/10`}
                   >
                     <span className="text-2xl">{item.icon}</span>
-                    <h4 className="mt-3 text-sm font-bold text-white">{item.title}</h4>
+                    <h3 className="mt-3 text-sm font-bold text-white">{item.title}</h3>
                     <p className="mt-1 text-xs text-white/50">{item.desc}</p>
                   </div>
                 ))}

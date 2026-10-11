@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
 
   if (!business) return { title: "Business Not Found" };
 
-  const title = `${business.business_name} — Seasonal Jobs & Careers`;
+  const title = `${business.business_name} Jobs`;
   const rawDesc = business.description
     ? business.description
     : `View open roles, perks, and reviews at ${business.business_name}${business.location ? ` in ${business.location}` : ""}. Seasonal ski resort jobs on Mountain Connects.`;
