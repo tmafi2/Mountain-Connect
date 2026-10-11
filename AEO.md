@@ -97,12 +97,11 @@ Before writing a page, check it against this. Three of the planned figures do no
 ⚠️ **`pay_currency` used to mean "no pay found."** It carried a database default of `'USD'` and the importer omitted the field when extraction found no currency, so 177 of 341 open jobs said USD on a board with no US resorts. Fixed at the source in migration 00109 — nothing to denominate is now NULL, priced-but-unnamed derives from the resort's country (`lib/jobs/currency.ts`). If USD ever reappears outside the USA, check that default first.
 
 ## 6-week plan
-- ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **data pull and bug fixes done 2026-10-10**; guide template below still needs a decision on the first three titles.
+- ~~Week 1: Run the data pull (read-only). Fix the bugs above. Agree the guide template.~~ — **all done 2026-10-10.** The template below is settled; nine pages have shipped against it.
 - ~~Week 2 page 1: ski season pay~~ — **SHIPPED 2026-10-10 at `/ski-season-pay`.** Pay by TOWN, not resort: a worker searching "ski season pay" is deciding where to live. Revelstoke, Furano and Fernie clear the floor; Hakuba appears with its job count and housing share but no wage. Article + BreadcrumbList + FAQPage schema, in the sitemap, linked from every town page.
 - ~~Week 2 page 2: staff housing~~ — **SHIPPED 2026-10-10 at `/staff-housing`.** Availability and type for all 10 resorts with 5+ open listings; cost for Niseko only, exactly as predicted. Rusutsu reads "mostly free" (4 of the 5 that say). Free and charged housing are counted separately, never averaged.
 - ~~Week 2 page 3: passes and meals~~ — **SHIPPED 2026-10-10 at `/ski-pass-and-meals`.** 56 of 355 listings advertise a pass, 59 advertise meals. ⚠️ It counts what adverts SAY, never what jobs include — see the lesson below.
 - **Week 2 is done.**
-- Week 2 addition now possible: **pay by town** for Revelstoke, Fernie and Furano. A worker searches for somewhere to LIVE, so the town is usually the real question behind "what does a season pay?".
 - ~~Weeks 3-4: six guides targeting the no-link prompts~~ — **SHIPPED 2026-10-10.** All six published, each with 5 FAQs in `FAQPage` schema (no blog post had any before):
   - `/blog/australian-working-holiday-visa-ski-season` — do you need a visa to work a ski season in Australia?
   - `/blog/new-zealand-vs-australia-ski-season-pay` — which pays more?
@@ -110,8 +109,30 @@ Before writing a page, check it against this. Three of the planned figures do no
   - `/blog/questions-to-ask-before-accepting-ski-season-job` — **rewrote an existing 1,893-char post** (the version it replaced is archived in `docs/blog-originals/`, because `blog_posts` has no revision history); the other five are new
   - `/blog/is-a-ski-season-worth-it` — and what you can actually save
   - `/blog/how-to-avoid-ski-job-scams`
+
+**Against the no-link prompts, which the baseline called the easiest wins:**
+#22 AU visa, #24 NZ vs AU pay, #32 two seasons, #38 questions before
+accepting and #40 is it worth it all now have a guide written for them.
+⚠️ **#21 Thredbo/Perisher housing still has nothing** — it is Australian
+resort housing, where we have no listings and no resort content, so it is the
+one easy win that is not actually easy. The scams guide was not on that list.
+
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
+
+⚠️ **NOTHING SHIPPED SO FAR IS MEASURABLE YET.** The baseline was taken on
+2026-10-10 and everything above shipped the same day, so indexing and model
+retraining both lag it. The next scoreboard is due **2026-11-07 at the
+earliest**; a run before then reads as noise and risks a conclusion drawn
+from it.
+
+⚠️ **WEEK 6 IS ARGUABLY THE BETTER NEXT STEP, NOT WEEK 5.** skijobs, CoolWorks
+and skicanada.org are listed in the baseline as what ChatGPT cites *instead of*
+us. Getting mentioned there is a few emails and does not depend on our own
+pages ranking, whereas Week 5 is three more guides competing for the same
+retrieval. Week 5's cheapest item — a "how to get hired" block on the top
+resort pages — is probably the best ratio on the whole plan: 111 pages that
+already exist, each gaining original content.
 
 ⚠️ **Weeks 3-4 target prompts about Australia and New Zealand, where we have no open jobs at all** (the board is Canada / Japan / France — re-measure with `npm run preview:expiry` or `scripts/aeo-data-pull.ts`, don't trust a number typed here; the split written into this file in the morning was already 14 listings stale by the afternoon). The guides rank without implying we have AU/NZ listings: each one says in its own words where our listings actually are, and `/blog/two-ski-seasons-in-one-year` states it outright.
 
