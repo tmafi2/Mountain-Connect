@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { defaultOgImage } from "@/lib/seo";
 import RelatedGuides from "@/components/ui/RelatedGuides";
 import { getRelatedGuides } from "@/lib/blog/related-guides.server";
 import { notFound } from "next/navigation";
@@ -185,6 +186,16 @@ export async function generateMetadata({ params }: CountryPageProps): Promise<Me
       url: `${BASE_URL}/ski-resort-jobs/${cfg.slug}`,
       siteName: "Mountain Connects",
       type: "website",
+      // ⚠️ Was missing: these 14 pages shared with no image at all, which on
+      // Facebook and WhatsApp renders a bare grey card. They are the country
+      // landing pages, so they are the ones most likely to be shared.
+      images: [defaultOgImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `Ski Resort Jobs in ${cfg.country}`,
+      description: `Open ski resort jobs in ${cfg.country} for the ${cfg.season} season.`,
+      images: [defaultOgImage.url],
     },
   };
 }

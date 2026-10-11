@@ -41,7 +41,9 @@ const PATH = "/ski-season-pay";
 // empty. The page would ship saying the board is empty.
 export const dynamic = "force-dynamic";
 
-const TITLE = "How Much Do Ski Season Jobs Pay? Wages by Mountain Town";
+// The title is the question people ask (AEO.md item 1) — kept, trimmed to
+// fit beside the brand suffix.
+const TITLE = "How Much Do Ski Season Jobs Pay?";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { towns } = await getPayByTown();
@@ -54,7 +56,9 @@ export async function generateMetadata(): Promise<Metadata> {
     lead && lead.medianHourly !== null
       ? ` In ${lead.town} the median is ${money(lead.medianHourly, lead.currency)} an hour across ${lead.pricedCount} listings.`
       : "";
-  const description = `Real hourly pay from open ski resort job listings, by mountain town.${detail} Counted from live listings, not survey estimates — sample size shown for every figure.`;
+  // ⚠️ Google cuts at ~155 and this ran to 224, so the tail — the part that
+  // says how we count — never appeared. The figure is what earns the click.
+  const description = `Hourly pay from open ski resort job listings, by mountain town.${detail} Counted live, with the sample size beside every figure.`;
 
   return {
     title: TITLE,

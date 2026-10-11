@@ -41,7 +41,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const ogImage = post.hero_image_url || DEFAULT_OG_IMAGE;
 
   return {
-    title: { absolute: `${post.title} | Mountain Connects Blog` },
+    // ⚠️ A guide title IS the question people search, so it stays whole and
+    // the suffix gives way instead: " Blog" bought nothing and cost 5 chars.
+    title: { absolute: `${post.title} | Mountain Connects` },
     description,
     alternates: { canonical: `${BASE_URL}/blog/${slug}` },
     openGraph: {

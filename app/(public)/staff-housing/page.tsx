@@ -49,7 +49,8 @@ export async function generateMetadata(): Promise<Metadata> {
     best && best.pctOffering !== null
       ? ` At ${best.resort}, ${best.pctOffering}% of open listings include it.`
       : "";
-  const description = `Which ski resorts include staff accommodation, what kind, and what it costs — counted from open job listings.${detail} Sample size shown for every figure.`;
+  // ⚠️ Trimmed from 193 chars to fit the ~155 Google shows.
+  const description = `Which ski resorts advertise staff accommodation, what kind, and what it costs.${detail} Counted from open listings.`;
 
   return {
     title: TITLE,

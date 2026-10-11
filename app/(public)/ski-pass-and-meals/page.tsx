@@ -46,7 +46,7 @@ const PATH = "/ski-pass-and-meals";
 // Vercel withholds the Sensitive Supabase keys and every count returns empty.
 export const dynamic = "force-dynamic";
 
-const TITLE = "Do Ski Resort Jobs Include a Free Season Pass?";
+const TITLE = "Do Ski Resort Jobs Include a Pass?";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { totals } = await getPerksByResort();
@@ -55,7 +55,9 @@ export async function generateMetadata(): Promise<Metadata> {
     totals.pctSaysPass !== null
       ? ` ${totals.saysPass} of ${totals.listings} open listings (${totals.pctSaysPass}%) say a pass is included.`
       : "";
-  const description = `How often ski resort job adverts actually offer a season pass or staff meals, counted from open listings.${detail} Most adverts do not mention either — which is not the same as a no.`;
+  // ⚠️ Trimmed from 229 chars; Google shows ~155 and cut the closing clause,
+  // which is the one carrying the meaning. The figure survives, the rest goes.
+  const description = `How often ski resort job adverts offer a season pass or staff meals.${detail} Most do not mention either — which is not the same as a no.`;
 
   return {
     title: TITLE,

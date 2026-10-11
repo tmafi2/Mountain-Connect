@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { defaultOgImage } from "@/lib/seo";
 import { createPublicClient } from "@/lib/supabase/public";
 import { resorts as staticResorts } from "@/lib/data/resorts";
 import type { Metadata } from "next";
@@ -19,7 +20,7 @@ export const revalidate = 600;
    111 and 14, and Bing's AI was quoting it back to searchers. A vaguer true
    line beats a precise false one. See lib/stats/platform-stats.ts. */
 export const metadata: Metadata = {
-  title: "Ski Resort Jobs Worldwide — Hiring Now for the Winter Season",
+  title: "Ski Resort Jobs Worldwide",
   description:
     "Find ski resort jobs hiring for the upcoming winter season. Browse instructor, lift operator, hospitality, and chalet roles at ski resorts in Australia, New Zealand, Canada, Japan, the US, and Europe — all on Mountain Connects.",
   alternates: { canonical: `${BASE_URL}/ski-resort-jobs` },
@@ -30,6 +31,13 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/ski-resort-jobs`,
     siteName: "Mountain Connects",
     type: "website",
+    images: [defaultOgImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ski Resort Jobs Worldwide — Hiring Now for the Winter Season",
+    description: "Find ski resort jobs hiring for the upcoming winter season at resorts worldwide.",
+    images: [defaultOgImage.url],
   },
 };
 
