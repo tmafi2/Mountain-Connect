@@ -105,7 +105,7 @@ export default function HeroSection({ userRole }: HeroSectionProps) {
           className={`absolute bottom-10 left-1/2 -translate-x-1/2 transition-all duration-[2000ms] delay-[1200ms] ${mounted ? "opacity-100" : "opacity-0"}`}
         >
           <div className="flex flex-col items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-widest text-white/40">Scroll</span>
+            <span className="text-xs font-medium uppercase tracking-widest text-white/70">Scroll</span>
             <div className="h-10 w-[1px] bg-gradient-to-b from-white/40 to-transparent animate-pulse" />
           </div>
         </div>
