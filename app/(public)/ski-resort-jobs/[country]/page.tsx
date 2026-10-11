@@ -2,6 +2,7 @@ import Link from "next/link";
 import { defaultOgImage } from "@/lib/seo";
 import RelatedGuides from "@/components/ui/RelatedGuides";
 import { getRelatedGuides } from "@/lib/blog/related-guides.server";
+import { summarise, canQuoteShares, listRoles } from "@/lib/stats/hiring-by-resort";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -235,9 +236,23 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
   // ⚠️ Paged. A plain select stops at 1000 rows with no error, which on this
   // page would understate the country's open roles AND drop listings from it.
   // See lib/supabase/fetch-all.ts.
-  // Only the resort link and the row count are read downstream; the other
-  // columns are in the select already and left alone here.
-  type JobRow = { id: string; resorts: unknown };
+  // ⚠️ These columns were fetched and then thrown away: the page showed a
+  // count and a resort list and never a single job. A country page with 198
+  // real listings that shows none of them is competing against Indeed with
+  // its one advantage hidden.
+  type JobRow = {
+    id: string;
+    title: string;
+    salary_range: string | null;
+    accommodation_included: boolean | null;
+    ski_pass_included: boolean | null;
+    category: string | null;
+    business_id: string | null;
+    published_at: string | null;
+    created_at: string | null;
+    resorts: unknown;
+    business_profiles: unknown;
+  };
   let jobs: JobRow[] = [];
   try {
     jobs = await fetchAllRows<JobRow>(
@@ -245,7 +260,7 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
         supabase
           .from("job_posts")
           .select(
-            "id, title, salary_range, pay_amount, pay_currency, position_type, accommodation_included, resorts!inner(legacy_id, country), business_profiles!inner(business_name)"
+            "id, title, salary_range, pay_amount, pay_currency, position_type, accommodation_included, ski_pass_included, category, business_id, published_at, created_at, resorts!inner(legacy_id, name, country), business_profiles!inner(business_name)"
           )
           .eq("status", "active")
           .eq("resorts.country", cfg.country)
@@ -274,6 +289,60 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
     jobsByResort.set(key, list);
   }
 
+  const nameOf = (v: unknown): string | null => {
+    const o = Array.isArray(v) ? v[0] : v;
+    return (o as { name?: string; business_name?: string } | null)?.name
+      ?? (o as { business_name?: string } | null)?.business_name
+      ?? null;
+  };
+
+  // ⚠️ RESORTS WITH OPEN ROLES FIRST, AND THE EMPTY ONES BEHIND A SUMMARY.
+  // Canada lists 24 resorts and 15 of them had "0 open roles", so two thirds
+  // of the page's main block told a searcher there was nothing here. The
+  // empty ones still render — they are real resorts and the links are worth
+  // having — but they no longer lead.
+  const resortsWithRoles = countryResorts
+    .map((r) => ({ r, count: jobsByResort.get(r.id)?.length ?? 0 }))
+    .sort((a, b) => b.count - a.count || a.r.name.localeCompare(b.r.name));
+  const hiringResorts = resortsWithRoles.filter((x) => x.count > 0);
+  const quietResorts = resortsWithRoles.filter((x) => x.count === 0);
+
+  /**
+   * The newest listings, spread across resorts.
+   *
+   * ⚠️ STRAIGHT RECENCY GAVE EIGHTEEN WHISTLER JOBS. Whistler holds 128 of
+   * Canada's 198 and dominates every recent scrape, so a plain sort made a
+   * page about a whole country look like a page about one mountain — and
+   * buried Revelstoke, Big White and Fernie entirely. One round per resort,
+   * newest first within each, repeated until the list is full: the busiest
+   * resorts still lead and still appear most, but the breadth is visible.
+   */
+  const newestFirst = (a: JobRow, b: JobRow) =>
+    String(b.published_at ?? b.created_at ?? "").localeCompare(String(a.published_at ?? a.created_at ?? ""));
+
+  const queues = [...jobsByResort.values()]
+    .map((list) => [...list].sort(newestFirst))
+    .sort((a, b) => b.length - a.length);
+
+  const recentJobs: JobRow[] = [];
+  for (let round = 0; recentJobs.length < 18; round++) {
+    const before = recentJobs.length;
+    for (const q of queues) {
+      if (round < q.length && recentJobs.length < 18) recentJobs.push(q[round]);
+    }
+    if (recentJobs.length === before) break; // every queue exhausted
+  }
+
+  // ⚠️ Counted, never typed, and the shares respect the five-listing floor —
+  // the same rule the data pages keep. See lib/stats/hiring-by-resort.
+  const hiring = summarise(cfg.country, jobs.map((j) => ({
+    category: j.category,
+    business_id: j.business_id,
+    accommodation_included: j.accommodation_included,
+    ski_pass_included: j.ski_pass_included,
+    salary_range: j.salary_range,
+  })));
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -289,12 +358,43 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
     },
   };
 
+  /**
+   * ⚠️ AN ItemList OF URLS, NOT A PILE OF JobPostings.
+   *
+   * Google wants JobPosting on the job's OWN page, which /jobs/[id] already
+   * emits. Repeating twenty full JobPostings here would duplicate that markup
+   * on a page that is not the posting, which is the kind of thing that gets a
+   * site's job markup distrusted rather than rewarded. An ItemList pointing at
+   * the detail pages is the documented shape for a list page and adds no claim
+   * the detail page does not already make.
+   */
+  const listJsonLd = recentJobs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: `Open ski resort jobs in ${cfg.country}`,
+        numberOfItems: recentJobs.length,
+        itemListElement: recentJobs.map((j, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: `${BASE_URL}/jobs/${j.id}`,
+          name: j.title,
+        })),
+      }
+    : null;
+
   return (
     <main className="min-h-screen bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {listJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(listJsonLd) }}
+        />
+      )}
 
       {/* ───────── Hero ───────── */}
       <section className="bg-gradient-to-br from-primary via-primary/95 to-secondary px-6 py-20 text-white">
@@ -336,36 +436,121 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
         </div>
       </section>
 
+      {/* ───────── What is open, which is why anyone is here ───────── */}
+      {recentJobs.length > 0 && (
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-3xl font-bold tracking-tight text-primary">
+              Open roles in {cfg.country}
+            </h2>
+            <p className="mt-2 max-w-2xl text-foreground/65">
+              The {recentJobs.length} most recently posted of {jobCount}, counted from live
+              listings.
+            </p>
+
+            <ul className="mt-8 divide-y divide-accent/40 overflow-hidden rounded-2xl border border-accent bg-white">
+              {recentJobs.map((j) => (
+                <li key={j.id}>
+                  <Link
+                    href={`/jobs/${j.id}`}
+                    className="group flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-4 transition-colors hover:bg-accent/10"
+                  >
+                    <span className="font-semibold text-primary group-hover:text-secondary">
+                      {j.title}
+                    </span>
+                    <span className="text-sm text-foreground/60">
+                      {nameOf(j.business_profiles) ?? "—"}
+                      {nameOf(j.resorts) && <> · {nameOf(j.resorts)}</>}
+                      {j.salary_range && <> · {j.salary_range}</>}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              href={`/jobs?country=${encodeURIComponent(cfg.country)}`}
+              className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"
+            >
+              See all {jobCount} {cfg.country} roles
+            </Link>
+
+            {/* ⚠️ Counts always; shares only above the floor, and the silence
+                is never turned into a negative — these columns are tri-state
+                and NULL is most of the board. */}
+            <p className="mt-8 leading-relaxed text-foreground/75">
+              <strong className="text-primary">{hiring.employerCount}</strong>{" "}
+              {hiring.employerCount === 1 ? "employer is" : "employers are"} hiring
+              {listRoles(hiring.topRoles) && <> — mostly {listRoles(hiring.topRoles)}</>}.
+              {hiring.pricedCount > 0 && (
+                <> {hiring.pricedCount} of the {jobCount} state an hourly rate.</>
+              )}
+              {canQuoteShares(hiring) && hiring.saysHousing > 0 && (
+                <>
+                  {" "}
+                  <strong className="text-primary">{hiring.saysHousing}</strong>{" "}
+                  {hiring.saysHousing === 1 ? "advertises" : "advertise"} staff accommodation;
+                  the rest do not say either way.
+                </>
+              )}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* ───────── Resorts ───────── */}
-      <section className="px-6 py-16">
+      <section className="border-t border-accent/40 px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-3xl font-bold tracking-tight text-primary">
             Resorts hiring in {cfg.country}
           </h2>
           <p className="mt-2 max-w-2xl text-foreground/65">
-            {countryResorts.length} resorts on Mountain Connects, with {jobCount} open
-            {jobCount === 1 ? " role" : " roles"} right now.
+            {hiringResorts.length > 0
+              ? `${hiringResorts.length} of our ${countryResorts.length} ${cfg.country} resorts have something open right now.`
+              : `${countryResorts.length} resorts on Mountain Connects. Nothing is open at any of them today.`}
           </p>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {countryResorts.map((r) => {
-              const count = jobsByResort.get(r.id)?.length ?? 0;
-              return (
+          {hiringResorts.length > 0 && (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {hiringResorts.map(({ r, count }) => (
                 <Link
                   key={r.id}
                   href={`/resorts/${r.id}`}
                   className="group rounded-2xl border border-accent bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-secondary hover:shadow-md"
                 >
-                  <p className="text-lg font-bold text-primary group-hover:text-secondary transition-colors">
+                  <p className="text-lg font-bold text-primary transition-colors group-hover:text-secondary">
                     {r.name}
                   </p>
-                  <p className="mt-1 text-xs text-foreground/50">
+                  <p className="mt-1 text-xs font-medium text-secondary">
                     {count} open {count === 1 ? "role" : "roles"}
                   </p>
                 </Link>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {/* ⚠️ The quiet resorts stay — they are real places and the links are
+              worth having — but as a list rather than 15 cards each announcing
+              that there is nothing here. */}
+          {quietResorts.length > 0 && (
+            <details className="mt-8 rounded-2xl border border-accent/50 bg-white p-5">
+              <summary className="cursor-pointer text-sm font-semibold text-primary">
+                {quietResorts.length} more {cfg.country}{" "}
+                {quietResorts.length === 1 ? "resort" : "resorts"} with nothing open today
+              </summary>
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                {quietResorts.map(({ r }) => (
+                  <Link
+                    key={r.id}
+                    href={`/resorts/${r.id}`}
+                    className="text-sm text-secondary hover:underline"
+                  >
+                    {r.name}
+                  </Link>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </section>
 
