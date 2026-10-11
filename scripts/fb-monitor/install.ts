@@ -55,6 +55,19 @@ function launchctl(args: string[]): void {
  */
 const LOCAL_TRIAGE = true;
 
+/**
+ * Regions where the free local triage model is NOT trusted yet.
+ *
+ * ⚠️ `triage-local.ts` asks a 7B model "does this post offer work?" and was
+ * measured on ENGLISH held-out posts: 58% of what reaches it dropped, 3.6% of
+ * jobs lost. Nothing is known about its Italian, and a job it drops is
+ * dropped SILENTLY — no error, no log line, nobody ever sees it. On a market
+ * we are trying to grow from zero, paying full extraction is the cheaper
+ * mistake. Remove a region from here once its loss rate has been measured
+ * the way English was.
+ */
+const NO_TRIAGE_REGIONS = new Set(["italy"]);
+
 function plistFor(region: string, cfg: RegionConfig): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!--
@@ -92,7 +105,7 @@ function plistFor(region: string, cfg: RegionConfig): string {
         <key>HOME</key>
         <string>${homedir()}</string>
         <key>FB_LOCAL_TRIAGE</key>
-        <string>${LOCAL_TRIAGE ? "1" : "0"}</string>
+        <string>${LOCAL_TRIAGE && !NO_TRIAGE_REGIONS.has(region) ? "1" : "0"}</string>
     </dict>
 
     <key>StandardOutPath</key>

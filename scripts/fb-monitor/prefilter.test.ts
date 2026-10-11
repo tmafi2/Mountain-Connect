@@ -86,3 +86,36 @@ test("a dropped post reports the phrase that decided it", () => {
   assert.equal(v.send, false);
   assert.ok(v.reason, "the run log should be able to say why");
 });
+
+// ── Italian ────────────────────────────────────────────────────────────────
+// ⚠️ Measured before these keywords existed: EVERY Italian post reached the
+// default and was sent — including "vendo sci usati" and "cerco stanza". The
+// filter failed open so no job was lost, but it dropped 0% instead of 16% and
+// every ski-for-sale post was paid for at full extraction rate.
+test("an Italian job advert is sent", () => {
+  for (const t of [
+    "Hotel a Livigno cerca cameriere di sala per la stagione invernale. Vitto e alloggio inclusi.",
+    "Assumiamo personale stagionale: aiuto cuoco e lavapiatti. Contratto stagionale.",
+    "Scuola sci Cortina cerca maestri di sci per la stagione 2026/27. Inviare CV.",
+    "Cercasi addetto impianti di risalita, inizio dicembre, paga oraria da concordare.",
+  ]) {
+    assert.equal(prefilter(t).send, true, t.slice(0, 48));
+  }
+});
+
+test("an Italian post that is not a job is dropped", () => {
+  for (const [t, why] of [
+    ["Cerco stanza in affitto a Livigno per la stagione invernale.", "wants a room"],
+    ["Vendo sci Rossignol 170cm usato una stagione, prezzo trattabile.", "selling"],
+    ["Qualcuno sa se gli impianti aprono questo weekend? Bollettino neve?", "chat"],
+  ] as const) {
+    assert.equal(prefilter(t).send, false, why);
+  }
+});
+
+// The Italian equivalent of "is anyone hiring?" — it carries a role word, so
+// the seeker override has to beat the hiring rule here too.
+test("somebody asking for work in Italian is dropped despite naming the role", () => {
+  assert.equal(prefilter("Ragazza 24 anni cerco lavoro come cameriera per la stagione.").send, false);
+  assert.equal(prefilter("Qualcuno assume a Cortina per dicembre?").send, false);
+});

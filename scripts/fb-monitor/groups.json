@@ -1,5 +1,5 @@
 {
-  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Confirm a new group is reachable BEFORE adding it, or it silently returns nothing: npm run fb:collect -- --group <url> --posts 5, where a group name and a post count mean you are in and 'WARNING: 0 posts' means you are not. Audited 2026-10-08 across all 24 then-unproductive groups: FOUR are configured here but NOT joined and have always returned nothing - RevelstokeCashJobs, 889986741929213 (Revelstoke Employment), 1378531332445868 (Hakuba Buy Sell and Jobs) and 597143303806350 (Nozawa Onsen Buy, Sell, and Jobs). Join them or remove them; while they sit here they look like coverage that does not exist. Ten others ARE joined and simply carry no job adverts, which costs collection time but no extraction money.",
+  "_comment": "The only file you edit to change what the monitor watches. Add a group by pasting its URL into the right region. No script or plist changes needed, and no reload — each scheduled run reads this file fresh. A group must be one the signed-in account has already joined; the collector sees exactly what you would see, so an unjoined group returns nothing rather than erroring. Confirm a new group is reachable BEFORE adding it, or it silently returns nothing: npm run fb:collect -- --group <url> --posts 5, where a group name and a post count mean you are in and 'WARNING: 0 posts' means you are not. Audited 2026-10-08 across all 24 then-unproductive groups: FOUR are configured here but NOT joined and have always returned nothing - RevelstokeCashJobs, 889986741929213 (Revelstoke Employment), 1378531332445868 (Hakuba Buy Sell and Jobs) and 597143303806350 (Nozawa Onsen Buy, Sell, and Jobs). Join them or remove them; while they sit here they look like coverage that does not exist. Ten others ARE joined and simply carry no job adverts, which costs collection time but no extraction money. ITALY: the prefilter now carries Italian keywords (added 2026-10-11) and the local triage model is OFF for this region in install.ts — it is a 7B measured only on English, and anything it drops is dropped silently. Italy therefore pays full extraction per post until its loss rate is measured. Groups must be JOINED before they are listed here; verify each with: npm run fb:collect -- --group <url> --posts 5",
   "_pending": {
     "_note": "Groups requested but not yet joined. The collector only sees groups the signed-in account is a member of, so these would return nothing. Move a URL back into its region once the join is approved.",
     "canada": []
@@ -54,6 +54,11 @@
   },
   "usa": {
     "hour": 18,
+    "postsPerGroup": 20,
+    "groups": []
+  },
+  "italy": {
+    "hour": 9,
     "postsPerGroup": 20,
     "groups": []
   }

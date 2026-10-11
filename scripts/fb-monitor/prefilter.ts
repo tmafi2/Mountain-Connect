@@ -32,6 +32,26 @@
  * positive here costs one API call, which is the outcome we already have.
  */
 const HIRING_SIGNALS = [
+  // ── Italian ──────────────────────────────────────────────────────────
+  // ⚠️ Measured before these existed: every Italian post reached step 3 and
+  // was SENT, including "vendo sci usati" and "cerco stanza in affitto". The
+  // filter failed open, so nothing was lost — but it dropped 0% instead of
+  // 16%, and every ski-for-sale post was paid for at full rate.
+  "cercasi", "cerchiamo", "ricerchiamo", "assumiamo", "assunzione",
+  "offresi lavoro", "offerta di lavoro", "offerte di lavoro", "si ricerca",
+  "selezioniamo", "personale", "staff", "stagionale", "stagionali",
+  "vitto e alloggio", "alloggio incluso", "contratto stagionale",
+  "inviare cv", "inviare curriculum", "manda il cv", "candidature",
+  "disponibilità immediata", "inizio immediato", "paga oraria", "stipendio",
+  "esperienza richiesta", "anche prima esperienza",
+  // Roles: an Italian ad usually names the job and never says "assumiamo".
+  "cameriere", "cameriera", "cameriere di sala", "barista", "banconista",
+  "cuoco", "cuoca", "aiuto cuoco", "capo partita", "chef de rang",
+  "lavapiatti", "pizzaiolo", "addetto cucina", "addetta cucina",
+  "receptionist", "addetto reception", "cameriere ai piani", "facchino",
+  "maestro di sci", "maestra di sci", "skiman", "noleggio sci",
+  "addetto pulizie", "addetta pulizie", "governante", "animatore",
+  "impiantista", "addetto impianti", "gattista", "autista navetta",
   "hiring", "we're hiring", "now hiring", "join our team", "join the team",
   "vacancy", "vacancies", "position available", "positions available",
   "wanted", "we are looking for", "we're looking for", "looking for staff",
@@ -62,6 +82,19 @@ const HIRING_SIGNALS = [
  * provided" from matching the accommodation rule.
  */
 const NOT_A_JOB_SIGNALS = [
+  // ── Italian ──────────────────────────────────────────────────────────
+  // Wanting a room, selling a thing, or asking for work rather than offering
+  // it — the same three categories as the English list, which is what the
+  // real feeds are full of.
+  "cerco stanza", "cerco casa", "cerco alloggio", "cerco appartamento",
+  "affittasi", "affitto", "in affitto", "cerco coinquilino", "coinquilina",
+  "vendo", "vendesi", "in vendita", "usato una stagione", "prezzo trattabile",
+  "regalo", "scambio",
+  "cerco lavoro", "cerca lavoro", "in cerca di lavoro", "disponibile da subito per",
+  "sono disponibile", "il mio cv", "mi propongo",
+  "qualcuno sa", "qualcuno conosce", "consigli su", "chiedo informazioni",
+  "buon compleanno", "auguri", "condoglianze", "grazie a tutti",
+  "meteo", "bollettino neve", "condizioni neve",
   // Somebody wants housing — the largest category by far.
   "looking for accommodation", "looking for a room", "looking for a place",
   "need accommodation", "need a room", "room available", "rooms available",
@@ -94,6 +127,11 @@ const NOT_A_JOB_SIGNALS = [
  * the exact opposite of an ad — no employer has ever written it.
  */
 const SEEKER_OVERRIDES = [
+  // ⚠️ "cerco lavoro come cameriera" contains "cameriera", a hiring signal,
+  // while being the exact opposite of an advert. Checked first, like the
+  // English ones.
+  "cerco lavoro", "cerca lavoro", "in cerca di lavoro", "cerco un lavoro",
+  "qualcuno assume", "state assumendo", "cercasi lavoro",
   "is anyone hiring", "anyone hiring", "anybody hiring", "who is hiring",
   "who's hiring", "whos hiring", "any jobs going", "any work going",
   "any jobs available", "looking for any work", "still hiring anyone",
