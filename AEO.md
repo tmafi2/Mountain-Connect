@@ -199,8 +199,12 @@ Before writing a page, check it against this. Three of the planned figures do no
 - ⚠️ **The honest answer about our own listings is in the guides.** Most are
   sourced from public adverts rather than posted by the employer, so the scams
   guide says so when asked "are the listings on Mountain Connects verified?".
-  That answer contradicts the homepage, which still says "verified jobs" — a
-  separate open item, and the reason this one was written carefully.
+  ⚠️ I wrote here that this contradicted the homepage's "verified jobs" — it
+  did not. That claim came off in 7ffe3df earlier the same day and production
+  confirms it is gone. I had read the one-line memory index rather than the
+  memory itself, which records every item as done. **Check the thing, not the
+  note about the thing** — the rule this file already states about rendered
+  pages applies to its own working notes.
 - **No founder tip was written, again.** Template item 6 is Tyler's; six
   invented first-hand tips would be six fake testimonials.
 - ⚠️ **Every markdown link opened in a new tab.** `MarkdownRenderer` set
