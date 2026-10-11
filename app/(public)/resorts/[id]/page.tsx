@@ -10,6 +10,9 @@ import { flagForCountry } from "@/lib/resort-banner";
 import ResortBusinesses from "./ResortBusinesses";
 import { createClient } from "@/lib/supabase/server";
 import RelatedGuides from "@/components/ui/RelatedGuides";
+import HiringAtResort from "@/components/ui/HiringAtResort";
+import { getHiringAtResort } from "@/lib/stats/hiring-by-resort.server";
+import { hasOpenRoles } from "@/lib/stats/hiring-by-resort";
 import { getRelatedGuides } from "@/lib/blog/related-guides.server";
 import type { Metadata } from "next";
 
@@ -447,6 +450,11 @@ export default async function ResortDetailPage({ params, searchParams }: ResortP
   } catch (err) {
     console.error("Failed to load resort data from Supabase:", err);
   }
+
+  // What is open here right now. Needs resortUuid, so it waits for the
+  // block above; returns null when nothing is open and the block then
+  // does not render — 93 of the 111 resorts have no live listing.
+  const hiring = await getHiringAtResort(resortUuid ?? "", resort.name);
 
   const formatSeason = () => {
     if (!resort.season_start || !resort.season_end) return null;
@@ -1295,6 +1303,12 @@ export default async function ResortDetailPage({ params, searchParams }: ResortP
           )}
         </div>
       </div>
+
+      {hasOpenRoles(hiring) && (
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <HiringAtResort hiring={hiring} />
+        </div>
+      )}
 
       <RelatedGuides
         guides={guides}
