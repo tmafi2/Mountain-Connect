@@ -7506,7 +7506,7 @@ export const resorts: Resort[] = [
     latitude: 46.3503,
     longitude: 10.9128,
     state_province: "Trentino",
-    nearest_town: "Malè",
+    nearest_town: "Malé",
     website: "https://www.visitvaldisole.it",
     num_runs: null,
     vertical_drop_m: 1279,
@@ -7515,7 +7515,7 @@ export const resorts: Resort[] = [
     num_lifts: 24,
     season_start: "2026-11-28",
     season_end: "2027-04-11",
-    main_employers: ["Funivie Folgarida Marilleva (lift company)", "Hotels in Folgarida, Marilleva, Dimaro and Malè", "Ski schools across the valley", "Mountain restaurants and rifugi", "Rafting and outdoor operators on the Noce"],
+    main_employers: ["Funivie Folgarida Marilleva (lift company)", "Hotels in Folgarida, Marilleva, Dimaro and Malé", "Ski schools across the valley", "Mountain restaurants and rifugi", "Rafting and outdoor operators on the Noce"],
     common_jobs: ["Lift Operator", "Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Bartender", "Ski/Snowboard Instructor", "Ski Technician"],
     languages_required: ["Italian", "English"],
     visa_requirements:
@@ -7524,7 +7524,7 @@ export const resorts: Resort[] = [
       "Hotels recruit from September for a December start. The valley also has a summer season on the Noce — one of Europe's better-known whitewater rivers — so some employers hire twice a year.",
     staff_housing_available: true,
     public_transport:
-      "The Trento–Malè–Mezzana railway runs the length of the valley and reaches the lift stations, which is unusual for an Italian ski area. Trento is about 1 hr 15.",
+      "The Trento–Malé–Mezzana railway runs the length of the valley and reaches the lift stations, which is unusual for an Italian ski area. Trento is about 1 hr 15.",
     snow_reliability: "medium",
     is_verified: false,
   }),
