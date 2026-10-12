@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatPay } from "@/lib/utils/format-pay";
 import JobsStaticList from "./JobsStaticList";
 import { resortPath } from "@/lib/data/resort-url";
+import JobDescription from "@/components/ui/JobDescription";
 
 /* ─── filter state ────────────────────────────────────────── */
 interface Filters {
@@ -1266,14 +1267,18 @@ function JobDetailPanel({
               )}
             </div>
 
-            {/* Description */}
+            {/* Description. Same component as /jobs/[id]: a non-English
+                advert gets an Original | English toggle, and anything else
+                renders plainly, so the two surfaces cannot drift. */}
             <div>
               <h3 className="text-sm font-semibold text-primary">
                 About the Role
               </h3>
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground">
-                {job.description}
-              </p>
+              <JobDescription
+                description={job.description}
+                translation={job.description_en}
+                language={job.post_language}
+              />
             </div>
 
             {/* Requirements */}

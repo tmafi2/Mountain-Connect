@@ -92,6 +92,13 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
           resort_id: j.resort_id as string,
           title: j.title as string,
           description: j.description as string,
+          // ⚠️ Both NULL-preserving. `|| null` would be identical here, but
+          // writing "" or "en" as a fallback is the bug 00118 exists to
+          // avoid: the drawer decides whether to OFFER a translation from
+          // exactly these two, and a stand-in value answers a question the
+          // data never answered.
+          description_en: (j.description_en as string | null) ?? null,
+          post_language: (j.post_language as string | null) ?? null,
           requirements: (j.requirements as string) || null,
           accommodation_included: j.accommodation_included as boolean,
           salary_range: (j.salary_range as string) || null,

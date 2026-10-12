@@ -387,7 +387,17 @@ export interface JobPost {
   resort_id: string;
   venue_id: string | null;
   title: string;
+  /** The advert VERBATIM, in whatever language it was written. */
   description: string;
+  /** English translation of `description`, migration 00118. NULL = none
+   *  exists — it must NEVER come to mean "the post was already English",
+   *  which is what `post_language` is for. Machine translated: anything
+   *  rendering it has to say so and keep the original reachable. */
+  description_en: string | null;
+  /** ISO 639-1 code of the ORIGINAL advert, migration 00118. NULL = unknown;
+   *  never assume "en". A charset test cannot stand in for this — Italian and
+   *  French are Latin script and look exactly like English to a regex. */
+  post_language: string | null;
   requirements: string | null;
   /** NULL = the advert did not say. See migration 00115. */
   accommodation_included: boolean | null;
