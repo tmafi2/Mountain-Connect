@@ -7562,4 +7562,39 @@ export const resorts: Resort[] = [
     is_verified: false,
   }),
 
+  // ── Bardonecchia, added 2026-10-12 (migration 00121) ─────────────────
+  createResort({
+    id: "123",
+    name: "Bardonecchia",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "The westernmost town in Italy, at the head of the Susa Valley and right on the French border, with about 100km of piste on 23 lifts across three sectors: Campo Smith in the town itself, the tree-lined Colomion and Melezet runs, and the high open bowls of Jafferau, which top out at 2,807m. It hosted the snowboarding events of the 2006 Turin Winter Olympics. ⚠️ It is NOT on the Via Lattea — Sauze d'Oulx and Sestriere share that circuit and its pass, and Bardonecchia has its own. The Fréjus road and rail tunnels start here, so this is an unusually well-connected mountain town: trains run into the town centre and Modane in France is the next stop.",
+    latitude: 45.0781,
+    longitude: 6.6994,
+    state_province: "Piedmont",
+    nearest_town: "Bardonecchia",
+    website: "https://www.bardonecchiaski.com",
+    num_runs: 39,
+    vertical_drop_m: 1495,
+    base_elevation_m: 1312,
+    summit_elevation_m: 2807,
+    num_lifts: 23,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["Colomion S.p.A. (the lift company)", "Hotels and guesthouses in the town", "Restaurants, pizzerie and bars in the old centre", "Ski and snowboard schools", "Mountain restaurants across the three sectors", "Ski hire and sports shops"],
+    common_jobs: ["Waiter / Waitress", "Bartender", "Chef / Kitchen Staff", "Hotel Receptionist", "Housekeeping", "Lift Operator", "Ski/Snowboard Instructor", "Ski Technician", "Shop Assistant"],
+    languages_required: ["Italian", "French", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels and restaurants recruit from September for a December start. The town is a weekend destination for Turin as well as a resort, so some employers keep staff on through the shoulder season.",
+    staff_housing_available: true,
+    public_transport:
+      "A mainline station in the town centre, roughly 1 hr 15 from Turin, with TGV connections into France through the Fréjus rail tunnel. That makes it one of the few Italian ski resorts you can reach, and work in, without a car.",
+    snow_reliability: "medium",
+    is_verified: false,
+  }),
+
 ];
