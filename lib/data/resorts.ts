@@ -7597,4 +7597,176 @@ export const resorts: Resort[] = [
     is_verified: false,
   }),
 
+  // ── five more Italian resorts, added 2026-10-12 (migration 00122) ─────
+  // Each was named by a real advert the importer rejected for having no row.
+  createResort({
+    id: "124",
+    name: "Aprica",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "A pass town at 1,181m sitting on the saddle between the Valtellina and the Val Camonica, with about 50km of piste on 16 lifts across four linked areas — Palabione, Magnolta, Baradello and Campetti. The Baradello run is floodlit for 6km, which the resort claims as the longest lit piste in Europe, and night skiing means evening shifts that most resorts do not have. It held World Cup races through the late 1970s and has been a Giro d'Italia stage finish ten times. Around 1,400 permanent residents, and Bormio and Livigno are both up the valley.",
+    latitude: 46.1536,
+    longitude: 10.1503,
+    state_province: "Lombardy",
+    nearest_town: "Aprica",
+    website: "https://www.apricaonline.com",
+    num_runs: 20,
+    vertical_drop_m: 1119,
+    base_elevation_m: 1181,
+    summit_elevation_m: 2300,
+    num_lifts: 16,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["The Aprica lift company", "Hotels and guesthouses in the town", "Bars and restaurants along the pass road", "Ski and snowboard schools", "Mountain restaurants on the four areas", "Ski hire and sports shops"],
+    common_jobs: ["Waiter / Waitress", "Bartender", "Chef / Kitchen Staff", "Hotel Receptionist", "Housekeeping", "Lift Operator", "Ski/Snowboard Instructor", "Ski Technician"],
+    languages_required: ["Italian", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels and restaurants recruit from September for a December start. The floodlit piste extends trading into the evening, so some venues take on split-shift staff.",
+    staff_housing_available: true,
+    public_transport:
+      "Buses from Tirano (40 min) and Edolo, both on regional rail lines; Tirano also has the Bernina Express into Switzerland. The SS39 over the pass is kept open through winter.",
+    snow_reliability: "medium",
+    is_verified: false,
+  }),
+
+  createResort({
+    id: "125",
+    name: "Monterosa Ski",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "Three valleys under the second-highest massif in the Alps, linked by lift into one 180km area on 37 lifts: Champoluc and Antagnod in the Val d'Ayas, Gressoney-Saint-Jean and Gressoney-La-Trinité in the Lys valley, and Alagna Valsesia over the ridge in Piedmont. It runs from 1,212m at Alagna to 3,275m at Punta Indren, which makes it one of the most snow-sure areas in Italy and a serious freeride destination. ⚠️ The Gressoney valley is historically Walser, a German-speaking community, so German is more useful there than its position in Italy suggests.",
+    latitude: 45.8319,
+    longitude: 7.7261,
+    state_province: "Aosta Valley",
+    nearest_town: "Champoluc",
+    website: "https://www.monterosa-ski.it",
+    num_runs: 66,
+    vertical_drop_m: 2063,
+    base_elevation_m: 1212,
+    summit_elevation_m: 3275,
+    num_lifts: 37,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["Monterosa S.p.A. and Monterosa 2000 S.p.A. (the lift companies)", "Hotels and guesthouses across Champoluc, Gressoney and Alagna", "Mountain huts and rifugi", "Ski and snowboard schools in each valley", "Mountain guide companies (freeride and ski touring)", "Ski hire and sports shops"],
+    common_jobs: ["Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Bartender", "Lift Operator", "Ski/Snowboard Instructor", "Mountain Guide", "Ski Technician"],
+    languages_required: ["Italian", "English", "German"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels recruit from September for a December start. The freeride reputation means guiding and ski-touring operators hire experienced staff separately, often earlier.",
+    staff_housing_available: true,
+    public_transport:
+      "Buses from Aosta into the Val d'Ayas and the Lys valley; Alagna is reached from Varallo on the Piedmont side, which is a different approach entirely. A car is genuinely useful here because the three valleys only connect by lift.",
+    snow_reliability: "high",
+    is_verified: false,
+  }),
+
+  createResort({
+    id: "126",
+    name: "Andalo",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "A town of about 1,250 on the Paganella plateau, between the Brenta Dolomites and Lake Molveno, with 50km of piste on 20 lifts rising from 1,028m to 2,125m. It is one of the most family-oriented areas in Trentino, which shapes the work: a lot of childcare, ski-school and hotel-kids-club roles alongside the usual hospitality. Trento is about 40 minutes away, so it is an easier place to live without a car than most Italian resorts.",
+    latitude: 46.1664,
+    longitude: 11.0044,
+    state_province: "Trentino",
+    nearest_town: "Andalo",
+    website: "https://www.visitdolomitipaganella.it",
+    num_runs: 31,
+    vertical_drop_m: 1097,
+    base_elevation_m: 1028,
+    summit_elevation_m: 2125,
+    num_lifts: 20,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["The Paganella lift company", "Family hotels and residences in Andalo and Fai della Paganella", "Ski and snowboard schools", "Bars, restaurants and pizzerie in the centre", "Mountain restaurants on the Paganella", "Ski hire and sports shops"],
+    common_jobs: ["Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Bartender", "Lift Operator", "Ski/Snowboard Instructor", "Childcare / Kids Club Assistant", "Ski Technician"],
+    languages_required: ["Italian", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Family hotels recruit from September for a December start. The area also has a full summer season around Lake Molveno and the Brenta, so some employers hire twice a year.",
+    staff_housing_available: true,
+    public_transport:
+      "Buses from Trento, about 40 minutes, with Trento on the Brenner mainline. That makes Andalo one of the more reachable Trentino resorts without a car.",
+    snow_reliability: "medium",
+    is_verified: false,
+  }),
+
+  createResort({
+    id: "127",
+    name: "Santa Caterina Valfurva",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "A small, high village at 1,722m inside the Stelvio National Park, 12km up the valley from Bormio, with about 20km of piste on 9 lifts. The altitude and the north-facing aspect make it one of the more snow-sure areas in Lombardy, and the Deborah Compagnoni piste has held World Cup races. It is genuinely small — the job market here is best understood together with Bormio, which is 20 minutes down the road and has far more employers.",
+    latitude: 46.4142,
+    longitude: 10.4919,
+    state_province: "Lombardy",
+    nearest_town: "Santa Caterina Valfurva",
+    website: "https://www.santacaterinaski.it",
+    num_runs: 12,
+    vertical_drop_m: 1158,
+    base_elevation_m: 1722,
+    summit_elevation_m: 2880,
+    num_lifts: 9,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["The Santa Caterina lift company", "Hotels and guesthouses in the village", "Mountain restaurants and rifugi", "Ski school", "Ski hire shops", "Bormio employers, 12km down the valley"],
+    common_jobs: ["Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Lift Operator", "Ski/Snowboard Instructor", "Ski Technician"],
+    languages_required: ["Italian", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels recruit from September for a December start. Because the village is small, many workers here are hired by Bormio businesses and commute.",
+    staff_housing_available: true,
+    public_transport:
+      "Buses up the Valfurva from Bormio, which itself is about an hour from Tirano station. Living in Bormio and working here, or the reverse, is common.",
+    snow_reliability: "high",
+    is_verified: false,
+  }),
+
+  createResort({
+    id: "128",
+    name: "Cogne",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "A village at 1,530m at the gates of the Gran Paradiso national park, Italy's oldest. ⚠️ The alpine area is small — 8km of piste on 4 lifts — and that is not what Cogne is known for: it has one of the largest cross-country networks in the Alps across the Prato di Sant'Orso, and it is a major ice-climbing destination, with the Lillaz and Valnontey falls drawing climbers all winter. The seasonal work here follows that: hotels, rifugi and guiding rather than lift-served skiing. Aosta is about 30 minutes down the valley.",
+    latitude: 45.6089,
+    longitude: 7.3561,
+    state_province: "Aosta Valley",
+    nearest_town: "Cogne",
+    website: "https://www.cogneturismo.it",
+    num_runs: 9,
+    vertical_drop_m: 737,
+    base_elevation_m: 1530,
+    summit_elevation_m: 2267,
+    num_lifts: 4,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["The Cogne lift company", "Hotels and guesthouses in the village", "Mountain huts and rifugi in the Gran Paradiso", "Cross-country ski centre", "Mountain guide companies (ice climbing and ski touring)", "Restaurants and bars in the centre"],
+    common_jobs: ["Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Mountain Guide", "Ski/Snowboard Instructor", "Lift Operator"],
+    languages_required: ["Italian", "French", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels recruit from September. Guiding work for ice climbing is arranged separately and often through the guide companies directly.",
+    staff_housing_available: true,
+    public_transport:
+      "Buses from Aosta, about 30 minutes, with Aosta connected by rail to Turin. The valley road is a dead end into the national park, so there is no through traffic.",
+    snow_reliability: "medium",
+    is_verified: false,
+  }),
+
 ];
