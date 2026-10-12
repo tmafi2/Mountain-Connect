@@ -23,7 +23,7 @@ export default async function SavedJobsPage() {
     supabase
       .from("saved_jobs")
       .select(`id, job_post_id, created_at, job_posts(
-        title, description, requirements, salary_range, pay_amount, pay_currency,
+        title, description, description_en, post_language, requirements, salary_range, pay_amount, pay_currency,
         position_type, category, accommodation_included, ski_pass_included, meal_perks,
         visa_sponsorship, start_date, end_date, how_to_apply, application_email, application_url,
         business_profiles(business_name, logo_url, verification_status),
@@ -48,6 +48,12 @@ export default async function SavedJobsPage() {
       job_post_id: s.job_post_id as string,
       title: (jp?.title as string) || "Unknown Job",
       description: (jp?.description as string) || "",
+      // ⚠️ Both NULL-preserving, unlike the line above. The toggle decides
+      // whether to OFFER a translation from exactly these two, so a "" or an
+      // "en" fallback would answer a question the data never answered — the
+      // bug migration 00118 exists to avoid.
+      description_en: (jp?.description_en as string | null) ?? null,
+      post_language: (jp?.post_language as string | null) ?? null,
       requirements: (jp?.requirements as string) || null,
       business_name: bp?.business_name || "Unknown Business",
       business_logo_url: bp?.logo_url || null,

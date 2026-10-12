@@ -4,12 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { formatPay } from "@/lib/utils/format-pay";
+import JobDescription from "@/components/ui/JobDescription";
 
 export interface SavedJob {
   id: string;
   job_post_id: string;
   title: string;
+  /** The advert verbatim, in whatever language it was written. */
   description: string;
+  /** Migration 00118. NULL = no translation exists; it must never stand in
+   *  for "the advert was already English", which is post_language's job. */
+  description_en: string | null;
+  /** ISO 639-1 of the original advert. NULL = unknown, never assume "en". */
+  post_language: string | null;
   requirements: string | null;
   business_name: string;
   business_logo_url: string | null;
@@ -254,10 +261,17 @@ export default function SavedJobsClient({ initialSavedJobs, initialAppliedJobIds
                   </div>
                 )}
 
-                {/* Description */}
+                {/* Description. Same component as /jobs and /jobs/[id]: a
+                    non-English advert gets an Original | English toggle,
+                    anything else renders plainly. A worker who saved an
+                    Italian job keeps the translation they found it with. */}
                 <div className="mt-6">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-foreground/40">Description</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-foreground/70 whitespace-pre-line">{selectedJob.description}</p>
+                  <JobDescription
+                    description={selectedJob.description}
+                    translation={selectedJob.description_en}
+                    language={selectedJob.post_language}
+                  />
                 </div>
 
                 {/* Requirements */}
