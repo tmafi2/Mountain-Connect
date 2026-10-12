@@ -119,3 +119,53 @@ test("somebody asking for work in Italian is dropped despite naming the role", (
   assert.equal(prefilter("Ragazza 24 anni cerco lavoro come cameriera per la stagione.").send, false);
   assert.equal(prefilter("Qualcuno assume a Cortina per dicembre?").send, false);
 });
+
+// ── private households ────────────────────────────────────────────────────
+// The largest category of post that can never become a listing: a family
+// wanting a babysitter, a tutor or a carer. They are written exactly like an
+// advert — "cercasi", the role named outright — so the hiring rule sends them
+// and no amount of tuning that list can help. Every case below is a real post
+// from an Italian group.
+test("a private household looking for help at home is dropped", () => {
+  for (const [t, why] of [
+    ["Ciao cerco urgentemente baby Sitter per accompagnare i bambini a scuola la mattina.", "babysitter"],
+    ["Cerco persona aiuto compiti di matematica per la prima superiore Zona Bormio.", "homework help"],
+    ["Cerco un/a insegnante disponibile per ripetizioni di inglese per mia nipote.", "tutoring"],
+    ["Sto cercando un dog sitter a chiamata per i miei tre cani di taglia medio piccola.", "dog sitter"],
+    ["Ricercasi badante per signora anziana allettata, due ore a pranzo.", "carer"],
+    ["Cerco una persona che si occupi del mio bimbo di sei anni a Bormio.", "no role word, own child"],
+  ] as const) {
+    assert.equal(prefilter(t).send, false, why);
+  }
+});
+
+// ⚠️ THE TEST IS "IS THIS A BUSINESS", NOT "IS THIS DOMESTIC WORK". Jobs in
+// ski towns stay on the board, so a care agency or a hotel housekeeping role
+// has to survive the rule above. Both of these are real posts the replay
+// caught the first draft dropping.
+test("a business hiring for the same work is NOT dropped", () => {
+  for (const [t, why] of [
+    [
+      "Assistenza Viva Colico ricerca badante a ore per assistenza coppia di anziani vicinanze Domaso. Contratto Cs. Orario 26 ore a settimana. Lunedì di riposo.",
+      "care agency — a real employer",
+    ],
+    [
+      "Lavoro per la stagione invernale a Livigno. Siamo alla ricerca di una collaboratrice domestica che possa occuparsi anche del supporto lavanderia. Offriamo: Assunzione regolare. Sede di lavoro: Livigno.",
+      "seasonal housekeeping — 'collaboratrice domestica' means housekeeper here",
+    ],
+    [
+      "Hotel a Bormio cerca addetta ai piani e aiuto lavanderia, contratto stagionale, vitto e alloggio.",
+      "hotel housekeeping",
+    ],
+  ] as const) {
+    assert.equal(prefilter(t).send, true, why);
+  }
+});
+
+// A family-run albergo writes about its own family and is still a business.
+test("a family-run business is not mistaken for a household", () => {
+  assert.equal(
+    prefilter("Io e mio marito gestiamo un piccolo hotel a Livigno e cerchiamo un aiuto cuoco per la stagione.").send,
+    true,
+  );
+});

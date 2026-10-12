@@ -165,6 +165,61 @@ const SEEKER_PERSONAL = [
 ];
 
 /**
+ * A PRIVATE HOUSEHOLD looking for help, not an employer advertising a job.
+ *
+ * These are the largest single category of post we cannot use: on 2026-10-12,
+ * 13 of 110 Italian "hiring" posts were a family wanting a babysitter, a
+ * tutor, a carer for a grandparent, someone to walk the dogs, or a few hours
+ * of ironing. They reach step 1 and are SENT, because they are written
+ * exactly like an ad — "cercasi", "cerco urgentemente", and the role named
+ * outright — so no amount of tuning the hiring list can catch them.
+ *
+ * ⚠️ THE TEST IS "IS THIS A BUSINESS", NOT "IS THIS DOMESTIC WORK". A care
+ * agency or a cleaning company in Bormio hiring a carer is a town job and
+ * stays on the board — that is a settled call. So any employer marker
+ * overrides this entirely, and tier 2 additionally stands down whenever the
+ * post names a business of any kind.
+ *
+ * Checked before step 1 for the same reason as the seeker rules: the role
+ * word is what would otherwise carry these through.
+ */
+const HOUSEHOLD_ROLES = [
+  // Unambiguous: no ski-town business advertises for one of these.
+  "badante", "colf", "collaboratrice domestica", "collaboratore domestico",
+  "collaboratrice familiare", "ripetizioni", "aiuto compiti", "doposcuola",
+  "baby sitter", "babysitter", "baby-sitter", "babysitting",
+  "dog sitter", "dogsitter", "pet sitter", "petsitter",
+  "pulizie domestiche",
+  // ⚠️ "collaboratrice domestica" and "aiuto domestico" were here and were
+  // REMOVED after the replay: a Livigno business advertising "collaboratrice
+  // domestica che possa occuparsi anche del supporto lavanderia — assunzione
+  // regolare, sede di lavoro: Livigno" is a seasonal housekeeping job, not a
+  // family. In Italian hospitality the phrase means a housekeeper. It cost
+  // two real listings in the replay; nothing is worth that here.
+];
+
+/**
+ * Tier 2 — no domestic role word, but the post is plainly about the poster's
+ * own family or pets: "una persona che si occupi del mio bimbo di sei anni".
+ *
+ * ⚠️ A possessive ALONE is not enough and must never be. Family-run alberghi
+ * genuinely write "io e mio marito gestiamo l'hotel", and that is a business.
+ * So this only fires when the post names no business of any kind either.
+ */
+const HOUSEHOLD_PERSONAL = [
+  "mia figlia", "mio figlio", "mia nipote", "mio nipote",
+  "mio bimbo", "mia bimba", "i miei bambini", "il mio bambino",
+  "i miei cani", "il mio cane", "la mia gattina",
+  "mia madre", "mio padre", "mia suocera", "mia mamma",
+];
+const BUSINESS_NOUNS = [
+  "hotel", "albergo", "ristorante", "pizzeria", "bar", "baita", "rifugio",
+  "struttura", "azienda", "negozio", "b&b", "bed and breakfast", "agenzia",
+  "società", "impresa", "locale", "stabilimento", "catena", "gruppo",
+  "chalet", "residence", "camping", "pasticceria", "panificio", "caseificio",
+];
+
+/**
  * Markers that a post is from a business even though it greets the group.
  * A small operator really does write "Hi everyone! We're looking for a chef
  * at our cafe" — these keep those out of the seeker rule.
@@ -180,6 +235,22 @@ const EMPLOYER_MARKERS = [
   // this, "HELP EXCHANGE in Nagano — we are a couple in our forties" is read
   // as a self-advertisement, because the seeker rule runs first by design.
   "help exchange", "helpx", "work exchange", "looking for helper",
+  // ⚠️ ITALIAN. This list was English-only, which made every Italian employer
+  // invisible to the overrides above. The replay found two real businesses
+  // dropped by the household rule for exactly that reason — a care agency
+  // ("Assistenza Viva Colico ricerca badante a ore ... contratto Cs. Orario
+  // 26 ore a settimana") and a Livigno housekeeping job. Both say what an
+  // employer says and a family does not: terms of employment.
+  "offriamo", "assunzione", "assumiamo", "contratto", "contratti",
+  "sede di lavoro", "siamo alla ricerca", "inviare cv", "inviare curriculum",
+  "mandare cv", "retribuzione", "stipendio", "ccnl", "orario di lavoro",
+  "giorno di riposo", "tempo determinato", "tempo indeterminato",
+  "vitto e alloggio", "partita iva",
+  // ⚠️ "ore settimanali", "a settimana" and "in regola" were tried here and
+  // REMOVED: a family hiring a carer says "54 ore settimanali" and "in regola
+  // ovviamente" just as readily as a company does, and keeping them cost
+  // three correct household catches while saving nothing — the care agency
+  // they were meant to protect is already carried by "contratto".
 ];
 
 export interface PrefilterVerdict {
@@ -227,6 +298,24 @@ export function prefilter(text: string | null | undefined, hasImages = false): P
   const employer = EMPLOYER_MARKERS.some((x) => contains(t, x));
   if (introduces && personal && !employer) {
     return { send: false, reason: `self-advertisement (${personal})` };
+  }
+
+  // Step 0c — a private household wanting help at home. Must precede step 1:
+  // "cercasi babysitter" trips the hiring rule on "cercasi" while being the
+  // one thing on this board that can never become a listing, because there is
+  // no business behind it. An employer marker overrides it outright, so an
+  // agency recruiting carers in a ski town still gets through.
+  if (!employer) {
+    const household = HOUSEHOLD_ROLES.find((x) => contains(t, x));
+    if (household) {
+      return { send: false, reason: `private household (${household})` };
+    }
+    // Tier 2 — the poster's own family or pets, and no business named
+    // anywhere in the post.
+    const personal = HOUSEHOLD_PERSONAL.find((x) => contains(t, x));
+    if (personal && !BUSINESS_NOUNS.some((x) => contains(t, x))) {
+      return { send: false, reason: `private household (${personal})` };
+    }
   }
 
   // Step 1 — any hiring signal wins outright.
