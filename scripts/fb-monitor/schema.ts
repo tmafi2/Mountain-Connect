@@ -139,6 +139,7 @@ export type ExtractedPost = {
   confidence: ConfidenceLevel;
   reasoning: string;
   postLanguage: string;
+  descriptionEnglish: string | null;
   businessName: string | null;
   contactMethod: (typeof CONTACT_METHODS)[number];
   contactValue: string | null;
@@ -298,6 +299,13 @@ export const EXTRACTION_SCHEMA: JsonSchema = {
       type: "string",
       description: "Dominant language as a lowercase ISO 639-1 code, e.g. 'en', 'ja', 'fr'.",
     },
+    descriptionEnglish: optionalString(
+      "An ENGLISH translation of the advert, for a worker who does not read the original. " +
+        "Translate the text faithfully — do not summarise, do not add, do not improve it, and keep " +
+        "pay figures, dates, hours and contact details EXACTLY as written. " +
+        "⚠️ Leave this EMPTY when postLanguage is 'en': an English post needs no translation and an " +
+        "empty value is how the site knows that.",
+    ),
     businessName: optionalString(
       "The hiring business, in the script the post used. Empty if the post names no business.",
     ),
@@ -327,6 +335,7 @@ export const EXTRACTION_SCHEMA: JsonSchema = {
     "confidence",
     "reasoning",
     "postLanguage",
+    "descriptionEnglish",
     "businessName",
     "contactMethod",
     "contactValue",
@@ -386,6 +395,7 @@ export function normaliseExtraction(raw: unknown): ExtractedPost {
     confidence: post.confidence as ConfidenceLevel,
     reasoning: typeof post.reasoning === "string" ? post.reasoning : "",
     postLanguage: typeof post.postLanguage === "string" ? post.postLanguage : "",
+    descriptionEnglish: fromOptionalString(post.descriptionEnglish),
     businessName: fromOptionalString(post.businessName),
     contactMethod: post.contactMethod as ExtractedPost["contactMethod"],
     contactValue: fromOptionalString(post.contactValue),

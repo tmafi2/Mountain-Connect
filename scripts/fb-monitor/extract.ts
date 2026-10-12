@@ -163,6 +163,8 @@ Everything you return is reviewed by a human before it goes live, so "low" costs
 LANGUAGE
 Japanese, French and mixed-language posts are normal. Extract into the same English field structure and set postLanguage to the dominant language. Keep businessName in the script the post used — that is how the business writes its own name. But give jobTitle, resortName and townName in ENGLISH: those are matched against English tables and read by English-speaking workers, so "Niseko" not "ニセコ", "Front Desk Staff" not "フロントスタッフ".
 
+When the post is NOT in English, also fill descriptionEnglish with a faithful English translation of the whole advert, so a worker who does not read the original can still judge the job. Translate, do not summarise and do not improve: keep every pay figure, date, shift pattern, deadline and contact detail exactly as written, and leave a term you are unsure of in the original with the English in brackets. If the post is already in English, leave descriptionEnglish EMPTY — an empty value is how the site knows no translation is needed, and a copy of the original would be indistinguishable from a real translation.
+
 Use only the enum values given in the schema. Prefer "Other" over inventing a category.`;
 
 let client: Anthropic | null = null;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import JobDescription from "@/components/ui/JobDescription";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatPay } from "@/lib/utils/format-pay";
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: JobPageProps): Promise<Metada
   const { data: job } = await supabase
     .from("job_posts")
     .select(`
-      title, description, pay_amount, pay_currency, salary_range, position_type, category,
+      title, description, description_en, post_language, pay_amount, pay_currency, salary_range, position_type, category,
       start_date, end_date, accommodation_included, created_at,
       business_profiles!inner(business_name, location),
       resorts(name, country),
@@ -576,9 +577,11 @@ export default async function JobDetailPage({ params }: JobPageProps) {
                 </svg>
                 About the Role
               </h2>
-              <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/75">
-                {job.description}
-              </div>
+              <JobDescription
+                description={job.description}
+                translation={job.description_en}
+                language={job.post_language}
+              />
             </section>
 
             {/* Requirements */}

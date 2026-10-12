@@ -63,6 +63,8 @@ export async function POST(request: Request) {
   const businessName = pick("businessName", "business_name");
   const jobTitle = pick("jobTitle", "job_title");
   const description = pick("description");
+  const postLanguage = pick("postLanguage", "post_language").toLowerCase();
+  const descriptionEnglish = pick("descriptionEnglish", "description_en");
   const location = pick("location");
   const country = pick("country");
   const businessEmail = pick("businessEmail", "business_email").toLowerCase();
@@ -335,6 +337,16 @@ export async function POST(request: Request) {
     source_url: sourceUrl || null,
     application_email: applicationEmail || null,
     import_key: importKey,
+    // ⚠️ Spread-if-present, and NEVER written as a default. NULL on
+    // description_en means "no translation exists" and must not come to mean
+    // "the post was already English" — the UI decides whether to offer a
+    // translation from exactly this. See 00118, and 00109/00114/00115 for the
+    // four times a default standing in for unknown has cost this schema.
+    // post_language was extracted all along and thrown away for listings; a
+    // charset test cannot replace it, because Italian and French are Latin
+    // script and look like English to a regex.
+    ...(postLanguage ? { post_language: postLanguage } : {}),
+    ...(descriptionEnglish ? { description_en: descriptionEnglish } : {}),
     // Spread-if-present: an absent field leaves whatever is already stored
     // alone, so re-syncing a thin payload cannot erase richer data.
     ...(requirements ? { requirements } : {}),

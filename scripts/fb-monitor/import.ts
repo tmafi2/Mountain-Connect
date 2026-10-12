@@ -313,6 +313,11 @@ async function main(): Promise<void> {
           businessName: e.businessName,
           jobTitle: role.jobTitle,
           description: row.post.text.slice(0, 5000),
+          // The original stays verbatim; the translation rides alongside it.
+          // Empty for an English post, which is how the page knows not to
+          // offer a "see translation" toggle.
+          postLanguage: e.postLanguage || null,
+          descriptionEnglish: e.descriptionEnglish ? e.descriptionEnglish.slice(0, 5000) : null,
           businessEmail,
           applicationEmail: businessEmail,
           source: SOURCE_LABEL,
