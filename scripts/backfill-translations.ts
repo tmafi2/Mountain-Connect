@@ -68,7 +68,12 @@ async function main() {
       const language: string = String(json.language ?? "").toLowerCase().slice(0, 5);
       const english: string = String(json.english ?? "").trim();
 
-      if (!english) {
+      // ⚠️ TRUST THE LANGUAGE, NOT THE PRESENCE OF TEXT. Asked to translate an
+      // English advert, the model sometimes returns a lightly rewritten copy
+      // instead of the empty string. Writing that would give the page an
+      // "Original (English) | English" toggle over two near-identical texts —
+      // worse than no toggle, and it happened to 2 rows on the first full run.
+      if (!english || language === "en") {
         alreadyEnglish++;
         // ⚠️ post_language is still worth storing: it is what stops the next
         // run asking again, and "en" is an answer, not an absence.

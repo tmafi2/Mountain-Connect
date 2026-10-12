@@ -32,8 +32,12 @@ export default function JobDescription({
 }) {
   const [showTranslation, setShowTranslation] = useState(false);
 
-  // No translation, or the post was already English — render it plainly.
-  if (!translation || !translation.trim()) {
+  // No translation, or the advert is English — render it plainly. The
+  // language check is not redundant: a translator asked to translate English
+  // can return a rewritten copy rather than nothing, and two near-identical
+  // texts behind a toggle is worse than one text.
+  const isEnglish = (language ?? "").toLowerCase() === "en";
+  if (!translation || !translation.trim() || isEnglish) {
     return (
       <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/75">
         {description}
