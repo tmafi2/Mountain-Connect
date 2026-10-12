@@ -2829,17 +2829,7 @@ export const resorts: Resort[] = [
     snowfall_avg_cm: 550,
     season_start: "2025-11-29",
     season_end: "2026-04-19",
-    main_employers: [
-    "APT Livigno (tourism board / lift management)",
-    "Mottolino Fun Mountain (lift/park operations)",
-    "Carosello 3000 (lift operations)",
-    "Hotel Lac Salin Spa & Mountain Resort",
-    "Hotel Touring",
-    "Scuola Italiana Sci Livigno (ski school)",
-    "Centrale Ski School",
-    "Duty-free shops (perfume, electronics, alcohol)",
-    "Kosmo nightclub",
-    ],
+    main_employers: ["Mottolino (lift and terrain-park operations)", "Carosello 3000 (lift operations)", "Aquagranda Livigno (municipal pool, spa and fitness centre)", "Hotels and apartments across the valley", "Bars, restaurants and clubs on the main street", "Duty-free shops (perfume, electronics, alcohol, tobacco)", "Ski and snowboard schools", "Ski hire and sports shops"],
     common_jobs: [
     "Ski/Snowboard Instructor",
     "Lift Operator",
@@ -2864,29 +2854,11 @@ export const resorts: Resort[] = [
     cost_of_living_weekly: "EUR €150–€300 (housing, food, transport — duty-free makes Livigno affordable)",
     public_transport:
     "Free ski bus throughout Livigno. Bus to Bormio (40 min) and Tirano train station (1.5 hrs, connecting to Bernina Express). Milan Malpensa Airport 3.5 hrs. Innsbruck Airport 3 hrs. Access via Munt La Schera tunnel (from Switzerland) or Foscagno Pass.",
-    staff_perks: [
-    "Discounted or free season pass",
-    "Staff meals at hotels/restaurants",
-    "Duty-free shopping (alcohol, tobacco, perfume, electronics at reduced prices)",
-    "Pro deals on gear",
-    "Access to Aquagranda Active You! (pool, spa, fitness)",
-    ],
-    apres_scene:
-    "Fun, youthful après scene. Mottolino's Tea del Vidal is the main on-mountain après spot (DJs and dancing on the terrace). In town: Kosmo nightclub (Livigno's main club), Stalet Pub, Daphne's, Marco's Pub, and Helvetia Bar. The duty-free status means cheap drinks compared to other Alpine resorts.",
-    outdoor_activities: [
-    "Terrain park riding (Mottolino — one of Europe's best parks)",
-    "Cross-country skiing (extensive trails)",
-    "Snowshoeing",
-    "Fat biking",
-    "Dog sledding",
-    "Ice skating",
-    "Swimming (Aquagranda Active You! centre)",
-    "Duty-free shopping",
-    ],
-    healthcare_access:
-    "Ambulatorio Medico Livigno (medical centre) with doctors. Pharmacy in the town centre. Nearest hospital: Ospedale di Sondalo (1 hr) or Ospedale di Bormio (40 min for emergencies).",
-    shops_and_services:
-    "Multiple duty-free shops selling electronics, perfume, alcohol, tobacco at reduced prices. Eurospin and Conad supermarkets, bakeries, banks, ATMs, post office, gear shops. The duty-free shopping is a major draw.",
+    staff_perks: ["Discounted or free season pass", "Staff meals at hotels and restaurants", "Duty-free shopping (alcohol, tobacco, perfume, electronics at reduced prices)", "Pro deals on gear", "Access to the municipal pool, spa and fitness centre"],
+    apres_scene: "Young, busy and cheap by Alpine standards — Livigno is a duty-free zone, so a round costs noticeably less than it would in Cortina or Courmayeur, and that shapes the evenings. On-mountain après starts at the lift-base terraces with DJs on a good afternoon and carries on into the bars along the main street, with a handful of late venues. It is one of the livelier scenes in the Italian Alps and draws a lot of seasonal workers.",
+    outdoor_activities: ["Terrain park riding (one of the best-regarded parks in Europe)", "Cross-country skiing (extensive trails along the valley floor)", "Snowshoeing", "Fat biking", "Dog sledding", "Ice skating", "Swimming, spa and fitness at the municipal centre", "Duty-free shopping"],
+    healthcare_access: "A medical centre (ambulatorio) in the town with doctors through the season, and a pharmacy in the centre. The nearest hospitals are at Bormio, about 40 minutes away for emergencies, and Sondalo, about an hour, both run by [ASST Valtellina e Alto Lario](https://www.asst-val.it). ⚠️ The Foscagno pass between Livigno and Bormio can close in heavy snow, which is worth knowing before you rely on that 40 minutes.",
+    shops_and_services: "Livigno's duty-free status is the defining feature: shops selling electronics, perfume, alcohol and tobacco at well below mainland Italian prices, and the shopping is a draw in its own right. Supermarkets, bakeries, banks, ATMs, a post office and gear shops all along the main street.",
     international_community_size:
     "Moderate — growing international community, particularly Eastern European workers. Italian remains the dominant language. Smaller English-speaking community than French or Austrian resorts but increasing due to 2026 Olympics profile.",
     avg_winter_temp_min_c: -12,
@@ -2923,16 +2895,7 @@ export const resorts: Resort[] = [
     snowfall_avg_cm: 430,
     season_start: "2025-11-29",
     season_end: "2026-04-05",
-    main_employers: [
-    "Cortina Skyline (new linked lift system for 2026 Olympics)",
-    "Cristallo, a Luxury Collection Resort & Spa",
-    "Grand Hotel Savoia",
-    "Hotel de la Poste",
-    "Rosapetra Spa Resort",
-    "Scuola Sci Cortina (ski school)",
-    "Scuola Sci Azzurra Cortina",
-    "Corso Italia boutiques and restaurants",
-    ],
+    main_employers: ["The Cortina lift companies", "Hotels across the town, including several five-star properties", "Restaurants, bars and wine bars off Corso Italia", "Ski and snowboard schools", "Mountain huts and rifugi in the Ampezzo Dolomites", "Luxury retail along Corso Italia", "Ski hire and sports shops"],
     common_jobs: [
     "Ski/Snowboard Instructor",
     "Hotel Receptionist / Concierge",
@@ -2964,8 +2927,7 @@ export const resorts: Resort[] = [
     "Pro deals on gear",
     "Tips in luxury hospitality",
     ],
-    apres_scene:
-    "More refined, Italian-style après. The passeggiata (evening stroll) along Corso Italia is the social event. Enoteca Cortina for wine and cicchetti. Hotel de la Poste bar (historic meeting point). VIP Club nightclub. El Zoco wine bar. Birreria Vienna for craft beer. Des Alpes terrace. Cortina's après is about style and socialising, not wild parties.",
+    apres_scene: "Refined rather than rowdy. The passeggiata along Corso Italia — an evening stroll, dressed up, before dinner — is the social event of the day, and the bars and wine bars off it fill afterwards. There is a club scene, but Cortina's evenings are about style and being seen rather than big dance floors. Expect prices to match: this is the most expensive resort town in Italy.",
     outdoor_activities: [
     "Snowshoeing in the Dolomites",
     "Cross-country skiing (Fiames Nordic area)",
@@ -2976,10 +2938,8 @@ export const resorts: Resort[] = [
     "Spa and wellness",
     "Via Ferrata (some accessible in winter with guides)",
     ],
-    healthcare_access:
-    "Ospedale di Cortina (Codivilla-Putti hospital) with emergency department — well-equipped due to resort status. Multiple pharmacies and doctors' practices on Corso Italia.",
-    shops_and_services:
-    "Luxury boutiques along Corso Italia (Moncler, Brunello Cucinelli, Benetton). Conad and Despar supermarkets, bakeries, banks, ATMs, post office, gear shops. Full-service town with year-round amenities.",
+    healthcare_access: "The Codivilla-Putti hospital in the town was rebuilt as a polyclinic for the 2026 Winter Olympics and has an emergency department — unusually well-equipped for a resort of this size. Run by [ULSS 1 Dolomiti](https://www.aulss1.veneto.it). Several pharmacies and doctors' practices on and around Corso Italia.",
+    shops_and_services: "Corso Italia is lined with luxury boutiques, and the town has supermarkets, bakeries, banks, ATMs, a post office and gear shops. A full-service town with year-round amenities rather than a resort that shuts in April.",
     international_community_size:
     "Moderate — predominantly Italian seasonal workforce with German-speaking staff from South Tyrol. Growing international presence post-Olympics. Less English-dominant than French/Austrian resorts.",
     avg_winter_temp_min_c: -10,
@@ -3016,16 +2976,7 @@ export const resorts: Resort[] = [
     snowfall_avg_cm: 500,
     season_start: "2025-10-25",
     season_end: "2026-05-03",
-    main_employers: [
-    "Cervino SpA (lift company)",
-    "Hotel Hermitage Relais & Châteaux",
-    "Grand Hotel des Guides",
-    "Hotel Excelsior Planet",
-    "Saint-Hubertus Resort",
-    "Scuola Sci del Cervino (ski school)",
-    "Scuola Sci Breuil-Cervinia",
-    "Restaurants along Via Carrel",
-    ],
+    main_employers: ["Cervino S.p.A. (the lift company)", "Hotels and guesthouses in the village", "Bars and restaurants along Via Carrel", "Ski and snowboard schools", "Mountain restaurants and rifugi", "Mountain guide companies", "Ski hire and sports shops"],
     common_jobs: [
     "Ski/Snowboard Instructor",
     "Lift Operator",
@@ -3057,8 +3008,7 @@ export const resorts: Resort[] = [
     "Pro deals on gear",
     "Access to cross-border skiing into Switzerland",
     ],
-    apres_scene:
-    "Relaxed Italian-style après with good food and wine. Copa Pan bar is the main on-mountain après spot. In the village: Yeti Bar, Dragon Bar, Pub The Goat, and Hostellerie des Guides bar. More about lingering over aperitivo and local wines than wild parties. Excellent restaurants: La Brenva, Le Samovar, Ristorante Wood.",
+    apres_scene: "Relaxed, Italian-style après built around aperitivo rather than big nights out — a drink and something to eat as the lifts close, often lingering into dinner. Most of the bars and restaurants are along Via J.A. Carrel and the streets off it, within walking distance of each other, and several hotels run bars open to non-residents. There is on-mountain après at the lift bases too, but the village is where the evening ends up.",
     outdoor_activities: [
     "Cross-border skiing to Zermatt",
     "Summer glacier skiing (Plateau Rosa)",
@@ -3069,10 +3019,8 @@ export const resorts: Resort[] = [
     "Winter hiking",
     "Spa and wellness",
     ],
-    healthcare_access:
-    "Guardia Medica Turistica Cervinia (tourist medical service). Pharmacy in the village. Nearest hospital: Ospedale Umberto Parini in Aosta (1 hr).",
-    shops_and_services:
-    "Small Despar supermarket, bakeries, banks, ATMs, gear rental shops, and boutiques along Via Carrel. Limited compared to larger resorts — Aosta (1 hr) for larger shopping.",
+    healthcare_access: "A seasonal tourist medical service (guardia medica turistica) operates in the village through the winter, and there is a pharmacy. The nearest hospital is the [Ospedale Umberto Parini](https://www.ausl.vda.it) in Aosta, about an hour away and the only hospital in Valle d'Aosta.",
+    shops_and_services: "A supermarket, bakeries, banks and ATMs, several ski-hire and gear shops, and boutiques along Via Carrel. Limited compared with a larger resort — Aosta, about an hour away, is where people go for anything substantial.",
     international_community_size:
     "Small to moderate — predominantly Italian seasonal workforce with some French speakers from the Aosta Valley bilingual tradition. Small but growing international community. Less English-dominant than other major resorts.",
     avg_winter_temp_min_c: -12,
