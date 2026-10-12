@@ -45,17 +45,39 @@ async function main() {
   const { data, error } = await db
     .from("job_posts")
     .select("id, title, description, post_language, description_en")
-    .is("description_en", null)
+    // ⚠️ SELECT ON post_language, NOT ON description_en. An English advert
+    // correctly ends with description_en still NULL, so filtering on that
+    // alone re-selects every English listing on every run — a second run
+    // re-assessed 50 known-English rows and translated nothing. post_language
+    // is set for every row the script has looked at, English or not, so it is
+    // the only column that records "already considered".
+    .is("post_language", null)
     .not("description", "is", null)
     .limit(LIMIT);
   if (error) throw error;
 
   console.log(`${data!.length} listing(s) with no translation yet${APPLY ? "" : "  (dry run — pass --apply to write)"}\n`);
-  let translated = 0, alreadyEnglish = 0, failed = 0;
+  let translated = 0, alreadyEnglish = 0, failed = 0, shortSkipped = 0;
 
   for (const job of data as { id: string; title: string; description: string }[]) {
     const text = (job.description ?? "").slice(0, 6000);
     if (!text.trim()) continue;
+
+    // ⚠️ TOO SHORT TO TRANSLATE, AND TOO SHORT TO ASK ABOUT SAFELY. One
+    // listing stores 27 characters ("We're hiring! The BullWheel"). Asked to
+    // translate it the model answered differently each time — once with no
+    // JSON at all, once by INVENTING a full job advert (role titles, an
+    // application address, "Thanks!") and appending the JSON after it. Nothing
+    // invented was ever stored, because only the `english` field is read and
+    // it came back empty — but a prompt that makes a model fabricate an advert
+    // is not one to keep feeding. There is nothing to translate in a fragment
+    // this short, so it is marked assessed and skipped without an API call.
+    if (text.trim().length < 60) {
+      shortSkipped++;
+      console.log(`  --   ${job.title.slice(0, 44).padEnd(46)} ${text.trim().length} chars — too short to translate`);
+      if (APPLY) await db.from("job_posts").update({ post_language: "und" }).eq("id", job.id);
+      continue;
+    }
     try {
       const res = await ai.messages.create({
         model: "claude-opus-5",
@@ -63,8 +85,18 @@ async function main() {
         system: SYSTEM,
         messages: [{ role: "user", content: text }],
       });
+      // ⚠️ A response can come back with a thinking block and NO text block.
+      // Slicing an empty string between a missing { and } yields "", and
+      // JSON.parse("") reports "Unexpected end of JSON input" — which reads
+      // like malformed JSON from the model and is actually no JSON at all.
+      // Say which it is, because the two have different fixes.
       const raw = res.content.find((c) => c.type === "text")?.text ?? "";
-      const json = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
+      const open = raw.indexOf("{");
+      const close = raw.lastIndexOf("}");
+      if (open === -1 || close <= open) {
+        throw new Error(`no JSON object in the reply (stop_reason=${res.stop_reason}, ${raw.length} chars of text)`);
+      }
+      const json = JSON.parse(raw.slice(open, close + 1));
       const language: string = String(json.language ?? "").toLowerCase().slice(0, 5);
       const english: string = String(json.english ?? "").trim();
 
@@ -96,7 +128,7 @@ async function main() {
     }
   }
 
-  console.log(`\n  ${translated} translated, ${alreadyEnglish} already English, ${failed} failed`);
+  console.log(`\n  ${translated} translated, ${alreadyEnglish} already English, ${shortSkipped} too short, ${failed} failed`);
   if (!APPLY) console.log("  nothing was written — pass --apply");
 }
 
