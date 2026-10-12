@@ -7491,4 +7491,75 @@ export const resorts: Resort[] = [
     is_verified: false,
   }),
 
+  // ── Val di Sole and Alta Badia, added 2026-10-12 ──────────────────────
+  // Both were NAMED BY REAL SCRAPED ADVERTS and rejected as "resort did not
+  // match" on the 2026-10-12 Italy run. Ships WITH migration 00119 — see 00103
+  // on why both halves are required.
+  createResort({
+    id: "121",
+    name: "Val di Sole",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "A Trentino valley rather than a single mountain, holding Folgarida-Marilleva — which links over the ridge into Madonna di Campiglio — plus Pejo 3000 and the approach to Passo Tonale. Folgarida-Marilleva alone carries about 63km of piste on 24 lifts between 900m and 2,179m, and the valley's combined pass reaches roughly 270km. A working valley with real towns in it, so accommodation is easier to find than in a purpose-built resort.",
+    latitude: 46.3503,
+    longitude: 10.9128,
+    state_province: "Trentino",
+    nearest_town: "Malè",
+    website: "https://www.visitvaldisole.it",
+    num_runs: null,
+    vertical_drop_m: 1279,
+    base_elevation_m: 900,
+    summit_elevation_m: 2179,
+    num_lifts: 24,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["Funivie Folgarida Marilleva (lift company)", "Hotels in Folgarida, Marilleva, Dimaro and Malè", "Ski schools across the valley", "Mountain restaurants and rifugi", "Rafting and outdoor operators on the Noce"],
+    common_jobs: ["Lift Operator", "Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Bartender", "Ski/Snowboard Instructor", "Ski Technician"],
+    languages_required: ["Italian", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels recruit from September for a December start. The valley also has a summer season on the Noce — one of Europe's better-known whitewater rivers — so some employers hire twice a year.",
+    staff_housing_available: true,
+    public_transport:
+      "The Trento–Malè–Mezzana railway runs the length of the valley and reaches the lift stations, which is unusual for an Italian ski area. Trento is about 1 hr 15.",
+    snow_reliability: "medium",
+    is_verified: false,
+  }),
+  createResort({
+    id: "122",
+    name: "Alta Badia",
+    banner_image_url: "/resorts/countries/italy.jpg",
+    region_id: "1",
+    country: "Italy",
+    description:
+      "A Ladin-speaking valley in the Dolomites holding Corvara, La Villa, San Cassiano, Badia and Colfosco, with about 130km of its own piste on 53 lifts and a place on the Sellaronda circuit. Inside Dolomiti Superski, the largest linked lift pass in the world. ⚠️ Ladin is the valley's own language and German is widely spoken — most guests come from Germany and Austria, so German is worth more than Italian for guest-facing work.",
+    latitude: 46.5506,
+    longitude: 11.875,
+    state_province: "South Tyrol",
+    nearest_town: "Corvara",
+    website: "https://www.altabadia.org",
+    num_runs: null,
+    vertical_drop_m: 1454,
+    base_elevation_m: 1324,
+    summit_elevation_m: 2778,
+    num_lifts: 53,
+    season_start: "2026-11-28",
+    season_end: "2027-04-11",
+    main_employers: ["Skicarosello Corvara and the Alta Badia lift companies", "Hotels across Corvara, La Villa, San Cassiano and Colfosco", "Ski schools in each village", "Mountain huts on the Sellaronda", "Michelin-starred restaurants in San Cassiano"],
+    common_jobs: ["Hotel Receptionist", "Housekeeping", "Chef / Kitchen Staff", "Waiter / Waitress", "Bartender", "Lift Operator", "Ski/Snowboard Instructor", "Ski Technician", "Spa Therapist"],
+    languages_required: ["Italian", "German", "English"],
+    visa_requirements:
+      "EU/EEA citizens can work freely under EU freedom of movement. Non-EU citizens need an Italian seasonal work permit (nulla osta for seasonal work), which requires employer sponsorship and falls under Italy's seasonal quotas (decreto flussi). UK citizens post-Brexit require a work permit.",
+    recruitment_timeline:
+      "Hotels recruit from August for a December start. The valley's hotel stock skews upmarket and several kitchens hold Michelin stars, so experience counts for more here than in a big resort.",
+    staff_housing_available: true,
+    public_transport:
+      "Bus to Brunico (1 hr) or Bolzano (1.5 hrs) for mainline trains. The Sella and Campolongo passes close in winter; the valley road does not.",
+    snow_reliability: "high",
+    is_verified: false,
+  }),
+
 ];
