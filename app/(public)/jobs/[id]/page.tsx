@@ -407,12 +407,6 @@ export default async function JobDetailPage({ params }: JobPageProps) {
 
       {/* ── Content ───────────────────────────────────────────── */}
       <div className="mx-auto max-w-5xl px-6 py-8">
-        {isUnclaimed && (
-          <ClaimPrompt
-            jobId={job.id}
-            businessName={biz?.business_name || "this business"}
-          />
-        )}
         {/* grid-cols-1 is explicit on purpose — without it, the grid
             falls back to grid-auto-columns: auto on mobile and any
             unbreakable inline content (e.g. a long Facebook tracking
@@ -939,6 +933,16 @@ export default async function JobDetailPage({ params }: JobPageProps) {
               })}
             </div>
           </section>
+        )}
+
+        {/* The owner's claim invitation sits last: the page above it is for
+            the job seeker, and an owner who came to claim their own listing
+            will scroll. Moved here from above the job content 2026-10-12. */}
+        {isUnclaimed && (
+          <ClaimPrompt
+            jobId={job.id}
+            businessName={biz?.business_name || "this business"}
+          />
         )}
       </div>
     </div>

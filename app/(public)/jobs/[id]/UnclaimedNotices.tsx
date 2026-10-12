@@ -13,12 +13,14 @@ import { useState } from "react";
  *
  * So they are split by who they are for:
  *
- *   ClaimPrompt        for the OWNER. Stays where the banner was, because it
- *                      is the funnel that turns an imported shell into a real
+ *   ClaimPrompt        for the OWNER, at the FOOT of the page. It is the
+ *                      funnel that turns an imported shell into a real
  *                      account — 14 of 143 businesses have claimed, and this
- *                      is one of the few things that moves that number. But it
- *                      is styled as an invitation, not an alarm: a worker
- *                      skims past it, an owner sees their own name and acts.
+ *                      is one of the few things that moves that number — but
+ *                      the first screen belongs to the job seeker, and an
+ *                      owner who has come to claim their own listing will
+ *                      scroll. It sat above the job content until 2026-10-12.
+ *                      Styled as an invitation, not an alarm.
  *
  *   UnclaimedFootnote  for the WORKER. Fine print at the foot of the page,
  *                      folded in with the "sourced from" line that already
@@ -45,7 +47,7 @@ export function ClaimPrompt({ jobId, businessName }: UnclaimedProps) {
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-accent/60 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-12 flex flex-col gap-3 rounded-2xl border border-accent/60 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/10">
             <svg className="h-5 w-5 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
