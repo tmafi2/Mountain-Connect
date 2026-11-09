@@ -1,11 +1,19 @@
 interface EoiThresholdNudgeEmailProps {
+  /**
+   * A sanitised opening from one applicant's cover letter, or undefined.
+   * ALWAYS from lib/email/cover-letter-excerpt.ts, which refuses rather than
+   * redacts and respects expressions_of_interest.share_with_employer.
+   */
+  coverLetterExcerpt?: string;
   businessName: string;
   jobTitle: string;
   eoiCount: number;
   claimUrl: string;
 }
 
-export function eoiThresholdNudgeEmail({ businessName, jobTitle, eoiCount, claimUrl }: EoiThresholdNudgeEmailProps) {
+export function eoiThresholdNudgeEmail({ businessName, jobTitle, eoiCount, claimUrl,
+  coverLetterExcerpt,
+}: EoiThresholdNudgeEmailProps) {
   return {
     subject: `${eoiCount} workers want your ${jobTitle} job`,
     html: `
@@ -42,6 +50,19 @@ export function eoiThresholdNudgeEmail({ businessName, jobTitle, eoiCount, claim
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
               They're ready to hear from you. Claim the listing to see their details, message them directly, and start interviewing — all in one place.
             </p>
+
+            ${coverLetterExcerpt ? `
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;">
+              <tr>
+                <td bgcolor="#f5f8fb" style="background-color:#f5f8fb;border-left:3px solid #2577ad;padding:16px 18px;">
+                  <p style="margin:0 0 8px;color:#8899a6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;">From one of the applications</p>
+                  <p style="margin:0;color:#3d4f5f;font-size:14px;line-height:1.65;font-style:italic;">&ldquo;${coverLetterExcerpt}&rdquo;</p>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+              Claim your listing to read it in full and see who wrote it.
+            </p>` : ""}
 
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
               <tr>

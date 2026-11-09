@@ -422,6 +422,7 @@ export async function sendImportOutreachEmail(params: {
   source: string;
   claimUrl: string;
   eoiCount: number;
+  coverLetterExcerpt?: string;
   /** Further listings published for this business in the same action. */
   otherListings?: number;
 }) {
@@ -441,6 +442,7 @@ export async function sendEoiThresholdNudgeEmail(params: {
   jobTitle: string;
   eoiCount: number;
   claimUrl: string;
+  coverLetterExcerpt?: string;
 }) {
   const { subject, html } = eoiThresholdNudgeEmail(params);
   return sendEmail({
@@ -457,6 +459,7 @@ export async function sendFirstApplicantNudgeEmail(params: {
   businessName: string;
   jobTitle: string;
   claimUrl: string;
+  coverLetterExcerpt?: string;
 }) {
   const { subject, html } = firstApplicantNudgeEmail(params);
   return sendEmail({
@@ -535,6 +538,7 @@ export async function sendClaimLastChanceEmail(params: {
   eoiCount: number;
   takedownDate: string;
   claimUrl: string;
+  coverLetterExcerpt?: string;
 }) {
   const { subject, html } = claimLastChanceEmail(params);
   return sendEmail({
@@ -923,6 +927,7 @@ export async function sendClaimApplicantsWaitingEmail(params: {
   roles: Array<{ title: string; count: number }>;
   totalWaiting: number;
   claimUrl: string;
+  coverLetterExcerpt?: string;
 }) {
   const { subject, html } = claimApplicantsWaitingEmail(params);
   return sendEmail({

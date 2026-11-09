@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEoiThresholdNudgeEmail, sendFirstApplicantNudgeEmail } from "@/lib/email/send";
+import { coverLetterExcerpt } from "@/lib/email/cover-letter-excerpt";
+import { SITE_ORIGIN } from "@/lib/config/site";
 import { hasUnsubscribed } from "@/lib/outreach/suppression";
 
 const EOI_NUDGE_THRESHOLD = 5;
@@ -97,6 +99,11 @@ export async function POST(
       return NextResponse.json({ error: "Failed to submit interest" }, { status: 500 });
     }
 
+    // The letter that triggered the nudge is the one worth quoting, and it is
+    // already in hand — no second query. Sanitised and consent-aware: see
+    // lib/email/cover-letter-excerpt.ts, which refuses rather than redacts.
+    const excerpt = coverLetterExcerpt({ message, consent: shareWithEmployer }) ?? undefined;
+
     // Fire one-shot nudge emails as the business's EOI count grows.
     // Counts EOIs across ALL of the business's job posts so multiple
     // imported listings are nudged based on aggregate interest.
@@ -132,8 +139,11 @@ export async function POST(
         .eq("job_posts.business_id", biz.id);
 
       if (count !== null) {
-        const origin = new URL(request.url).origin;
-        const claimUrl = `${origin}/claim/${biz.claim_token}`;
+        // ⚠️ SITE_ORIGIN, never the request's own origin. A claim link built
+        // from request.url is the shape that made every dormancy warning
+        // unopenable (b71e55e): correct for a visitor on the public site,
+        // wrong from anywhere else, and silently so.
+        const claimUrl = `${SITE_ORIGIN}/claim/${biz.claim_token}`;
 
         // First-applicant nudge — fires the moment interest exists.
         if (!biz.first_applicant_email_sent_at && count >= 1) {
@@ -149,6 +159,7 @@ export async function POST(
             businessName: biz.business_name,
             jobTitle: job.title,
             claimUrl,
+            coverLetterExcerpt: excerpt,
           }).catch((err) => console.error("Failed to send first-applicant nudge:", err));
         }
 
@@ -166,6 +177,7 @@ export async function POST(
             jobTitle: job.title,
             eoiCount: count,
             claimUrl,
+            coverLetterExcerpt: excerpt,
           }).catch((err) => console.error("Failed to send EOI nudge:", err));
         }
       }

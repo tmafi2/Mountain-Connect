@@ -8,6 +8,7 @@ import {
   sendClaimApplicantsWaitingEmail,
 } from "@/lib/email/send";
 import { loadUnsubscribed, suppressed } from "@/lib/outreach/suppression";
+import { coverLetterExcerpt } from "@/lib/email/cover-letter-excerpt";
 import { SITE_ORIGIN } from "@/lib/config/site";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
@@ -155,7 +156,7 @@ export async function GET(request: Request) {
     try {
       // Count both EOIs and applications against this business — they're
       // both signals of worker interest that should nudge a claim.
-      const [eoiRes, appRes, jobRes] = await Promise.all([
+      const [eoiRes, appRes, jobRes, letterRes] = await Promise.all([
         admin
           .from("expressions_of_interest")
           .select("id, job_posts!inner(business_id)", { count: "exact", head: true })
@@ -172,12 +173,31 @@ export async function GET(request: Request) {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        // The newest few applications, so one of them can be quoted. Several
+        // rather than one because the sanitiser refuses about a third of
+        // letters outright, and the newest is often the one it refuses.
+        admin
+          .from("expressions_of_interest")
+          .select("message, share_with_employer, job_posts!inner(business_id)")
+          .eq("job_posts.business_id", biz.id)
+          .order("created_at", { ascending: false })
+          .limit(5),
       ]);
 
       const total = (eoiRes.count ?? 0) + (appRes.count ?? 0);
       if (total < 1) continue;
       const jobTitle = (jobRes.data?.title as string | undefined)?.trim() || "your role";
       const claimUrl = `${origin}/claim/${biz.claim_token}`;
+      // First of the recent letters that survives the sanitiser, if any.
+      const excerpt =
+        (letterRes.data ?? [])
+          .map((r) =>
+            coverLetterExcerpt({
+              message: r.message as string | null,
+              consent: r.share_with_employer as boolean | null,
+            }),
+          )
+          .find((x): x is string => Boolean(x)) ?? undefined;
 
       // Threshold takes precedence — if a business qualifies for both
       // (e.g. they've been sitting at 8 with no nudge ever sent), only
@@ -197,6 +217,7 @@ export async function GET(request: Request) {
           jobTitle,
           eoiCount: total,
           claimUrl,
+          coverLetterExcerpt: excerpt,
         });
         result.thresholdSent++;
       } else if (!biz.first_applicant_email_sent_at) {
@@ -214,6 +235,7 @@ export async function GET(request: Request) {
             businessName: biz.business_name,
             jobTitle,
             claimUrl,
+            coverLetterExcerpt: excerpt,
           });
         } else {
           await sendEoiThresholdNudgeEmail({
@@ -222,6 +244,7 @@ export async function GET(request: Request) {
             jobTitle,
             eoiCount: total,
             claimUrl,
+            coverLetterExcerpt: excerpt,
           });
         }
         result.firstApplicantSent++;

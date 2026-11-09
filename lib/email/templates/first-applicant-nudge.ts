@@ -1,10 +1,23 @@
 interface FirstApplicantNudgeEmailProps {
+  /**
+   * A sanitised opening from one applicant's cover letter, or undefined.
+   * ALWAYS from lib/email/cover-letter-excerpt.ts — never the raw `message`,
+   * which carries an email address, a phone number or the writer's own name
+   * in about one application in five. The helper refuses rather than
+   * redacts, and respects expressions_of_interest.share_with_employer.
+   */
+  coverLetterExcerpt?: string;
   businessName: string;
   jobTitle: string;
   claimUrl: string;
 }
 
-export function firstApplicantNudgeEmail({ businessName, jobTitle, claimUrl }: FirstApplicantNudgeEmailProps) {
+export function firstApplicantNudgeEmail({
+  businessName,
+  jobTitle,
+  claimUrl,
+  coverLetterExcerpt,
+}: FirstApplicantNudgeEmailProps) {
   return {
     subject: `Someone's interested in your ${jobTitle} role`,
     html: `
@@ -41,6 +54,19 @@ export function firstApplicantNudgeEmail({ businessName, jobTitle, claimUrl }: F
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
               Claim your free business profile to see their details, message them directly, and start interviewing — all in one place.
             </p>
+
+              ${coverLetterExcerpt ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;">
+                <tr>
+                  <td bgcolor="#f5f8fb" style="background-color:#f5f8fb;border-left:3px solid #2577ad;padding:16px 18px;">
+                    <p style="margin:0 0 8px;color:#8899a6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;">From one of the applications</p>
+                    <p style="margin:0;color:#3d4f5f;font-size:14px;line-height:1.65;font-style:italic;">&ldquo;${coverLetterExcerpt}&rdquo;</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+                Claim your listing to read it in full and see who wrote it.
+              </p>` : ""}
 
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
               <tr>
