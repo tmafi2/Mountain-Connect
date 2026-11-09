@@ -37,6 +37,7 @@ import { importOutreachEmail } from "./templates/import-outreach";
 import { adminListingClaimedEmail } from "./templates/admin-listing-claimed";
 import { eoiThresholdNudgeEmail } from "./templates/eoi-threshold-nudge";
 import { firstApplicantNudgeEmail } from "./templates/first-applicant-nudge";
+import { claimInviteItEmail } from "./templates/claim-invite-it";
 import { claimLastChanceEmail } from "./templates/claim-last-chance";
 import { winterOutreachEmail } from "./templates/winter-outreach";
 import { winterFollowup1Email } from "./templates/winter-followup-1";
@@ -458,6 +459,36 @@ export async function sendFirstApplicantNudgeEmail(params: {
   return sendEmail({
     from: TYLER_FROM_EMAIL,
     to: params.to,
+    replyTo: TYLER_REPLY_TO,
+    subject,
+    html,
+  });
+}
+
+/**
+ * The claim invitation in Italian. Same send path and same reply-to as the
+ * English invite — it is a different language, not a different kind of email.
+ *
+ * Chosen by the CALLER, from the resort country of the business's listings,
+ * because business_profiles has no language of its own. Today only
+ * scripts/send-claim-invite-it.ts calls it; the automated cadence (the
+ * first-applicant nudge, the five-applicant nudge, the dormancy warnings) is
+ * still English everywhere.
+ */
+export async function sendClaimInviteItEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  listingCount: number;
+  applicantCount: number;
+  claimUrl: string;
+  source: string;
+}) {
+  const { to, ...rest } = params;
+  const { subject, html } = claimInviteItEmail(rest);
+  return sendEmail({
+    from: TYLER_FROM_EMAIL,
+    to,
     replyTo: TYLER_REPLY_TO,
     subject,
     html,
