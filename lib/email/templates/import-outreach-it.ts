@@ -105,8 +105,8 @@ export function importOutreachItEmail({
         : "ANNUNCIO ATTIVO";
 
   const sawLine = many
-    ? `Abbiamo notato i vostri ${listingCount} annunci di lavoro su ${source}`
-    : `Abbiamo notato il vostro annuncio di lavoro su ${source}`;
+    ? `Abbiamo notato i vostri annunci di lavoro`
+    : `Abbiamo notato il vostro annuncio di lavoro`;
 
   return {
     subject: subjectLine,

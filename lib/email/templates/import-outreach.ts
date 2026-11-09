@@ -9,6 +9,14 @@ interface ImportOutreachEmailProps {
   coverLetterExcerpt?: string;
   businessName: string;
   jobTitle: string;
+  /**
+   * Where the advert was found, e.g. "Facebook". ⚠️ DELIBERATELY NOT
+   * RENDERED since 2026-11-09: naming the source in the opening line made a
+   * cold email read like surveillance rather than an offer. Kept on the
+   * props because every caller supplies it and because it is the honest
+   * answer if a business asks where we got their advert — which the
+   * reply-to invites them to do.
+   */
   source: string;
   claimUrl: string;
   eoiCount: number;
@@ -53,16 +61,21 @@ export function importOutreachEmail({
   // quote a number — eoi-threshold-nudge, claim-applicants-waiting — only
   // fire at five or more, so theirs is never a small one.
   const eoiLine = eoiCount > 0
-    ? `${many ? "They're" : "It's"} already live and generating interest from seasonal workers looking for their next opportunity.`
+    ? `${many ? "They're" : "It's"} already live and generating interest from seasonal workers looking for their next opportunity!`
     : `${many ? "They're" : "It's"} already live and visible to seasonal workers looking for their next opportunity.`;
 
   const subjectLine = many
     ? `Your ${listingCount} jobs on Mountain Connects`
     : `Your ${jobTitle} job on Mountain Connects`;
   const headerLine = many ? `${listingCount} LISTINGS` : jobTitle;
+  // "a couple" up to three, "several" beyond it. The phrasing is Tyler's and
+  // reads better than a bare figure, but it has to stay true: one business on
+  // the board has nine listings, and telling them we found "a couple" is a
+  // mistake they can count.
+  const others = otherListings <= 3 ? "a couple of" : "several of";
   const sawLine = many
-    ? `I came across your <strong>${jobTitle}</strong> position and ${otherListings} of your other job opening${otherListings === 1 ? "" : "s"} on ${source}`
-    : `I came across your <strong>${jobTitle}</strong> position on ${source}`;
+    ? `We came across your <strong>${jobTitle}</strong> position and ${others} your other job openings`
+    : `We came across your <strong>${jobTitle}</strong> position`;
 
   return {
     subject: subjectLine,
