@@ -41,17 +41,21 @@ export function importOutreachEmail({
   // page then takes back, which is the worst possible first impression.
   // Say how many exist, and say the claim is of a free listing, singular.
 
+  // ⚠️ "generating interest" ONLY when there is interest. The branch is the
+  // point: most of these go out the day the listing is published, when the
+  // count is zero, and an email that opens by claiming interest nobody has
+  // shown is the one thing that would make a business distrust the rest of it.
   const eoiLine = eoiCount > 0
-    ? `${many ? "They are" : "It is"} already live and ${many ? "have" : "has"} received ${eoiCount} ${eoiCount === 1 ? "expression" : "expressions"} of interest from job seekers.`
-    : `${many ? "They are" : "It is"} already live and ready for job seekers to browse.`;
+    ? `${many ? "They're" : "It's"} already live and generating interest — ${eoiCount} ${eoiCount === 1 ? "expression" : "expressions"} of interest so far from seasonal workers looking for their next opportunity.`
+    : `${many ? "They're" : "It's"} already live and visible to seasonal workers looking for their next opportunity.`;
 
   const subjectLine = many
     ? `Your ${listingCount} jobs on Mountain Connects`
     : `Your ${jobTitle} job on Mountain Connects`;
   const headerLine = many ? `${listingCount} LISTINGS` : jobTitle;
   const sawLine = many
-    ? `I saw your <strong>${jobTitle}</strong> listing and ${otherListings} other${otherListings === 1 ? "" : "s"} on ${source}`
-    : `I saw your <strong>${jobTitle}</strong> listing on ${source}`;
+    ? `I came across your <strong>${jobTitle}</strong> position and ${otherListings} of your other job opening${otherListings === 1 ? "" : "s"} on ${source}`
+    : `I came across your <strong>${jobTitle}</strong> position on ${source}`;
 
   return {
     subject: subjectLine,
@@ -82,10 +86,13 @@ export function importOutreachEmail({
                 Hi <strong style="color:#0a1e33;">${businessName}</strong>,
               </p>
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                I am reaching out from Mountain Connects, a new platform connecting ski resort businesses with seasonal workers. ${sawLine} and thought you would be a great fit for the platform.
+                I'm reaching out from Mountain Connects, a platform connecting seasonal workers with businesses in and around ski resorts. ${sawLine} and thought your business would be a great fit for the platform.
               </p>
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                We have set up ${many ? `${listingCount} listings` : "a listing"} for you to get things started. ${eoiLine} Claim your free listing below to edit details, see interested candidates, and start interviewing all in one place.
+                We've gone ahead and set up ${many ? `${listingCount} job listings` : "a job listing"} for you to get started. ${eoiLine}
+              </p>
+              <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+                You can claim your free listing below to update job details, view interested candidates, and manage applications and interviews, all in one place.
               </p>
 
               ${coverLetterExcerpt ? `
