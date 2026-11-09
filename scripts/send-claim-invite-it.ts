@@ -173,18 +173,28 @@ async function main() {
   // Real data, so the figures and the pluralisation are exercised, but it
   // never reaches a business and never records a send.
   if (PREVIEW_TO) {
-    const top = candidates[0] ?? alreadySent[0];
-    if (!top) throw new Error("No candidate to build a preview from");
-    console.log(`\nPREVIEW — one email to ${PREVIEW_TO}, built from ${top.name}. No business is contacted.\n`);
-    await sendImportOutreachItEmail({
-      to: PREVIEW_TO,
-      businessName: top.name,
-      otherListings: top.titles.length - 1,
-      eoiCount: top.applicants,
-      claimUrl: `${SITE_ORIGIN}/claim/${top.claimToken}`,
-      source: "Facebook",
-    });
-    console.log(`  sent to ${PREVIEW_TO}  (${top.applicants} applicants · ${top.titles.length} listings)`);
+    // BOTH shapes, because they are genuinely different emails and the one
+    // that lands most often is the weaker of the two: of the 27, seven have
+    // applications waiting and twenty do not. Previewing only the strongest
+    // version would show the version almost nobody receives.
+    const pool = candidates.length ? candidates : alreadySent;
+    const shapes = [pool[0], pool.find((b) => b.applicants === 0)].filter(
+      (b, i, a): b is NonNullable<typeof b> => Boolean(b) && a.indexOf(b) === i,
+    );
+    if (!shapes.length) throw new Error("No candidate to build a preview from");
+    console.log(`\nPREVIEW — ${shapes.length} email(s) to ${PREVIEW_TO}. No business is contacted.\n`);
+    for (const p of shapes) {
+      await sendImportOutreachItEmail({
+        to: PREVIEW_TO,
+        businessName: p.name,
+        otherListings: p.titles.length - 1,
+        eoiCount: p.applicants,
+        claimUrl: `${SITE_ORIGIN}/claim/${p.claimToken}`,
+        source: "Facebook",
+      });
+      console.log(`  sent  ${p.applicants} applicant(s) · ${p.titles.length} listing(s) · as ${p.name}`);
+      await new Promise((r) => setTimeout(r, DELAY_MS));
+    }
     console.log(`\nLedger untouched. Nothing sent to any business.\n`);
     return;
   }
