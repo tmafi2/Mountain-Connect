@@ -6,8 +6,14 @@
  *
  *   npx tsx scripts/send-claim-invite-it.ts                         # DRY RUN — lists recipients, sends nothing
  *   npx tsx scripts/send-claim-invite-it.ts --send                  # actually sends
- *   npx tsx scripts/send-claim-invite-it.ts --send --only a@b.it    # send to ONE address (test first)
+ *   npx tsx scripts/send-claim-invite-it.ts --send --only a@b.it    # send to ONE of the real recipients
+ *   npx tsx scripts/send-claim-invite-it.ts --preview-to me@x.com   # send yourself a copy, nobody else
  *   npx tsx scripts/send-claim-invite-it.ts --send --limit 10       # cap this run
+ *
+ * ⚠️ --only FILTERS THE REAL RECIPIENT LIST, so it matches nothing for an
+ * address that is not one of the businesses. To post yourself a copy use
+ * --preview-to: it sends exactly one email, to that address, built from the
+ * top candidate's real data, and never touches the ledger.
  *
  * WHY THIS EXISTS. All 27 Italian businesses have had the English claim
  * invite, 7 the English first-applicant nudge and 5 the English
@@ -45,6 +51,8 @@ const onlyIdx = process.argv.indexOf("--only");
 const ONLY = onlyIdx >= 0 ? process.argv[onlyIdx + 1]?.toLowerCase() : null;
 const limitIdx = process.argv.indexOf("--limit");
 const LIMIT = limitIdx >= 0 ? Number(process.argv[limitIdx + 1]) : Infinity;
+const previewIdx = process.argv.indexOf("--preview-to");
+const PREVIEW_TO = previewIdx >= 0 ? process.argv[previewIdx + 1] : null;
 
 const TEST_PATTERN = /preview|test|example\.com|zz-/i;
 const DELAY_MS = 1500;
@@ -160,6 +168,27 @@ async function main() {
   // while the subject line is still true.
   candidates.sort((a, b) => b.applicants - a.applicants);
   const batch = candidates.slice(0, LIMIT);
+
+  // A copy for whoever is about to send this, before 27 strangers get it.
+  // Real data, so the figures and the pluralisation are exercised, but it
+  // never reaches a business and never records a send.
+  if (PREVIEW_TO) {
+    const top = candidates[0] ?? alreadySent[0];
+    if (!top) throw new Error("No candidate to build a preview from");
+    console.log(`\nPREVIEW — one email to ${PREVIEW_TO}, built from ${top.name}. No business is contacted.\n`);
+    await sendClaimInviteItEmail({
+      to: PREVIEW_TO,
+      businessName: top.name,
+      jobTitle: top.titles[0],
+      listingCount: top.titles.length,
+      applicantCount: top.applicants,
+      claimUrl: `${SITE_ORIGIN}/claim/${top.claimToken}`,
+      source: "Facebook",
+    });
+    console.log(`  sent to ${PREVIEW_TO}  (${top.applicants} applicants · ${top.titles.length} listings)`);
+    console.log(`\nLedger untouched. Nothing sent to any business.\n`);
+    return;
+  }
 
   console.log(`\nItalian claim invite — ${SEND ? "SENDING" : "DRY RUN"}\n`);
   console.log(`unclaimed Italian businesses with a live listing   ${byBusiness.size}`);
