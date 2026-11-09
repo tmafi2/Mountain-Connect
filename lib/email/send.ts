@@ -37,7 +37,10 @@ import { importOutreachEmail } from "./templates/import-outreach";
 import { adminListingClaimedEmail } from "./templates/admin-listing-claimed";
 import { eoiThresholdNudgeEmail } from "./templates/eoi-threshold-nudge";
 import { firstApplicantNudgeEmail } from "./templates/first-applicant-nudge";
-import { claimInviteItEmail } from "./templates/claim-invite-it";
+import { importOutreachItEmail } from "./templates/import-outreach-it";
+import { firstApplicantNudgeItEmail } from "./templates/first-applicant-nudge-it";
+import { claimApplicantsWaitingItEmail } from "./templates/claim-applicants-waiting-it";
+import { claimLastChanceItEmail } from "./templates/claim-last-chance-it";
 import { claimLastChanceEmail } from "./templates/claim-last-chance";
 import { winterOutreachEmail } from "./templates/winter-outreach";
 import { winterFollowup1Email } from "./templates/winter-followup-1";
@@ -466,33 +469,65 @@ export async function sendFirstApplicantNudgeEmail(params: {
 }
 
 /**
- * The claim invitation in Italian. Same send path and same reply-to as the
- * English invite — it is a different language, not a different kind of email.
+ * The Italian half of the claim cadence — one send function per stage,
+ * mirroring the English ones exactly.
  *
- * Chosen by the CALLER, from the resort country of the business's listings,
- * because business_profiles has no language of its own. Today only
- * scripts/send-claim-invite-it.ts calls it; the automated cadence (the
- * first-applicant nudge, the five-applicant nudge, the dormancy warnings) is
- * still English everywhere.
+ * ⚠️ LANGUAGE IS THE CALLER'S CHOICE. business_profiles has no language of
+ * its own, so the caller decides from the resort country of the business's
+ * listings. Today only scripts/send-claim-invite-it.ts picks Italian; the
+ * automated cadence (the EOI route and the dormancy cron) is still English
+ * for everyone, which is a deliberate gap, not an oversight — rewiring a live
+ * cron to choose a language is worth doing once the manual send says whether
+ * language changes anything.
  */
-export async function sendClaimInviteItEmail(params: {
+export async function sendImportOutreachItEmail(params: {
   to: string;
   businessName: string;
   jobTitle: string;
-  listingCount: number;
-  applicantCount: number;
-  claimUrl: string;
   source: string;
+  claimUrl: string;
+  eoiCount: number;
+  otherListings?: number;
 }) {
   const { to, ...rest } = params;
-  const { subject, html } = claimInviteItEmail(rest);
-  return sendEmail({
-    from: TYLER_FROM_EMAIL,
-    to,
-    replyTo: TYLER_REPLY_TO,
-    subject,
-    html,
-  });
+  const { subject, html } = importOutreachItEmail(rest);
+  return sendEmail({ from: TYLER_FROM_EMAIL, to, replyTo: TYLER_REPLY_TO, subject, html });
+}
+
+export async function sendFirstApplicantNudgeItEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  claimUrl: string;
+}) {
+  const { to, ...rest } = params;
+  const { subject, html } = firstApplicantNudgeItEmail(rest);
+  return sendEmail({ from: TYLER_FROM_EMAIL, to, replyTo: TYLER_REPLY_TO, subject, html });
+}
+
+export async function sendClaimApplicantsWaitingItEmail(params: {
+  to: string;
+  businessName: string;
+  roles: Array<{ title: string; count: number }>;
+  totalWaiting: number;
+  claimUrl: string;
+}) {
+  const { to, ...rest } = params;
+  const { subject, html } = claimApplicantsWaitingItEmail(rest);
+  return sendEmail({ from: TYLER_FROM_EMAIL, to, replyTo: TYLER_REPLY_TO, subject, html });
+}
+
+export async function sendClaimLastChanceItEmail(params: {
+  to: string;
+  businessName: string;
+  jobTitle: string;
+  eoiCount: number;
+  takedownDate: string;
+  claimUrl: string;
+}) {
+  const { to, ...rest } = params;
+  const { subject, html } = claimLastChanceItEmail(rest);
+  return sendEmail({ from: TYLER_FROM_EMAIL, to, replyTo: TYLER_REPLY_TO, subject, html });
 }
 
 export async function sendClaimLastChanceEmail(params: {

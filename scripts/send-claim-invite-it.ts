@@ -43,7 +43,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { sendClaimInviteItEmail } from "../lib/email/send";
+import { sendImportOutreachItEmail } from "../lib/email/send";
 import { SITE_ORIGIN } from "../lib/config/site";
 
 const SEND = process.argv.includes("--send");
@@ -176,12 +176,12 @@ async function main() {
     const top = candidates[0] ?? alreadySent[0];
     if (!top) throw new Error("No candidate to build a preview from");
     console.log(`\nPREVIEW — one email to ${PREVIEW_TO}, built from ${top.name}. No business is contacted.\n`);
-    await sendClaimInviteItEmail({
+    await sendImportOutreachItEmail({
       to: PREVIEW_TO,
       businessName: top.name,
       jobTitle: top.titles[0],
-      listingCount: top.titles.length,
-      applicantCount: top.applicants,
+      otherListings: top.titles.length - 1,
+      eoiCount: top.applicants,
       claimUrl: `${SITE_ORIGIN}/claim/${top.claimToken}`,
       source: "Facebook",
     });
@@ -208,12 +208,12 @@ async function main() {
       continue;
     }
     try {
-      await sendClaimInviteItEmail({
+      await sendImportOutreachItEmail({
         to: b.email,
         businessName: b.name,
         jobTitle: b.titles[0],
-        listingCount: b.titles.length,
-        applicantCount: b.applicants,
+        otherListings: b.titles.length - 1,
+        eoiCount: b.applicants,
         claimUrl,
         source: "Facebook",
       });
