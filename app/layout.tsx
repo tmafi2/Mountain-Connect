@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import CookieConsent from "@/components/ui/CookieConsent";
+import ReferrerCapture from "@/components/ui/ReferrerCapture";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -133,6 +134,7 @@ export default function RootLayout({
       <body className={`${jakarta.variable} font-sans antialiased`}>
         {children}
         <CookieConsent />
+        <ReferrerCapture />
       </body>
     </html>
   );

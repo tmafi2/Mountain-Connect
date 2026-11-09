@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
 import { loadSignupContext, signupMetadata } from "@/lib/campaigns/attribution";
+import { loadStoredReferrer } from "@/lib/campaigns/referrer";
 import { browseJobsHref, parseAnswers, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
 
 /** Long enough to cover signup → email confirmation → first login. */
@@ -200,17 +201,34 @@ function WorkerSetup({
     const seasonAnswers = parseAnswers(user.user_metadata?.season_intent) ?? stored?.answers ?? null;
     const fromQuiz = seasonAnswers ? profileFieldsFromAnswers(seasonAnswers) : {};
 
-    // Attribute a Google signup to its ad the way signUp() does for email.
-    // Only a new account, and only for a visit recorded before the account
-    // existed, so no one is credited to a campaign they saw afterwards.
+    // Attribute a Google signup the way signUp() does for email — it cannot
+    // set metadata itself, so this browser's record stands in. Only a new
+    // account, and only for something recorded before the account existed, so
+    // no one is credited to a campaign or a referrer they met afterwards.
+    //
+    // ⚠️ THE TWO CLAIMS ARE SEPARATE, and that is the whole point. The
+    // campaign context is null for about 89% of signups, and those are exactly
+    // the people the referrer explains. Gating the referrer behind `stored`
+    // would have recorded it only for the traffic we could already attribute.
+    const storedReferrer = loadStoredReferrer();
+    const isNewAccount = Date.now() - createdAt < NEW_ACCOUNT_WINDOW_MS;
+    const recordedBeforeSignup = (capturedAt: number) => capturedAt <= createdAt + 10 * 60 * 1000;
+
+    const claim: Record<string, unknown> = {};
+    if (stored && !user.user_metadata?.signup_source && isNewAccount && recordedBeforeSignup(stored.capturedAt)) {
+      Object.assign(claim, signupMetadata(stored, "worker"));
+    }
     if (
-      stored &&
-      !user.user_metadata?.signup_source &&
-      Date.now() - createdAt < NEW_ACCOUNT_WINDOW_MS &&
-      stored.capturedAt <= createdAt + 10 * 60 * 1000
+      storedReferrer &&
+      !user.user_metadata?.signup_referrer &&
+      isNewAccount &&
+      recordedBeforeSignup(storedReferrer.capturedAt)
     ) {
+      claim.signup_referrer = storedReferrer.host;
+    }
+    if (Object.keys(claim).length > 0) {
       try {
-        await supabase.auth.updateUser({ data: signupMetadata(stored, "worker") });
+        await supabase.auth.updateUser({ data: claim });
       } catch (err) {
         console.error("Signup attribution failed (non-fatal):", err);
       }

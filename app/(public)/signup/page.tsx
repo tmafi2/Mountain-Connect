@@ -18,6 +18,7 @@ import {
   signupMetadata,
   type SignupContext,
 } from "@/lib/campaigns/attribution";
+import { loadReferrer } from "@/lib/campaigns/referrer";
 import { answerLabels, profileFieldsFromAnswers } from "@/lib/campaigns/season-quiz";
 import { isInAppBrowser } from "@/lib/utils/in-app-browser";
 import { track } from "@/lib/analytics/track";
@@ -194,7 +195,7 @@ function SignupContent() {
             business_name: accountType === "business" ? firstName.trim() : undefined,
             account_type: accountType,
             signup_resort_id: accountType === "business" && selectedResortId ? selectedResortId : undefined,
-            ...signupMetadata(signupContext, accountType),
+            ...signupMetadata(signupContext, accountType, loadReferrer()),
           },
           emailRedirectTo: `${window.location.origin}/auth/callback?type=${accountType}`,
         },

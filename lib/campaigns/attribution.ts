@@ -185,6 +185,8 @@ export interface SignupMetadata {
   signup_source?: string;
   signup_utm?: Utm;
   season_intent?: { destination: string; season: string; work_type: string };
+  /** Referring HOSTNAME, or "(direct)". See lib/campaigns/referrer.ts. */
+  signup_referrer?: string;
 }
 
 /**
@@ -192,9 +194,20 @@ export interface SignupMetadata {
  * existing full_name / account_type. Quiz answers go on worker accounts only;
  * attribution goes on either, since an ad can send a business too.
  */
-export function signupMetadata(ctx: SignupContext | null, accountType: "worker" | "business"): SignupMetadata {
-  if (!ctx) return {};
-  const out: SignupMetadata = { signup_source: ctx.source };
+export function signupMetadata(
+  ctx: SignupContext | null,
+  accountType: "worker" | "business",
+  referrer?: string | null,
+): SignupMetadata {
+  // ⚠️ The referrer is INDEPENDENT of the campaign context and must stay so.
+  // 89% of signups carry no context at all, and those are exactly the ones the
+  // referrer exists to explain — so it is recorded with or without one, and it
+  // never invents a `signup_source`. NULL in that column still means "arrived
+  // through no tagged link", which is what every existing query assumes.
+  const out: SignupMetadata = {};
+  if (referrer) out.signup_referrer = referrer;
+  if (!ctx) return out;
+  out.signup_source = ctx.source;
   if (ctx.utm) out.signup_utm = ctx.utm;
   if (accountType === "worker" && ctx.answers) {
     out.season_intent = {
