@@ -61,8 +61,8 @@ export function importOutreachItEmail({
   // Say how many exist, and say the claim is of a free listing, singular.
 
   const eoiLine = eoiCount > 0
-    ? `${many ? "Sono gi\u00e0 online e hanno" : "\u00c8 gi\u00e0 online e ha"} ricevuto ${eoiCount} ${eoiCount === 1 ? "candidatura" : "candidature"} da chi cerca lavoro.`
-    : `${many ? "Sono gi\u00e0 online" : "\u00c8 gi\u00e0 online"} e visibil${many ? "i" : "e"} a chi cerca lavoro.`;
+    ? `${many ? "Sono già online e hanno" : "È già online e ha"} ricevuto ${eoiCount} ${eoiCount === 1 ? "candidatura" : "candidature"} da parte di chi cerca lavoro.`
+    : `${many ? "Sono già online e visibili ai candidati" : "È già online e visibile ai candidati"}.`;
 
   const subjectLine = eoiCount > 0
     ? eoiCount === 1
@@ -81,8 +81,8 @@ export function importOutreachItEmail({
       : "ANNUNCIO ATTIVO";
 
   const sawLine = many
-    ? `Ho visto i vostri ${listingCount} annunci di lavoro su ${source}`
-    : `Ho visto il vostro annuncio di lavoro su ${source}`;
+    ? `Abbiamo notato i vostri ${listingCount} annunci di lavoro su ${source}`
+    : `Abbiamo notato il vostro annuncio di lavoro su ${source}`;
 
   return {
     subject: subjectLine,
@@ -103,20 +103,20 @@ export function importOutreachItEmail({
           <tr>
             <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
               <p style="margin:0 0 10px;font-size:44px;">🏔️</p>
-              <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">${many ? "I vostri annunci sono" : "Il vostro annuncio \u00e8"} online su Mountain Connects</h1>
+              <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;">${many ? "I vostri annunci sono" : "Il vostro annuncio è"} online su Mountain Connects</h1>
               <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">${headerLine}</p>
             </td>
           </tr>
           <tr>
             <td style="padding:36px 32px 24px;">
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Buongiorno <strong style="color:#0a1e33;">${businessName}</strong>,
+                Gentile <strong style="color:#0a1e33;">${businessName}</strong>,
               </p>
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Vi scrivo da Mountain Connects, una piattaforma che mette in contatto le attivit\u00e0 delle localit\u00e0 sciistiche con chi cerca lavoro stagionale. ${sawLine} e ho pensato che potesse interessarvi.
+                Vi scriviamo da Mountain Connects, una piattaforma nata per mettere in contatto le attività delle località sciistiche con chi cerca lavoro stagionale. ${sawLine} e abbiamo pensato che il nostro servizio potesse esservi utile.
               </p>
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-                Abbiamo creato ${many ? `${listingCount} schede` : "una scheda"} per iniziare. ${eoiLine} Rivendicate la vostra scheda gratuita qui sotto per modificare i dettagli, vedere i candidati interessati e gestire i colloqui da un unico posto.
+                Per iniziare, abbiamo creato ${many ? `${listingCount} schede dedicate alla vostra struttura` : "una scheda dedicata alla vostra struttura"}. ${eoiLine} Potete rivendicare la vostra scheda gratuita tramite il link qui sotto per modificare i dettagli, visualizzare i profili interessati e gestire i colloqui da un’unica piattaforma.
               </p>
 
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
@@ -133,7 +133,7 @@ export function importOutreachItEmail({
               </p>
 
               <p style="margin:0 0 16px;color:#4e5d6c;font-size:14px;line-height:1.7;">
-                Se preferite che ${many ? "gli annunci vengano rimossi" : "l\u2019annuncio venga rimosso"}, rispondete a questa email e ${many ? "li tolgo" : "lo tolgo"} subito.
+                Se preferite che ${many ? "gli annunci vengano rimossi" : "l’annuncio venga rimosso"}, è sufficiente rispondere a questa email e ${many ? "li rimuoveremo" : "lo rimuoveremo"} subito.
               </p>
 
               <p style="margin:24px 0 0;color:#4e5d6c;font-size:15px;line-height:1.7;">
