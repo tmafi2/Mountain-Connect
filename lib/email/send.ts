@@ -486,6 +486,7 @@ export async function sendImportOutreachItEmail(params: {
   source: string;
   claimUrl: string;
   eoiCount: number;
+  coverLetterExcerpt?: string;
   otherListings?: number;
 }) {
   const { to, ...rest } = params;

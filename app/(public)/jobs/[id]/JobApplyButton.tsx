@@ -53,7 +53,10 @@ function AnonymousApplyForm({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  // ⚠️ shareWithEmployer starts FALSE and must stay that way. A pre-ticked
+  // box is not consent under GDPR, and the only reason the column exists is
+  // to be able to say the applicant agreed (migration 00124).
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", shareWithEmployer: false });
   // Reported by the endpoint — see the confirmation copy below for why the
   // page must not assume this.
   const [notified, setNotified] = useState(false);
@@ -152,6 +155,29 @@ function AnonymousApplyForm({
           disabled={submitting}
           className="w-full rounded-xl border border-accent bg-background p-3 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
         />
+
+        {/* Most listings belong to a business that has not claimed its account
+            yet, so "the employer" may first hear from us by email rather than
+            by signing in. Saying so is the difference between consent and a
+            tick. See lib/email/cover-letter-excerpt.ts for what it gates. */}
+        <label
+          htmlFor="eoi-share"
+          className="flex cursor-pointer items-start gap-2.5 text-left text-xs leading-relaxed text-foreground/70"
+        >
+          <input
+            id="eoi-share"
+            type="checkbox"
+            checked={form.shareWithEmployer}
+            onChange={(e) => setForm((p) => ({ ...p, shareWithEmployer: e.target.checked }))}
+            disabled={submitting}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-accent text-secondary focus:ring-2 focus:ring-primary/20"
+          />
+          <span>
+            Share what I&apos;ve written with this employer, including by email, so they can
+            read it before replying. Optional — your application is sent either way.
+          </span>
+        </label>
+
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
         )}

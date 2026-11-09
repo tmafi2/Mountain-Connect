@@ -25,6 +25,15 @@
  * background-color at its darkest stop, no rgba outside box-shadow, no flex,
  * no grid, no style block. email-compat.test.ts scans this directory.
  *
+ * ⚠️ `coverLetterExcerpt` IS NEVER THE RAW MESSAGE. It comes from
+ * lib/email/cover-letter-excerpt.ts, which refuses rather than redacts: any
+ * letter carrying an email address, a phone number, a link or the writer's
+ * own name yields nothing at all. Of the 285 real cover letters on the board,
+ * 66% pass and none of the passing excerpts contains an identifier. It is
+ * someone else's personal data going to an address we scraped and have never
+ * verified, so the bar is "could not possibly identify them", not "looks
+ * fine".
+ *
  * ⚠️ The Italian here is serviceable, not native. It uses "voi" throughout
  * for businesses. Have a native speaker read it before it goes out.
  */
@@ -33,6 +42,13 @@ interface ImportOutreachItEmailProps {
   source: string;
   claimUrl: string;
   eoiCount: number;
+  /**
+   * A sanitised opening from one applicant's cover letter, or undefined.
+   * ALWAYS from lib/email/cover-letter-excerpt.ts — never raw `message`,
+   * which carries an email address, a phone number or the writer's own name
+   * in about one application in five.
+   */
+  coverLetterExcerpt?: string;
   /**
    * How many FURTHER listings we published for this business. We import one
    * listing per role, so publishing a business's queue can be a dozen jobs;
@@ -47,6 +63,7 @@ export function importOutreachItEmail({
   source,
   claimUrl,
   eoiCount,
+  coverLetterExcerpt,
   otherListings = 0,
 }: ImportOutreachItEmailProps) {
   const many = otherListings > 0;
@@ -118,6 +135,19 @@ export function importOutreachItEmail({
               <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
                 Per iniziare, abbiamo creato ${many ? `${listingCount} schede dedicate alla vostra struttura` : "una scheda dedicata alla vostra struttura"}. ${eoiLine} Potete rivendicare la vostra scheda gratuita tramite il link qui sotto per modificare i dettagli, visualizzare i profili interessati e gestire i colloqui da un’unica piattaforma.
               </p>
+
+              ${coverLetterExcerpt ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;">
+                <tr>
+                  <td bgcolor="#f5f8fb" style="background-color:#f5f8fb;border-left:3px solid #2577ad;padding:16px 18px;">
+                    <p style="margin:0 0 8px;color:#8899a6;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;">Da una delle candidature</p>
+                    <p style="margin:0;color:#3d4f5f;font-size:14px;line-height:1.65;font-style:italic;">&ldquo;${coverLetterExcerpt}&rdquo;</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
+                Per leggere la candidatura completa e vedere chi l&rsquo;ha scritta, potete rivendicare la vostra scheda qui sotto.
+              </p>` : ""}
 
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">
                 <tr>

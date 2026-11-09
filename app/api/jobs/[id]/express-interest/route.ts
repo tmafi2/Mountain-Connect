@@ -28,11 +28,12 @@ export async function POST(
     if (!jobId) return NextResponse.json({ error: "Missing job id" }, { status: 400 });
 
     const body = await request.json();
-    const { name, email, phone, message } = body as {
+    const { name, email, phone, message, shareWithEmployer } = body as {
       name?: string;
       email?: string;
       phone?: string;
       message?: string;
+      shareWithEmployer?: boolean;
     };
 
     // Validation
@@ -84,6 +85,11 @@ export async function POST(
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || null,
       message: message?.trim() || null,
+      // ⚠️ Only a real boolean is stored. Anything else stays NULL, which
+      // means "never asked" (migration 00124) — an older client that does not
+      // send the field must not be recorded as a refusal, and must not be
+      // recorded as consent either.
+      share_with_employer: typeof shareWithEmployer === "boolean" ? shareWithEmployer : null,
     });
 
     if (insertError) {

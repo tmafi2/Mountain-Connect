@@ -45,6 +45,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { sendImportOutreachItEmail } from "../lib/email/send";
 import { SITE_ORIGIN } from "../lib/config/site";
+import { coverLetterExcerpt } from "../lib/email/cover-letter-excerpt";
 
 const SEND = process.argv.includes("--send");
 const onlyIdx = process.argv.indexOf("--only");
@@ -143,15 +144,26 @@ async function main() {
   // earlier query — it moves every day.
   const allJobIds = [...byBusiness.values()].flatMap((b) => b.jobIds);
   const applicantsByJob = new Map<string, number>();
+  const excerptByJob = new Map<string, string>();
   if (allJobIds.length) {
     const { data: eois, error: eErr } = await db
       .from("expressions_of_interest")
-      .select("job_post_id")
-      .in("job_post_id", allJobIds);
+      .select("job_post_id, message, share_with_employer, created_at")
+      .in("job_post_id", allJobIds)
+      .order("created_at", { ascending: false });
     if (eErr) throw eErr;
     for (const e of eois ?? []) {
       const k = e.job_post_id as string;
       applicantsByJob.set(k, (applicantsByJob.get(k) ?? 0) + 1);
+      // The newest quotable letter for that job wins; rows arrive newest
+      // first, so the first one that survives the sanitiser is the one.
+      if (!excerptByJob.has(k)) {
+        const ex = coverLetterExcerpt({
+          message: e.message as string | null,
+          consent: e.share_with_employer as boolean | null,
+        });
+        if (ex) excerptByJob.set(k, ex);
+      }
     }
   }
 
@@ -159,14 +171,18 @@ async function main() {
   let candidates = [...byBusiness.values()].map((b) => ({
     ...b,
     applicants: b.jobIds.reduce((n, id) => n + (applicantsByJob.get(id) ?? 0), 0),
+    excerpt: b.jobIds.map((id) => excerptByJob.get(id)).find(Boolean),
   }));
   if (ONLY) candidates = candidates.filter((b) => b.email.toLowerCase() === ONLY);
 
+  // Sort BEFORE splitting, so both halves are ordered. Without this,
+  // `alreadySent` keeps the map's arbitrary order, and once everyone has been
+  // sent --preview-to picks its "strongest" example from position zero of an
+  // unsorted list — which is how it came to preview a business with no
+  // applicants at all.
+  candidates.sort((a, b) => b.applicants - a.applicants);
   const alreadySent = candidates.filter((b) => ledger[b.id]);
   candidates = candidates.filter((b) => !ledger[b.id]);
-  // Most applications first: the strongest version of this email goes out
-  // while the subject line is still true.
-  candidates.sort((a, b) => b.applicants - a.applicants);
   const batch = candidates.slice(0, LIMIT);
 
   // A copy for whoever is about to send this, before 27 strangers get it.
@@ -189,6 +205,7 @@ async function main() {
         businessName: p.name,
         otherListings: p.titles.length - 1,
         eoiCount: p.applicants,
+        coverLetterExcerpt: p.excerpt,
         claimUrl: `${SITE_ORIGIN}/claim/${p.claimToken}`,
         source: "Facebook",
       });
@@ -222,6 +239,7 @@ async function main() {
         businessName: b.name,
         otherListings: b.titles.length - 1,
         eoiCount: b.applicants,
+        coverLetterExcerpt: b.excerpt,
         claimUrl,
         source: "Facebook",
       });

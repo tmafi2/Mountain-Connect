@@ -3,6 +3,7 @@ config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
 import { writeFileSync } from "node:fs";
 import { importOutreachItEmail } from "../lib/email/templates/import-outreach-it";
+import { coverLetterExcerpt } from "../lib/email/cover-letter-excerpt";
 
 async function main() {
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -23,17 +24,28 @@ async function main() {
     if (e) { e.titles.push(row.title); e.jobIds.push(row.id); }
     else map.set(b.id, { id: b.id, name: b.business_name ?? "", email: b.email, token: b.claim_token, titles: [row.title], jobIds: [row.id] });
   }
-  const { data: eois } = await db.from("expressions_of_interest").select("job_post_id").in("job_post_id", [...map.values()].flatMap((b) => b.jobIds));
+  const { data: eois } = await db.from("expressions_of_interest")
+    .select("job_post_id, message, share_with_employer, created_at")
+    .in("job_post_id", [...map.values()].flatMap((b) => b.jobIds))
+    .order("created_at", { ascending: false });
   const per = new Map<string, number>();
-  for (const e of eois ?? []) per.set(e.job_post_id as string, (per.get(e.job_post_id as string) ?? 0) + 1);
+  const ex = new Map<string, string>();
+  for (const e of eois ?? []) {
+    const k = e.job_post_id as string;
+    per.set(k, (per.get(k) ?? 0) + 1);
+    if (!ex.has(k)) {
+      const q = coverLetterExcerpt({ message: e.message as string | null, consent: e.share_with_employer as boolean | null });
+      if (q) ex.set(k, q);
+    }
+  }
 
-  const recips = [...map.values()].map((b) => ({ ...b, applicants: b.jobIds.reduce((n, id) => n + (per.get(id) ?? 0), 0) }))
+  const recips = [...map.values()].map((b) => ({ ...b, applicants: b.jobIds.reduce((n, id) => n + (per.get(id) ?? 0), 0), excerpt: b.jobIds.map((id) => ex.get(id)).find(Boolean) }))
     .sort((a, b) => b.applicants - a.applicants);
 
   const build = (r: typeof recips[number]) => importOutreachItEmail({
     businessName: r.name, source: "Facebook",
     claimUrl: `https://www.mountainconnects.com/claim/${r.token}`,
-    eoiCount: r.applicants, otherListings: r.titles.length - 1,
+    eoiCount: r.applicants, coverLetterExcerpt: r.excerpt, otherListings: r.titles.length - 1,
   });
 
   const shapeOf = (r: typeof recips[number]) =>
