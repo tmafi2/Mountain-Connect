@@ -6,6 +6,21 @@
  * this one in the same commit: they are a pair, and a cadence that says one
  * thing in Canada and another in Italy is worse than an English-only one.
  *
+ * ⚠️ WITH ONE DELIBERATE DIVERGENCE: THIS VERSION NEVER NAMES THE ROLE.
+ * `job_posts.title` is normalised to ENGLISH by the extractor, because it is
+ * matched against the English resort and town tables (migration 00118). So an
+ * Italian advert for "cameriere di sala" is stored as "Waiter/Waitress", and
+ * quoting it back inside an Italian sentence — "Il vostro annuncio per
+ * Waiter/Waitress" — reads like a machine that did not understand what they
+ * posted, which undercuts the "I saw your advert" opening more than any
+ * wording choice could. The English version keeps the title because there it
+ * is the words the business actually used.
+ *
+ * ⚠️ AND THE SUBJECT LEADS WITH THE APPLICANT COUNT WHERE THERE IS ONE. Of
+ * the 27 Italian businesses this goes to, 7 have applications waiting and 20
+ * do not; for those 7 the count is the strongest fact we hold and it belongs
+ * in the subject, not three paragraphs down.
+ *
  * ⚠️ The Outlook rules still apply — every gradient carries bgcolor plus
  * background-color at its darkest stop, no rgba outside box-shadow, no flex,
  * no grid, no style block. email-compat.test.ts scans this directory.
@@ -15,22 +30,20 @@
  */
 interface ImportOutreachItEmailProps {
   businessName: string;
-  jobTitle: string;
   source: string;
   claimUrl: string;
   eoiCount: number;
   /**
-   * How many FURTHER listings we published for this business alongside
-   * jobTitle. We import one listing per role, so publishing a business's
-   * queue can be a dozen jobs; they get one email, and it has to describe
-   * what actually happened rather than name one listing and hide the rest.
+   * How many FURTHER listings we published for this business. We import one
+   * listing per role, so publishing a business's queue can be a dozen jobs;
+   * they get one email, and it has to describe what actually happened rather
+   * than mention one listing and hide the rest.
    */
   otherListings?: number;
 }
 
 export function importOutreachItEmail({
   businessName,
-  jobTitle,
   source,
   claimUrl,
   eoiCount,
@@ -51,13 +64,25 @@ export function importOutreachItEmail({
     ? `${many ? "Sono gi\u00e0 online e hanno" : "\u00c8 gi\u00e0 online e ha"} ricevuto ${eoiCount} ${eoiCount === 1 ? "candidatura" : "candidature"} da chi cerca lavoro.`
     : `${many ? "Sono gi\u00e0 online" : "\u00c8 gi\u00e0 online"} e visibil${many ? "i" : "e"} a chi cerca lavoro.`;
 
-  const subjectLine = many
-    ? `I vostri ${listingCount} annunci su Mountain Connects`
-    : `Il vostro annuncio per ${jobTitle} su Mountain Connects`;
-  const headerLine = many ? `${listingCount} ANNUNCI` : jobTitle;
+  const subjectLine = eoiCount > 0
+    ? eoiCount === 1
+      ? `Una persona ha risposto al vostro annuncio`
+      : `${eoiCount} persone hanno risposto ${many ? "ai vostri annunci" : "al vostro annuncio"}`
+    : many
+      ? `I vostri ${listingCount} annunci su Mountain Connects`
+      : `Il vostro annuncio su Mountain Connects`;
+
+  const headerLine = eoiCount > 0
+    ? eoiCount === 1
+      ? "1 CANDIDATURA"
+      : `${eoiCount} CANDIDATURE`
+    : many
+      ? `${listingCount} ANNUNCI`
+      : "ANNUNCIO ATTIVO";
+
   const sawLine = many
-    ? `Ho visto il vostro annuncio per <strong>${jobTitle}</strong> e altri ${otherListings} su ${source}`
-    : `Ho visto il vostro annuncio per <strong>${jobTitle}</strong> su ${source}`;
+    ? `Ho visto i vostri ${listingCount} annunci di lavoro su ${source}`
+    : `Ho visto il vostro annuncio di lavoro su ${source}`;
 
   return {
     subject: subjectLine,

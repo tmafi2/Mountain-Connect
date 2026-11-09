@@ -483,7 +483,6 @@ export async function sendFirstApplicantNudgeEmail(params: {
 export async function sendImportOutreachItEmail(params: {
   to: string;
   businessName: string;
-  jobTitle: string;
   source: string;
   claimUrl: string;
   eoiCount: number;

@@ -179,7 +179,6 @@ async function main() {
     await sendImportOutreachItEmail({
       to: PREVIEW_TO,
       businessName: top.name,
-      jobTitle: top.titles[0],
       otherListings: top.titles.length - 1,
       eoiCount: top.applicants,
       claimUrl: `${SITE_ORIGIN}/claim/${top.claimToken}`,
@@ -211,7 +210,6 @@ async function main() {
       await sendImportOutreachItEmail({
         to: b.email,
         businessName: b.name,
-        jobTitle: b.titles[0],
         otherListings: b.titles.length - 1,
         eoiCount: b.applicants,
         claimUrl,
