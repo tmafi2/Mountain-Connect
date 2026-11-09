@@ -10,6 +10,19 @@
  * background-color at its darkest stop, no rgba outside box-shadow, no flex,
  * no grid, no style block. email-compat.test.ts scans this directory.
  *
+ *
+ * ⚠️ THIS VERSION NEVER NAMES THE ROLE, and that is a deliberate divergence
+ * from the English original. `job_posts.title` is normalised to ENGLISH by the
+ * extractor because it is matched against the English resort and town tables
+ * (migration 00118), so an Italian advert for "cameriere di sala" is stored as
+ * "Waiter/Waitress". Quoting that back inside an Italian sentence reads like a
+ * machine that did not understand what they posted. The English version keeps
+ * its title, because there it is the words the business actually used.
+ *
+ * ⚠️ VOICE IS "NOI", matching import-outreach-it.ts. Do not mix: the body
+ * said "I saw your advert" while the removal line said "lo tolgo subito"
+ * before this was made consistent.
+ *
  * ⚠️ The Italian here is serviceable, not native. It uses "voi" throughout
  * for businesses. Have a native speaker read it before it goes out.
  */
@@ -49,24 +62,24 @@ export function claimApplicantsWaitingItEmail({
   claimUrl,
 }: ClaimApplicantsWaitingItEmailProps) {
   const many = totalWaiting > 1;
-  const top = roles[0];
 
-  const rows = roles
-    .map(
-      (r) => `
+  // ⚠️ ONE TOTAL, NOT A BREAKDOWN BY ROLE. The English version lists each
+  // role and its count, which is the better email — but roles[].title holds
+  // job_posts.title, normalised to ENGLISH by the extractor (00118), so the
+  // breakdown would read "Waiter/Waitress — 4 in attesa" to someone who wrote
+  // their advert in Italian. Losing the breakdown costs less than that does.
+  const rows = `
               <tr>
-                <td style="padding:11px 0;border-bottom:1px solid #eef2f6;color:#0a1e33;font-size:15px;font-weight:600;">${r.title}</td>
+                <td style="padding:11px 0;border-bottom:1px solid #eef2f6;color:#0a1e33;font-size:15px;font-weight:600;">${roles.length > 1 ? `${roles.length} posizioni` : "La vostra posizione aperta"}</td>
                 <td style="padding:11px 0;border-bottom:1px solid #eef2f6;text-align:right;color:#3b9ede;font-size:15px;font-weight:700;white-space:nowrap;">
-                  ${r.count} in attesa
+                  ${totalWaiting} in attesa
                 </td>
-              </tr>`
-    )
-    .join("");
+              </tr>`;
 
   return {
     subject: many
       ? `${totalWaiting} persone sono in attesa di una risposta da ${businessName}`
-      : `Qualcuno ha risposto al vostro annuncio per ${top?.title ?? "una posizione"}`,
+      : `Qualcuno ha risposto al vostro annuncio`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -91,11 +104,11 @@ export function claimApplicantsWaitingItEmail({
         </tr>
         <tr>
           <td style="padding:32px;">
-            <p style="margin:0 0 16px;color:#3d4f5f;font-size:16px;line-height:1.6;">Buongiorno ${businessName},</p>
+            <p style="margin:0 0 16px;color:#3d4f5f;font-size:16px;line-height:1.6;">Gentile ${businessName},</p>
             <p style="margin:0 0 22px;color:#3d4f5f;font-size:16px;line-height:1.6;">
               ${many ? "Alcune persone hanno" : "Qualcuno ha"} risposto a${roles.length > 1 ? "i vostri annunci" : "l vostro annuncio"}
-              su Mountain Connects e ${many ? "sono" : "\u00e8"} in attesa. Non possiamo trasmettervi
-              i loro dati finch\u00e9 la scheda non \u00e8 vostra.
+              su Mountain Connects e ${many ? "sono" : "è"} in attesa. Non possiamo trasmettervi
+              i loro dati finché la scheda non è vostra.
             </p>
 
             <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px;">${rows}</table>
@@ -109,8 +122,8 @@ export function claimApplicantsWaitingItEmail({
             </table>
 
             <p style="margin:0;color:#7d8b99;font-size:14px;line-height:1.6;text-align:center;">
-              Rivendicare la scheda richiede circa un minuto e non costa nulla. L\u2019annuncio resta
-              online in ogni caso: non lo rimuoviamo finch\u00e9 le persone continuano a rispondere.
+              Rivendicare la scheda richiede circa un minuto e non costa nulla. L’annuncio resta
+              online in ogni caso: non lo rimuoviamo finché le persone continuano a rispondere.
             </p>
           </td>
         </tr>

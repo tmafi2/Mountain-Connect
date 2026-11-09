@@ -10,18 +10,30 @@
  * background-color at its darkest stop, no rgba outside box-shadow, no flex,
  * no grid, no style block. email-compat.test.ts scans this directory.
  *
+ *
+ * ⚠️ THIS VERSION NEVER NAMES THE ROLE, and that is a deliberate divergence
+ * from the English original. `job_posts.title` is normalised to ENGLISH by the
+ * extractor because it is matched against the English resort and town tables
+ * (migration 00118), so an Italian advert for "cameriere di sala" is stored as
+ * "Waiter/Waitress". Quoting that back inside an Italian sentence reads like a
+ * machine that did not understand what they posted. The English version keeps
+ * its title, because there it is the words the business actually used.
+ *
+ * ⚠️ VOICE IS "NOI", matching import-outreach-it.ts. Do not mix: the body
+ * said "I saw your advert" while the removal line said "lo tolgo subito"
+ * before this was made consistent.
+ *
  * ⚠️ The Italian here is serviceable, not native. It uses "voi" throughout
  * for businesses. Have a native speaker read it before it goes out.
  */
 interface FirstApplicantNudgeItEmailProps {
   businessName: string;
-  jobTitle: string;
   claimUrl: string;
 }
 
-export function firstApplicantNudgeItEmail({ businessName, jobTitle, claimUrl }: FirstApplicantNudgeItEmailProps) {
+export function firstApplicantNudgeItEmail({ businessName, claimUrl }: FirstApplicantNudgeItEmailProps) {
   return {
-    subject: `Qualcuno è interessato al vostro annuncio per ${jobTitle}`,
+    subject: `Qualcuno ha risposto al vostro annuncio`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -41,20 +53,20 @@ export function firstApplicantNudgeItEmail({ businessName, jobTitle, claimUrl }:
           <td bgcolor="#0a1e33" style="background-color:#0a1e33;background-image:linear-gradient(135deg,#0a1e33 0%,#0f2942 40%,#1a3a5c 100%);padding:44px 32px 36px;text-align:center;">
             <p style="margin:0 0 10px;font-size:44px;">👋</p>
             <h1 style="margin:0 0 6px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px;">È arrivata la prima candidatura</h1>
-            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">${jobTitle}</p>
+            <p style="margin:0;color:#22d3ee;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">1 CANDIDATURA</p>
           </td>
         </tr>
         <!-- Body -->
         <tr>
           <td style="padding:36px 32px 24px;">
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              Buongiorno <strong style="color:#0a1e33;">${businessName}</strong>,
+              Gentile <strong style="color:#0a1e33;">${businessName}</strong>,
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              Qualcuno ha appena risposto al vostro annuncio per <strong>${jobTitle}</strong> su Mountain Connects ed è in attesa di una risposta.
+              Qualcuno ha appena risposto a un vostro annuncio su Mountain Connects ed è in attesa di una risposta.
             </p>
             <p style="margin:0 0 24px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              Rivendicate il vostro profilo gratuito per vedere i suoi dati, contattarlo direttamente e gestire i colloqui da un unico posto.
+              Potete rivendicare il vostro profilo gratuito per visualizzare i suoi dati, contattarlo direttamente e gestire i colloqui da un’unica piattaforma.
             </p>
 
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;" align="center">

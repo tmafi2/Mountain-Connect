@@ -496,7 +496,6 @@ export async function sendImportOutreachItEmail(params: {
 export async function sendFirstApplicantNudgeItEmail(params: {
   to: string;
   businessName: string;
-  jobTitle: string;
   claimUrl: string;
 }) {
   const { to, ...rest } = params;
@@ -519,7 +518,6 @@ export async function sendClaimApplicantsWaitingItEmail(params: {
 export async function sendClaimLastChanceItEmail(params: {
   to: string;
   businessName: string;
-  jobTitle: string;
   eoiCount: number;
   takedownDate: string;
   claimUrl: string;

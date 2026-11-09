@@ -10,24 +10,36 @@
  * background-color at its darkest stop, no rgba outside box-shadow, no flex,
  * no grid, no style block. email-compat.test.ts scans this directory.
  *
+ *
+ * ⚠️ THIS VERSION NEVER NAMES THE ROLE, and that is a deliberate divergence
+ * from the English original. `job_posts.title` is normalised to ENGLISH by the
+ * extractor because it is matched against the English resort and town tables
+ * (migration 00118), so an Italian advert for "cameriere di sala" is stored as
+ * "Waiter/Waitress". Quoting that back inside an Italian sentence reads like a
+ * machine that did not understand what they posted. The English version keeps
+ * its title, because there it is the words the business actually used.
+ *
+ * ⚠️ VOICE IS "NOI", matching import-outreach-it.ts. Do not mix: the body
+ * said "I saw your advert" while the removal line said "lo tolgo subito"
+ * before this was made consistent.
+ *
  * ⚠️ The Italian here is serviceable, not native. It uses "voi" throughout
  * for businesses. Have a native speaker read it before it goes out.
  */
 interface ClaimLastChanceItEmailProps {
   businessName: string;
-  jobTitle: string;
   eoiCount: number;
   takedownDate: string;
   claimUrl: string;
 }
 
-export function claimLastChanceItEmail({ businessName, jobTitle, eoiCount, takedownDate, claimUrl }: ClaimLastChanceItEmailProps) {
+export function claimLastChanceItEmail({ businessName, eoiCount, takedownDate, claimUrl }: ClaimLastChanceItEmailProps) {
   const eoiLine = eoiCount > 0
-    ? `${eoiCount === 1 ? "C\u2019\u00e8" : "Ci sono"} <strong style="color:#0a1e33;">${eoiCount} ${eoiCount === 1 ? "persona" : "persone"}</strong> in attesa di una vostra risposta.`
+    ? `${eoiCount === 1 ? "C’è" : "Ci sono"} <strong style="color:#0a1e33;">${eoiCount} ${eoiCount === 1 ? "persona" : "persone"}</strong> in attesa di una vostra risposta.`
     : `Chi cerca lavoro sta guardando il vostro annuncio proprio ora.`;
 
   return {
-    subject: `Ultimo avviso: il vostro annuncio per ${jobTitle} sta per essere rimosso`,
+    subject: `Ultimo avviso: il vostro annuncio sta per essere rimosso`,
     html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -54,10 +66,10 @@ export function claimLastChanceItEmail({ businessName, jobTitle, eoiCount, taked
         <tr>
           <td style="padding:36px 32px 24px;">
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              Buongiorno <strong style="color:#0a1e33;">${businessName}</strong>,
+              Gentile <strong style="color:#0a1e33;">${businessName}</strong>,
             </p>
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:15px;line-height:1.7;">
-              Il vostro annuncio per <strong>${jobTitle}</strong> è online su Mountain Connects da due settimane e non è ancora stato rivendicato. ${eoiLine}
+              Il vostro annuncio è online su Mountain Connects da due settimane e non è ancora stato rivendicato. ${eoiLine}
             </p>
 
             <!-- Warning box -->
@@ -90,7 +102,7 @@ export function claimLastChanceItEmail({ businessName, jobTitle, eoiCount, taked
             </p>
 
             <p style="margin:0 0 16px;color:#4e5d6c;font-size:14px;line-height:1.7;">
-              Se preferite che l’annuncio venga rimosso subito, rispondete a questa email.
+              Se preferite che l’annuncio venga rimosso subito, è sufficiente rispondere a questa email.
             </p>
 
             <p style="margin:24px 0 0;color:#4e5d6c;font-size:15px;line-height:1.7;">
