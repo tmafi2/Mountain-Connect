@@ -78,24 +78,31 @@ export function importOutreachItEmail({
   // Say how many exist, and say the claim is of a free listing, singular.
 
   const eoiLine = eoiCount > 0
-    ? `${many ? "Sono già online e hanno" : "È già online e ha"} ricevuto ${eoiCount} ${eoiCount === 1 ? "candidatura" : "candidature"} da parte di chi cerca lavoro.`
+    ? `${many ? "Sono già online e stanno" : "È già online e sta"} suscitando interesse tra chi cerca lavoro per la stagione.`
     : `${many ? "Sono già online e visibili ai candidati" : "È già online e visibile ai candidati"}.`;
 
-  const subjectLine = eoiCount > 0
-    ? eoiCount === 1
-      ? `Una persona ha risposto al vostro annuncio`
-      : `${eoiCount} persone hanno risposto ${many ? "ai vostri annunci" : "al vostro annuncio"}`
-    : many
-      ? `I vostri ${listingCount} annunci su Mountain Connects`
-      : `Il vostro annuncio su Mountain Connects`;
+  // ⚠️ THE COUNT APPEARS ONLY WHEN IT IS WORTH READING. "102 persone hanno
+  // risposto" is the strongest subject line we can write; "2 persone hanno
+  // risposto" tells a hotel that nobody wants the job. Same threshold the
+  // nudge emails use, so a business never sees a number we would not put in
+  // a subject line.
+  const countWorthShowing = eoiCount >= 5;
 
-  const headerLine = eoiCount > 0
-    ? eoiCount === 1
-      ? "1 CANDIDATURA"
-      : `${eoiCount} CANDIDATURE`
-    : many
-      ? `${listingCount} ANNUNCI`
-      : "ANNUNCIO ATTIVO";
+  const subjectLine = countWorthShowing
+    ? `${eoiCount} persone hanno risposto ${many ? "ai vostri annunci" : "al vostro annuncio"}`
+    : eoiCount > 0
+      ? `${many ? "I vostri annunci stanno" : "Il vostro annuncio sta"} suscitando interesse`
+      : many
+        ? `I vostri ${listingCount} annunci su Mountain Connects`
+        : `Il vostro annuncio su Mountain Connects`;
+
+  const headerLine = countWorthShowing
+    ? `${eoiCount} CANDIDATURE`
+    : eoiCount > 0
+      ? "CANDIDATURE IN ARRIVO"
+      : many
+        ? `${listingCount} ANNUNCI`
+        : "ANNUNCIO ATTIVO";
 
   const sawLine = many
     ? `Abbiamo notato i vostri ${listingCount} annunci di lavoro su ${source}`

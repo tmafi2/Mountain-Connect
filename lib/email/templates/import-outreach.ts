@@ -41,12 +41,19 @@ export function importOutreachEmail({
   // page then takes back, which is the worst possible first impression.
   // Say how many exist, and say the claim is of a free listing, singular.
 
-  // ⚠️ "generating interest" ONLY when there is interest. The branch is the
-  // point: most of these go out the day the listing is published, when the
-  // count is zero, and an email that opens by claiming interest nobody has
-  // shown is the one thing that would make a business distrust the rest of it.
+  // ⚠️ "generating interest" ONLY when there is interest, and NEVER with the
+  // number attached. The branch stays because most of these go out the day
+  // the listing is published, when the count is zero, and an email claiming
+  // interest nobody has shown would make a business distrust the rest of it.
+  //
+  // The figure is dropped because it usually works against us: this email
+  // fires at publish time, so the count is typically one to three, and "3
+  // expressions of interest" reads as nobody is applying. "Generating
+  // interest" is true at three and still true at ninety. The emails that DO
+  // quote a number — eoi-threshold-nudge, claim-applicants-waiting — only
+  // fire at five or more, so theirs is never a small one.
   const eoiLine = eoiCount > 0
-    ? `${many ? "They're" : "It's"} already live and generating interest — ${eoiCount} ${eoiCount === 1 ? "expression" : "expressions"} of interest so far from seasonal workers looking for their next opportunity.`
+    ? `${many ? "They're" : "It's"} already live and generating interest from seasonal workers looking for their next opportunity.`
     : `${many ? "They're" : "It's"} already live and visible to seasonal workers looking for their next opportunity.`;
 
   const subjectLine = many
