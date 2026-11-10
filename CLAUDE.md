@@ -74,7 +74,7 @@ Businesses can post listings regardless of verification state. Verification is a
 3. Business can immediately create + publish active job listings (previously draft-only). Their jobs and profile are publicly visible right away.
 4. Admin reviews at `/admin/registrations` → approve/reject/request info
 5. On verification: status → "verified", green "Verified" badge appears on their profile + job listings + the employers directory; celebration shown
-6. Unverified businesses still show publicly but with an amber "Not yet verified" note on their profile page so workers know the business hasn't been vetted
+6. Unverified businesses show publicly with no notice of any kind. The amber “Not yet verified” panel on `/business/{id}` was **removed on 2026-11-10**: it rendered on 364 of 377 business pages (96.5%), because the board is almost entirely unclaimed imports, so it warned about the normal case and distinguished nothing — the same failure that got the `/employers` directory hidden for reading as 89% placeholders. Verification is still surfaced where it means something: a VERIFIED business gets a green badge beside its name, and the absence of that badge is the honest statement
 7. Admins can verify/unverify any business at any time from `/admin/businesses`
 
 ## Current Feature Status

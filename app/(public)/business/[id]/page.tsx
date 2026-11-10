@@ -533,22 +533,21 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
         </div>
       </div>
 
-      {/* Unverified business notice — shown for businesses that haven't been
-           verified yet. Their profile and jobs are public but we flag the
-           status so workers know the business isn't yet vetted by our team. */}
-      {!isVerified && (
-        <div className="mt-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3.5">
-          <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-900">Not yet verified</p>
-            <p className="mt-0.5 text-sm text-amber-800">
-              This business hasn&apos;t been verified by the Mountain Connects team yet. Their listings are public but haven&apos;t gone through our verification process. Verified businesses show a green badge and have been manually reviewed.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* The amber "Not yet verified" notice used to sit here and was removed
+           on 2026-11-10. It rendered on 364 of 377 business pages — 96.5% —
+           because the board is almost entirely unclaimed imports, so it
+           warned about the normal case and told a reader nothing that
+           distinguished one business from another. That is the same failure
+           that got the /employers directory hidden for reading as 89%
+           placeholders: a signal shown everywhere is not a signal.
+
+           Verification is still surfaced in the header, where it costs one
+           line rather than a panel: a verified business gets a green badge
+           and everyone else gets a small grey "Unverified" chip (see the
+           ternary around isVerified above). That chip is deliberately left
+           in place — the panel was removed for being loud and ubiquitous,
+           not for being untrue, and a worker who wants to know can still
+           see it at a glance. */}
 
       {/* Highlights row — small coloured tiles giving the page a punchy
            anchor moment of "what does this business offer?" at a glance */}
