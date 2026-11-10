@@ -374,6 +374,12 @@ export default function AdminOutreachPage() {
           >
             Campaign overview →
           </Link>
+          <Link
+            href="/admin/outreach/pipeline"
+            className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
+          >
+            Claim pipeline →
+          </Link>
           <button
             type="button"
             onClick={() => setShowImport(true)}

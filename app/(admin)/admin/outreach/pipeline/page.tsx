@@ -52,6 +52,16 @@ interface Row {
   reason: string;
 }
 
+interface Preview {
+  subject: string;
+  html: string;
+  due: string;
+  type: string;
+  apps: number;
+  hasQuote: boolean;
+  canSend: boolean;
+}
+
 const STAGE_LABEL: Record<Stage, string> = {
   "queued-threshold": "Sends next run",
   "queued-first": "Sends next run",
@@ -66,6 +76,9 @@ export default function AdminEmailPipelinePage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"queued" | "waiting" | "blocked" | "all">("queued");
   const [search, setSearch] = useState("");
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [previewFor, setPreviewFor] = useState<Row | null>(null);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -194,6 +207,28 @@ export default function AdminEmailPipelinePage() {
     });
   }, [rows, filter, search]);
 
+  // Renders through the API rather than in the browser so the preview is
+  // built by the same code the sender uses, with the same data — a preview
+  // assembled separately is a second implementation that can drift.
+  async function openPreview(row: Row) {
+    setPreviewFor(row);
+    setPreview(null);
+    setPreviewing(true);
+    try {
+      const res = await fetch(`/api/admin/claim-pipeline/preview?businessId=${row.id}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+      setPreview(await res.json());
+    } catch (e) {
+      setPreview({
+        subject: "Could not render",
+        html: `<p style="font-family:system-ui;padding:24px;color:#b91c1c">${e instanceof Error ? e.message : String(e)}</p>`,
+        due: "", type: "", apps: row.apps, hasQuote: false, canSend: false,
+      });
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="text-2xl font-bold text-primary">Email pipeline</h1>
@@ -255,6 +290,7 @@ export default function AdminEmailPipelinePage() {
                   <Th>Quote</Th>
                   <Th>Status</Th>
                   <Th>Why</Th>
+                  <Th>Email</Th>
                 </tr>
               </thead>
               <tbody>
@@ -290,11 +326,20 @@ export default function AdminEmailPipelinePage() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-foreground/70">{r.reason}</td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => openPreview(r)}
+                        className="rounded-lg border border-accent px-2.5 py-1 text-xs font-semibold text-secondary transition hover:border-secondary/50 hover:bg-secondary/5"
+                      >
+                        Preview
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {visible.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-sm text-foreground/50">
+                    <td colSpan={7} className="px-3 py-8 text-center text-sm text-foreground/50">
                       Nothing in this group.
                     </td>
                   </tr>
@@ -302,6 +347,53 @@ export default function AdminEmailPipelinePage() {
               </tbody>
             </table>
           </div>
+
+          {previewFor && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/50"
+                onClick={() => { setPreviewFor(null); setPreview(null); }}
+              />
+              <div className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="flex items-start justify-between gap-3 border-b border-accent px-5 py-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-primary">{previewFor.name}</p>
+                    {preview && (
+                      <p className="mt-0.5 text-xs text-foreground/60">
+                        <span className="font-semibold">{preview.subject}</span>
+                      </p>
+                    )}
+                    {preview?.due && (
+                      <p className="mt-1 text-xs text-foreground/55">
+                        {preview.due}
+                        {preview.hasQuote
+                          ? " · includes an applicant's words"
+                          : " · no quote — reads as a count"}
+                        {preview.canSend ? "" : " · cannot be emailed"}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewFor(null); setPreview(null); }}
+                    className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-foreground/50 hover:bg-accent/30"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-auto bg-[#f0f4f8]">
+                  {previewing && <p className="p-6 text-sm text-foreground/60">Rendering…</p>}
+                  {preview && (
+                    <iframe
+                      title={`Email preview for ${previewFor.name}`}
+                      srcDoc={preview.html}
+                      className="h-[1150px] w-full border-0"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <p className="mt-4 text-xs leading-relaxed text-foreground/50">
             A quote is an applicant&apos;s own words, shown in the email. It only appears when the
