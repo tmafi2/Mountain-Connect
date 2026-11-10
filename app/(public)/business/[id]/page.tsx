@@ -381,16 +381,19 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
                 ✓ Verified Employer
               </span>
             )}
-            {isVerified ? (
+            {/* Verified ONLY. There used to be a grey "Unverified" chip on
+                 the other branch; it went on 2026-11-10 with the amber panel
+                 above it, and for the same reason — 364 of 377 businesses
+                 are unverified, so it labelled the normal case on 96.5% of
+                 pages. Verification is a badge you earn, not a status every
+                 page has to declare, and the absence of the badge is now the
+                 whole statement. */}
+            {isVerified && (
               <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Verified
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent/30 px-3 py-1 text-xs font-medium text-foreground/50">
-                Unverified
               </span>
             )}
           </div>
@@ -541,13 +544,10 @@ export default async function PublicBusinessPage({ params }: BusinessPageProps) 
            that got the /employers directory hidden for reading as 89%
            placeholders: a signal shown everywhere is not a signal.
 
-           Verification is still surfaced in the header, where it costs one
-           line rather than a panel: a verified business gets a green badge
-           and everyone else gets a small grey "Unverified" chip (see the
-           ternary around isVerified above). That chip is deliberately left
-           in place — the panel was removed for being loud and ubiquitous,
-           not for being untrue, and a worker who wants to know can still
-           see it at a glance. */}
+           The grey "Unverified" chip in the header went the same day, for
+           the same reason. What remains is the green badge on the twelve
+           businesses that have been verified, and nothing at all on anyone
+           else — see the isVerified check above. */}
 
       {/* Highlights row — small coloured tiles giving the page a punchy
            anchor moment of "what does this business offer?" at a glance */}
