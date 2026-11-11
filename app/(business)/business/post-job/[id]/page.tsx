@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import LocationRequestForm from "@/components/ui/LocationRequestForm";
+import { JOB_CATEGORIES } from "@/lib/jobs/category";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -38,11 +39,14 @@ interface JobFormData {
 
 /* ─── Constants ──────────────────────────────────────────── */
 
-const JOB_CATEGORIES = [
-  "Ski Instruction", "Hospitality", "Food & Beverage", "Retail",
-  "Resort Operations", "Lift Operations", "Housekeeping", "Maintenance",
-  "Administration", "Entertainment", "Other",
-];
+/**
+ * ⚠️ IMPORTED, NOT RETYPED. This list used to be a local copy, and there were
+ * FOUR of them — here, the admin import form, the fb-monitor extraction
+ * schema and lib/jobs/category.ts. Renaming one value meant finding all four,
+ * and a miss would leave this form writing a category the board no longer
+ * recognises. lib/jobs/category.ts is the only definition now.
+ */
+
 
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Casual"];
 

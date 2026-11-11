@@ -49,7 +49,7 @@ test("roles come back largest first, and only the top few", () => {
     ...Array(5).fill(row({ category: "Food & Beverage" })),
     ...Array(3).fill(row({ category: "Maintenance" })),
     ...Array(2).fill(row({ category: "Retail" })),
-    row({ category: "Ski Instruction" }),
+    row({ category: "Ski Instructor" }),
   ];
   const r = summarise("X", rows, 3);
   assert.deepEqual(r.topRoles.map((t) => t.category), ["Food & Beverage", "Maintenance", "Retail"]);

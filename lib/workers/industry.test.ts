@@ -16,7 +16,7 @@ test("a readable title beats the worker's own category", () => {
   );
   assert.deepEqual(
     industriesWorked([{ title: "Ski Instructor", category: "outdoor" }]),
-    ["Ski Instruction"],
+    ["Ski Instructor"],
   );
 });
 

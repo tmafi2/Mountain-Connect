@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { JOB_CATEGORIES } from "@/lib/jobs/category";
 
 interface Resort {
   id: string;
@@ -33,19 +34,6 @@ interface ImportResult {
 
 const SOURCES = ["Facebook", "Seek", "Indeed", "Gumtree", "LinkedIn", "Other"];
 
-const JOB_CATEGORIES = [
-  "Ski Instruction",
-  "Hospitality",
-  "Food & Beverage",
-  "Retail",
-  "Resort Operations",
-  "Lift Operations",
-  "Housekeeping",
-  "Maintenance",
-  "Administration",
-  "Entertainment",
-  "Other",
-];
 
 const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Casual"];
 

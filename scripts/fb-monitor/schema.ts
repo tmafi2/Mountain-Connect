@@ -50,19 +50,14 @@ export const NOT_STATED = "NOT_STATED";
 
 export const CLASSIFICATIONS = ["hiring", "seeking_work", "other"] as const;
 
-export const JOB_CATEGORIES = [
-  "Ski Instruction",
-  "Hospitality",
-  "Food & Beverage",
-  "Retail",
-  "Resort Operations",
-  "Lift Operations",
-  "Housekeeping",
-  "Maintenance",
-  "Administration",
-  "Entertainment",
-  "Other",
-] as const;
+/**
+ * ⚠️ RE-EXPORTED FROM lib/jobs/category.ts, NOT RETYPED. This was a fourth
+ * hand-written copy of the same eleven values, and it is the one that matters
+ * most: it is sent to the model as the allowed set, so a value here that the
+ * board does not recognise is written straight into job_posts.category.
+ */
+import { JOB_CATEGORIES } from "../../lib/jobs/category";
+export { JOB_CATEGORIES };
 
 export const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Casual"] as const;
 

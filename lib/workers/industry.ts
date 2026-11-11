@@ -37,7 +37,7 @@ import { JOB_CATEGORIES, categoryForTitle, type JobCategory } from "@/lib/jobs/c
  *                          Grape Harvest Worker. All four are farm work. The
  *                          genuine lift operators and instructors filed under
  *                          `outdoor` ARE read by the classifier (5 → Lift
- *                          Operations, 7 → Ski Instruction), so they never
+ *                          Operations, 7 → Ski Instructor), so they never
  *                          reach this map. Sending the remainder to Lift
  *                          Operations would tell you a fruit picker has lift
  *                          experience.
@@ -71,8 +71,8 @@ const WORKED_FALLBACK: Record<string, JobCategory> = {
  * worth its own category one day; filing it under a wrong one hides that.
  */
 const WANTED_MAP: Record<string, JobCategory> = {
-  "Ski Instructor": "Ski Instruction",
-  "Snowboard Instructor": "Ski Instruction",
+  "Ski Instructor": "Ski Instructor",
+  "Snowboard Instructor": "Ski Instructor",
   "Lift Operator": "Lift Operations",
   "Ski Patrol": "Resort Operations",
   "Snow Grooming": "Resort Operations",

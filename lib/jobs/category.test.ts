@@ -21,8 +21,8 @@ test("the obvious roles land where a worker would look for them", () => {
     ["Pizza Shop Team Member", "Food & Beverage"],
     ["Housekeeper", "Housekeeping"],
     ["Linen Runner", "Housekeeping"],
-    ["Ski Instructor", "Ski Instruction"],
-    ["Ski / Snowboard Instructor", "Ski Instruction"],
+    ["Ski Instructor", "Ski Instructor"],
+    ["Ski / Snowboard Instructor", "Ski Instructor"],
     ["Lift Operator", "Lift Operations"],
     ["Retail Sales Assistant", "Retail"],
     ["Carpentry Apprentice", "Maintenance"],
@@ -78,8 +78,8 @@ test("a ski school role is instruction, and a restaurant floor is F&B", () => {
   // "Ski/Snowboard School" means "ski school" never appears as contiguous
   // text, and "floor supervisor" did not match the "floor staff" rule that
   // already caught its colleagues.
-  assert.equal(categoryForTitle("Ski/Snowboard School Manager"), "Ski Instruction");
-  assert.equal(categoryForTitle("Snowboard School Manager"), "Ski Instruction");
+  assert.equal(categoryForTitle("Ski/Snowboard School Manager"), "Ski Instructor");
+  assert.equal(categoryForTitle("Snowboard School Manager"), "Ski Instructor");
   assert.equal(categoryForTitle("Floor Supervisor"), "Food & Beverage");
   assert.equal(categoryForTitle("Floor Staff"), "Food & Beverage");
   // The seniority word still wins where the job has no other signal.

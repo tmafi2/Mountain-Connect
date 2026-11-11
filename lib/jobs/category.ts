@@ -21,7 +21,7 @@
 
 /** The categories a job post may carry. Order is the form's display order. */
 export const JOB_CATEGORIES = [
-  "Ski Instruction",
+  "Ski Instructor",
   "Hospitality",
   "Food & Beverage",
   "Retail",
@@ -54,7 +54,7 @@ const RULES: Array<[JobCategory, RegExp]> = [
   // because `instructor|coach` has no snow in it. Both were visible only by
   // reading the assignments, not the rules.
   ["Hospitality", /\b(spa|massage|nail|esthetic|aesthetic|therapist|pilates|yoga|swim|skating|conditioning|gym|fitness|sauna|wellness|bike coach|bike instructor|cycling coach)/],
-  ["Ski Instruction", /\b(ski instructor|snowboard instructor|instructor|ski school|snowboard school|snowsports school|ski.{0,14}school|snowsport|coach)\b/],
+  ["Ski Instructor", /\b(ski instructor|snowboard instructor|instructor|ski school|snowboard school|snowsports school|ski.{0,14}school|snowsport|coach)\b/],
   // ⚠️ BEFORE Lift Operations. A man-lift is an aerial work platform and a
   // forklift is a forklift; neither is a chairlift, but `lift op` claimed
   // both. "Man-Lift Operator" was the ONLY thing in Lift Operations, which
