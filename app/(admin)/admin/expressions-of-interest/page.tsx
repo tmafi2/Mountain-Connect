@@ -108,7 +108,7 @@ const daysSince = (iso: string) =>
 const isoDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-type Filter = "all" | "unclaimed" | "five-plus" | "dead-ads";
+type Filter = "all" | "unclaimed" | "five-plus";
 
 /**
  * ⚠️ NO "never emailed" FILTER, DELIBERATELY. Measured 2026-11-10: of the 61
@@ -123,7 +123,6 @@ const FILTER_LABEL: Record<Filter, string> = {
   all: "All",
   unclaimed: "Unclaimed",
   "five-plus": "5+ applications",
-  "dead-ads": "Ad no longer live",
 };
 
 /** Quick spans; the two date boxes cover anything else. */
@@ -136,6 +135,8 @@ const PRESETS: Array<{ label: string; days: number | null }> = [
 
 
 
+
+
 export default function AdminExpressionsOfInterestPage() {
   const [rows, setRows] = useState<EoiRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,6 +145,7 @@ export default function AdminExpressionsOfInterestPage() {
   const [filter, setFilter] = useState<Filter>("unclaimed");
   const [country, setCountry] = useState("all");
   const [from, setFrom] = useState("");
+  const [includeDead, setIncludeDead] = useState(false);
   const [to, setTo] = useState("");
   const [view, setView] = useState<"business" | "ads" | "applications">(
     "business",
@@ -254,8 +256,35 @@ export default function AdminExpressionsOfInterestPage() {
     };
   }, [from, to]);
 
+  /**
+   * Applications on an ad that is no longer live are EXCLUDED by default.
+   *
+   * ⚠️ THE TEST IS `status = 'active'`, not a list of paused_reasons, and that
+   * is deliberate. Today the non-live ads carrying applications are 12
+   * `stale_cleanup` (last season's listings, retired by 00092) and 3
+   * `claim_gated`; there are ZERO `expired` and ZERO `dormant_unclaimed` so
+   * far, but the expiry sweep and the dormancy takedown will both produce
+   * them. Testing the status catches those the day they appear, where an
+   * enumerated list would silently keep showing them until someone noticed.
+   *
+   * ⚠️ IT HIDES REAL PEOPLE, so it is a toggle and not a deletion: 34
+   * applications sit on retired ads and nobody ever read them. Default off
+   * because a call list should not be padded with listings that are gone;
+   * reachable because they still happened.
+   *
+   * The 3 `claim_gated` ads are OUR parking, not a takedown — but all 5 of
+   * their applications are at CLAIMED businesses, which the default Unclaimed
+   * filter already excludes, so the simple rule costs nothing here. Revisit if
+   * a parked listing ever turns up at an unclaimed business.
+   */
   const dated = useMemo(
-    () => rows.filter((r) => inRange(r.created_at)),
+    () => rows.filter((r) => inRange(r.created_at) && (includeDead || r.job_live)),
+    [rows, inRange, includeDead],
+  );
+
+  /** Never hide a number silently: say how many the toggle is holding back. */
+  const hiddenByDeadAds = useMemo(
+    () => rows.filter((r) => inRange(r.created_at) && !r.job_live).length,
     [rows, inRange],
   );
 
@@ -370,7 +399,6 @@ export default function AdminExpressionsOfInterestPage() {
   const matchesFilter = (b: BizRow, f: Filter) => {
     if (f === "unclaimed") return !b.claimed;
     if (f === "five-plus") return b.total >= 5;
-    if (f === "dead-ads") return b.deadAds > 0;
     return true;
   };
 
@@ -650,6 +678,38 @@ export default function AdminExpressionsOfInterestPage() {
             {c === "all" ? "All" : c}
           </button>
         ))}
+      </div>
+
+      {/* Row 3b — whether taken-down ads count at all. */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-foreground/45">
+          Ads
+        </span>
+        {(
+          [
+            [false, "Live only"],
+            [true, "Include taken down"],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => setIncludeDead(v)}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+              includeDead === v
+                ? "bg-primary text-white"
+                : "bg-accent/25 text-foreground/65 hover:bg-accent/45"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        {!includeDead && hiddenByDeadAds > 0 && (
+          <span className="text-xs text-foreground/45">
+            {hiddenByDeadAds} application{hiddenByDeadAds === 1 ? "" : "s"} hidden — expired,
+            retired or taken down
+          </span>
+        )}
       </div>
 
       {/* Row 4 — when they applied. */}
