@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { industriesWorked, industriesWanted, INDUSTRY_OPTIONS } from "@/lib/workers/industry";
+import type { JobCategory } from "@/lib/jobs/category";
 
 interface WorkerRow {
   id: string;
@@ -12,6 +14,8 @@ interface WorkerRow {
   country_of_residence: string | null;
   nationality: string | null;
   skills: string[] | null;
+  preferred_job_types: string[] | null;
+  years_seasonal_experience: number | null;
   profile_photo_url: string | null;
   profile_completion_pct: number | null;
   bio: string | null;
@@ -31,11 +35,15 @@ interface WorkerApplication {
   applied_at: string;
 }
 
+
+
 export default function AdminWorkersPage() {
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "incomplete">("all");
+  const [worked, setWorked] = useState<JobCategory | "any">("any");
+  const [wanted, setWanted] = useState<JobCategory | "any">("any");
   const [selected, setSelected] = useState<WorkerRow | null>(null);
   const [selectedApps, setSelectedApps] = useState<WorkerApplication[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
@@ -77,6 +85,8 @@ export default function AdminWorkersPage() {
           country_of_residence: (p.country_of_residence as string) || null,
           nationality: (p.nationality as string) || null,
           skills: (p.skills as string[]) || null,
+          preferred_job_types: (p.preferred_job_types as string[]) || null,
+          years_seasonal_experience: (p.years_seasonal_experience as number) ?? null,
           profile_photo_url: (p.profile_photo_url as string) || null,
           profile_completion_pct: (p.profile_completion_pct as number) || null,
           bio: (p.bio as string) || null,
@@ -113,8 +123,39 @@ export default function AdminWorkersPage() {
     })();
   }, [selected]);
 
+  /**
+   * Industries resolved once per worker, not per keystroke. Both sides come
+   * from lib/workers/industry.ts so the admin filters on the same vocabulary
+   * the job board files jobs under.
+   */
+  const industries = useMemo(() => {
+    const m = new Map<string, { worked: JobCategory[]; wanted: JobCategory[] }>();
+    for (const w of workers) {
+      m.set(w.id, {
+        worked: industriesWorked(w.work_history),
+        wanted: industriesWanted(w.preferred_job_types),
+      });
+    }
+    return m;
+  }, [workers]);
+
+  /**
+   * ⚠️ SAY WHAT THE FILTER CANNOT SEE. Measured 2026-11-11: only 115 of 401
+   * workers have any work history and 168 list any preferred job type, so a
+   * filter on either is a filter over the minority who filled that section
+   * in. Presenting a short result as "the workers who have done this" would
+   * be wrong, so the counts sit next to the controls.
+   */
+  const coverage = useMemo(() => ({
+    worked: workers.filter((w) => (industries.get(w.id)?.worked.length ?? 0) > 0).length,
+    wanted: workers.filter((w) => (industries.get(w.id)?.wanted.length ?? 0) > 0).length,
+    total: workers.length,
+  }), [workers, industries]);
+
   const filtered = useMemo(() => {
     let results = [...workers];
+    if (worked !== "any") results = results.filter((w) => industries.get(w.id)?.worked.includes(worked));
+    if (wanted !== "any") results = results.filter((w) => industries.get(w.id)?.wanted.includes(wanted));
     if (statusFilter === "active") results = results.filter((w) => w.status !== "suspended" && (w.profile_completion_pct ?? 0) >= 50);
     else if (statusFilter === "suspended") results = results.filter((w) => w.status === "suspended");
     else if (statusFilter === "incomplete") results = results.filter((w) => w.status !== "suspended" && (!w.first_name || !w.last_name || (w.profile_completion_pct ?? 0) < 50));
@@ -131,7 +172,7 @@ export default function AdminWorkersPage() {
       );
     }
     return results;
-  }, [workers, search, statusFilter]);
+  }, [workers, search, statusFilter, worked, wanted, industries]);
 
   const handleSuspendAction = async (action: "suspend" | "reactivate") => {
     if (!selected) return;
@@ -187,6 +228,55 @@ export default function AdminWorkersPage() {
         </select>
         <span className="text-sm text-foreground/50">{filtered.length} workers</span>
       </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/45">
+            Has worked
+          </span>
+          <select
+            value={worked}
+            onChange={(e) => setWorked(e.target.value as JobCategory | "any")}
+            className="rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none"
+          >
+            <option value="any">Any industry</option>
+            {INDUSTRY_OPTIONS.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/45">
+            Looking for
+          </span>
+          <select
+            value={wanted}
+            onChange={(e) => setWanted(e.target.value as JobCategory | "any")}
+            className="rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none"
+          >
+            <option value="any">Any industry</option>
+            {INDUSTRY_OPTIONS.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+
+        {(worked !== "any" || wanted !== "any") && (
+          <button
+            type="button"
+            onClick={() => { setWorked("any"); setWanted("any"); }}
+            className="text-sm font-medium text-secondary hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      <p className="mt-2 text-xs text-foreground/45">
+        {coverage.worked} of {coverage.total} workers list any work history and {coverage.wanted}{" "}
+        list what they are looking for — filtering on either only searches those.
+      </p>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-accent bg-white">
         <table className="w-full text-sm">
