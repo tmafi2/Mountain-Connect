@@ -3,144 +3,502 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows, fetchAllByIds } from "@/lib/supabase/fetch-all";
 
 /**
- * Every expression of interest, and — the point of the page — whether anyone
- * is on the other end to receive it.
+ * Which businesses and which job ads are getting expressions of interest.
  *
- * An EOI against an unclaimed business is a real person who asked about a job
- * and will hear nothing until that business claims its account. On 4
- * September one job seeker expressed interest in six bar roles across four
- * businesses in a single session, and every one of those businesses was
- * unclaimed. That is invisible in a plain list of rows, so it is the first
- * thing this page says.
+ * That is the whole job of this page: who is attracting applicants, how many,
+ * from which ads, over what period — so a list can be exported and worked
+ * through by hand.
+ *
+ * ⚠️ IT SAYS NOTHING ABOUT EMAIL, DELIBERATELY. What the claim cadence has
+ * sent, what it will send next, and whether an applicant's letter can be
+ * quoted back to a business all live on /admin/outreach/pipeline. Those are
+ * decisions about a message; this is a count of interest. They were briefly
+ * one page and it answered neither question cleanly.
+ *
+ * ⚠️ EVERY READ IS PAGED, and the business lookup is CHUNKED. Applications and
+ * job posts are both approaching the 1000-row cap this project sets silently
+ * (lib/supabase/fetch-all.ts), and a short read would under-report how many
+ * people are waiting — the only number here that matters. The `.in(...)` list
+ * grows with the board, which is the other half of the same trap: a long
+ * enough id list builds a URL that fails quietly.
+ *
+ * ⚠️ THE COUNTRY COMES FROM THE JOB'S RESORT, NOT THE BUSINESS'S, and it has
+ * to. `business_profiles.resort_id` is a plain column with NO foreign key, so
+ * PostgREST cannot see a relationship and `business_profiles(…, resorts(…))`
+ * fails the WHOLE select — it returns zero rows with an error that is easy to
+ * discard, not a row with a null country. An earlier draft did exactly that
+ * and rendered all 65 businesses as "Unknown / —" with every claimed flag
+ * false, which looks like real data. `job_posts → resorts` does have the
+ * relationship, and carries the resort name as well.
+ *
+ * ⚠️ WE HOLD NO PHONE NUMBERS. `business_profiles.phone` and `.website` are
+ * empty on all 65 businesses that have applications, and only one of the 96
+ * ads has anything phone-shaped in its text — the board is almost entirely
+ * scraped imports, which never carried one. So the export carries every
+ * ADDRESS we hold (the business's own, plus an ad's apply-to address where it
+ * differs) and the public profile url. A number has to be looked up.
  */
 
 interface EoiRow {
   id: string;
   name: string | null;
   email: string | null;
-  phone: string | null;
-  message: string | null;
   created_at: string;
   job_id: string;
   job_title: string;
-  job_status: string;
+  job_live: boolean;
+  job_apply_email: string | null;
   business_id: string;
   business_name: string;
+  business_country: string;
+  resort: string;
   business_claimed: boolean;
-  business_notified: boolean;
+  business_email: string | null;
+}
+
+interface AdRow {
+  id: string;
+  title: string;
+  live: boolean;
+  applyEmail: string | null;
+  businessId: string;
+  business: string;
+  country: string;
+  resort: string;
+  total: number;
+  first: string;
+  latest: string;
+}
+
+interface BizRow {
+  id: string;
+  name: string;
+  country: string;
+  resort: string;
+  email: string | null;
+  claimed: boolean;
+  total: number;
+  ads: number;
+  deadAds: number;
+  onDeadAds: number;
+  first: string;
+  latest: string;
+  applyEmails: string[];
 }
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+const daysSince = (iso: string) =>
+  Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+
+/**
+ * ⚠️ LOCAL date parts, not `toISOString()`. The two date inputs are parsed as
+ * LOCAL midnight in `inRange`, so a UTC-derived day string would disagree with
+ * them by a day for anyone west of Greenwich in the evening — the preset would
+ * silently cover 29 or 31 days and the chip would still look right.
+ */
+const isoDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+type Filter = "all" | "unclaimed" | "five-plus" | "dead-ads";
+
+/**
+ * ⚠️ NO "never emailed" FILTER, DELIBERATELY. Measured 2026-11-10: of the 61
+ * unclaimed businesses with someone waiting, *zero* have not had the
+ * first-applicant email. A filter that can never match is worse than no
+ * filter — it reads as "nobody is un-emailed yet" when it means "this control
+ * does nothing", the same mistake as the category filter that offered two
+ * options for 355 jobs. The live distinction is how MUCH is waiting, which is
+ * wildly uneven: one business has 109 applications, 33 have exactly one.
+ */
+const FILTER_LABEL: Record<Filter, string> = {
+  all: "All",
+  unclaimed: "Unclaimed",
+  "five-plus": "5+ applications",
+  "dead-ads": "Ad no longer live",
+};
+
+/** Quick spans; the two date boxes cover anything else. */
+const PRESETS: Array<{ label: string; days: number | null }> = [
+  { label: "All time", days: null },
+  { label: "7 days", days: 7 },
+  { label: "30 days", days: 30 },
+  { label: "90 days", days: 90 },
+];
+
+
 
 export default function AdminExpressionsOfInterestPage() {
   const [rows, setRows] = useState<EoiRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [onlyUnreachable, setOnlyUnreachable] = useState(false);
+  const [filter, setFilter] = useState<Filter>("unclaimed");
+  const [country, setCountry] = useState("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [view, setView] = useState<"business" | "ads" | "applications">(
+    "business",
+  );
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("expressions_of_interest")
-        .select(
-          "id, name, email, phone, message, created_at, job_post_id, job_posts(id, title, status, business_id)"
-        )
-        .order("created_at", { ascending: false });
+      try {
+        const eois = await fetchAllRows<Record<string, unknown>>(
+          (lo, hi) =>
+            supabase
+              .from("expressions_of_interest")
+              .select(
+                "id, name, email, created_at, job_post_id, job_posts(id, title, status, business_id, application_email, resorts(name, country))",
+              )
+              .order("created_at", { ascending: false })
+              .range(lo, hi),
+          "expressions of interest",
+        );
 
-      const eois = (data ?? []) as unknown as Array<
-        Omit<EoiRow, "job_id" | "job_title" | "job_status" | "business_id" | "business_name" | "business_claimed" | "business_notified"> & {
-          job_posts: { id: string; title: string; status: string; business_id: string } | null;
-        }
-      >;
+        const bizIds = [
+          ...new Set(
+            eois
+              .map(
+                (e) =>
+                  (e.job_posts as { business_id?: string } | null)?.business_id,
+              )
+              .filter(Boolean) as string[],
+          ),
+        ];
 
-      const bizIds = [...new Set(eois.map((e) => e.job_posts?.business_id).filter(Boolean))] as string[];
-      const bizMap: Record<string, { name: string; claimed: boolean; notified: boolean }> = {};
-      if (bizIds.length > 0) {
-        const { data: bizes } = await supabase
-          .from("business_profiles")
-          .select("id, business_name, user_id, first_applicant_email_sent_at")
-          .in("id", bizIds);
-        for (const b of bizes ?? []) {
-          bizMap[b.id as string] = {
-            name: (b.business_name as string) ?? "Unknown",
-            claimed: !!b.user_id,
-            notified: !!b.first_applicant_email_sent_at,
-          };
+        const bizMap = new Map<
+          string,
+          { name: string; claimed: boolean; email: string | null }
+        >();
+        if (bizIds.length) {
+          const bizes = await fetchAllByIds<Record<string, unknown>>(
+            bizIds,
+            (chunk, lo, hi) =>
+              supabase
+                .from("business_profiles")
+                .select("id, business_name, email, is_claimed")
+                .in("id", chunk)
+                .range(lo, hi),
+            "businesses behind applications",
+          );
+          for (const b of bizes) {
+            bizMap.set(b.id as string, {
+              name: (b.business_name as string) ?? "Unknown",
+              claimed: Boolean(b.is_claimed),
+              email: (b.email as string) ?? null,
+            });
+          }
         }
+
+        setRows(
+          eois.map((e) => {
+            const jp = e.job_posts as {
+              id: string;
+              title: string;
+              status: string;
+              business_id: string;
+              application_email: string | null;
+              resorts: { name?: string; country?: string } | null;
+            } | null;
+            const biz = jp ? bizMap.get(jp.business_id) : undefined;
+            return {
+              id: e.id as string,
+              name: (e.name as string) ?? null,
+              email: (e.email as string) ?? null,
+              created_at: e.created_at as string,
+              job_id: jp?.id ?? "",
+              job_title: jp?.title ?? "(ad removed)",
+              job_live: jp?.status === "active",
+              job_apply_email: jp?.application_email ?? null,
+              business_id: jp?.business_id ?? "",
+              business_name: biz?.name ?? "Unknown",
+              business_country: jp?.resorts?.country ?? "—",
+              resort: jp?.resorts?.name ?? "—",
+              business_claimed: Boolean(biz?.claimed),
+              business_email: biz?.email ?? null,
+            };
+          }),
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(false);
       }
-
-      setRows(
-        eois.map((e) => {
-          const jp = e.job_posts;
-          const biz = jp ? bizMap[jp.business_id] : undefined;
-          return {
-            id: e.id,
-            name: e.name,
-            email: e.email,
-            phone: e.phone,
-            message: e.message,
-            created_at: e.created_at,
-            job_id: jp?.id ?? "",
-            job_title: jp?.title ?? "(listing removed)",
-            job_status: jp?.status ?? "",
-            business_id: jp?.business_id ?? "",
-            business_name: biz?.name ?? "Unknown",
-            business_claimed: !!biz?.claimed,
-            business_notified: !!biz?.notified,
-          };
-        })
-      );
-      setLoading(false);
     })();
   }, []);
 
+  /**
+   * The date range narrows the APPLICATIONS, and everything else is derived
+   * from what survives — so a business with nothing in the window drops out of
+   * the table and out of the export rather than appearing with a count of 0.
+   * `to` is inclusive of its whole day: a range ending "today" must not
+   * exclude this morning.
+   */
+  const inRange = useMemo(() => {
+    const lo = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
+    const hi = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
+    return (iso: string) => {
+      const t = new Date(iso).getTime();
+      return t >= lo && t <= hi;
+    };
+  }, [from, to]);
+
+  const dated = useMemo(
+    () => rows.filter((r) => inRange(r.created_at)),
+    [rows, inRange],
+  );
+
+  const activePreset = useMemo(() => {
+    if (!from && !to) return "All time";
+    for (const p of PRESETS) {
+      if (p.days === null) continue;
+      const start = new Date();
+      start.setDate(start.getDate() - p.days);
+      if (from === isoDay(start) && !to) return p.label;
+    }
+    return null;
+  }, [from, to]);
+
+  function applyPreset(days: number | null) {
+    if (days === null) {
+      setFrom("");
+      setTo("");
+      return;
+    }
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    setFrom(isoDay(start));
+    setTo("");
+  }
+
   const stats = useMemo(() => {
-    const thisMonth = new Date();
-    thisMonth.setUTCDate(1);
-    thisMonth.setUTCHours(0, 0, 0, 0);
-    // Same person, counted once — the raw row count flatters the numbers when
-    // one motivated applicant hits six listings in an evening.
+    // Same person counted once — a raw row count flatters the numbers when one
+    // motivated applicant hits six ads in an evening.
     const people = new Set(
-      rows.map((r) => (r.email || r.name || r.id).trim().toLowerCase())
+      dated.map((r) => (r.email || r.name || r.id).trim().toLowerCase()),
+    );
+    const unread = dated.filter((r) => !r.business_claimed);
+    const oldest = unread.reduce<string | null>(
+      (acc, r) => (!acc || r.created_at < acc ? r.created_at : acc),
+      null,
     );
     return {
-      total: rows.length,
-      month: rows.filter((r) => new Date(r.created_at) >= thisMonth).length,
+      total: dated.length,
       people: people.size,
-      unreachable: rows.filter((r) => !r.business_claimed).length,
+      businesses: new Set(dated.map((r) => r.business_id).filter(Boolean)).size,
+      ads: new Set(dated.map((r) => r.job_id).filter(Boolean)).size,
+      unread: unread.length,
+      oldestDays: oldest ? daysSince(oldest) : 0,
     };
-  }, [rows]);
+  }, [dated]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (onlyUnreachable && r.business_claimed) return false;
-      if (!q) return true;
-      return (
-        (r.name ?? "").toLowerCase().includes(q) ||
-        (r.email ?? "").toLowerCase().includes(q) ||
-        r.job_title.toLowerCase().includes(q) ||
-        r.business_name.toLowerCase().includes(q)
-      );
-    });
-  }, [rows, search, onlyUnreachable, ]);
-
-  /** Which listings attract interest — the useful view for deciding what to scrape. */
-  const byListing = useMemo(() => {
-    const m = new Map<string, { title: string; business: string; claimed: boolean; count: number }>();
-    for (const r of rows) {
-      const key = `${r.business_name}|${r.job_title}`;
-      const e = m.get(key) ?? { title: r.job_title, business: r.business_name, claimed: r.business_claimed, count: 0 };
-      e.count += 1;
-      m.set(key, e);
+  const businesses = useMemo(() => {
+    const m = new Map<
+      string,
+      BizRow & {
+        adIds: Set<string>;
+        deadIds: Set<string>;
+        applySet: Set<string>;
+      }
+    >();
+    for (const r of dated) {
+      if (!r.business_id) continue;
+      let e = m.get(r.business_id);
+      if (!e) {
+        e = {
+          id: r.business_id,
+          name: r.business_name,
+          country: r.business_country,
+          resort: r.resort,
+          email: r.business_email,
+          claimed: r.business_claimed,
+          total: 0,
+          ads: 0,
+          deadAds: 0,
+          onDeadAds: 0,
+          first: r.created_at,
+          latest: r.created_at,
+          applyEmails: [],
+          adIds: new Set(),
+          deadIds: new Set(),
+          applySet: new Set(),
+        };
+        m.set(r.business_id, e);
+      }
+      e.total += 1;
+      if (!r.job_live) e.onDeadAds += 1;
+      if (r.created_at < e.first) e.first = r.created_at;
+      if (r.created_at > e.latest) e.latest = r.created_at;
+      if (r.job_id) {
+        e.adIds.add(r.job_id);
+        if (!r.job_live) e.deadIds.add(r.job_id);
+      }
+      // Only worth carrying when it differs from the business's own address.
+      if (r.job_apply_email && r.job_apply_email !== r.business_email) {
+        e.applySet.add(r.job_apply_email);
+      }
     }
-    return [...m.values()].sort((a, b) => b.count - a.count).slice(0, 12);
-  }, [rows]);
+    return [...m.values()]
+      .map(({ adIds, deadIds, applySet, ...b }) => ({
+        ...b,
+        ads: adIds.size,
+        deadAds: deadIds.size,
+        applyEmails: [...applySet],
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [dated]);
+
+  const countries = useMemo(
+    () => [...new Set(businesses.map((b) => b.country))].sort(),
+    [businesses],
+  );
+
+  const inCountry = (b: { country: string }, c: string) =>
+    c === "all" || b.country === c;
+
+  const matchesFilter = (b: BizRow, f: Filter) => {
+    if (f === "unclaimed") return !b.claimed;
+    if (f === "five-plus") return b.total >= 5;
+    if (f === "dead-ads") return b.deadAds > 0;
+    return true;
+  };
+
+  const visibleBusinesses = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return businesses.filter(
+      (b) =>
+        matchesFilter(b, filter) &&
+        inCountry(b, country) &&
+        (!q ||
+          b.name.toLowerCase().includes(q) ||
+          b.country.toLowerCase().includes(q) ||
+          b.resort.toLowerCase().includes(q)),
+    );
+  }, [businesses, filter, country, search]);
+
+  /** The number on each chip, so an empty filter is visible before it is
+   *  clicked rather than looking like an empty board. */
+  const filterCounts = useMemo(() => {
+    const out = {} as Record<Filter, number>;
+    for (const f of Object.keys(FILTER_LABEL) as Filter[]) {
+      out[f] = businesses.filter(
+        (b) => matchesFilter(b, f) && inCountry(b, country),
+      ).length;
+    }
+    return out;
+  }, [businesses, country]);
+
+  const allowedBiz = useMemo(
+    () => new Set(visibleBusinesses.map((b) => b.id)),
+    [visibleBusinesses],
+  );
+
+  /** Ads, built from the same filtered set so the two views never disagree. */
+  const visibleAds = useMemo(() => {
+    const m = new Map<string, AdRow>();
+    for (const r of dated) {
+      if (!allowedBiz.has(r.business_id) || !r.job_id) continue;
+      let a = m.get(r.job_id);
+      if (!a) {
+        a = {
+          id: r.job_id,
+          title: r.job_title,
+          live: r.job_live,
+          applyEmail:
+            r.job_apply_email && r.job_apply_email !== r.business_email
+              ? r.job_apply_email
+              : null,
+          businessId: r.business_id,
+          business: r.business_name,
+          country: r.business_country,
+          resort: r.resort,
+          total: 0,
+          first: r.created_at,
+          latest: r.created_at,
+        };
+        m.set(r.job_id, a);
+      }
+      a.total += 1;
+      if (r.created_at < a.first) a.first = r.created_at;
+      if (r.created_at > a.latest) a.latest = r.created_at;
+    }
+    return [...m.values()].sort((x, y) => y.total - x.total);
+  }, [dated, allowedBiz]);
+
+  const adsByBusiness = useMemo(() => {
+    const m = new Map<string, AdRow[]>();
+    for (const a of visibleAds) {
+      const list = m.get(a.businessId);
+      if (list) list.push(a);
+      else m.set(a.businessId, [a]);
+    }
+    return m;
+  }, [visibleAds]);
+
+  const visibleApplications = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return dated.filter(
+      (r) =>
+        allowedBiz.has(r.business_id) &&
+        (!q ||
+          (r.name ?? "").toLowerCase().includes(q) ||
+          (r.email ?? "").toLowerCase().includes(q) ||
+          r.job_title.toLowerCase().includes(q) ||
+          r.business_name.toLowerCase().includes(q)),
+    );
+  }, [dated, allowedBiz, search]);
+
+  const rangeLabel =
+    !from && !to ? "all time" : `${from || "the start"} to ${to || "today"}`;
+
+  /** The filtered business list, as a file you can work a call list from. */
+  function exportCsv() {
+    // Kept column-per-column alongside the row below: these two lists must
+    // stay in the same order, and that is only checkable by eye.
+    const header = [
+      "business", "country", "resort", "email", "ad_apply_emails",
+      "applications", "ads_with_applications", "ads_no_longer_live",
+      "first_application", "latest_application", "days_since_first",
+      "claimed", "profile_url",
+    ];
+    const esc = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = visibleBusinesses.map((b) =>
+      [
+        b.name, b.country, b.resort, b.email ?? "", b.applyEmails.join("; "),
+        b.total, b.ads, b.deadAds,
+        b.first.slice(0, 10), b.latest.slice(0, 10), daysSince(b.first),
+        b.claimed ? "yes" : "no",
+        `https://www.mountainconnects.com/business/${b.id}`,
+      ].map(esc).join(","),
+    );
+    const span =
+      from || to
+        ? `${from || "start"}_to_${to || isoDay(new Date())}`
+        : "all-time";
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `businesses-with-interest-${span}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   if (loading) {
     return (
@@ -150,169 +508,512 @@ export default function AdminExpressionsOfInterestPage() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary">Expressions of Interest</h1>
-        <p className="mt-1 text-sm text-foreground/60">
-          People who asked about a job without creating an account. An unclaimed business
-          can&apos;t see them until it claims.
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl py-16">
+        <h1 className="text-2xl font-bold text-primary">
+          Expressions of Interest
+        </h1>
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          Could not read the board: {error}
+        </p>
+        <p className="mt-3 text-sm text-foreground/60">
+          Nothing is shown rather than a partial count — a short read here would
+          under-report how many people are waiting.
         </p>
       </div>
+    );
+  }
 
-      {/* Summary */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { n: stats.total, l: "total, all time", flag: false },
-          { n: stats.month, l: "this month", flag: false },
-          { n: stats.people, l: "unique people", flag: false },
-          { n: stats.unreachable, l: "waiting on an unclaimed business", flag: stats.unreachable > 0 },
-        ].map((s) => (
-          <div
-            key={s.l}
-            className={`rounded-2xl border p-5 ${s.flag ? "border-amber-300 bg-amber-50" : "border-accent/40 bg-white"}`}
+  return (
+    <div className="mx-auto max-w-7xl">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-primary">
+            Expressions of Interest
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-foreground/60">
+            Which businesses and which job ads are attracting applicants. An
+            unclaimed business can&apos;t see any of them until it claims.
+          </p>
+        </div>
+        <Link
+          href="/admin/outreach/pipeline"
+          className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
+        >
+          What we&apos;re emailing them →
+        </Link>
+      </div>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Tile n={stats.total} l={`applications · ${rangeLabel}`} />
+        <Tile n={stats.people} l="unique people" />
+        <Tile n={stats.businesses} l="businesses getting interest" />
+        <Tile n={stats.ads} l="job ads getting interest" />
+        <Tile
+          n={stats.oldestDays}
+          l="days the oldest unread has waited"
+          flag={stats.oldestDays > 60}
+        />
+      </div>
+
+      {stats.unread > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <strong>{stats.unread}</strong> of {stats.total} applications are
+          against a business that has never claimed its account, so nobody has
+          read them. The oldest has been waiting{" "}
+          <strong>{stats.oldestDays} days</strong>.
+        </div>
+      )}
+
+      {/* Row 1 — what you are looking at, and how to get it out. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex rounded-lg border border-accent bg-white p-0.5">
+          {(
+            [
+              ["business", "By business"],
+              ["ads", "By job ad"],
+              ["applications", "Every application"],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+                view === v
+                  ? "bg-primary text-white"
+                  : "text-foreground/60 hover:text-primary"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search business, resort, applicant"
+          className="w-full max-w-xs rounded-lg border border-accent bg-white px-3 py-1.5 text-sm focus:border-secondary focus:outline-none sm:w-auto"
+        />
+
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={visibleBusinesses.length === 0}
+          className="ml-auto rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-40"
+        >
+          Export {visibleBusinesses.length} businesses (CSV)
+        </button>
+      </div>
+
+      {/* Row 2 — filters. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+              filter === f
+                ? "bg-secondary text-white"
+                : "bg-accent/30 text-foreground/70 hover:bg-accent/50"
+            }`}
           >
-            <p className={`text-3xl font-bold tabular-nums ${s.flag ? "text-amber-700" : "text-primary"}`}>{s.n}</p>
-            <p className="mt-1 text-sm text-foreground/60">{s.l}</p>
-          </div>
+            {FILTER_LABEL[f]}
+            <span
+              className={`ml-1.5 tabular-nums ${filter === f ? "text-white/70" : "text-foreground/45"}`}
+            >
+              {filterCounts[f]}
+            </span>
+          </button>
         ))}
       </div>
 
-      {stats.unreachable > 0 && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-          <strong>{stats.unreachable}</strong> of {stats.total} are waiting on a business that
-          hasn&apos;t claimed its account. They&apos;ve been emailed that someone applied, but nobody
-          has logged in to see who. Their listings are exempt from takedown.
-        </div>
-      )}
+      {/* Row 3 — country. */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-foreground/45">
+          Country
+        </span>
+        {["all", ...countries].map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCountry(c)}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+              country === c
+                ? "bg-primary text-white"
+                : "bg-accent/25 text-foreground/65 hover:bg-accent/45"
+            }`}
+          >
+            {c === "all" ? "All" : c}
+          </button>
+        ))}
+      </div>
 
-      {/* Which listings attract interest */}
-      {byListing.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-accent/40 bg-white p-5">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground/50">
-            Listings attracting interest
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {byListing.map((l) => (
-              <span
-                key={`${l.business}|${l.title}`}
-                className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background px-3 py-1.5 text-xs"
-                title={l.business}
-              >
-                <span className="font-semibold text-primary">{l.title}</span>
-                <span className="text-foreground/45">{l.business}</span>
-                <span className="rounded-full bg-secondary/15 px-1.5 py-0.5 font-bold text-secondary">{l.count}</span>
-                {!l.claimed && <span className="text-amber-600" title="business hasn't claimed">●</span>}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Controls */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      {/* Row 4 — when they applied. */}
+      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-foreground/45">
+          Applied
+        </span>
+        {PRESETS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => applyPreset(p.days)}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+              activePreset === p.label
+                ? "bg-primary text-white"
+                : "bg-accent/25 text-foreground/65 hover:bg-accent/45"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
         <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search person, listing or business…"
-          className="flex-1 min-w-[240px] rounded-xl border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none"
+          type="date"
+          value={from}
+          max={to || undefined}
+          onChange={(e) => setFrom(e.target.value)}
+          className="rounded-lg border border-accent bg-white px-2 py-1 text-xs focus:border-secondary focus:outline-none"
         />
-        <button
-          type="button"
-          onClick={() => setOnlyUnreachable(!onlyUnreachable)}
-          className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-            onlyUnreachable
-              ? "border-amber-300 bg-amber-100 text-amber-900"
-              : "border-accent bg-white text-foreground/70 hover:text-primary"
-          }`}
-        >
-          Unclaimed only
-        </button>
-        <span className="text-sm text-foreground/50">{filtered.length} shown</span>
+        <span className="text-xs text-foreground/45">to</span>
+        <input
+          type="date"
+          value={to}
+          min={from || undefined}
+          onChange={(e) => setTo(e.target.value)}
+          className="rounded-lg border border-accent bg-white px-2 py-1 text-xs focus:border-secondary focus:outline-none"
+        />
+        {(from || to) && (
+          <button
+            type="button"
+            onClick={() => {
+              setFrom("");
+              setTo("");
+            }}
+            className="rounded-full px-2 py-1 text-xs font-medium text-secondary hover:underline"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-accent/40 bg-white">
-        <table className="w-full min-w-[820px] text-sm">
-          <thead>
-            <tr className="border-b border-accent/40 text-left text-xs uppercase tracking-wider text-foreground/50">
-              <th className="px-5 py-3 font-semibold">Date</th>
-              <th className="px-5 py-3 font-semibold">Person</th>
-              <th className="px-5 py-3 font-semibold">Listing</th>
-              <th className="px-5 py-3 font-semibold">Business</th>
-              <th className="px-5 py-3 font-semibold">Reaches them?</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-foreground/50">
-                  No expressions of interest match.
-                </td>
+      {view === "business" && (
+        <div className="overflow-x-auto rounded-2xl border border-accent/40 bg-white">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-accent/50 bg-background/60 text-left">
+                <Th>Business</Th>
+                <Th>Country</Th>
+                <Th right>Applications</Th>
+                <Th right>Job ads</Th>
+                <Th>First</Th>
+                <Th>Latest</Th>
+                <Th>State</Th>
+                <Th />
               </tr>
-            )}
-            {filtered.map((r) => (
-              <tr
-                key={r.id}
-                onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                className="cursor-pointer border-b border-accent/20 transition-colors last:border-0 hover:bg-accent/5"
-              >
-                <td className="whitespace-nowrap px-5 py-3 text-foreground/60">{fmtDate(r.created_at)}</td>
-                <td className="px-5 py-3">
-                  <p className="font-medium text-primary">{r.name || "(no name)"}</p>
-                  <p className="text-xs text-foreground/50">{r.email || "no email"}</p>
-                  {expanded === r.id && r.message && (
-                    <p className="mt-2 max-w-md rounded-lg bg-background px-3 py-2 text-xs text-foreground/70">
-                      {r.message}
-                    </p>
-                  )}
-                  {expanded === r.id && r.phone && (
-                    <p className="mt-1 text-xs text-foreground/50">{r.phone}</p>
-                  )}
-                </td>
-                <td className="px-5 py-3">
-                  {r.job_id ? (
+            </thead>
+            <tbody>
+              {visibleBusinesses.map((b) => (
+                <BusinessRow
+                  key={b.id}
+                  b={b}
+                  expanded={expanded === b.id}
+                  onToggle={() => setExpanded(expanded === b.id ? null : b.id)}
+                  ads={adsByBusiness.get(b.id) ?? []}
+                />
+              ))}
+              {visibleBusinesses.length === 0 && <Empty cols={8} />}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === "ads" && (
+        <div className="overflow-x-auto rounded-2xl border border-accent/40 bg-white">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-accent/50 bg-background/60 text-left">
+                <Th>Job ad</Th>
+                <Th>Business</Th>
+                <Th>Country</Th>
+                <Th right>Applications</Th>
+                <Th>First</Th>
+                <Th>Latest</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleAds.map((a) => (
+                <tr
+                  key={a.id}
+                  className="border-b border-accent/40 last:border-0"
+                >
+                  <td className="px-4 py-2.5">
                     <Link
-                      href={`/jobs/${r.job_id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-primary hover:text-secondary hover:underline"
+                      href={`/jobs/${a.id}`}
+                      className="font-medium text-primary hover:text-secondary hover:underline"
                     >
-                      {r.job_title}
+                      {a.title}
                     </Link>
-                  ) : (
-                    <span className="text-foreground/40">{r.job_title}</span>
-                  )}
-                  {r.job_status && r.job_status !== "active" && (
-                    <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-                      {r.job_status}
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-foreground/70">{r.business_name}</td>
-                <td className="px-5 py-3">
-                  {r.business_claimed ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
-                      Claimed — can see it
-                    </span>
-                  ) : (
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800"
-                      title={
-                        r.business_notified
-                          ? "Emailed that someone applied, but has never logged in"
-                          : "Not yet emailed about this applicant"
-                      }
-                    >
-                      Unclaimed{r.business_notified ? " — emailed" : " — not emailed"}
-                    </span>
-                  )}
-                </td>
+                    {!a.live && (
+                      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                        no longer live
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-foreground/70">
+                    {a.business}
+                  </td>
+                  <td className="px-4 py-2.5 text-foreground/70">
+                    {a.country}
+                    {a.resort !== "—" && (
+                      <p className="text-xs text-foreground/45">{a.resort}</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums font-semibold">
+                    {a.total}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-foreground/60">
+                    {fmtDate(a.first)}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-foreground/60">
+                    {fmtDate(a.latest)}
+                  </td>
+                </tr>
+              ))}
+              {visibleAds.length === 0 && <Empty cols={6} />}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === "applications" && (
+        <div className="overflow-x-auto rounded-2xl border border-accent/40 bg-white">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-accent/50 bg-background/60 text-left">
+                <Th>Applicant</Th>
+                <Th>Job ad</Th>
+                <Th>Business</Th>
+                <Th>When</Th>
+                <Th>State</Th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {visibleApplications.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b border-accent/40 last:border-0 align-top"
+                >
+                  <td className="px-4 py-2.5">
+                    <p className="font-medium text-primary">{r.name ?? "—"}</p>
+                    <p className="text-xs text-foreground/55">
+                      {r.email ?? ""}
+                    </p>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {r.job_title}
+                    {!r.job_live && (
+                      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                        no longer live
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-foreground/70">
+                    {r.business_name}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-foreground/60">
+                    {fmtDate(r.created_at)}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {r.business_claimed ? (
+                      <span className="text-xs font-semibold text-green-700">
+                        claimed
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-amber-700">
+                        unread
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {visibleApplications.length === 0 && <Empty cols={5} />}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
+  );
+}
+
+function BusinessRow({
+  b,
+  expanded,
+  onToggle,
+  ads,
+}: {
+  b: BizRow;
+  expanded: boolean;
+  onToggle: () => void;
+  ads: AdRow[];
+}) {
+  const waited = daysSince(b.first);
+  return (
+    <>
+      <tr className="border-b border-accent/40 last:border-0">
+        <td className="px-4 py-2.5">
+          <Link
+            href={`/business/${b.id}`}
+            className="font-medium text-primary hover:text-secondary hover:underline"
+          >
+            {b.name}
+          </Link>
+          {b.email && <p className="text-xs text-foreground/50">{b.email}</p>}
+        </td>
+        <td className="px-4 py-2.5 text-foreground/70">
+          {b.country}
+          {b.resort !== "—" && (
+            <p className="text-xs text-foreground/45">{b.resort}</p>
+          )}
+        </td>
+        <td className="px-4 py-2.5 text-right">
+          <span className="font-mono tabular-nums font-semibold">
+            {b.total}
+          </span>
+          {b.onDeadAds > 0 && (
+            <p className="text-[11px] font-medium text-red-700">
+              {b.onDeadAds} on a dead ad
+            </p>
+          )}
+        </td>
+        <td className="px-4 py-2.5 text-right">
+          <span className="font-mono tabular-nums text-foreground/70">
+            {b.ads}
+          </span>
+          {b.deadAds > 0 && (
+            <p className="text-[11px] font-medium text-foreground/45">
+              {b.deadAds} no longer live
+            </p>
+          )}
+        </td>
+        <td
+          className={`px-4 py-2.5 whitespace-nowrap ${waited > 60 ? "font-semibold text-amber-700" : "text-foreground/60"}`}
+        >
+          {fmtDate(b.first)}
+          <p className="text-[11px] font-normal text-foreground/45">
+            {waited}d ago
+          </p>
+        </td>
+        <td className="px-4 py-2.5 whitespace-nowrap text-foreground/60">
+          {fmtDate(b.latest)}
+        </td>
+        <td className="px-4 py-2.5">
+          {b.claimed ? (
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+              claimed
+            </span>
+          ) : (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              unclaimed
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-2.5 text-right">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="rounded-lg border border-accent px-2.5 py-1 text-xs font-semibold text-secondary transition hover:border-secondary/50 hover:bg-secondary/5"
+          >
+            {expanded ? "Hide" : `${b.ads} ad${b.ads === 1 ? "" : "s"}`}
+          </button>
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-b border-accent/40 bg-background/40">
+          <td colSpan={8} className="px-4 py-3">
+            <div className="space-y-2">
+              {ads.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border border-accent/50 bg-white px-3 py-2"
+                >
+                  <Link
+                    href={`/jobs/${a.id}`}
+                    className="text-sm font-semibold text-primary hover:text-secondary hover:underline"
+                  >
+                    {a.title}
+                  </Link>
+                  {!a.live && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                      no longer live
+                    </span>
+                  )}
+                  {a.applyEmail && (
+                    <span className="text-xs text-foreground/50">
+                      applies to {a.applyEmail}
+                    </span>
+                  )}
+                  <span className="ml-auto text-xs text-foreground/60">
+                    <strong className="tabular-nums text-primary">
+                      {a.total}
+                    </strong>{" "}
+                    application
+                    {a.total === 1 ? "" : "s"} · {fmtDate(a.first)} –{" "}
+                    {fmtDate(a.latest)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function Tile({ n, l, flag }: { n: number; l: string; flag?: boolean }) {
+  return (
+    <div
+      className={`rounded-2xl border p-5 ${flag ? "border-amber-300 bg-amber-50" : "border-accent/40 bg-white"}`}
+    >
+      <p
+        className={`text-3xl font-bold tabular-nums ${flag ? "text-amber-700" : "text-primary"}`}
+      >
+        {n}
+      </p>
+      <p className="mt-1 text-sm text-foreground/60">{l}</p>
+    </div>
+  );
+}
+
+function Empty({ cols }: { cols: number }) {
+  return (
+    <tr>
+      <td
+        colSpan={cols}
+        className="px-4 py-10 text-center text-sm text-foreground/50"
+      >
+        Nothing matches these filters.
+      </td>
+    </tr>
+  );
+}
+
+function Th({
+  children,
+  right,
+}: {
+  children?: React.ReactNode;
+  right?: boolean;
+}) {
+  return (
+    <th
+      className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-foreground/50 ${right ? "text-right" : ""}`}
+    >
+      {children}
+    </th>
   );
 }

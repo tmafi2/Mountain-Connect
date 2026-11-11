@@ -231,12 +231,25 @@ export default function AdminEmailPipelinePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <h1 className="text-2xl font-bold text-primary">Email pipeline</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="text-2xl font-bold text-primary">Email pipeline</h1>
+        <Link
+          href="/admin/expressions-of-interest"
+          className="rounded-xl border border-accent bg-white px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:border-secondary/50 hover:bg-secondary/5"
+        >
+          Who is waiting →
+        </Link>
+      </div>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-foreground/70">
         What the claim cadence will send next. The apply route emails a business the moment it
         crosses a threshold, and the dormancy cron sweeps up the rest daily at{" "}
         <strong>09:00 UTC</strong>. Each email is one-shot per business. This page sends nothing —
-        it recomputes what those two would do.
+        it recomputes what those two would do. For who is waiting and how long, and to export a
+        list to contact by hand, see{" "}
+        <Link href="/admin/expressions-of-interest" className="text-secondary hover:underline">
+          Expressions of Interest
+        </Link>
+        .
       </p>
 
       {loading && <p className="mt-8 text-sm text-foreground/60">Reading the board…</p>}
