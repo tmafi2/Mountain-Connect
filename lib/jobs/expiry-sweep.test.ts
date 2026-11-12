@@ -152,7 +152,7 @@ test("a post that slipped past its date unwarned is warned, not stranded", async
 
 test("a post outside the warning window is left alone entirely", async () => {
   const r = await planExpirySweep(fakeClient([job({ expires_at: inDays(30) })], [biz()]), NOW, "log_only");
-  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 });
+  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, expireUnclaimed: 0, businesses: 0 });
 });
 
 test("a business already warned is not warned again", async () => {
@@ -164,16 +164,73 @@ test("a business already warned is not warned again", async () => {
 });
 
 /**
- * The scope rule. Unclaimed shells belong to the dormancy sweep, which
- * takes their posts down at day 21 — sooner than this would. Both acting
- * on the same rows means two contradictory emails.
+ * THE SCOPE RULE, CHANGED 2026-11-12. This test asserted the opposite until
+ * that day: unclaimed shells were skipped entirely, on the grounds that
+ * /api/cron/unclaimed-dormancy-sweep "owns them". That cron measures a
+ * different timer and its takedown has been off since 00107, so in practice
+ * nothing paused an expired unclaimed listing — 240 of them were live-but-410
+ * when this was found. They are now swept by pass 4.
  */
-test("unclaimed import shells are ignored — the dormancy sweep owns them", async () => {
+test("an expired unclaimed shell is paused by pass 4, with no email", async () => {
   const r = await planExpirySweep(
     fakeClient([job({ expires_at: inDays(-1) })], [biz({ user_id: null })]),
     NOW, "log_only"
   );
-  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 });
+  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, expireUnclaimed: 1, businesses: 0 });
+  // Every mailing pass must stay empty: there is no owner to write to.
+  assert.deepEqual([r.warn, r.renew, r.expire, r.holding], [[], [], [], []]);
+  assert.equal(r.expireUnclaimed[0].id, "j1");
+});
+
+test("an unclaimed shell that has NOT expired is left alone", async () => {
+  // Pass 4 pauses on the expiry date, so it must not reach forward into the
+  // warning window the way pass 1 does.
+  const r = await planExpirySweep(
+    fakeClient([job({ expires_at: inDays(3) })], [biz({ user_id: null })]),
+    NOW, "log_only"
+  );
+  assert.equal(r.counts.expireUnclaimed, 0);
+  assert.deepEqual(r.counts, { warn: 0, renew: 0, expire: 0, holding: 0, expireUnclaimed: 0, businesses: 0 });
+});
+
+test("pass 4 has NO warning gate — an unwarned shell still expires", async () => {
+  // The notice period in pass 3 is a promise made to a business we can email.
+  // Applying it here would strand these forever, which is exactly what
+  // happened: all 240 found on 2026-11-12 had expiry_warning_sent_at = NULL.
+  const r = await planExpirySweep(
+    fakeClient(
+      [job({ expires_at: inDays(-30), expiry_warning_sent_at: null })],
+      [biz({ user_id: null })]
+    ),
+    NOW, "log_only"
+  );
+  assert.equal(r.counts.expireUnclaimed, 1);
+  assert.equal(r.counts.holding, 0, "an unclaimed shell is never 'awaiting notice'");
+});
+
+test("a claimed business is never swept by pass 4", async () => {
+  // Pass 3 owns claimed businesses and owes them a warning period. Letting
+  // pass 4 touch them would pause a listing whose owner was never told.
+  const r = await planExpirySweep(
+    fakeClient(
+      [job({ expires_at: inDays(-30), expiry_warning_sent_at: null })],
+      [biz({ user_id: "u1" })]
+    ),
+    NOW, "log_only"
+  );
+  assert.equal(r.counts.expireUnclaimed, 0);
+  assert.equal(r.counts.holding, 1, "past due, unwarned, and owed its notice");
+});
+
+test("the preview's includeUnclaimed flag does not double-count", async () => {
+  // With the flag on, shells flow through the ordinary passes so the date
+  // arithmetic can be inspected; pass 4 must then stay empty.
+  const r = await planExpirySweep(
+    fakeClient([job({ expires_at: inDays(-1) })], [biz({ user_id: null })]),
+    NOW, "log_only", true
+  );
+  assert.equal(r.counts.expireUnclaimed, 0);
+  assert.equal(r.counts.warn, 1, "the shell is visible to pass 1 under the preview flag");
 });
 
 test("an expired post auto-renews when the business is genuinely paid", async () => {

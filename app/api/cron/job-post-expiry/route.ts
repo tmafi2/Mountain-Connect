@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { planExpirySweep, describeSweep } from "@/lib/jobs/expiry-sweep";
 import { sendExpiryWarnings } from "@/lib/jobs/send-expiry-warnings";
-import { applyExpirySweep } from "@/lib/jobs/apply-expiry";
+import { applyExpirySweep, pauseUnclaimedExpired } from "@/lib/jobs/apply-expiry";
 import {
   sendJobExpiryWarningEmail,
   sendJobExpiryPausedEmail,
@@ -97,7 +97,16 @@ export async function GET(request: Request) {
         (applied.errors.length ? ` errors: ${applied.errors.join("; ")}` : "")
     );
 
-    return NextResponse.json({ ...report, warningsSent: warnings, applied });
+    // Pass 4. Separate from applyExpirySweep because it sends nothing and is
+    // grouped by nobody — see pauseUnclaimedExpired for why these get neither
+    // a warning period nor an email.
+    const unclaimed = await pauseUnclaimedExpired(admin, report.expireUnclaimed);
+    console.log(
+      `[job-expiry] unclaimed paused=${unclaimed.pausedJobs}` +
+        (unclaimed.errors.length ? ` errors: ${unclaimed.errors.join("; ")}` : "")
+    );
+
+    return NextResponse.json({ ...report, warningsSent: warnings, applied, unclaimed });
   } catch (err) {
     console.error("[job-expiry] sweep failed:", err);
     return NextResponse.json(

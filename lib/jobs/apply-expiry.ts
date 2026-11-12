@@ -156,3 +156,53 @@ export async function applyExpirySweep(
 
   return result;
 }
+
+/**
+ * Pause expired listings on shells nobody has claimed. Pass 4 of the sweep.
+ *
+ * ⚠️ NO EMAIL, DELIBERATELY. An unclaimed shell carries a scraped address
+ * belonging to a business that never signed up with us; "your listing has
+ * been paused" is not a message we are entitled to send them. It is also why
+ * there is no warning period here — the notice in pass 3 is a promise made to
+ * someone we can write to.
+ *
+ * ⚠️ NOTHING A VISITOR CAN SEE CHANGES. Middleware already answers 410 Gone
+ * for every one of these (lib/jobs/expired-gone.ts), so this only makes the
+ * database agree with what the site has been doing. That is what separates it
+ * from the 00107 cliff, where switching a takedown on would have darkened
+ * listings people could still open.
+ *
+ * ⚠️ `paused_reason = 'expired'`, the same marker pass 3 uses, so billing
+ * keeps its hands off: restoreParkedJobs matches BILLING_PAUSE_REASONS only
+ * and will never republish one of these on an upgrade. It also leaves the
+ * row claimable and relistable rather than deleted.
+ *
+ * Chunked: a few hundred ids in one `.in(...)` builds a URL long enough to be
+ * truncated by a proxy, which fails quietly rather than erroring.
+ */
+export async function pauseUnclaimedExpired(
+  admin: SupabaseClient,
+  jobs: Array<{ id: string }>,
+  chunkSize = 100
+): Promise<{ pausedJobs: number; errors: string[] }> {
+  const out = { pausedJobs: 0, errors: [] as string[] };
+  const ids = jobs.map((j) => j.id);
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const { error } = await admin
+      .from("job_posts")
+      .update({ status: "paused", is_active: false, paused_reason: "expired" })
+      // Re-asserted at write time, not merely at selection time: the sweep
+      // may have planned minutes ago, and a row that has since been renewed
+      // or paused by hand must not be overwritten.
+      .in("id", chunk)
+      .eq("status", "active")
+      .lte("expires_at", new Date().toISOString());
+    if (error) {
+      out.errors.push(`unclaimed pause failed (${chunk.length} rows): ${error.message}`);
+      continue;
+    }
+    out.pausedJobs += chunk.length;
+  }
+  return out;
+}

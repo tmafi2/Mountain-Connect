@@ -27,11 +27,32 @@ import { fetchAllRows, fetchAllByIds } from "@/lib/supabase/fetch-all";
  * paid business's auto-renewing post would be paused and resurrected in the
  * same run — visible to workers as a listing that blinks out.
  *
- * SCOPE: claimed businesses only. Unclaimed imported shells are already
- * governed by /api/cron/unclaimed-dormancy-sweep, which warns at day 14 and
- * takes their posts down at day 21 — earlier than this would. Two timers on
- * the same rows means two contradictory emails and a race over who paused
- * what.
+ *   4. expireUnclaimed — expired posts on shells nobody has claimed
+ *
+ * SCOPE: passes 1-3 are CLAIMED businesses only, because they all send mail
+ * and an unclaimed shell has no owner to write to. Its scraped address
+ * belongs to a business that never signed up, and "your listing is
+ * expiring" is not a message we are entitled to send them.
+ *
+ * ⚠️ PASS 4 EXISTS BECAUSE NOTHING ELSE WAS PAUSING THEM. The original
+ * scope note said unclaimed shells were "already governed by
+ * /api/cron/unclaimed-dormancy-sweep, which takes their posts down at day
+ * 21". That cron measures a DIFFERENT timer — how long a shell has gone
+ * unclaimed since import — and its takedown has been switched off since
+ * migration 00107 (TAKEDOWN_MAX_BUSINESSES_PER_RUN = 0). So an unclaimed
+ * listing that passed its 56-day expiry had nobody at all to pause it.
+ *
+ * Measured 2026-11-12: 243 of 471 `status='active'` rows were past expiry.
+ * THREE belonged to claimed businesses and all three had been warned — this
+ * sweep was working perfectly inside its scope. The other 240 were unclaimed
+ * and had never been looked at. Middleware already served them 410 Gone, so
+ * workers browsing /jobs were shown roles that would not open.
+ *
+ * Pass 4 therefore pauses on the EXPIRY date alone, with no warning gate and
+ * no email: the notice period in pass 3 is a promise made to a business we
+ * can write to, and there is no one here to promise anything to. If the
+ * dormancy takedown is ever switched back on the two cannot collide — each
+ * pauses, and whichever runs first takes the row out of the other's query.
  *
  * BATCHING: results are grouped by business. A business with twelve roles
  * lapsing the same week gets one email listing twelve, not twelve emails.
@@ -79,7 +100,20 @@ export interface SweepReport {
   expire: BusinessGroup[];
   /** Past due but still owed their notice period, or unwarnable. */
   holding: BusinessGroup[];
-  counts: { warn: number; renew: number; expire: number; holding: number; businesses: number };
+  /**
+   * Expired posts on unclaimed shells — paused without warning or email,
+   * because there is no owner to warn. Flat, not grouped by business: the
+   * grouping exists to batch emails, and these send none.
+   */
+  expireUnclaimed: Array<{ id: string; title: string; expiresAt: string }>;
+  counts: {
+    warn: number;
+    renew: number;
+    expire: number;
+    holding: number;
+    expireUnclaimed: number;
+    businesses: number;
+  };
   errors: string[];
 }
 
@@ -167,7 +201,8 @@ export async function planExpirySweep(
       renew: [],
       expire: [],
       holding: [],
-      counts: { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 },
+      expireUnclaimed: [],
+      counts: { warn: 0, renew: 0, expire: 0, holding: 0, expireUnclaimed: 0, businesses: 0 },
       errors: [`job read failed: ${jobErr.message}`],
     };
   }
@@ -183,7 +218,8 @@ export async function planExpirySweep(
       renew: [],
       expire: [],
       holding: [],
-      counts: { warn: 0, renew: 0, expire: 0, holding: 0, businesses: 0 },
+      expireUnclaimed: [],
+      counts: { warn: 0, renew: 0, expire: 0, holding: 0, expireUnclaimed: 0, businesses: 0 },
       errors,
     };
   }
@@ -220,8 +256,13 @@ export async function planExpirySweep(
   // taken ownership of, and /api/cron/unclaimed-dormancy-sweep already takes
   // those posts down at day 21 — sooner than this would.
   const businesses = new Map<string, SweepBusiness>();
+  /** Shells nobody owns: excluded from every pass that sends mail, swept by pass 4. */
+  const unclaimedIds = new Set<string>();
   for (const b of bizRows) {
-    if (!includeUnclaimed && b.user_id === null) continue;
+    if (b.user_id === null) {
+      unclaimedIds.add(b.id);
+      if (!includeUnclaimed) continue;
+    }
     businesses.set(b.id, b);
   }
 
@@ -284,6 +325,16 @@ export async function planExpirySweep(
     (j) => !renewIds.has(j.id) && !warnedLongEnough(j)
   );
 
+  // Pass 4 — expired, and on a shell nobody has claimed. No warning gate and
+  // no email; see the note at the top of this file. `includeUnclaimed` (the
+  // preview flag) folds these into the passes above instead, so this stays
+  // empty there rather than double-counting them.
+  const expireUnclaimed = includeUnclaimed
+    ? []
+    : jobs
+        .filter((j) => unclaimedIds.has(j.business_id) && isPast(j))
+        .map((j) => ({ id: j.id, title: j.title, expiresAt: j.expires_at }));
+
   const warn = group(toWarn, businesses, tierOf);
   const renew = group(toRenew, businesses, tierOf);
   const expire = group(toExpire, businesses, tierOf);
@@ -298,11 +349,13 @@ export async function planExpirySweep(
     renew,
     expire,
     holding,
+    expireUnclaimed,
     counts: {
       warn: toWarn.length,
       renew: toRenew.length,
       expire: toExpire.length,
       holding: awaitingNotice.length,
+      expireUnclaimed: expireUnclaimed.length,
       businesses: new Set([...warn, ...renew, ...expire, ...holding].map((g) => g.businessId)).size,
     },
     errors,
@@ -314,7 +367,7 @@ export function describeSweep(r: SweepReport): string {
   const lines = [
     `[job-expiry] mode=${r.mode} email=${r.wouldSendEmail} write=${r.wouldWrite} ` +
       `warn=${r.counts.warn} renew=${r.counts.renew} expire=${r.counts.expire} ` +
-      `holding=${r.counts.holding} ` +
+      `holding=${r.counts.holding} expireUnclaimed=${r.counts.expireUnclaimed} ` +
       `across ${r.counts.businesses} business(es), window=${JOB_POST_LIFESPAN_DAYS}d`,
   ];
   for (const [label, groups] of [
