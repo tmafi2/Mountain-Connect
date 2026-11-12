@@ -9,6 +9,7 @@ import { businessBelongsInSitemap } from "@/lib/stats/sitemap-business";
 // (57fb081 shipped 150 instead of 628). 762 urls today, so job_posts is the
 // one that reaches the cap first. See lib/supabase/fetch-all.ts.
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -33,7 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const admin = createAdminClient();
 
   // Fetch dynamic content in parallel
-  const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
 
   const [townsResult, jobsResult, blogResult, businessResult] = await Promise.allSettled([
     fetchAllRows<{ slug: string; updated_at: string | null }>(
@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           // the row still says active — and in that window /jobs/<id> answers 410.
           // Advertising a url in the sitemap that answers Gone is the kind of
           // contradiction that costs crawl trust.
-          .or(notExpired)
+          .or(notExpiredOr())
           .range(from, to),
       "job_posts"
     ),

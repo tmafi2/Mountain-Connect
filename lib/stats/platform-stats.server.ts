@@ -4,6 +4,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 // silently. See lib/supabase/fetch-all.ts.
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { EMPTY_STATS, type PlatformStats } from "./platform-stats";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 /**
  * The query half, kept apart from the types and the formatter because
@@ -38,7 +39,6 @@ async function queryStats(): Promise<PlatformStats> {
   // expiry sweep runs once a day, so there is always a window where a row
   // still says active and /jobs/<id> already answers 410. Counting those
   // would quote a number bigger than the board actually shows.
-  const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
   const head = { count: "exact" as const, head: true };
 
   // The same filter twice, once as a count and once as rows. `select` has to
@@ -50,13 +50,13 @@ async function queryStats(): Promise<PlatformStats> {
       .from("job_posts")
       .select("id", { count: "exact", head: true })
       .eq("status", "active")
-      .or(notExpired);
+      .or(notExpiredOr());
   const liveJobRows = (from: number, to: number) =>
     supabase
       .from("job_posts")
       .select("resort_id")
       .eq("status", "active")
-      .or(notExpired)
+      .or(notExpiredOr())
       .range(from, to);
 
   const [resortRows, towns, jobCount, jobResortIds, bizTotal, bizClaimed, bizVerified] =

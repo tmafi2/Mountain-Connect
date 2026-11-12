@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { share } from "./figures";
 import { totals, type PerkTotals, type ResortPerks } from "./perks-by-resort";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 /**
  * Season passes and staff meals, as stated by open listings.
@@ -46,7 +47,6 @@ export async function getPerksByResort(): Promise<PerksResult> {
 
     // ⚠️ Must agree with lib/jobs/expired-gone.ts — see the other stats
     // modules. An expired-but-active row answers 410 and must not be counted.
-    const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
     const rows = await fetchAllRows<Row>(
       (from, to) =>
         supabase
@@ -55,7 +55,7 @@ export async function getPerksByResort(): Promise<PerksResult> {
             "ski_pass_included, meal_perks, accommodation_included, resorts!inner(name, country, legacy_id)"
           )
           .eq("status", "active")
-          .or(notExpired)
+          .or(notExpiredOr())
           .range(from, to),
       "perks-by-resort"
     );

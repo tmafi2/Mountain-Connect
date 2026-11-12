@@ -1,6 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { summarise, type ResortHiring } from "./hiring-by-resort";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 /**
  * What is open at one resort, counted now.
@@ -15,7 +16,6 @@ export async function getHiringAtResort(resortUuid: string, resortName: string):
     const supabase = createPublicClient();
     // ⚠️ Must agree with lib/jobs/expired-gone.ts. The sweep runs once a day,
     // so a row can still say active while /jobs/<id> already answers 410.
-    const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
     const rows = await fetchAllRows<{
       category: string | null;
       business_id: string | null;
@@ -29,7 +29,7 @@ export async function getHiringAtResort(resortUuid: string, resortName: string):
           .select("category, business_id, accommodation_included, ski_pass_included, salary_range")
           .eq("status", "active")
           .eq("resort_id", resortUuid)
-          .or(notExpired)
+          .or(notExpiredOr())
           .range(from, to),
       `hiring-by-resort:${resortName}`
     );

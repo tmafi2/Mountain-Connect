@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 /**
  * How many live jobs one country has, and how many of them include staff
@@ -7,6 +8,13 @@ import { fetchAllRows } from "@/lib/supabase/fetch-all";
  * all: "Seasonal jobs. Mountain towns. New people. New places." is atmosphere,
  * and a cold visitor never learned the jobs existed. 88% left before touching
  * the quiz, measured across 700+ visitors.
+ *
+ * ⚠️ REACHABLE LISTINGS ONLY, not merely `status = 'active'`. This is an
+ * ADVERT: it ran on a paid campaign saying "235 ski resort jobs in Canada.
+ * 65 say they include staff accommodation" while 102 and 24 were reachable —
+ * the rest answer 410 Gone (lib/jobs/expired-gone.ts). Overstating by 2.3x on
+ * a page you are buying clicks for is the worst place in the product to get a
+ * number wrong. Fixed 2026-11-12; see notExpiredOr in lib/jobs/expiry.ts.
  *
  * ⚠️ COUNTS THE `accommodation_included` FLAG, which is also exactly what
  * /jobs?accommodation=yes filters on. That matters more than being
@@ -46,6 +54,7 @@ export async function getCountryJobStats(country: string): Promise<CountryJobSta
           .from("job_posts")
           .select("accommodation_included, resorts(country), nearby_towns(country)")
           .eq("status", "active")
+          .or(notExpiredOr())
           .range(from, to),
       "country-job-stats"
     );

@@ -63,3 +63,40 @@ export function nextExpiryFrom(now: Date): Date {
   d.setUTCDate(d.getUTCDate() + JOB_POST_LIFESPAN_DAYS);
   return d;
 }
+
+/**
+ * PostgREST `.or()` clause for "this listing has not passed its expiry date".
+ *
+ * ⚠️ `status = 'active'` IS NOT "a worker can open this". Middleware serves
+ * **410 Gone** for any row whose `expires_at` has passed, whatever its status
+ * (see lib/jobs/expired-gone.ts, `isExpired`) — so a query filtering on status
+ * alone counts and lists listings the site itself refuses to show. Every
+ * public read of `job_posts` needs BOTH conditions:
+ *
+ *     .eq("status", "active").or(notExpiredOr())
+ *
+ * ⚠️ WHY THIS EXISTS AS A FUNCTION. On 2026-11-12 this exact string was
+ * hand-written in EIGHT places — pay-by-town, perks-by-resort,
+ * housing-by-resort, hiring-by-resort, platform-stats, blog live-figures and
+ * the sitemap each had their own byte-identical copy — and the three readers
+ * that mattered most had none of it:
+ *
+ *   /jobs                     the board itself, so workers were shown
+ *                             listings that answered 410 when clicked. Of 8
+ *                             sampled live that day, 1 opened.
+ *   country-job-stats         the paid campaign hero, which advertised "235
+ *                             ski resort jobs in Canada" when 102 were
+ *                             reachable, and 65 with accommodation when 24
+ *                             were.
+ *   live-countries            which countries the campaign quiz offers.
+ *
+ * A rule copied eight times is a rule the ninth caller will not know about.
+ * Import it; do not retype it.
+ *
+ * ⚠️ It takes `now` at call time, so a cached page is only as fresh as its
+ * own revalidate window. That is fine at this granularity — expiry moves
+ * once a day — but it is the reason this is a function and not a constant.
+ */
+export function notExpiredOr(now: Date = new Date()): string {
+  return `expires_at.is.null,expires_at.gt.${now.toISOString()}`;
+}

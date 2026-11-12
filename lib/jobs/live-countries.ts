@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "./expiry";
 
 /**
  * Countries with at least one live job, spelled as `resorts.country` spells
@@ -27,7 +28,12 @@ export async function countriesWithLiveJobs(): Promise<string[]> {
     // is over a joined column, so no head count can do this.
     const rows = await fetchAllRows<unknown>(
       (from, to) =>
-        supabase.from("job_posts").select("resorts(country)").eq("status", "active").range(from, to),
+        supabase
+          .from("job_posts")
+          .select("resorts(country)")
+          .eq("status", "active")
+          .or(notExpiredOr())
+          .range(from, to),
       "live-countries"
     );
     // job_posts → resorts is many-to-one, so PostgREST returns one object;

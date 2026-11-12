@@ -4,6 +4,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { resorts as staticResorts } from "@/lib/data/resorts";
 import type { Metadata } from "next";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -87,12 +88,11 @@ export default async function SkiResortJobsPage() {
   // `expires_at` is filtered here to match the country pages, the sitemap and
   // platform-stats — the expiry sweep runs daily, so "active" alone counts
   // posts that are past their date and already answer 410.
-  const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
   let jobs: { id: string; resort_id: string | null }[] = [];
   try {
     jobs = await fetchAllRows<{ id: string; resort_id: string | null }>(
       (from, to) =>
-        supabase.from("job_posts").select("id, resort_id").eq("status", "active").or(notExpired).range(from, to),
+        supabase.from("job_posts").select("id, resort_id").eq("status", "active").or(notExpiredOr()).range(from, to),
       "ski-resort-jobs hub"
     );
   } catch (err) {

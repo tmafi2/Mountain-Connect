@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { getPlatformStats } from "@/lib/stats/platform-stats.server";
 import type { LiveFigures } from "./live-figures";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 /**
  * The current state of the board, as strings a guide can drop into a line.
@@ -13,7 +14,6 @@ import type { LiveFigures } from "./live-figures";
 export async function getLiveFigures(): Promise<LiveFigures | null> {
   try {
     const supabase = createPublicClient();
-    const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
 
     type Row = {
       pay_amount: string | null;
@@ -35,7 +35,7 @@ export async function getLiveFigures(): Promise<LiveFigures | null> {
               "pay_amount, salary_range, accommodation_included, accommodation_cost_amount, ski_pass_included, meal_perks, resorts(country)"
             )
             .eq("status", "active")
-            .or(notExpired)
+            .or(notExpiredOr())
             .range(from, to),
         "live-figures"
       ),

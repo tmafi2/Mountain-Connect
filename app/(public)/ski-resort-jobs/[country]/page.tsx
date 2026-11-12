@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import { createPublicClient } from "@/lib/supabase/public";
 import { resorts as staticResorts } from "@/lib/data/resorts";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 const BASE_URL = "https://www.mountainconnects.com";
 
@@ -264,7 +265,7 @@ export default async function SkiResortJobsCountryPage({ params }: CountryPagePr
           )
           .eq("status", "active")
           .eq("resorts.country", cfg.country)
-          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+          .or(notExpiredOr())
           .range(from, to),
       `ski-resort-jobs/${slug}`
     );

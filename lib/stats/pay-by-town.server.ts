@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 import {
   MIN_LISTINGS,
   percentile,
@@ -80,7 +81,6 @@ export async function getPayByTown(): Promise<PayByTownResult> {
     // ⚠️ Must agree with lib/jobs/expired-gone.ts: the expiry sweep runs once
     // a day, so there is always a window where a row still says active and
     // /jobs/<id> already answers 410. Quoting those inflates every count.
-    const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
     const rows = await fetchAllRows<Row>(
       (from, to) =>
         supabase
@@ -89,7 +89,7 @@ export async function getPayByTown(): Promise<PayByTownResult> {
             "salary_range, pay_amount, pay_currency, accommodation_included, accommodation_cost_amount, accommodation_cost_period, nearby_towns!inner(name, slug, country), resorts(name, country)"
           )
           .eq("status", "active")
-          .or(notExpired)
+          .or(notExpiredOr())
           .range(from, to),
       "pay-by-town"
     );

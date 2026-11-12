@@ -6,6 +6,7 @@ import { SSR_JOB_COUNT } from "./JobsStaticList";
 import { SITE_ORIGIN } from "@/lib/config/site";
 import CampaignCapture from "./CampaignCapture";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 // Cache the rendered HTML for 2 minutes. Public job listings change
 // gradually; serving from edge cache makes the page feel instant.
@@ -52,6 +53,14 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
     const supabase = createPublicClient();
     // Show every active job regardless of the business's verification status.
     // We still expose the verified state on each row so the UI can badge them.
+    //
+    // ⚠️ `status = 'active'` ALONE LISTED ROLES NOBODY COULD OPEN. Middleware
+    // answers 410 Gone for any listing past its expires_at whatever its
+    // status, so until 2026-11-12 this board advertised them and the click
+    // landed on "This role has closed". Measured that day: 243 of 471 active
+    // rows were past expiry, and of eight listings sampled off the live
+    // board, ONE opened. See notExpiredOr in lib/jobs/expiry.ts.
+    //
     // ⚠️ Paged. A plain select stops at 1000 rows here with no error, and on
     // a job board that is not a wrong number — it is listings that simply do
     // not appear, with nothing to notice. 341 live today.
@@ -63,6 +72,7 @@ export default async function FindAJobPage({ searchParams }: JobsPageProps) {
             "*, business_profiles!inner(business_name, verification_status, logo_url), resorts(name, country, legacy_id), nearby_towns(name, slug), business_venues(name, slug, is_primary)"
           )
           .eq("status", "active")
+          .or(notExpiredOr())
           .range(from, to),
       "jobs page"
     );

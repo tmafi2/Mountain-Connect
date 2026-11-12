@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { fetchAllRows } from "@/lib/supabase/fetch-all";
 import { MIN_LISTINGS, percentile, round2, share, toWeekly } from "./figures";
 import type { ResortHousing } from "./housing-by-resort";
+import { notExpiredOr } from "@/lib/jobs/expiry";
 
 /**
  * Staff accommodation on the open board, grouped by resort.
@@ -53,7 +54,6 @@ export async function getHousingByResort(): Promise<HousingResult> {
     // ⚠️ Must agree with lib/jobs/expired-gone.ts. The expiry sweep runs once
     // a day, so there is always a window where a row still says active and
     // /jobs/<id> already answers 410.
-    const notExpired = `expires_at.is.null,expires_at.gt.${new Date().toISOString()}`;
     const rows = await fetchAllRows<Row>(
       (from, to) =>
         supabase
@@ -62,7 +62,7 @@ export async function getHousingByResort(): Promise<HousingResult> {
             "accommodation_included, accommodation_type, accommodation_cost_amount, accommodation_cost_currency, accommodation_cost_period, accommodation_cost_deducted, ski_pass_included, meal_perks, resorts!inner(name, country, legacy_id), nearby_towns(name)"
           )
           .eq("status", "active")
-          .or(notExpired)
+          .or(notExpiredOr())
           .range(from, to),
       "housing-by-resort"
     );
