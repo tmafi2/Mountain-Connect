@@ -40,6 +40,14 @@ export async function GET(request: Request) {
   // `preferred_job_types` is what a worker says they are LOOKING FOR, and
   // `work_history` is what they have DONE — lib/workers/industry.ts turns
   // both into the board's own categories for the filters.
+  //
+  // The country pair works the same way through lib/workers/country.ts:
+  // `work_authorizations` is where they CAN work and `preferred_countries`
+  // is where they WANT to. The two legacy columns (`visa_status`,
+  // `visa_expiry_date`, `work_eligible_countries`) come too, because
+  // resolveEligibilityFor falls back to them for profiles that pre-date the
+  // per-country model — leaving them out would quietly report those workers
+  // as having no eligibility at all.
   let profiles;
   try {
     profiles = await fetchAllRows<Record<string, unknown>>(
@@ -47,7 +55,7 @@ export async function GET(request: Request) {
         admin
           .from("worker_profiles")
           .select(
-            "id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, preferred_job_types, years_seasonal_experience, profile_photo_url, profile_completion_pct, bio, work_history, status, suspension_reason, suspended_at, created_at",
+            "id, user_id, first_name, last_name, location_current, country_of_residence, nationality, skills, preferred_job_types, years_seasonal_experience, profile_photo_url, profile_completion_pct, bio, work_history, work_authorizations, preferred_countries, visa_status, visa_expiry_date, work_eligible_countries, status, suspension_reason, suspended_at, created_at",
           )
           .order("created_at", { ascending: false })
           .range(from, to),

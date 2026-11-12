@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { industriesWorked, industriesWanted, INDUSTRY_OPTIONS } from "@/lib/workers/industry";
+import { countriesEligible, countriesListed, countriesWanted } from "@/lib/workers/country";
 import type { JobCategory } from "@/lib/jobs/category";
 
 interface WorkerRow {
@@ -20,6 +21,11 @@ interface WorkerRow {
   profile_completion_pct: number | null;
   bio: string | null;
   work_history: unknown[] | null;
+  work_authorizations: unknown;
+  preferred_countries: string[] | null;
+  visa_status: string | null;
+  visa_expiry_date: string | null;
+  work_eligible_countries: string[] | null;
   status: string;
   suspension_reason: string | null;
   suspended_at: string | null;
@@ -44,6 +50,8 @@ export default function AdminWorkersPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "incomplete">("all");
   const [worked, setWorked] = useState<JobCategory | "any">("any");
   const [wanted, setWanted] = useState<JobCategory | "any">("any");
+  const [canWorkIn, setCanWorkIn] = useState("any");
+  const [wantsCountry, setWantsCountry] = useState("any");
   const [selected, setSelected] = useState<WorkerRow | null>(null);
   const [selectedApps, setSelectedApps] = useState<WorkerApplication[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
@@ -91,6 +99,14 @@ export default function AdminWorkersPage() {
           profile_completion_pct: (p.profile_completion_pct as number) || null,
           bio: (p.bio as string) || null,
           work_history: (p.work_history as unknown[]) || null,
+          // Passed through untouched — lib/workers/country.ts does the
+          // resolving, including the legacy columns resolveEligibilityFor
+          // falls back to for profiles older than the per-country model.
+          work_authorizations: p.work_authorizations ?? null,
+          preferred_countries: (p.preferred_countries as string[]) || null,
+          visa_status: (p.visa_status as string) || null,
+          visa_expiry_date: (p.visa_expiry_date as string) || null,
+          work_eligible_countries: (p.work_eligible_countries as string[]) || null,
           status: (p.status as string) || "active",
           suspension_reason: (p.suspension_reason as string) || null,
           suspended_at: (p.suspended_at as string) || null,
@@ -140,22 +156,77 @@ export default function AdminWorkersPage() {
   }, [workers]);
 
   /**
-   * ⚠️ SAY WHAT THE FILTER CANNOT SEE. Measured 2026-11-11: only 115 of 401
-   * workers have any work history and 168 list any preferred job type, so a
-   * filter on either is a filter over the minority who filled that section
-   * in. Presenting a short result as "the workers who have done this" would
-   * be wrong, so the counts sit next to the controls.
+   * Countries, resolved once per worker by lib/workers/country.ts.
+   *
+   * ⚠️ `eligible` IS NOT "the column mentions Canada". It asks
+   * resolveEligibilityFor — the same function that draws the eligibility
+   * badge on the applicants inbox — so an expired visa, an explicit "no visa
+   * yet" and a country added with no status picked all land in `listed` and
+   * NOT in `eligible`. Measured 2026-11-12: 207 workers list a country and
+   * 45 of them have no eligible country at all, so a filter built on the
+   * column's contents would have put a worker whose working holiday lapsed
+   * in 2024 on a call list for this season.
+   */
+  const countries = useMemo(() => {
+    const m = new Map<string, { eligible: string[]; listed: string[]; wants: string[] }>();
+    for (const w of workers) {
+      m.set(w.id, {
+        eligible: countriesEligible(w),
+        listed: countriesListed(w),
+        wants: countriesWanted(w.preferred_countries),
+      });
+    }
+    return m;
+  }, [workers]);
+
+  /**
+   * The country dropdowns are built from the rows on screen, not from the
+   * 68-name picker list — otherwise both menus would be mostly dead options
+   * (only about 30 countries appear at all) and you could not tell
+   * Australia's 118 workers from Peru's 1. Counts are in the labels for the
+   * same reason, and the order is by size. Same approach as /jobs, which
+   * builds its country filter from the listings it fetched.
+   */
+  const countryOptions = useMemo(() => {
+    const build = (pick: (c: { eligible: string[]; wants: string[] }) => string[]) => {
+      const counts = new Map<string, number>();
+      for (const w of workers) {
+        for (const c of pick(countries.get(w.id) ?? { eligible: [], wants: [] })) {
+          counts.set(c, (counts.get(c) ?? 0) + 1);
+        }
+      }
+      return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    };
+    return { eligible: build((c) => c.eligible), wants: build((c) => c.wants) };
+  }, [workers, countries]);
+
+  /**
+   * ⚠️ SAY WHAT THE FILTER CANNOT SEE. Measured 2026-11-12 over 402
+   * profiles: 115 have any work history, 168 list a preferred job type, 162
+   * can work in at least one country, and 120 say where they want to work.
+   * Every one of these filters is a filter over the minority who filled that
+   * section in, so presenting a short result as "the workers who can do
+   * this" would be wrong — the counts sit next to the controls instead.
    */
   const coverage = useMemo(() => ({
     worked: workers.filter((w) => (industries.get(w.id)?.worked.length ?? 0) > 0).length,
     wanted: workers.filter((w) => (industries.get(w.id)?.wanted.length ?? 0) > 0).length,
+    eligible: workers.filter((w) => (countries.get(w.id)?.eligible.length ?? 0) > 0).length,
+    wantsCountry: workers.filter((w) => (countries.get(w.id)?.wants.length ?? 0) > 0).length,
+    // Listed a country but nothing they can work in today.
+    notEligible: workers.filter((w) => {
+      const c = countries.get(w.id);
+      return (c?.listed.length ?? 0) > 0 && (c?.eligible.length ?? 0) === 0;
+    }).length,
     total: workers.length,
-  }), [workers, industries]);
+  }), [workers, industries, countries]);
 
   const filtered = useMemo(() => {
     let results = [...workers];
     if (worked !== "any") results = results.filter((w) => industries.get(w.id)?.worked.includes(worked));
     if (wanted !== "any") results = results.filter((w) => industries.get(w.id)?.wanted.includes(wanted));
+    if (canWorkIn !== "any") results = results.filter((w) => countries.get(w.id)?.eligible.includes(canWorkIn));
+    if (wantsCountry !== "any") results = results.filter((w) => countries.get(w.id)?.wants.includes(wantsCountry));
     if (statusFilter === "active") results = results.filter((w) => w.status !== "suspended" && (w.profile_completion_pct ?? 0) >= 50);
     else if (statusFilter === "suspended") results = results.filter((w) => w.status === "suspended");
     else if (statusFilter === "incomplete") results = results.filter((w) => w.status !== "suspended" && (!w.first_name || !w.last_name || (w.profile_completion_pct ?? 0) < 50));
@@ -172,7 +243,7 @@ export default function AdminWorkersPage() {
       );
     }
     return results;
-  }, [workers, search, statusFilter, worked, wanted, industries]);
+  }, [workers, search, statusFilter, worked, wanted, canWorkIn, wantsCountry, industries, countries]);
 
   const handleSuspendAction = async (action: "suspend" | "reactivate") => {
     if (!selected) return;
@@ -262,21 +333,65 @@ export default function AdminWorkersPage() {
           </select>
         </label>
 
-        {(worked !== "any" || wanted !== "any") && (
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/45">
+            Can work in
+          </span>
+          <select
+            value={canWorkIn}
+            onChange={(e) => setCanWorkIn(e.target.value)}
+            className="rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none"
+          >
+            <option value="any">Any country</option>
+            {countryOptions.eligible.map(([c, n]) => (
+              <option key={c} value={c}>{c} ({n})</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/45">
+            Wants to work in
+          </span>
+          <select
+            value={wantsCountry}
+            onChange={(e) => setWantsCountry(e.target.value)}
+            className="rounded-lg border border-accent bg-white px-3 py-2 text-sm text-primary focus:border-secondary focus:outline-none"
+          >
+            <option value="any">Any country</option>
+            {countryOptions.wants.map(([c, n]) => (
+              <option key={c} value={c}>{c} ({n})</option>
+            ))}
+          </select>
+        </label>
+
+        {(worked !== "any" || wanted !== "any" || canWorkIn !== "any" || wantsCountry !== "any") && (
           <button
             type="button"
-            onClick={() => { setWorked("any"); setWanted("any"); }}
+            onClick={() => { setWorked("any"); setWanted("any"); setCanWorkIn("any"); setWantsCountry("any"); }}
             className="text-sm font-medium text-secondary hover:underline"
           >
-            Clear
+            Clear filters
           </button>
         )}
       </div>
 
       <p className="mt-2 text-xs text-foreground/45">
-        {coverage.worked} of {coverage.total} workers list any work history and {coverage.wanted}{" "}
-        list what they are looking for — filtering on either only searches those.
+        {coverage.worked} of {coverage.total} workers list any work history, {coverage.wanted} list what
+        they are looking for, {coverage.eligible} list a country they can legally work in and{" "}
+        {coverage.wantsCountry} say where they want to work — filtering on any of these only searches
+        those.
       </p>
+      {coverage.notEligible > 0 && (
+        <p className="mt-1 text-xs text-foreground/45">
+          <span className="font-medium text-warm">Can work in</span> means eligible today, so{" "}
+          {coverage.notEligible} more {coverage.notEligible === 1 ? "worker is" : "workers are"} left out:
+          they named a country but the visa has expired, needs sponsoring, or has no status set.
+        </p>
+      )}
 
       <div className="mt-6 overflow-hidden rounded-xl border border-accent bg-white">
         <table className="w-full text-sm">

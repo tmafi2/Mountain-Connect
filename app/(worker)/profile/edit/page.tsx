@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { WORKER_COUNTRIES as COUNTRIES, countryFlag } from "@/lib/workers/country";
 import { seasonLabel } from "@/lib/badges/season-label";
 import { validatePassword } from "@/lib/utils/password";
 import type {
@@ -204,85 +205,6 @@ const PROFICIENCY_OPTIONS = [
 ] as const;
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "AUD", "NZD", "CAD", "JPY", "CHF"];
-
-/* ─── countries with flags ─────────────────────────────────── */
-const COUNTRIES: { name: string; flag: string; code: string }[] = [
-  { name: "Andorra", flag: "🇦🇩", code: "ad" },
-  { name: "Argentina", flag: "🇦🇷", code: "ar" },
-  { name: "Australia", flag: "🇦🇺", code: "au" },
-  { name: "Austria", flag: "🇦🇹", code: "at" },
-  { name: "Belgium", flag: "🇧🇪", code: "be" },
-  { name: "Brazil", flag: "🇧🇷", code: "br" },
-  { name: "Bulgaria", flag: "🇧🇬", code: "bg" },
-  { name: "Canada", flag: "🇨🇦", code: "ca" },
-  { name: "Chile", flag: "🇨🇱", code: "cl" },
-  { name: "China", flag: "🇨🇳", code: "cn" },
-  { name: "Colombia", flag: "🇨🇴", code: "co" },
-  { name: "Croatia", flag: "🇭🇷", code: "hr" },
-  { name: "Czech Republic", flag: "🇨🇿", code: "cz" },
-  { name: "Denmark", flag: "🇩🇰", code: "dk" },
-  { name: "Ecuador", flag: "🇪🇨", code: "ec" },
-  { name: "Estonia", flag: "🇪🇪", code: "ee" },
-  { name: "Finland", flag: "🇫🇮", code: "fi" },
-  { name: "France", flag: "🇫🇷", code: "fr" },
-  { name: "Germany", flag: "🇩🇪", code: "de" },
-  { name: "Greece", flag: "🇬🇷", code: "gr" },
-  { name: "Hong Kong", flag: "🇭🇰", code: "hk" },
-  { name: "Hungary", flag: "🇭🇺", code: "hu" },
-  { name: "Iceland", flag: "🇮🇸", code: "is" },
-  { name: "India", flag: "🇮🇳", code: "in" },
-  { name: "Indonesia", flag: "🇮🇩", code: "id" },
-  { name: "Ireland", flag: "🇮🇪", code: "ie" },
-  { name: "Israel", flag: "🇮🇱", code: "il" },
-  { name: "Italy", flag: "🇮🇹", code: "it" },
-  { name: "Japan", flag: "🇯🇵", code: "jp" },
-  { name: "Latvia", flag: "🇱🇻", code: "lv" },
-  { name: "Lithuania", flag: "🇱🇹", code: "lt" },
-  { name: "Luxembourg", flag: "🇱🇺", code: "lu" },
-  { name: "Malaysia", flag: "🇲🇾", code: "my" },
-  { name: "Mexico", flag: "🇲🇽", code: "mx" },
-  { name: "Nepal", flag: "🇳🇵", code: "np" },
-  { name: "Netherlands", flag: "🇳🇱", code: "nl" },
-  { name: "New Zealand", flag: "🇳🇿", code: "nz" },
-  { name: "Norway", flag: "🇳🇴", code: "no" },
-  { name: "Peru", flag: "🇵🇪", code: "pe" },
-  { name: "Philippines", flag: "🇵🇭", code: "ph" },
-  { name: "Poland", flag: "🇵🇱", code: "pl" },
-  { name: "Portugal", flag: "🇵🇹", code: "pt" },
-  { name: "Romania", flag: "🇷🇴", code: "ro" },
-  { name: "Russia", flag: "🇷🇺", code: "ru" },
-  { name: "Serbia", flag: "🇷🇸", code: "rs" },
-  { name: "Singapore", flag: "🇸🇬", code: "sg" },
-  { name: "Slovakia", flag: "🇸🇰", code: "sk" },
-  { name: "Slovenia", flag: "🇸🇮", code: "si" },
-  { name: "South Africa", flag: "🇿🇦", code: "za" },
-  { name: "South Korea", flag: "🇰🇷", code: "kr" },
-  { name: "Spain", flag: "🇪🇸", code: "es" },
-  { name: "Sweden", flag: "🇸🇪", code: "se" },
-  { name: "Switzerland", flag: "🇨🇭", code: "ch" },
-  { name: "Taiwan", flag: "🇹🇼", code: "tw" },
-  { name: "Thailand", flag: "🇹🇭", code: "th" },
-  { name: "Turkey", flag: "🇹🇷", code: "tr" },
-  { name: "Ukraine", flag: "🇺🇦", code: "ua" },
-  { name: "United Kingdom", flag: "🇬🇧", code: "gb" },
-  { name: "United States", flag: "🇺🇸", code: "us" },
-  { name: "Uruguay", flag: "🇺🇾", code: "uy" },
-  { name: "Venezuela", flag: "🇻🇪", code: "ve" },
-  { name: "Vietnam", flag: "🇻🇳", code: "vn" },
-  { name: "Country not listed", flag: "🏔️", code: "xx" },
-];
-
-function getCountryFlag(countryName: string): string | null {
-  if (!countryName) return null;
-  const c = COUNTRIES.find((c) => c.name.toLowerCase() === countryName.trim().toLowerCase());
-  return c?.flag || null;
-}
-
-function getFlagUrl(countryName: string): string | null {
-  if (!countryName) return null;
-  const c = COUNTRIES.find((c) => c.name.toLowerCase() === countryName.trim().toLowerCase());
-  return c ? `https://flagcdn.com/w160/${c.code}.png` : null;
-}
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function toggleInArray(arr: string[], item: string) {
@@ -509,9 +431,6 @@ function ProfileEditContent() {
 
   // Skill temp state
   const [newSkill, setNewSkill] = useState("");
-
-  // Country temp state
-  const [newCountry, setNewCountry] = useState("");
 
   // Work eligible country temp state
   const [newEligibleCountry, setNewEligibleCountry] = useState("");
@@ -978,9 +897,9 @@ function ProfileEditContent() {
                       alt="Profile photo"
                       className="h-20 w-20 rounded-full object-cover border-2 border-accent"
                     />
-                  ) : getCountryFlag(form.nationality) ? (
+                  ) : countryFlag(form.nationality) ? (
                     <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-accent bg-accent/20">
-                      <span className="text-4xl">{getCountryFlag(form.nationality)}</span>
+                      <span className="text-4xl">{countryFlag(form.nationality)}</span>
                     </div>
                   ) : (
                     <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/40 text-2xl font-semibold text-foreground/40">
@@ -1445,43 +1364,51 @@ function ProfileEditContent() {
               </Select>
             </div>
 
-            {/* Preferred countries */}
+            {/* Preferred countries.
+                ⚠️ THIS WAS A FREE-TEXT BOX until 2026-11-12, and the 120
+                profiles that had filled it in are what free text next to a
+                job board becomes: "switcherland", "Australie", "Usa",
+                "España, Francia, Suiza, Italia" in a single entry, five
+                Australian state codes, and the words "Job" and "waiter".
+                It is a picker now, off the same list as the nationality and
+                work-eligibility selects three steps earlier — which is the
+                reason the box was text in the first place, since that list
+                was a private const in this file and reachable from nowhere.
+                Existing answers are left exactly as the worker typed them,
+                shown as chips they can remove; lib/workers/country.ts does
+                the resolving instead of rewriting anybody's profile. */}
             <div>
-              <Label>Preferred Countries to Work In</Label>
-              <div className="mt-1 flex gap-2">
-                <input
-                  type="text"
-                  value={newCountry}
-                  onChange={(e) => setNewCountry(e.target.value)}
-                  placeholder="e.g. Japan"
-                  className="flex-1 rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary placeholder:text-foreground/40 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newCountry.trim()) {
-                      e.preventDefault();
-                      set("preferred_countries", [...form.preferred_countries, newCountry.trim()]);
-                      setNewCountry("");
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (newCountry.trim()) {
-                      set("preferred_countries", [...form.preferred_countries, newCountry.trim()]);
-                      setNewCountry("");
-                    }
-                  }}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-                >
-                  Add
-                </button>
-              </div>
+              <Label htmlFor="pref_country">Preferred Countries to Work In</Label>
+              <select
+                id="pref_country"
+                value=""
+                onChange={(e) => {
+                  const picked = e.target.value;
+                  // Case-insensitive, so picking "Canada" on a profile that
+                  // already stores "canada" cannot produce two chips.
+                  const already = form.preferred_countries.some(
+                    (c) => c.trim().toLowerCase() === picked.toLowerCase(),
+                  );
+                  if (picked && !already) {
+                    set("preferred_countries", [...form.preferred_countries, picked]);
+                  }
+                  e.target.value = "";
+                }}
+                className="mt-1 w-full rounded-lg border border-accent bg-white px-4 py-2.5 text-sm text-primary focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/30"
+              >
+                <option value="">Add a country...</option>
+                {COUNTRIES.filter(
+                  (c) => !form.preferred_countries.some((p) => p.trim().toLowerCase() === c.name.toLowerCase()),
+                ).map((c) => (
+                  <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
+                ))}
+              </select>
               {form.preferred_countries.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {form.preferred_countries.map((c) => (
                     <span key={c} className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-primary">
-                      {c}
-                      <button type="button" onClick={() => set("preferred_countries", form.preferred_countries.filter((x) => x !== c))} className="ml-1 text-foreground/50 hover:text-red-500">&times;</button>
+                      {countryFlag(c) ? `${countryFlag(c)} ` : ""}{c}
+                      <button type="button" onClick={() => set("preferred_countries", form.preferred_countries.filter((x) => x !== c))} className="ml-1 text-foreground/50 hover:text-red-500" aria-label={`Remove ${c}`}>&times;</button>
                     </span>
                   ))}
                 </div>
