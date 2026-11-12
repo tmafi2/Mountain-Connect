@@ -17,6 +17,7 @@ import {
   destinationsFor,
   type Season,
   type SeasonAnswers,
+  destinationsWithJobs,
 } from "./season-quiz";
 
 const every: SeasonAnswers[] = DESTINATIONS.flatMap((d) =>
@@ -186,7 +187,7 @@ test("every pre-filled job type is one the profile editor offers", () => {
 
 test("question 2 offers only the countries that have the chosen hemisphere's winter", () => {
   const shown = (season?: Season) => destinationsFor(season).map((d) => d.value);
-  assert.deepEqual(shown("northern-winter"), ["canada", "japan", "usa", "anywhere"]);
+  assert.deepEqual(shown("northern-winter"), ["canada", "japan", "usa", "italy", "anywhere"]);
   assert.deepEqual(shown("southern-winter"), ["australia", "new-zealand", "anywhere"]);
   // "Not sure yet" in question 1 is what opens the whole list.
   assert.deepEqual(shown("exploring"), DESTINATIONS.map((d) => d.value));
@@ -219,13 +220,94 @@ test("the questions are asked hemisphere, then country, then work", () => {
   // Only the last one takes more than one answer — the others advance on tap,
   // and a Continue button on those would make a three-tap quiz a six-tap one.
   assert.deepEqual(QUIZ_STEPS.map((q) => !!q.multi), [false, false, true]);
-  // Only question 2 depends on an earlier answer.
+  // Only question 2 depends on an earlier ANSWER. Question 1 is rebuilt too,
+  // but only to carry the flags of the countries question 2 will offer — its
+  // option values are identical.
   const answers = { season: "southern-winter" } as const;
-  assert.equal(optionsForStep(QUIZ_STEPS[0], answers), QUIZ_STEPS[0].options);
+  assert.deepEqual(
+    optionsForStep(QUIZ_STEPS[0], answers).map((o) => o.value),
+    QUIZ_STEPS[0].options.map((o) => o.value),
+  );
   assert.equal(optionsForStep(QUIZ_STEPS[2], answers), QUIZ_STEPS[2].options);
   assert.deepEqual(
     optionsForStep(QUIZ_STEPS[1], answers).map((o) => o.value),
     ["australia", "new-zealand", "anywhere"],
+  );
+});
+
+/* ─── offering only countries that have jobs ──────────────────── */
+
+test("Italy is offered, and is a northern-winter destination", () => {
+  const italy = DESTINATIONS.find((d) => d.value === "italy");
+  assert.ok(italy, "Italy is not in DESTINATIONS");
+  assert.equal(italy.hemisphere, "north");
+  // Must match resorts.country exactly: /jobs?country= and
+  // countriesWithLiveJobs both speak that spelling.
+  assert.equal(italy.country, "Italy");
+});
+
+test("a country with no live jobs is not offered", () => {
+  // The measured case: USA was offered with an empty board, on paid traffic.
+  const shown = destinationsWithJobs("northern-winter", ["Canada", "Japan", "Italy"]).map((d) => d.value);
+  assert.deepEqual(shown, ["canada", "japan", "italy", "anywhere"]);
+  assert.ok(!shown.includes("usa"));
+});
+
+test("an empty live-country list filters NOTHING", () => {
+  // countriesWithLiveJobs fails open to [], so empty means the count broke,
+  // never that the world has no jobs. Filtering on it would empty the quiz.
+  assert.deepEqual(
+    destinationsWithJobs("northern-winter", []).map((d) => d.value),
+    destinationsFor("northern-winter").map((d) => d.value),
+  );
+});
+
+test("a hemisphere that is entirely out of season keeps its full list", () => {
+  // Every northern winter, Australia and New Zealand have no live jobs.
+  // Collapsing that question to "Not sure yet" would strand somebody
+  // planning next July.
+  const shown = destinationsWithJobs("southern-winter", ["Canada", "Italy"]).map((d) => d.value);
+  assert.deepEqual(shown, ["australia", "new-zealand", "anywhere"]);
+});
+
+test("the open-ended answer survives every filter", () => {
+  for (const season of SEASONS) {
+    for (const live of [[], ["Canada"], ["Nowhere"], ["Canada", "Japan", "Italy"]]) {
+      assert.ok(
+        destinationsWithJobs(season.value, live).some((d) => d.value === "anywhere"),
+        `${season.value} with live=${JSON.stringify(live)} left no answer for the undecided`,
+      );
+    }
+  }
+});
+
+test('"Not sure yet" keeps its globe rather than listing every flag', () => {
+  // With flags it rendered identically to "Northern" and the two tiles read
+  // as the same answer. The globe means "I have not picked a hemisphere".
+  const live = ["Canada", "Japan", "Italy"];
+  const shown = optionsForStep(QUIZ_STEPS[0], {}, live).find((o) => o.value === "exploring");
+  const original = SEASONS.find((o) => o.value === "exploring");
+  assert.equal(shown?.emoji, original?.emoji);
+  assert.equal(shown?.emoji, "\u{1F30E}");
+});
+
+test("question 1's flags match the countries question 2 will offer", () => {
+  const live = ["Canada", "Japan", "Italy"];
+  const seasonOpts = optionsForStep(QUIZ_STEPS[0], {}, live);
+  for (const opt of seasonOpts.filter((o) => SEASONS.find((s) => s.value === o.value)?.hemisphere !== null)) {
+    const offered = destinationsWithJobs(opt.value as Season, live)
+      .filter((d) => d.country !== null)
+      .map((d) => d.emoji);
+    assert.equal(
+      opt.emoji,
+      offered.join(" "),
+      `question 1 shows ${opt.emoji} for ${opt.value} but question 2 offers ${offered.join(" ")}`,
+    );
+  }
+  // ⚠️ The VALUES are what accounts and GA4 store. Flags may move; these may not.
+  assert.deepEqual(
+    seasonOpts.map((o) => o.value),
+    SEASONS.map((o) => o.value),
   );
 });
 

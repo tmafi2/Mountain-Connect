@@ -162,7 +162,11 @@ export default function SeasonQuiz({ countriesWithJobs }: { countriesWithJobs: s
   const current = complete ? null : QUIZ_STEPS[step];
   const chosenWorkTypes = answers.workTypes ?? [];
   // Question 2 shows only the countries in the hemisphere chosen in question 1.
-  const options = current ? optionsForStep(current, answers) : [];
+  // ⚠️ countriesWithJobs is passed in, not fetched here: the quiz is a client
+  // component and the count is a server read. It also narrows WHICH countries
+  // question 2 offers, not merely where the result's jobs link points — see
+  // destinationsWithJobs. An empty array (the count failed) filters nothing.
+  const options = current ? optionsForStep(current, answers, countriesWithJobs) : [];
 
   return (
     // The quiz fills the viewport so nothing of the next section shows beneath

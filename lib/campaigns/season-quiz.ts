@@ -22,7 +22,10 @@
  * pretend to.
  */
 
-export type Destination = "canada" | "japan" | "usa" | "australia" | "new-zealand" | "anywhere";
+// ⚠️ ADDING a value is safe — nothing stored means "not italy". REMOVING or
+// renaming one is not: every account signed up before the change carries the
+// old string in auth metadata and in GA4, and would stop matching.
+export type Destination = "canada" | "japan" | "usa" | "italy" | "australia" | "new-zealand" | "anywhere";
 export type Season = "northern-winter" | "southern-winter" | "exploring";
 export type WorkType =
   | "hospitality"
@@ -98,6 +101,14 @@ export const DESTINATIONS: readonly DestinationOption[] = [
   { value: "canada", label: "Canada", emoji: "🇨🇦", country: "Canada", hemisphere: "north", calling: "Canada is calling" },
   { value: "japan", label: "Japan", emoji: "🇯🇵", country: "Japan", hemisphere: "north", calling: "Japan is calling" },
   { value: "usa", label: "USA", emoji: "🇺🇸", country: "USA", hemisphere: "north", calling: "The USA is calling" },
+  // ⚠️ ADDED 2026-11-12, and it is the best-converting market on the board.
+  // Measured that day: Italy had 63 reachable listings against Canada's 102,
+  // but 218 expressions of interest in 30 days against Canada's 13 — roughly
+  // 27x the interest per listing, on no ad spend. It could not be chosen.
+  // `country` must stay "Italy" exactly as `resorts.country` spells it, since
+  // that is what /jobs?country= filters on and what countriesWithLiveJobs
+  // returns.
+  { value: "italy", label: "Italy", emoji: "🇮🇹", country: "Italy", hemisphere: "north", calling: "Italy is calling" },
   { value: "australia", label: "Australia", emoji: "🇦🇺", country: "Australia", hemisphere: "south", calling: "Australia is calling" },
   { value: "new-zealand", label: "New Zealand", emoji: "🇳🇿", country: "New Zealand", hemisphere: "south", calling: "New Zealand is calling" },
   // Value stays "anywhere" — it is stored on accounts and in analytics — but
@@ -207,9 +218,75 @@ export function destinationsFor(season: Season | undefined): readonly Destinatio
   return DESTINATIONS.filter((d) => d.hemisphere === hemisphere || d.hemisphere === null);
 }
 
-/** The options a quiz step shows, given the answers so far. */
-export function optionsForStep(step: QuizStep, answers: Partial<SeasonAnswers>): readonly QuizOption[] {
-  return step.key === "destination" ? destinationsFor(answers.season) : step.options;
+/** Always offerable: it is the answer for "I have not decided". */
+const isOpenEnded = (d: DestinationOption) => d.country === null;
+
+/**
+ * Narrow a hemisphere's destinations to the countries that actually have live
+ * jobs today.
+ *
+ * ⚠️ WHY, AND WHAT IT COSTS. Until 2026-11-12 the quiz offered a fixed five
+ * countries, and three of them (USA, Australia, New Zealand) had no live jobs
+ * at all — picking USA sent a visitor to an empty board, on traffic we paid
+ * for. Meanwhile Italy, the board's largest and by far its best-converting
+ * market, could not be chosen. A list derived from the data cannot drift
+ * apart from the board the way a typed one did; it is the same reason /jobs
+ * builds its own filters from the rows it fetched (migration 00110).
+ *
+ * ⚠️ IT FALLS BACK RATHER THAN EMPTYING, in two directions:
+ *
+ *   - an empty `countriesWithJobs` means the count FAILED (the query fails
+ *     open to []), not that the world has no jobs, so nothing is filtered;
+ *   - a hemisphere whose countries are all out of season — which is the
+ *     Southern list every northern winter — keeps its full list rather than
+ *     collapsing to "Not sure yet". Somebody planning next July's season is
+ *     a perfectly good signup and must still have a country to point at.
+ *
+ * Never filters out the open-ended answer, and never reorders: the order is
+ * the one the ad creative and the result copy assume.
+ */
+export function destinationsWithJobs(
+  season: Season | undefined,
+  countriesWithJobs: readonly string[]
+): readonly DestinationOption[] {
+  const inHemisphere = destinationsFor(season);
+  if (!countriesWithJobs.length) return inHemisphere;
+  const live = new Set(countriesWithJobs);
+  const kept = inHemisphere.filter((d) => isOpenEnded(d) || (d.country && live.has(d.country)));
+  // Nothing but "Not sure yet" left: out of season, not out of jobs.
+  return kept.some((d) => !isOpenEnded(d)) ? kept : inHemisphere;
+}
+
+/**
+ * The options a quiz step shows, given the answers so far.
+ *
+ * ⚠️ THE HEMISPHERE QUESTION'S FLAGS ARE DERIVED, not typed. Its emoji used
+ * to read "🇨🇦 🇺🇸 🇯🇵" while the destination question offered a different
+ * set — so question 1 advertised a flag question 2 would not show. They now
+ * come from exactly the list the next question will offer, which is the only
+ * way the two cannot disagree. The option VALUES are untouched: they are
+ * stored on accounts and in GA4 (see the note on SeasonAnswers).
+ */
+export function optionsForStep(
+  step: QuizStep,
+  answers: Partial<SeasonAnswers>,
+  countriesWithJobs: readonly string[] = []
+): readonly QuizOption[] {
+  if (step.key === "destination") return destinationsWithJobs(answers.season, countriesWithJobs);
+  if (step.key === "season") {
+    return SEASONS.map((o) => {
+      // ⚠️ The open-ended option keeps its globe. Listing every flag under
+      // "Not sure yet" made it look identical to "Northern" — the two tiles
+      // read as the same answer, and the globe is the whole point: it means
+      // "I have not picked a hemisphere", not "all of them".
+      if (o.hemisphere === null) return o;
+      const flags = destinationsWithJobs(o.value, countriesWithJobs)
+        .filter((d) => !isOpenEnded(d))
+        .map((d) => d.emoji);
+      return flags.length ? { ...o, emoji: flags.join(" ") } : o;
+    });
+  }
+  return step.options;
 }
 
 /**
