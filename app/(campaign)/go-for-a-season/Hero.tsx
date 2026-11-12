@@ -1,14 +1,38 @@
 import Image from "next/image";
-import { BTN_GHOST, BTN_PRIMARY } from "../buttons";
-import { BrowseJobsLink, FindMySeasonButton } from "../CampaignLinks";
+import { BTN_PRIMARY } from "../buttons";
+import { FindMySeasonButton } from "../CampaignLinks";
 import { HERO, IMAGES } from "./content";
 import { NO_COUNTRY_STATS, type CountryJobStats } from "@/lib/stats/country-job-stats";
 
 /**
- * Sells the idea before anything else: no form, one button. On short screens
- * (`short:`, see globals.css) the content moves to the top and tightens up,
- * because the cookie banner covers the bottom of a phone on a first visit —
- * which, for paid traffic, is every visit — and the button must clear it.
+ * Sells the idea before anything else: no form, ONE button, and that button
+ * goes to the quiz.
+ *
+ * ⚠️ IT HAD TWO BUTTONS AND THAT COST THE CAMPAIGN ITS SIGNUPS. The 2026-10-08
+ * rebuild (c2b2d7d) made "See the jobs" the primary action and demoted "Find
+ * my season" to a ghost button beside it. Measured from `campaign_events` on
+ * 2026-11-09:
+ *
+ *                   views   quiz started   browse-jobs clicked   signups
+ *   to 08 Oct        653    102 (15.6%)     56 ( 8.6%)              5
+ *   from 08 Oct      501     27 ( 5.4%)     96 (19.2%)              0
+ *
+ * It did exactly what it was built to do and quiz starts fell by two thirds,
+ * because the two buttons were competing for the same tap. The jobs path is
+ * not lost — the quiz result screen and the final CTA both still offer it —
+ * it just no longer competes at the top. **Do not put a second button back
+ * here without deciding first whether the campaign is buying accounts or
+ * applications; this page cannot optimise for both while ~98% of the board
+ * takes an anonymous apply form that needs no account.**
+ *
+ * The proof line STAYS. It is the only thing on the page that says the jobs
+ * exist, it is counted live, and it was the other half of the 08 Oct rebuild
+ * — the half that was right.
+ *
+ * On short screens (`short:`, see globals.css) the content moves to the top
+ * and tightens up, because the cookie banner covers the bottom of a phone on
+ * a first visit — which, for paid traffic, is every visit — and the button
+ * must clear it.
  */
 export default function Hero({ stats = NO_COUNTRY_STATS }: { stats?: CountryJobStats }) {
   // No invented numbers and no "—": at zero the proof line is simply not
@@ -20,9 +44,6 @@ export default function Hero({ stats = NO_COUNTRY_STATS }: { stats?: CountryJobS
           .replace("{jobs}", stats.liveJobs.toLocaleString("en-GB"))
           .replace("{accommodation}", stats.withAccommodation.toLocaleString("en-GB"))
       : null;
-  // Only filter the board when we actually counted; otherwise send them to all
-  // of it rather than to a filter that might be empty.
-  const jobsHref = proof ? "/jobs?country=Canada&accommodation=yes" : "/jobs";
   return (
     <section
       aria-labelledby="gfas-hero-heading"
@@ -60,15 +81,15 @@ export default function Hero({ stats = NO_COUNTRY_STATS }: { stats?: CountryJobS
           <p className="mt-3 max-w-lg text-lg font-bold leading-snug text-white sm:text-xl short:mt-2">{proof}</p>
         )}
         <p className="mt-2 max-w-md text-base leading-relaxed text-white/85 sm:text-lg">{HERO.body}</p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center short:mt-5">
-          <BrowseJobsLink placement="hero" href={jobsHref} className={`${BTN_PRIMARY} w-full max-w-xs sm:w-auto`}>
-            {HERO.jobsCta}
-            <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </BrowseJobsLink>
-          <FindMySeasonButton placement="hero" className={`${BTN_GHOST} w-full max-w-xs sm:w-auto`}>
+        <div className="mt-8 short:mt-5">
+          {/* A DOWN chevron, not the usual forward one: this button scrolls to
+              the quiz rather than leaving the page, and it matches the scroll
+              hint at the foot of the section. */}
+          <FindMySeasonButton placement="hero" className={`${BTN_PRIMARY} w-full max-w-xs sm:w-auto`}>
             {HERO.cta}
+            <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </FindMySeasonButton>
         </div>
         <p className="mt-3 text-sm font-medium text-white/80">{HERO.support}</p>

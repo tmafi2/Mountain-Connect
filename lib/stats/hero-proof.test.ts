@@ -1,16 +1,26 @@
 /**
- * Guards the campaign hero's proof line and its two CTAs.
+ * Guards the campaign hero's proof line and its ONE call to action.
  *
- * WHY: until 2026-10-08 the hero read "Seasonal jobs. Mountain towns. New
- * people. New places." — atmosphere with no number anywhere, so a cold visitor
- * never learned the jobs existed. 88% left before touching the quiz, stable
- * across 700+ visitors. The fix puts live counts in the hero and makes jobs
- * the primary action.
+ * WHY THE PROOF LINE: until 2026-10-08 the hero read "Seasonal jobs. Mountain
+ * towns. New people. New places." — atmosphere with no number anywhere, so a
+ * cold visitor never learned the jobs existed. 88% left before touching the
+ * quiz, stable across 700+ visitors. Live counts in the hero fixed that and
+ * they stay.
  *
- * Three things could silently undo it, and none is a type error: someone
- * typing a number into the copy (which is how /about understated the platform
- * for five months), the zero-state printing a dash on an advert, and the
- * mobile `Browse jobs` link being hidden again.
+ * WHY ONE BUTTON: the same 2026-10-08 change also added a "See the jobs"
+ * PRIMARY button and demoted the quiz to a ghost button beside it. Measured
+ * from `campaign_events` on 2026-11-09 — quiz starts 15.6% → 5.4%,
+ * browse-jobs clicks 8.6% → 19.2%, and signups 5 → 0 across 501 views. The
+ * second button was removed on 2026-11-12. **This file asserted the opposite
+ * until that day**, which is correct: it was guarding a decision, and the
+ * decision changed. If the jobs CTA ever comes back, change these tests
+ * deliberately rather than deleting them.
+ *
+ * Four things could silently undo all this, and none is a type error: a
+ * number typed into the copy (how /about understated the platform for five
+ * months), the zero-state printing a dash on an advert, a second button
+ * creeping back into the hero, and the mobile `Browse jobs` link in the
+ * HEADER being hidden again.
  */
 
 import { test } from "node:test";
@@ -53,18 +63,35 @@ test("an uncounted hero shows no line at all, never a dash", () => {
   assert.ok(!/["'`]\s*\u2014\s*["'`]/.test(code), "an em dash on an advert reads as broken; render nothing instead");
 });
 
-test("the job board is the primary action and the quiz the secondary", () => {
-  assert.match(HERO_TSX, /BrowseJobsLink[\s\S]{0,200}BTN_PRIMARY/, "jobs must carry the primary button style");
-  assert.match(HERO_TSX, /FindMySeasonButton[\s\S]{0,200}BTN_GHOST/, "the quiz must be the secondary style");
+/** Hero source with every comment removed, so a note that NAMES the banned
+ *  thing at the site where it would be reintroduced does not trip the check. */
+const HERO_CODE = HERO_TSX
+  .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/^\s*\/\/.*$/gm, "");
+
+test("the quiz is the hero's primary action", () => {
+  assert.match(HERO_CODE, /FindMySeasonButton[\s\S]{0,200}BTN_PRIMARY/, "the quiz must carry the primary button style");
 });
 
-test("the deep link is only filtered when the counts are real", () => {
-  // Filtering to Canada+accommodation while the counts failed would risk
-  // sending someone to a board that does not match a number they never saw.
-  assert.match(HERO_TSX, /proof \? "\/jobs\?country=Canada&accommodation=yes" : "\/jobs"/);
+test("the hero offers exactly ONE action", () => {
+  // The measured failure was two buttons competing for the same tap, not the
+  // wording on either of them. Any second CTA here is the same bug again.
+  assert.ok(
+    !/BrowseJobsLink/.test(HERO_CODE),
+    "a jobs CTA is back in the hero — it cut quiz starts by two thirds on 501 views; see the note above",
+  );
+  assert.ok(
+    !/BTN_GHOST/.test(HERO_CODE),
+    "a secondary button is back in the hero; the hero has one action and it is the quiz",
+  );
+  assert.ok(!("jobsCta" in HERO), "HERO.jobsCta was retired with the button it labelled");
 });
 
-test("Browse jobs is not hidden on phones", () => {
+test("the HEADER's Browse jobs link is not hidden on phones", () => {
+  // Deliberately kept, and it is now the only jobs route above the fold. It
+  // is a quiet text link rather than a button, so it does not compete with
+  // the quiz the way the removed hero CTA did.
   const link = HEADER_TSX.match(/className="[^"]*"/g)?.filter((c) => /inline-block/.test(c)) ?? [];
   assert.ok(link.length > 0, "the Browse jobs link lost its class");
   for (const c of link) {

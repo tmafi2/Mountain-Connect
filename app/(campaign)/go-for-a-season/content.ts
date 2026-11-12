@@ -56,9 +56,16 @@ export const HERO = {
   // the number is a floor, not a ceiling.
   proof: "{jobs} ski resort jobs in Canada. {accommodation} say they include staff accommodation.",
   body: "Seasonal jobs. Mountain towns. New people. New places.",
-  /** The primary action. People have been choosing jobs over a profile 30 to 3
-   *  on the result screen; this offers that at the top, where the loss is. */
-  jobsCta: "See the jobs",
+  /**
+   * The hero's ONLY action, and it goes to the quiz.
+   *
+   * ⚠️ There was a `jobsCta: "See the jobs"` here, shown as the PRIMARY button
+   * with this one demoted beside it. It was removed on 2026-11-12 because it
+   * was measured to cut quiz starts from 15.6% to 5.4% while the page
+   * produced no signups at all — see the note in Hero.tsx for the figures.
+   * Adding a second button back here is a decision about what the campaign is
+   * buying, not a copy tweak.
+   */
   cta: "Find my season",
   support: "Free for workers · Takes about 20 seconds",
 } as const;
