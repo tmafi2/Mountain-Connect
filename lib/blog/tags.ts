@@ -21,6 +21,7 @@
 export const TAGS = [
   "Canada",
   "Japan",
+  "Italy",
   "Australia",
   "New Zealand",
   "Pay",
@@ -35,6 +36,8 @@ export type Tag = (typeof TAGS)[number];
 
 /** At most three, so a card is still a card and not a wall of labels. */
 const BY_SLUG: Record<string, Tag[]> = {
+  "work-a-ski-season-in-italy": ["Italy", "Visas", "Getting hired"],
+  "italy-ski-season-staff-accommodation": ["Italy", "Housing", "Pay"],
   "australian-working-holiday-visa-ski-season": ["Visas", "Australia"],
   "new-zealand-vs-australia-ski-season-pay": ["Pay", "Australia", "New Zealand"],
   "two-ski-seasons-in-one-year": ["Planning", "Visas"],

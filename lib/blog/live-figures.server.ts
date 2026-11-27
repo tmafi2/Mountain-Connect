@@ -45,13 +45,25 @@ export async function getLiveFigures(): Promise<LiveFigures | null> {
     if (rows.length === 0) return null;
 
     const n = (v: number) => v.toLocaleString("en-GB");
-    const inCountry = (c: string) =>
-      rows.filter((r) => one(r.resorts)?.country === c).length;
+    const ofCountry = (c: string) => rows.filter((r) => one(r.resorts)?.country === c);
+    const inCountry = (c: string) => ofCountry(c).length;
+
+    // Italy's own perks, because the Italian guides quote them as a ratio of
+    // the Italian board rather than of the whole board — see KNOWN_TOKENS.
+    const italy = ofCountry("Italy");
 
     return {
       openJobs: n(rows.length),
       canadaJobs: n(inCountry("Canada")),
       japanJobs: n(inCountry("Japan")),
+      italyJobs: n(italy.length),
+      // ⚠️ === true / === null, like every other reader of these columns.
+      // They are tri-state since 00114/00115 and on the Italian board NULL is
+      // a third of it, so truthiness would silently convert "the advert did
+      // not say" into "the advert said no".
+      italyWithHousing: n(italy.filter((r) => r.accommodation_included === true).length),
+      italyHousingSilent: n(italy.filter((r) => r.accommodation_included === null).length),
+      italyWithMeals: n(italy.filter((r) => r.meal_perks === true).length),
       pricedJobs: n(rows.filter((r) => /\/hour$/.test(r.salary_range ?? "")).length),
       // ⚠️ === true throughout. These columns are tri-state since 00114/00115
       // and NULL means the advert did not say, which is most of the board.

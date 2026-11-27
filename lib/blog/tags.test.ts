@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { TAGS, tagsFor, tagCounts } from "./tags";
 
 const ALL = [
+  "work-a-ski-season-in-italy","italy-ski-season-staff-accommodation",
   "australian-working-holiday-visa-ski-season","new-zealand-vs-australia-ski-season-pay",
   "two-ski-seasons-in-one-year","questions-to-ask-before-accepting-ski-season-job",
   "is-a-ski-season-worth-it","how-to-avoid-ski-job-scams","best-ski-resorts-to-work-at-in-canada",

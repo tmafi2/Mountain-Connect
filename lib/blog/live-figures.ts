@@ -28,6 +28,16 @@ export const KNOWN_TOKENS = [
   "openJobs",
   "canadaJobs",
   "japanJobs",
+  // ⚠️ ITALY CARRIES ITS OWN HOUSING AND MEALS FIGURES AND THE OTHER COUNTRIES
+  // DO NOT. That is deliberate, not an oversight: Italy is the only country
+  // with a guide written about its staff accommodation, and the whole claim is
+  // a RATIO — "38 of 67 say they include it". Both halves have to move
+  // together or the sentence becomes a lie by arithmetic. Add a country's
+  // perk tokens when a guide needs the ratio, not in advance.
+  "italyJobs",
+  "italyWithHousing",
+  "italyHousingSilent",
+  "italyWithMeals",
   "pricedJobs",
   "withHousing",
   "housingSilent",

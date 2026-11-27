@@ -117,6 +117,51 @@ accepting and #40 is it worth it all now have a guide written for them.
 resort housing, where we have no listings and no resort content, so it is the
 one easy win that is not actually easy. The scams guide was not on that list.
 
+- **Two Italy guides written 2026-11-14, ahead of Week 5, DRAFTED NOT PUBLISHED** —
+  `/blog/work-a-ski-season-in-italy` and
+  `/blog/italy-ski-season-staff-accommodation` (sources in
+  `docs/blog-drafts/`, pushed with `scripts/publish-guides.ts`).
+  ⚠️ **They jump the plan because the measurement says to.** Over the 30 days
+  to 2026-11-14 the board took **204 expressions of interest on Italian
+  listings against 16 for Japan and 12 for Canada** — Italy is ~87% of all
+  interest, off 67 of roughly 237 open listings — and across fifteen blog
+  posts Italy was named **nowhere**. `/ski-resort-jobs/italy` is also the one
+  page this site already surfaces for.
+  ⚠️ **The visa guide's whole point is a rule we do not state as settled.**
+  Italy has no general working holiday scheme, only bilateral agreements
+  (the ministry lists New Zealand, Canada, Australia, Hong Kong, South Korea,
+  Japan), and the default version caps a holder at **three months with one
+  employer** — shorter than an Alpine season. The agreements disagree with
+  each other: the ministry names Korea and Japan as exceptions, while
+  Italy's Toronto consulate says Canadians may work the full 12 months with
+  one employer. Australia and New Zealand we could not verify, **so the guide
+  says so and sends the reader to their own consulate** rather than guessing
+  for the country most of our readers hold.
+  ⚠️ **The housing guide exists because of a gap, not an abundance.** 38 of 67
+  Italian listings say they include accommodation (against 24 of 105 in
+  Canada), 46 adverts use the word *alloggio* and 24 the phrase *vitto e
+  alloggio* — but **0 state a cost, 0 state whether it is deducted from pay,
+  and 0 state an hourly rate**. So the guide teaches the vocabulary and the
+  questions, and delegates every per-resort number to `/staff-housing`, which
+  already lists Bormio, Courmayeur, Livigno and Cervinia live. A table of
+  counts typed into a post is the `/about` bug waiting to happen.
+  ⚠️ **Four stale country lists were found in the process.** Three published
+  guides said the board is "Canada, Japan and France" — naming France's
+  handful and omitting Italy's 67 — and two of them sat directly beside a
+  `::figures` line counting Canada and Japan live. `scripts/fix-stale-country-lists.ts`
+  carries the pinned replacements. New tokens `italyJobs`,
+  `italyWithHousing`, `italyHousingSilent`, `italyWithMeals`; a guide's perk
+  tokens are added per country only when a guide quotes the ratio, since both
+  halves of "38 of 67" have to move together.
+  ⚠️ **A token declared and never computed drops its line silently.**
+  `render` removes a figures line whose tokens do not all resolve, and
+  `unknownTokens` is satisfied by the declaration alone — so a sentence would
+  vanish from a published guide with no error anywhere. `live-figures.test.ts`
+  now reads the server module's source and fails if any `KNOWN_TOKEN` has
+  nothing producing it. Confirmed to fail when a token is removed.
+  **Still Tyler's:** the founder tip in both (marked `[FOUNDER TIP]` in the
+  draft, visible on purpose), and publishing. Publish BOTH or neither — the
+  housing guide links to the visa guide.
 - Week 5: Canada: how-to-get-hired and housing guides for Whistler, Banff/Lake Louise, Revelstoke. Add a "how to get hired" block to top resort pages.
 - Week 6: Get listed or mentioned on skijobs, coolworks, skicanada.org. Re-run the 40 prompts and compare against baseline.
 

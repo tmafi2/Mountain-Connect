@@ -4,6 +4,7 @@ import {
   FIGURES_PREFIX, KNOWN_TOKENS, render, tokensIn, tokensInProse, unknownTokens,
 } from "./live-figures";
 import { extractFaq, faqJsonLd } from "./faq";
+import { readFileSync } from "node:fs";
 
 const FIGURES = { openJobs: "355", withHousing: "139", updated: "10 October 2026" };
 
@@ -132,4 +133,25 @@ test("a link in an answer keeps its words and loses its url", () => {
 test("an image in an answer leaves its alt text, not its path", () => {
   const md = "## FAQ\n\n### Q?\n\nHere ![a lift queue](/img/queue.png) is the scene.";
   assert.equal(extractFaq(md)[0].answer, "Here a lift queue is the scene.");
+});
+
+/* ── every token has somewhere to come from ───────────────────────────── */
+
+/**
+ * ⚠️ THE FAILURE THIS CATCHES IS SILENT. `render` drops a figures line whose
+ * tokens do not ALL resolve — which is the right behaviour, and also means a
+ * token declared in KNOWN_TOKENS but never produced by the server module
+ * makes a sentence vanish from a published guide with no error anywhere. An
+ * authoring check cannot see it either: `unknownTokens` is satisfied by the
+ * declaration alone.
+ *
+ * Reading the source is the only way to check it from a unit test — the
+ * server module needs Supabase and `next/headers` — and it is the same
+ * approach `lib/jobs/not-expired.test.ts` takes for the same reason.
+ */
+test("every known token is actually produced by the server module", () => {
+  const src = readFileSync(new URL("./live-figures.server.ts", import.meta.url), "utf8");
+  for (const token of KNOWN_TOKENS) {
+    assert.match(src, new RegExp(`\\b${token}:`), `${token} is declared but never computed`);
+  }
 });

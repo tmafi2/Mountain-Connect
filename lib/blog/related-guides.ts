@@ -38,6 +38,12 @@ type Entry = {
  * behind its thinnest pages. Add them once they are rewritten.
  */
 const GUIDES: Entry[] = [
+  // ⚠️ Italy leads the list and is NOT marked `town`. It is the biggest part
+  // of the board and the only country whose own guides exist, but an Italian
+  // housing guide on a Whistler town page would be the wrong answer — the
+  // `town` scope is country-blind, so only country-agnostic guides carry it.
+  { slug: "work-a-ski-season-in-italy", countries: ["Italy"] },
+  { slug: "italy-ski-season-staff-accommodation", countries: ["Italy"] },
   { slug: "australian-working-holiday-visa-ski-season", countries: ["Australia"] },
   { slug: "new-zealand-vs-australia-ski-season-pay", countries: ["Australia", "New Zealand"] },
   { slug: "best-ski-resorts-to-work-at-in-canada", countries: ["Canada"] },
