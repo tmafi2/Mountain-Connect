@@ -10,6 +10,7 @@ import {
   TorusGeometry,
   MeshLambertMaterial,
   MeshBasicMaterial,
+  MeshPhongMaterial,
   RingGeometry,
   SphereGeometry,
   DoubleSide,
@@ -160,10 +161,79 @@ function spaceOutMarkers(markers: MountainMarker[], minDist: number): MountainMa
 
 const markerData = spaceOutMarkers(rawMarkers, 1.2);
 
+/* ─── Palette ─────────────────────────────────────────────── */
+
+/**
+ * The globe is drawn in the site's own colours, from app/globals.css, rather
+ * than in a photograph of the Earth.
+ *
+ * ⚠️ WHY THERE IS NO TEXTURE ANY MORE. This used to render NASA's Blue Marble
+ * JPEG plus a topology bump map — three-globe's demo assets, 1.8 MB of them,
+ * fetched from unpkg. Photorealistic Earth fought the navy-and-cyan palette
+ * everywhere else on the site and read as a stock library default, which is
+ * what it was. The land is now hexagons generated from country outlines:
+ * 168 KB of geometry replacing 624 KB of raster, in our colours, and sharp at
+ * any zoom because there are no pixels to run out of.
+ *
+ * ⚠️ HEX COLOUR CARRIES MEANING — it is not decoration. A country we actually
+ * have resorts in is drawn in the bright secondary blue; everywhere else is a
+ * muted navy barely above the sea. So the globe answers "where can I work?"
+ * at a glance, before the visitor reads a single label. HEX_COUNTRIES_WITH
+ * is derived from the resort data, so it cannot drift.
+ */
+const SEA = "#0a1e33"; // --color-primary
+const LAND_IDLE = "#294a6d"; // navy, clearly above the sea but recessive
+/**
+ * ⚠️ This is the OLD --color-secondary, retired from the stylesheet on
+ * 2026-10-11 for failing WCAG AA at 2.94:1. That retirement was about TEXT
+ * and text grounds. These are 3-pixel hexagons on a sphere, carrying no
+ * words, and the brighter blue is what makes "we hire here" legible at a
+ * glance against the idle land. Do not swap it for a text-safe colour on
+ * contrast grounds — nothing here is read.
+ */
+const LAND_ACTIVE = "#3b9ede";
+const GLOW = "#22d3ee"; // --color-highlight, markers and atmosphere
+const GLOW_WARM = "#f59e0b"; // --color-warm, the individual resort pins
+
+/**
+ * Natural Earth spells a few of these differently from our resort data. Only
+ * the ones that actually differ need an entry; everything else matches.
+ *
+ * ⚠️ ANDORRA IS NOT IN THE DATASET AT ALL and that is not a bug here. The
+ * 110m Natural Earth cut drops microstates, so 13 of our 14 countries get
+ * highlighted land and Andorra gets none — it is about two hexagons wide at
+ * this resolution either way. Its cluster dot and label still render, so the
+ * one resort there is as reachable as any other. Check this list before
+ * concluding a country's land is mis-coloured; it may simply not exist.
+ */
+const GEO_NAME_ALIASES: Record<string, string> = {
+  "United States of America": "USA",
+};
+
+const COUNTRIES_WITH_RESORTS = new Set(resorts.map((r) => r.country));
+
+function hexColorFor(feature: object): string {
+  const name = (feature as { properties?: { name?: string } }).properties?.name ?? "";
+  const ours = GEO_NAME_ALIASES[name] ?? name;
+  return COUNTRIES_WITH_RESORTS.has(ours) ? LAND_ACTIVE : LAND_IDLE;
+}
+
+/**
+ * The sphere under the hexagons. Phong rather than Basic so the existing
+ * lights still model it — a flat fill would read as a circle, not a ball —
+ * but low shininess, because a glossy highlight on a stylised globe looks
+ * like the plastic it is not.
+ */
+const globeMaterial = new MeshPhongMaterial({
+  color: new Color(SEA),
+  shininess: 4,
+  specular: new Color("#13293f"),
+});
+
 /* ─── 3D object builders ──────────────────────────────────── */
 
-const PIN_COLOR = new Color(0xef5350);
-const PIN_DARK = new Color(0xc62828);
+const PIN_COLOR = new Color(GLOW_WARM);
+const PIN_DARK = new Color(0xb45309);
 
 function createMountain(d: object): Object3D {
   const marker = d as MountainMarker;
@@ -218,7 +288,7 @@ function createClusterDot(d: object): Object3D {
   // Glowing sphere
   const sphereGeo = new SphereGeometry(2.5, 16, 16);
   const sphereMat = new MeshBasicMaterial({
-    color: 0xa9cbe3,
+    color: GLOW,
     transparent: true,
     opacity: 0.85,
   });
@@ -228,7 +298,7 @@ function createClusterDot(d: object): Object3D {
   // Outer glow ring
   const ringGeo = new RingGeometry(3.0, 5.0, 24);
   const ringMat = new MeshBasicMaterial({
-    color: 0xa9cbe3,
+    color: GLOW,
     transparent: true,
     opacity: 0.25,
     side: DoubleSide,
@@ -274,6 +344,14 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const labelElsRef = useRef<Map<string, HTMLElement>>(new Map());
   /** Latest camera sub-point, so a re-render can re-run the pass without one. */
   const lastPovRef = useRef<{ lat: number; lng: number } | null>(null);
+  /**
+   * Country outlines for the hex land layer, fetched rather than bundled:
+   * 168 KB of geometry has no business in the JS bundle of a page that also
+   * renders a resort grid, and the globe is below the fold anyway. Until it
+   * arrives the sphere renders as empty sea, which is a reasonable thing to
+   * look at for a moment and never an error state.
+   */
+  const [landFeatures, setLandFeatures] = useState<object[]>([]);
   /** The library-positioned wrapper of each label, measured but never written. */
   const labelOuterRef = useRef<Map<string, HTMLElement>>(new Map());
   /** Vertical nudge currently applied to each label, so writes stay idempotent. */
@@ -311,6 +389,22 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   visibleClustersRef.current = visibleClusters;
   /** Identity of the current label set — the visibility pass re-runs when it changes. */
   const clusterKey = visibleClusters.map((c) => c.id).join(",");
+
+  // Land outlines. Failure is silent and leaves an empty sea rather than
+  // breaking the page: the markers, labels and clicking all work without it.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/globe/countries.geojson")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const features = (data as { features?: object[] } | null)?.features;
+        if (!cancelled && Array.isArray(features)) setLandFeatures(features);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Dynamic import, but only where a globe can actually be drawn.
   //
@@ -494,7 +588,12 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.4;
     controls.enableZoom = true;
-    controls.minDistance = 150;
+    // ⚠️ Raised from 150 with the hex globe. The land is drawn at hex
+    // resolution 2, which is bold and legible at world scale and turns into
+    // chunky blocks close up — so the camera is stopped before the viewer
+    // can get close enough to see the seams. If the resolution ever goes up,
+    // this can come back down.
+    controls.minDistance = 185;
     controls.maxDistance = 600;
   }, []);
 
@@ -520,7 +619,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
 
       setActiveRegion(cluster.id);
       globeRef.current.pointOfView(
-        { lat: cluster.lat, lng: cluster.lng, altitude: 0.6 },
+        { lat: cluster.lat, lng: cluster.lng, altitude: 1.05 },
         800
       );
     },
@@ -635,18 +734,27 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     outer.style.cssText = "pointer-events:none;";
 
     const pill = document.createElement("div");
-    pill.innerHTML = `<span style="font-weight:700">${c.name}</span> <span style="opacity:0.7">· ${c.count}</span>`;
+    pill.innerHTML =
+      `<span style="font-weight:600;letter-spacing:0.01em">${c.name}</span>` +
+      `<span style="color:${GLOW};font-weight:700;margin-left:7px">${c.count}</span>`;
+    /* Dark glass, not a white chip. The old label was opaque white with a
+       drop shadow — fine over a photograph of the Earth, but over a dark
+       stylised globe it read as a sticker someone left on the lens, and nine
+       of them at once were the brightest thing on the page. Sitting the
+       label in the globe's own palette lets the land stay the subject. */
     pill.style.cssText = `
-      color: #0e2439;
+      color: #dce9f5;
       font-size: 11px;
-      font-family: Inter, system-ui, sans-serif;
-      background: rgba(255,255,255,0.92);
-      padding: 4px 10px;
-      border-radius: 8px;
+      font-family: var(--font-jakarta), Inter, system-ui, sans-serif;
+      background: rgba(9, 24, 41, 0.72);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      padding: 4px 9px;
+      border-radius: 999px;
       pointer-events: none;
       white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      border: 1px solid rgba(169,203,227,0.5);
+      box-shadow: 0 1px 10px rgba(0,0,0,0.45);
+      border: 1px solid rgba(34, 211, 238, 0.28);
       transition: opacity 180ms ease-out, transform 180ms ease-out;
       will-change: opacity, transform;
     `;
@@ -868,7 +976,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         globeRef.current.controls().autoRotate = false;
         setActiveRegion(cluster.id);
         globeRef.current.pointOfView(
-          { lat: cluster.lat, lng: cluster.lng, altitude: 0.6 },
+          { lat: cluster.lat, lng: cluster.lng, altitude: 1.05 },
           800
         );
       }
@@ -927,7 +1035,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       {activeRegion && (
         <button
           onClick={handleBackToOverview}
-          className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-2 text-sm font-medium text-primary shadow-md backdrop-blur-sm transition-colors hover:bg-white"
+          className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-full border border-highlight/30 bg-primary/70 px-3.5 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition-colors hover:border-highlight/60 hover:bg-primary/85"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -940,22 +1048,24 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ref={globeRef}
         width={dimensions.width}
         height={dimensions.height}
-        /* ⚠️ SELF-HOSTED ON PURPOSE. These were loaded from
-           //unpkg.com/three-globe/example/img/ — the EXAMPLE assets of a
-           library, on a CDN with no SLA, 1.8 MB of them, for the single most
-           visible thing on the page. If unpkg was slow the globe was a black
-           sphere. Served from our own origin they ride Vercel's CDN with
-           immutable caching, and dropping them let unpkg.com out of the CSP
-           img-src entirely — nothing else used it.
-           Resampled to 2048x1024 and 1024x512 (624 KB the pair, down from
-           1.8 MB): the sphere is ~360 CSS px at rest and the zoom stops at
-           minDistance 150, so the originals' 4096 was detail no viewer could
-           resolve. Re-check if that zoom limit is ever loosened. */
-        globeImageUrl="/globe/earth-blue-marble.jpg"
-        bumpImageUrl="/globe/earth-topology.png"
+        /* No globeImageUrl: the sphere is a flat sea colour and the land is
+           the hex layer below. See the Palette block for why the Blue Marble
+           texture went. */
+        globeMaterial={globeMaterial}
         backgroundColor="rgba(0,0,0,0)"
-        atmosphereColor="#a9cbe3"
-        atmosphereAltitude={0.25}
+        atmosphereColor={GLOW}
+        atmosphereAltitude={0.18}
+        /* Land, as hexagons. resolution 3 is the readable floor — at 2 the
+           Alps collapse into a blob and Japan loses its shape; at 4 the hex
+           count roughly quadruples for detail a 360px sphere cannot show.
+           useDots stays false: hexagons tile without gaps, so coastlines read
+           as edges rather than as stippling. */
+        hexPolygonsData={landFeatures}
+        hexPolygonResolution={2}
+        hexPolygonMargin={0.22}
+        hexPolygonUseDots={false}
+        hexPolygonAltitude={0.008}
+        hexPolygonColor={hexColorFor}
         animateIn={true}
         onGlobeReady={onGlobeReady}
         onZoom={handleZoom}
@@ -989,20 +1099,22 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
             top: `${tooltip.y - 20}px`,
           }}
         >
-          <div className="flex items-center gap-3 rounded-xl border border-accent bg-white px-4 py-3 shadow-lg">
-            {/* Logo placeholder */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+          {/* Dark glass, matching the country labels — a white card hovering
+              over the dark globe was the one element that still looked
+              borrowed from somewhere else. */}
+          <div className="flex items-center gap-3 rounded-xl border border-highlight/25 bg-primary/85 px-4 py-3 shadow-xl backdrop-blur-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-highlight/15 text-xs font-bold text-highlight">
               {tooltip.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="text-sm font-semibold text-primary">{tooltip.name}</p>
-              <p className="text-xs text-foreground/60">{tooltip.country}</p>
+              <p className="text-sm font-semibold text-white">{tooltip.name}</p>
+              <p className="text-xs text-white/55">{tooltip.country}</p>
               {/* Only show "View Resort" for individual markers, not clusters */}
               {!COUNTRY_CLUSTERS.find((c) => c.id === tooltip.id) && (
-                <p className="mt-0.5 text-[10px] font-medium text-secondary">Click to view resort →</p>
+                <p className="mt-0.5 text-[10px] font-medium text-highlight">Click to view resort →</p>
               )}
               {COUNTRY_CLUSTERS.find((c) => c.id === tooltip.id) && (
-                <p className="mt-0.5 text-[10px] font-medium text-secondary">Click to explore →</p>
+                <p className="mt-0.5 text-[10px] font-medium text-highlight">Click to explore →</p>
               )}
             </div>
           </div>
