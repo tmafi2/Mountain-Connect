@@ -39,7 +39,34 @@ const nextConfig: NextConfig = {
               // is unchanged — a production build contains no eval.
               [
                 "script-src 'self' 'unsafe-inline'",
-                ...(process.env.NODE_ENV === "development" ? ["'unsafe-eval'"] : []),
+                // Both of these are development ONLY, and the production CSP
+                // is unchanged by either.
+                //
+                // 'unsafe-eval': the Next dev server compiles and evaluates
+                // modules at runtime, so without it the client bundle
+                // downloads but never executes: the page renders server-side
+                // and then sits there un-hydrated, with every onChange/onClick
+                // in the app silently dead. A production build contains no
+                // eval.
+                //
+                // va.vercel-scripts.com: BOTH Vercel Web Analytics and Speed
+                // Insights (<Analytics /> and <SpeedInsights /> in
+                // app/layout.tsx) serve their scripts from the site's OWN
+                // origin in production — /_vercel/insights/script.js and
+                // /_vercel/speed-insights/script.js, already covered by
+                // 'self' — but swap to third-party debug builds on this host
+                // under `next dev`. Without it the dev console throws a CSP
+                // violation and local analytics calls cannot be inspected,
+                // which is the only place they CAN be inspected before a
+                // deploy. Never add it to the production list: production must
+                // keep loading analytics first-party, which is what makes it
+                // survive ad blockers and need no CSP exception at all. The
+                // one thing that would change that is passing a `dsn` prop to
+                // <SpeedInsights />, which switches it to this host in
+                // production too — don't, without revisiting this line.
+                ...(process.env.NODE_ENV === "development"
+                  ? ["'unsafe-eval'", "https://va.vercel-scripts.com"]
+                  : []),
                 "https://www.googletagmanager.com https://maps.googleapis.com https://maps.gstatic.com",
                 // Meta Pixel (lib/analytics/meta-pixel.ts): fbevents.js and its
                 // per-pixel config script. Loads only after cookie consent.

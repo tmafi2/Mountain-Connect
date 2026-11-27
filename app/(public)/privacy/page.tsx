@@ -45,6 +45,7 @@ export default function PrivacyPolicyPage() {
             <li><strong>Usage data:</strong> Pages visited, features used, and interactions with the platform</li>
             <li><strong>Technical data:</strong> Your IP address and browser information. We record the IP address behind administrative actions in our audit log, we record your browser and operating system when you submit a support report, and we process IP addresses transiently for rate limiting and bot protection.</li>
             <li><strong>Analytics data:</strong> We use Google Analytics 4 to collect anonymised usage statistics including page views, session duration, and device information. This runs only if you accept analytics cookies.</li>
+            <li><strong>Page view counts:</strong> We use Vercel Web Analytics to count page views across the site. Unlike Google Analytics, this runs on every visit and is not covered by the cookie banner, because it sets no cookie and stores no identifier that can follow you. It records the page you opened, the site you arrived from, your approximate location (country, region, city), and your device, browser and operating system type. To tell one visit from another without identifying you, Vercel derives a hash from your request; that hash is reset every 24 hours, so it cannot link what you do today to what you did yesterday, or to your activity on any other website.</li>
             <li><strong>Advertising data:</strong> If you accept cookies, the Meta Pixel tells Meta which of our pages you view, each step you take through our Find My Season quiz, when you tap &ldquo;Create my free profile&rdquo; or &ldquo;Browse jobs&rdquo;, and when you create an account, along with your quiz answers (where you want to go, which season, and the kind of work). We use this to measure which of our Instagram and Facebook ads work, and we may show our ads to people who have visited our site. We do not send Meta your name, your email address, or anything you type into our forms. Meta receives these events with your IP address and browser details and may link them to a Facebook or Instagram account you hold, under Meta&apos;s own privacy policy.</li>
             <li><strong>Diagnostic data:</strong> When an error occurs, our error-monitoring provider may capture a recording of that session — the pages and elements involved in the fault — so we can reproduce it. Text content is masked by default, and sessions in which nothing goes wrong are not recorded.</li>
             <li><strong>Device and approximate location:</strong> If you tap or scan one of our physical contact cards, we record your device type, browser, and operating system, and the approximate location — country, region, city, timezone, and coordinates — that our hosting provider derives from your IP address. This is approximate and IP-based; it is not GPS, and we do not track your location as you move.</li>
@@ -89,7 +90,7 @@ export default function PrivacyPolicyPage() {
               <ul className="mt-1 list-disc space-y-1 pl-6">
                 <li>Supabase (database hosting and authentication)</li>
                 <li>Resend (transactional emails)</li>
-                <li>Vercel (website hosting)</li>
+                <li>Vercel (website hosting, and cookieless page view counts through Vercel Web Analytics)</li>
                 <li>Google Analytics (anonymised usage analytics)</li>
                 <li>Meta Platforms (measuring our Instagram and Facebook advertising through the Meta Pixel, only if you accept cookies)</li>
                 <li>Stripe (subscription payments and billing, for businesses on a paid plan)</li>
@@ -161,6 +162,7 @@ export default function PrivacyPolicyPage() {
             <li><strong>Analytics cookies:</strong> Used by Google Analytics to collect anonymised usage data. These do not load at all unless you accept them, and you can decline them on our cookie consent banner.</li>
             <li><strong>Advertising cookies:</strong> Set by the Meta Pixel to measure our Instagram and Facebook ads and to let us show ads to people who have visited our site. Like analytics cookies, these do not load at all unless you accept them, and declining on our cookie consent banner keeps them off.</li>
             <li><strong>Third-party embeds:</strong> Resort and town pages embed Google Maps, which loads from Google and may set its own cookies when you open one of those pages. It is not analytics and it is not covered by the banner. If you would rather it did not load, avoid those pages or block it in your browser.</li>
+            <li><strong>No cookie at all:</strong> Our page view counts, described in section 2, use no cookie and no stored identifier, so there is nothing for the banner to switch off and declining does not affect them. If you would rather not be counted, block the request in your browser or use its Do Not Track setting.</li>
           </ul>
         </section>
 

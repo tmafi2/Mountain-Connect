@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { defaultOgImage } from "@/lib/seo";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import CookieConsent from "@/components/ui/CookieConsent";
@@ -135,6 +137,58 @@ export default function RootLayout({
         {children}
         <CookieConsent />
         <ReferrerCapture />
+        {/* Vercel Web Analytics — page views, referrers and countries for the
+            WHOLE site, not just the campaign pages.
+
+            ⚠️ DELIBERATELY OUTSIDE THE COOKIE GATE, unlike Google Analytics
+            and the Meta Pixel. It sets no cookie and keeps no cross-day or
+            cross-site identifier: a visitor is a hash of the request that
+            Vercel resets every 24 hours. That is the whole reason it is here
+            — the consent-gated tools measure only the ~6% who answer the
+            banner, which is how GA4 reported 7 visitors on a day
+            `campaign_visits` counted 117 (see migration 00105/00106). Those
+            two tables stay: they are the honest denominator for
+            /go-for-a-season specifically, and they are ours rather than a
+            vendor's.
+
+            ⚠️ NO PRODUCTION-HOST GUARD HERE, and that is not an oversight.
+            `metaPixelAllowedOn` exists because a preview visit would count
+            as an ad result and corrupt Meta's optimisation. Nothing like that
+            applies here: the component no-ops on localhost (it logs to the
+            console instead of sending) and Vercel tags preview traffic as its
+            own environment in the dashboard, so it is filterable rather than
+            mixed in. It does spend the shared monthly event allowance.
+
+            ⚠️ TWO HALVES, AND THIS IS ONLY ONE. The script is served from
+            the site's own origin under a per-build random path, so it needs
+            no CSP change — but it 404s until Web Analytics is switched on at
+            Vercel → the project → Analytics → Enable. With the toggle off,
+            this component ships and silently collects nothing.
+
+            Privacy policy: section 4 lists Vercel as hosting only, and
+            sections 2 and 7 name Google Analytics and the Meta Pixel as the
+            analytics that exist. Both need a line about this one. */}
+        <Analytics />
+        {/* Vercel Speed Insights — real-user Core Web Vitals, not traffic.
+
+            ⚠️ THIS WAS SWITCHED ON AT VERCEL AND COLLECTING NOTHING. The
+            dashboard half had been enabled long enough that
+            /_vercel/speed-insights/script.js answered 200 in production,
+            while no package was installed and no component rendered — the
+            exact inverse of the Analytics problem, and invisible from either
+            side alone. Check BOTH halves before concluding a Vercel feature
+            works: a 200 on the script route proves only the toggle.
+
+            ⚠️ Its script URL has a third branch the Analytics one does not:
+            with a `dsn` prop it loads from va.vercel-scripts.com in
+            PRODUCTION, which the CSP would block. We pass no dsn, so
+            production stays on the first-party /_vercel path — but adding
+            one later is a CSP change, not just a prop.
+
+            Measures performance only. It records no page content and nothing
+            about who the visitor is, so there is nothing here for the privacy
+            policy that section 2 does not already cover. */}
+        <SpeedInsights />
       </body>
     </html>
   );
