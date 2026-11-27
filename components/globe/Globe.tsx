@@ -1012,7 +1012,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
    * rather than flickering between neighbours. A hidden label is not lost:
    * its dot stays, and hovering it still gives the tooltip.
    */
-  const refreshLabels = useCallback((pov?: { lat: number; lng: number }) => {
+  const refreshLabels = useCallback((pov?: { lat: number; lng: number }, force = false) => {
     if (!globeRef.current) return;
 
     const centre = pov ?? lastPovRef.current;
@@ -1022,7 +1022,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     // Throttle: onZoom fires every frame while the globe auto-rotates, and
     // this pass reads layout. Labels do not need 60 Hz to look settled.
     const now = performance.now();
-    if (now - lastLabelPassRef.current < 60) return;
+    if (!force && now - lastLabelPassRef.current < 60) return;
     lastLabelPassRef.current = now;
 
     const toRad = Math.PI / 180;
@@ -1146,8 +1146,38 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   // pill's real width and before layout they are all zero.
   useEffect(() => {
     if (!ready) return;
-    const id = requestAnimationFrame(() => refreshLabels());
-    return () => cancelAnimationFrame(id);
+    let frame = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+
+    /**
+     * ⚠️ ONE PASS IS NOT ENOUGH, and the reason only shows up zoomed in.
+     * three-globe builds its HTML elements on a debounce, so the first pass
+     * can run before any of them exist, measure nothing and position
+     * nothing. At world view that self-corrects within a frame because the
+     * globe is auto-rotating and every camera move re-runs the pass — but
+     * flying into a country STOPS the rotation, so there is no second
+     * trigger and the labels stay exactly as three-globe left them: all at
+     * full opacity, stacked on top of each other, which is the pile this
+     * pass exists to prevent. Retry until the elements are actually there.
+     */
+    const run = () => {
+      refreshLabels(undefined, true);
+      // ⚠️ KEEP GOING UNTIL THE CAMERA HAS LANDED, not just until the
+      // elements exist. Stopping as soon as they were built left the labels
+      // placed against positions from mid-flight: the camera was still
+      // moving, three-globe kept repositioning them, and with the rotation
+      // stopped there was no later trigger to correct it — so a tidy layout
+      // drifted back into a pile. The flight is 800ms; this covers it with
+      // room, and then stops rather than running forever.
+      if (attempts++ < 20) timer = setTimeout(run, 150);
+    };
+    frame = requestAnimationFrame(run);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      if (timer) clearTimeout(timer);
+    };
   }, [clusterKey, ready, refreshLabels]);
 
   /**
