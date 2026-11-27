@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { defaultOgImage } from "@/lib/seo";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import CookieConsent from "@/components/ui/CookieConsent";
 import ReferrerCapture from "@/components/ui/ReferrerCapture";
 import "./globals.css";
@@ -135,6 +136,7 @@ export default function RootLayout({
         {children}
         <CookieConsent />
         <ReferrerCapture />
+        <Analytics />
       </body>
     </html>
   );
