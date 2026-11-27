@@ -24,6 +24,7 @@ import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
 import { countryViews, viewForOutline, neighbourFeatures } from "@/lib/globe/framing";
 import { COUNTRIES } from "@/lib/data/countries";
+import CountryMap from "./CountryMap";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -412,6 +413,16 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const shouldAutoRotateRef = useRef(true);
   /** Country label elements by cluster id, for the visibility pass. */
   const labelElsRef = useRef<Map<string, HTMLElement>>(new Map());
+  /**
+   * Whether the flat country view has taken over from the globe.
+   *
+   * ⚠️ IT WAITS FOR THE SPIN. The globe turning the country to face you is
+   * the thing that explains where you have arrived; cutting to a flat map
+   * immediately would throw that away and feel like a page change rather
+   * than a move. So the camera flies first and the country takes the frame
+   * once it lands.
+   */
+  const [countryMapIn, setCountryMapIn] = useState(false);
   /** Mirrors activeRegion for callbacks that must keep a stable identity. */
   const activeRegionRef = useRef<string | null>(null);
   /** Latest camera sub-point, so a re-render can re-run the pass without one. */
@@ -931,6 +942,16 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   } | null>(null);
 
   useEffect(() => {
+    if (!selectedCountryName) {
+      setCountryMapIn(false);
+      return;
+    }
+    // The flight is 800ms; hand over just after it settles.
+    const t = setTimeout(() => setCountryMapIn(true), 880);
+    return () => clearTimeout(t);
+  }, [selectedCountryName]);
+
+  useEffect(() => {
     if (!selectedCountryName) return;
     setPanelCountry({
       name: selectedCountryName,
@@ -1304,6 +1325,36 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       onMouseMove={handleMouseMove}
     >
       {/*
+        The country itself, once the globe has spun it into view. It covers
+        the globe rather than replacing it, so going back is a fade rather
+        than a remount and the globe is still behind, already in position.
+      */}
+      {panelCountry && dimensions.width > 0 && dimensions.height > 0 && (
+        <div
+          aria-hidden={!countryMapIn}
+          /* z-[5] puts it over the canvas and under the panel (z-10). Without
+             it this sits earlier in the DOM than <GlobeGL> and the canvas
+             simply paints on top — the map was rendering correctly and
+             invisibly. */
+          className={`absolute inset-0 z-[5] transition-opacity duration-500 ease-out ${
+            countryMapIn ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+          style={{ background: countryMapIn ? "#0a1e33" : "transparent" }}
+        >
+          <CountryMap
+            country={panelCountry.name}
+            features={landFeatures}
+            nameOf={countryOf}
+            resorts={resorts.filter((r) => r.country === panelCountry.name)}
+            width={dimensions.width}
+            height={dimensions.height}
+            /* The panel is max-w-[21rem] in a p-4 wrapper. */
+            insetLeft={dimensions.width > 760 ? 352 : 0}
+          />
+        </div>
+      )}
+
+      {/*
         The country panel, which doubles as the way back out.
         ⚠️ IT STAYS MOUNTED. Rendering it only while a country is selected
         would make it pop in and jump out with no transition, and the whole
@@ -1468,7 +1519,9 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         onObjectClick={handleClusterClick}
         onObjectHover={handleClusterHover}
         // Cluster HTML labels (zoomed out only)
-        htmlElementsData={ready ? (activeRegion ? visibleMarkers : visibleClusters) : []}
+        htmlElementsData={
+          ready ? (activeRegion ? (countryMapIn ? [] : visibleMarkers) : visibleClusters) : []
+        }
         htmlLat="lat"
         htmlLng="lng"
         htmlAltitude={clusterHtmlAltitude}
