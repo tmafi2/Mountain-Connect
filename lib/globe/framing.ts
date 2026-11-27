@@ -29,22 +29,26 @@ export interface FramingPoint {
 }
 
 /**
- * Altitude floor, calibrated by looking rather than by arithmetic: 0.6 fills
- * the frame with one country and no context, and 0.85-0.95 shows a country
- * with its neighbours around it, which is what makes the outline read. An
- * earlier version of this file used 0.38 and flew the camera so close that
- * Italy arrived as an unrecognisable diagonal of hexagons.
+ * Altitude floor, calibrated by looking rather than by arithmetic.
+ *
+ * ⚠️ IT WAS 0.85 AND THAT WAS A WORKAROUND, NOT A JUDGEMENT. At the time the
+ * only thing drawing the selected country was the hex grid, and flying closer
+ * than that turned Italy into an unrecognisable diagonal of hexagons — so the
+ * camera was held back to hide a resolution problem. The country is drawn as
+ * a real polygon now, which stays crisp at any distance, so the floor can be
+ * what actually frames a country well rather than what the hexes could
+ * survive.
  *
  * It is also the contract with `controls.minDistance`, which rejects
  * anything closer and would leave the flight stopping short of where this
  * said to go.
  */
-export const MIN_ALTITUDE = 0.85;
+export const MIN_ALTITUDE = 0.33;
 /** Ceiling: past this you are looking at the whole globe, which is the view
  *  the visitor just chose to leave. */
-export const MAX_ALTITUDE = 1.9;
+export const MAX_ALTITUDE = 1.7;
 /** Degrees of arc per unit of altitude — tuned against Canada and Italy. */
-const DEGREES_PER_ALTITUDE = 41;
+const DEGREES_PER_ALTITUDE = 34;
 
 /**
  * Longitude degrees are narrower than latitude degrees everywhere but the

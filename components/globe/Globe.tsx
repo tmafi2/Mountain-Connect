@@ -412,6 +412,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const shouldAutoRotateRef = useRef(true);
   /** Country label elements by cluster id, for the visibility pass. */
   const labelElsRef = useRef<Map<string, HTMLElement>>(new Map());
+  /** Mirrors activeRegion for callbacks that must keep a stable identity. */
+  const activeRegionRef = useRef<string | null>(null);
   /** Latest camera sub-point, so a re-render can re-run the pass without one. */
   const lastPovRef = useRef<{ lat: number; lng: number } | null>(null);
   /**
@@ -427,8 +429,12 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   /** Vertical nudge currently applied to each label, so writes stay idempotent. */
   const labelDyRef = useRef<Map<string, number>>(new Map());
   const lastLabelPassRef = useRef(0);
-  /** Read by refreshLabels, which must not be re-created on every render. */
-  const visibleClustersRef = useRef<CountryCluster[]>([]);
+  /**
+   * Whatever the HTML layer is currently showing — country pills at world
+   * view, resort pills once a country is selected. Read by refreshLabels,
+   * which must not be re-created on every render.
+   */
+  const labelDataRef = useRef<{ id: string; lat: number; lng: number; weight: number }[]>([]);
 
   // View mode: "clusters" or a country slug for zoomed-in
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
@@ -456,9 +462,20 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     if (continentFilter !== "All" && c.continent !== continentFilter) return false;
     return c.count > 0;
   });
-  visibleClustersRef.current = visibleClusters;
+  /**
+   * ⚠️ ONE HTML LAYER, TWO JOBS. Zoomed out it labels countries; zoomed into
+   * a country it labels that country's resorts. They share the layer because
+   * they are never on screen together, and sharing it means the de-collision
+   * pass written for country pills works unchanged on resort pills — which is
+   * the whole reason individual resorts are now clickable at all.
+   */
+  const labelData = activeRegion
+    ? visibleMarkers.map((m) => ({ id: m.id, lat: m.lat, lng: m.lng, weight: m.height }))
+    : visibleClusters.map((c) => ({ id: c.id, lat: c.lat, lng: c.lng, weight: c.count }));
+  labelDataRef.current = labelData;
+  activeRegionRef.current = activeRegion;
   /** Identity of the current label set — the visibility pass re-runs when it changes. */
-  const clusterKey = visibleClusters.map((c) => c.id).join(",");
+  const clusterKey = labelData.map((d) => d.id).join(",");
 
   // Land outlines. Failure is silent and leaves an empty sea rather than
   // breaking the page: the markers, labels and clicking all work without it.
@@ -669,10 +686,10 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     // chunky blocks close up — so the camera is stopped before the viewer
     // can get close enough to see the seams. If the resolution ever goes up,
     // this can come back down.
-    // ⚠️ Must stay at or below 100 * (1 + MIN_ALTITUDE) = 185, or the flight
+    // ⚠️ Must stay at or below 100 * (1 + MIN_ALTITUDE) = 133, or the flight
     // to a small country stops short of where framing.ts aimed it and every
     // one-resort country arrives at the wrong distance.
-    controls.minDistance = 180;
+    controls.minDistance = 128;
     controls.maxDistance = 600;
   }, []);
 
@@ -798,6 +815,54 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
 
   // Cluster HTML labels
   /**
+   * A resort's own label, and the fix for not being able to pick one out.
+   *
+   * ⚠️ THE 3D PINS WERE NEVER REALLY SELECTABLE. Seventeen Italian resorts
+   * sit inside a couple of degrees of the Alps, so their cones overlapped
+   * into a single amber mass and whichever one the raycaster happened to hit
+   * first won. A DOM pill is a real click target with a real name on it, and
+   * it goes through the same de-collision pass as the country labels — so
+   * they stack instead of piling up, and you can see what you are choosing
+   * before you choose it. The cones stay as the marker of the actual spot.
+   */
+  const resortHtmlElement = useCallback(
+    (d: object) => {
+      const marker = d as MountainMarker;
+      const outer = document.createElement("div");
+      outer.style.cssText = "pointer-events:none;";
+
+      const pill = document.createElement("button");
+      pill.type = "button";
+      pill.textContent = marker.name;
+      pill.style.cssText = `
+        color: #0d1f33;
+        font-size: 10.5px;
+        font-weight: 600;
+        font-family: var(--font-jakarta), Inter, system-ui, sans-serif;
+        background: rgba(245, 158, 11, 0.95);
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.35);
+        cursor: pointer;
+        pointer-events: auto;
+        white-space: nowrap;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.5);
+        transition: opacity 180ms ease-out, transform 180ms ease-out;
+        will-change: opacity, transform;
+      `;
+      pill.addEventListener("click", (e) => {
+        e.stopPropagation();
+        router.push(`/resorts/${marker.id}`);
+      });
+      outer.appendChild(pill);
+      labelElsRef.current.set(marker.id, pill);
+      labelOuterRef.current.set(marker.id, outer);
+      return outer;
+    },
+    [router],
+  );
+
+  /**
    * ⚠️ TWO ELEMENTS, AND IT HAS TO BE TWO. three-globe positions each label by
    * writing `transform: translate(-50%,-50%) translate(Xpx, Ypx)` onto the
    * element it was handed, every single frame. Anything this component sets on
@@ -847,7 +912,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     return outer;
   }, []);
 
-  const clusterHtmlAltitude = useCallback(() => 0.04, []);
+  const clusterHtmlAltitude = useCallback(() => (activeRegionRef.current ? 0.055 : 0.04), []);
 
   /** Land colour, rebound whenever the selected country changes. */
   const selectedCountryName = activeRegion ? SLUG_TO_COUNTRY.get(activeRegion) ?? null : null;
@@ -862,6 +927,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     name: string;
     resortCount: number;
     copy: (typeof COUNTRIES)[number] | null;
+    resorts: { id: string; name: string }[];
   } | null>(null);
 
   useEffect(() => {
@@ -870,6 +936,10 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       name: selectedCountryName,
       resortCount: RESORT_COUNT[selectedCountryName] ?? 0,
       copy: COUNTRY_COPY.get(selectedCountryName) ?? null,
+      resorts: resorts
+        .filter((r) => r.country === selectedCountryName)
+        .map((r) => ({ id: r.id, name: r.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     });
   }, [selectedCountryName]);
   const hexColor = useCallback(
@@ -957,7 +1027,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
 
     const toRad = Math.PI / 180;
     // Most resorts first — that is the label worth keeping in a collision.
-    const clusters = [...visibleClustersRef.current].sort((a, b) => b.count - a.count);
+    const clusters = [...labelDataRef.current].sort((a, b) => b.weight - a.weight);
 
     // ⚠️ MEASURE EVERYTHING BEFORE MOVING ANYTHING. Writing a transform
     // invalidates layout, so interleaving reads and writes would both thrash
@@ -966,7 +1036,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     // agree with where three-globe actually places the elements, so the
     // collision test silently never fired and labels kept overlapping. The
     // rect is the position the visitor sees, and cannot disagree with itself.
-    type Measured = { c: CountryCluster; el: HTMLElement; x: number; y: number; w: number; h: number };
+    type LabelDatum = { id: string; lat: number; lng: number; weight: number };
+    type Measured = { c: LabelDatum; el: HTMLElement; x: number; y: number; w: number; h: number };
     const measured: Measured[] = [];
     const offscreen: HTMLElement[] = [];
 
@@ -1017,9 +1088,25 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       };
 
       const step = m.h + 3;
+      // ⚠️ Enough slots to seat a whole country's resorts. Three steps either
+      // way was fine for fourteen country pills spread over a planet; Italy
+      // packs seventeen resorts into a couple of degrees of Alps, and a
+      // label that finds no slot is HIDDEN — which, now that the label is the
+      // click target, means that resort cannot be reached at all. Hiding is
+      // acceptable for a duplicate-looking country name and not for a resort
+      // somebody is trying to pick.
+      // ⚠️ Bounded on purpose. Enough slots to seat most of a country's
+      // resorts, but not so many that a label ends up nowhere near its
+      // mountain — stacked nine deep, Madonna di Campiglio floated down to
+      // central Italy and read as a location rather than a queue position.
+      // Whatever still does not fit is reachable from the list in the panel,
+      // which is always complete, so no resort depends on winning a slot.
+      const slots: number[] = [0];
+      for (let k = 1; k <= 4; k++) slots.push(-step * k, step * k);
+
       let chosen: { left: number; right: number; top: number; bottom: number } | null = null;
       let chosenDy = 0;
-      for (const dy of [0, -step, step, -step * 2, step * 2, -step * 3, step * 3]) {
+      for (const dy of slots) {
         const box = fits(dy);
         if (box) {
           chosen = box;
@@ -1252,8 +1339,38 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
                   </a>
                 </>
               )}
+              {/*
+                ⚠️ THE COMPLETE LIST, and it is not decoration. The labels on
+                the globe are de-collided, so in a tight range a few lose
+                their slot and are hidden — fine for a map, not fine when the
+                label is the only way to open a resort. This list always has
+                every one of them.
+              */}
+              {/* `?? []` is not defensive theatre: panelCountry is held across
+                  the close animation, so a shape change can meet an object
+                  set by the previous one — which threw here during a Fast
+                  Refresh and took the whole globe down with it. */}
+              {(panelCountry.resorts ?? []).length > 0 && (
+                <div className="mt-4 border-t border-white/10 pt-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    All {(panelCountry.resorts ?? []).length} resorts
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(panelCountry.resorts ?? []).map((r) => (
+                      <a
+                        key={r.id}
+                        href={`/resorts/${r.id}`}
+                        tabIndex={activeRegion ? 0 : -1}
+                        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/75 transition-colors hover:border-warm/50 hover:bg-warm/15 hover:text-white"
+                      >
+                        {r.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
               <p className="mt-3 text-[11px] text-white/40">
-                Tap a mountain to open that resort.
+                Tap a resort name, on the globe or in the list.
               </p>
             </>
           )}
@@ -1321,11 +1438,11 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         onObjectClick={handleClusterClick}
         onObjectHover={handleClusterHover}
         // Cluster HTML labels (zoomed out only)
-        htmlElementsData={ready ? visibleClusters : []}
+        htmlElementsData={ready ? (activeRegion ? visibleMarkers : visibleClusters) : []}
         htmlLat="lat"
         htmlLng="lng"
         htmlAltitude={clusterHtmlAltitude}
-        htmlElement={clusterHtmlElement}
+        htmlElement={activeRegion ? resortHtmlElement : clusterHtmlElement}
         htmlTransitionDuration={0}
       />
 
