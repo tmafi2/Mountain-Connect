@@ -56,6 +56,9 @@ interface GlobeMethods {
     maxDistance: number;
   };
   getGlobeRadius: () => number;
+  /** Stop/start the render loop, so an off-screen globe costs nothing. */
+  pauseAnimation: () => void;
+  resumeAnimation: () => void;
   getCoords: (
     lat: number,
     lng: number,
@@ -267,6 +270,17 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const isMouseOverRef = useRef(false);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const shouldAutoRotateRef = useRef(true);
+  /** Country label elements by cluster id, for the visibility pass. */
+  const labelElsRef = useRef<Map<string, HTMLElement>>(new Map());
+  /** Latest camera sub-point, so a re-render can re-run the pass without one. */
+  const lastPovRef = useRef<{ lat: number; lng: number } | null>(null);
+  /** The library-positioned wrapper of each label, measured but never written. */
+  const labelOuterRef = useRef<Map<string, HTMLElement>>(new Map());
+  /** Vertical nudge currently applied to each label, so writes stay idempotent. */
+  const labelDyRef = useRef<Map<string, number>>(new Map());
+  const lastLabelPassRef = useRef(0);
+  /** Read by refreshLabels, which must not be re-created on every render. */
+  const visibleClustersRef = useRef<CountryCluster[]>([]);
 
   // View mode: "clusters" or a country slug for zoomed-in
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
@@ -294,6 +308,9 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     if (continentFilter !== "All" && c.continent !== continentFilter) return false;
     return c.count > 0;
   });
+  visibleClustersRef.current = visibleClusters;
+  /** Identity of the current label set — the visibility pass re-runs when it changes. */
+  const clusterKey = visibleClusters.map((c) => c.id).join(",");
 
   // Dynamic import, but only where a globe can actually be drawn.
   //
@@ -471,6 +488,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     setReady(true);
 
     globeRef.current.pointOfView({ lat: 40, lng: 10, altitude: 2.0 }, 1000);
+    lastPovRef.current = { lat: 40, lng: 10 };
 
     const controls = globeRef.current.controls();
     controls.autoRotate = true;
@@ -601,11 +619,24 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   );
 
   // Cluster HTML labels
+  /**
+   * ⚠️ TWO ELEMENTS, AND IT HAS TO BE TWO. three-globe positions each label by
+   * writing `transform: translate(-50%,-50%) translate(Xpx, Ypx)` onto the
+   * element it was handed, every single frame. Anything this component sets on
+   * that element's `transform` is gone by the next tick — which is exactly how
+   * the first attempt at de-colliding these labels failed silently: the nudge
+   * was computed correctly and then overwritten before it could ever paint.
+   * So the outer div belongs to the library, and the inner one — the pill the
+   * visitor actually sees — is ours to move and fade.
+   */
   const clusterHtmlElement = useCallback((d: object) => {
     const c = d as CountryCluster;
-    const el = document.createElement("div");
-    el.innerHTML = `<span style="font-weight:700">${c.name}</span> <span style="opacity:0.7">· ${c.count}</span>`;
-    el.style.cssText = `
+    const outer = document.createElement("div");
+    outer.style.cssText = "pointer-events:none;";
+
+    const pill = document.createElement("div");
+    pill.innerHTML = `<span style="font-weight:700">${c.name}</span> <span style="opacity:0.7">· ${c.count}</span>`;
+    pill.style.cssText = `
       color: #0e2439;
       font-size: 11px;
       font-family: Inter, system-ui, sans-serif;
@@ -614,14 +645,189 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       border-radius: 8px;
       pointer-events: none;
       white-space: nowrap;
-      transform: translateX(-50%);
       box-shadow: 0 2px 8px rgba(0,0,0,0.12);
       border: 1px solid rgba(169,203,227,0.5);
+      transition: opacity 180ms ease-out, transform 180ms ease-out;
+      will-change: opacity, transform;
     `;
-    return el;
+    outer.appendChild(pill);
+    labelElsRef.current.set(c.id, pill);
+    // Measured, never written to. A transform on the pill does not move its
+    // parent's layout box, so the outer rect is the label's resting position
+    // whatever nudge is currently applied — and, crucially, whatever stage a
+    // transition is midway through.
+    labelOuterRef.current.set(c.id, outer);
+    return outer;
   }, []);
 
   const clusterHtmlAltitude = useCallback(() => 0.04, []);
+
+  /**
+   * Decide which country labels are readable, and hide the rest.
+   *
+   * ⚠️ WHY THIS EXISTS. The labels were plain HTML with no visibility logic
+   * at all, so every country drew its pill at full strength wherever it
+   * landed. Two things went wrong with that. Countries on the FAR SIDE of the
+   * globe were as bright as the ones facing you, so you read names off a
+   * hemisphere you cannot see. And in Europe seven countries sit within a few
+   * degrees, so France, Andorra, Switzerland and Italy drew on top of one
+   * another and at least one was completely hidden behind another — on the
+   * continent that holds the most resorts.
+   *
+   * ⚠️ TIES BREAK BY RESORT COUNT, NOT BY DRAW ORDER. When two labels collide
+   * the bigger country survives, so the survivor is stable as the globe turns
+   * rather than flickering between neighbours. A hidden label is not lost:
+   * its dot stays, and hovering it still gives the tooltip.
+   */
+  const refreshLabels = useCallback((pov?: { lat: number; lng: number }) => {
+    if (!globeRef.current) return;
+
+    const centre = pov ?? lastPovRef.current;
+    if (!centre) return;
+    lastPovRef.current = centre;
+
+    // Throttle: onZoom fires every frame while the globe auto-rotates, and
+    // this pass reads layout. Labels do not need 60 Hz to look settled.
+    const now = performance.now();
+    if (now - lastLabelPassRef.current < 60) return;
+    lastLabelPassRef.current = now;
+
+    const toRad = Math.PI / 180;
+    // Most resorts first — that is the label worth keeping in a collision.
+    const clusters = [...visibleClustersRef.current].sort((a, b) => b.count - a.count);
+
+    // ⚠️ MEASURE EVERYTHING BEFORE MOVING ANYTHING. Writing a transform
+    // invalidates layout, so interleaving reads and writes would both thrash
+    // and feed later measurements the earlier decisions. Geometry comes from
+    // the DOM rather than globe.getScreenCoords(): that projection did not
+    // agree with where three-globe actually places the elements, so the
+    // collision test silently never fired and labels kept overlapping. The
+    // rect is the position the visitor sees, and cannot disagree with itself.
+    type Measured = { c: CountryCluster; el: HTMLElement; x: number; y: number; w: number; h: number };
+    const measured: Measured[] = [];
+    const offscreen: HTMLElement[] = [];
+
+    for (const c of clusters) {
+      const el = labelElsRef.current.get(c.id);
+      if (!el) continue;
+
+      // Great-circle angle between the camera's sub-point and this country.
+      // Past ~74° the label is on the limb or behind the globe.
+      const cosAngle =
+        Math.sin(centre.lat * toRad) * Math.sin(c.lat * toRad) +
+        Math.cos(centre.lat * toRad) *
+          Math.cos(c.lat * toRad) *
+          Math.cos((c.lng - centre.lng) * toRad);
+      if (Math.acos(Math.min(1, Math.max(-1, cosAngle))) > 74 * toRad) {
+        offscreen.push(el);
+        continue;
+      }
+
+      const outer = labelOuterRef.current.get(c.id);
+      if (!outer) continue;
+      const r = outer.getBoundingClientRect();
+      if (r.width === 0) continue; // not laid out yet; the next pass gets it
+      measured.push({ c, el, x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height });
+    }
+
+    const placed: { left: number; right: number; top: number; bottom: number }[] = [];
+    const writes: { el: HTMLElement; id: string; opacity: string; dy: number }[] = [];
+
+    for (const m of measured) {
+      // Try the natural spot, then nudge up/down before giving up. Hiding a
+      // label outright is the last resort: in the Alps, Italy, France,
+      // Switzerland and Austria sit within a few degrees, and "biggest wins"
+      // alone would leave the other three invisible at the default zoom —
+      // a reader would fairly conclude we have no French resorts. Offsetting
+      // keeps all four readable and merely stacks them.
+      const fits = (dy: number) => {
+        const box = {
+          left: m.x - m.w / 2 - 2,
+          right: m.x + m.w / 2 + 2,
+          top: m.y + dy - m.h / 2 - 2,
+          bottom: m.y + dy + m.h / 2 + 2,
+        };
+        const clash = placed.some(
+          (p) => box.left < p.right && box.right > p.left && box.top < p.bottom && box.bottom > p.top,
+        );
+        return clash ? null : box;
+      };
+
+      const step = m.h + 3;
+      let chosen: { left: number; right: number; top: number; bottom: number } | null = null;
+      let chosenDy = 0;
+      for (const dy of [0, -step, step, -step * 2, step * 2, -step * 3, step * 3]) {
+        const box = fits(dy);
+        if (box) {
+          chosen = box;
+          chosenDy = dy;
+          break;
+        }
+      }
+
+      if (!chosen) {
+        writes.push({ el: m.el, id: m.c.id, opacity: "0", dy: labelDyRef.current.get(m.c.id) ?? 0 });
+        continue;
+      }
+      placed.push(chosen);
+      writes.push({ el: m.el, id: m.c.id, opacity: "1", dy: chosenDy });
+    }
+
+    for (const el of offscreen) el.style.opacity = "0";
+    for (const w of writes) {
+      // Safe to own this transform outright: w.el is the inner pill, and the
+      // library only ever writes to its parent.
+      if ((labelDyRef.current.get(w.id) ?? 0) !== w.dy) {
+        w.el.style.transform = w.dy === 0 ? "" : `translateY(${w.dy}px)`;
+        labelDyRef.current.set(w.id, w.dy);
+      }
+      if (w.el.style.opacity !== w.opacity) w.el.style.opacity = w.opacity;
+    }
+  }, []);
+
+  const handleZoom = useCallback(
+    (pov: { lat: number; lng: number; altitude: number }) => refreshLabels(pov),
+    [refreshLabels],
+  );
+
+  // The set of labels changed (filter, or zooming in or out), so three-globe
+  // has built new elements. Re-run the visibility pass against the camera we
+  // last saw, after the browser has laid them out — the pass measures each
+  // pill's real width and before layout they are all zero.
+  useEffect(() => {
+    if (!ready) return;
+    const id = requestAnimationFrame(() => refreshLabels());
+    return () => cancelAnimationFrame(id);
+  }, [clusterKey, ready, refreshLabels]);
+
+  /**
+   * Stop rendering while the globe is scrolled out of view.
+   *
+   * ⚠️ IT SITS WELL BELOW THE FOLD on /explore — past the hero, the continent
+   * chips, a button and a search box — and it auto-rotates, so it was running
+   * a WebGL render loop the whole time a visitor read the resort grid under
+   * it. On a laptop that is a warm fan; on a phone it is battery, on the page
+   * paid traffic lands on.
+   *
+   * It also means the globe is where you left it when you scroll back,
+   * instead of having quietly turned to face the Pacific.
+   */
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!ready || !node || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const globe = globeRef.current;
+        if (!globe) return;
+        if (entry.isIntersecting) globe.resumeAnimation();
+        else globe.pauseAnimation();
+      },
+      { rootMargin: "100px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ready]);
 
   // When continent filter changes, zoom to that region
   useEffect(() => {
@@ -734,13 +940,25 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ref={globeRef}
         width={dimensions.width}
         height={dimensions.height}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        /* ⚠️ SELF-HOSTED ON PURPOSE. These were loaded from
+           //unpkg.com/three-globe/example/img/ — the EXAMPLE assets of a
+           library, on a CDN with no SLA, 1.8 MB of them, for the single most
+           visible thing on the page. If unpkg was slow the globe was a black
+           sphere. Served from our own origin they ride Vercel's CDN with
+           immutable caching, and dropping them let unpkg.com out of the CSP
+           img-src entirely — nothing else used it.
+           Resampled to 2048x1024 and 1024x512 (624 KB the pair, down from
+           1.8 MB): the sphere is ~360 CSS px at rest and the zoom stops at
+           minDistance 150, so the originals' 4096 was detail no viewer could
+           resolve. Re-check if that zoom limit is ever loosened. */
+        globeImageUrl="/globe/earth-blue-marble.jpg"
+        bumpImageUrl="/globe/earth-topology.png"
         backgroundColor="rgba(0,0,0,0)"
         atmosphereColor="#a9cbe3"
         atmosphereAltitude={0.25}
         animateIn={true}
         onGlobeReady={onGlobeReady}
+        onZoom={handleZoom}
         // Individual mountains (zoomed in)
         customLayerData={ready ? visibleMarkers : []}
         customThreeObject={createMountain}

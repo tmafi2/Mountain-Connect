@@ -74,7 +74,12 @@ const nextConfig: NextConfig = {
               ].join(" "),
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com https://streetviewpixels-pa.googleapis.com https://www.facebook.com",
+              // unpkg.com was here for exactly one thing: the globe's Earth
+              // textures, loaded from three-globe's example/img folder. They
+              // are served from /public/globe now, so the allowance went with
+              // them — an origin in a CSP that nothing requests is just a
+              // standing permission nobody is using.
+              "img-src 'self' data: blob: https://images.unsplash.com https://kafekhemktqoczxclthy.supabase.co https://flagcdn.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleusercontent.com https://streetviewpixels-pa.googleapis.com https://www.facebook.com",
               "media-src 'self' https://cdn.coverr.co",
               // www.facebook.com (here and in img-src) is where the Meta Pixel
               // sends its events — as a beacon/fetch or as an image request.
