@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Group,
@@ -22,6 +22,8 @@ import {
 } from "three";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
+import { countryViews, viewForOutline } from "@/lib/globe/framing";
+import { COUNTRIES } from "@/lib/data/countries";
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -115,6 +117,49 @@ regionHierarchy.forEach((continent) => {
   });
 });
 
+/**
+ * Where the camera goes for each country. Derived, because the countries
+ * differ by an order of magnitude in how much sky they need — see
+ * lib/globe/framing.ts.
+ */
+const COUNTRY_VIEWS = countryViews(
+  resorts.map((r) => ({ country: r.country, latitude: r.latitude, longitude: r.longitude })),
+);
+
+/** Country copy for the detail panel, by the country name the resorts use. */
+const COUNTRY_COPY = new Map(COUNTRIES.map((c) => [c.country, c]));
+
+/** activeRegion is a slug; the hex layer needs the country name. */
+const SLUG_TO_COUNTRY = new Map(COUNTRY_CLUSTERS.map((c) => [c.id, c.name]));
+
+/** How many resorts we list in each country — the panel's one live figure. */
+const RESORT_COUNT = resorts.reduce<Record<string, number>>((acc, r) => {
+  acc[r.country] = (acc[r.country] ?? 0) + 1;
+  return acc;
+}, {});
+
+/**
+ * Framings computed from the country outlines, filled in once the land data
+ * arrives. Module-level because the globe is a singleton and both the click
+ * handler and the selectedCountry effect need it without threading a ref
+ * through either.
+ */
+const OUTLINE_VIEWS: Record<string, { lat: number; lng: number; altitude: number }> = {};
+
+/**
+ * Where the camera goes for a country, best source first:
+ *   1. its outline, which is what the visitor asked to see;
+ *   2. its resorts, for a country with no geometry in the 110m dataset
+ *      (Andorra) or before the land has loaded;
+ *   3. the cluster's own point, so the camera always goes somewhere.
+ */
+function viewFor(cluster: CountryCluster): { lat: number; lng: number; altitude: number } {
+  return (
+    OUTLINE_VIEWS[cluster.name] ??
+    COUNTRY_VIEWS[cluster.name] ?? { lat: cluster.lat, lng: cluster.lng, altitude: 1.0 }
+  );
+}
+
 /* ─── Marker data ─────────────────────────────────────────── */
 
 const drops = resorts.map((r) => r.vertical_drop_m ?? 500);
@@ -192,6 +237,10 @@ const LAND_IDLE = "#294a6d"; // navy, clearly above the sea but recessive
  * contrast grounds — nothing here is read.
  */
 const LAND_ACTIVE = "#3b9ede";
+/** The country the visitor has selected — the brightest land on the globe. */
+const LAND_SELECTED = "#7fd4f5";
+/** Everywhere else, once something is selected. */
+const LAND_RECEDED = "#22405f";
 const GLOW = "#22d3ee"; // --color-highlight, markers and atmosphere
 const GLOW_WARM = "#f59e0b"; // --color-warm, the individual resort pins
 
@@ -212,9 +261,25 @@ const GEO_NAME_ALIASES: Record<string, string> = {
 
 const COUNTRIES_WITH_RESORTS = new Set(resorts.map((r) => r.country));
 
-function hexColorFor(feature: object): string {
+/** Our country name for a Natural Earth feature. */
+function countryOf(feature: object): string {
   const name = (feature as { properties?: { name?: string } }).properties?.name ?? "";
-  const ours = GEO_NAME_ALIASES[name] ?? name;
+  return GEO_NAME_ALIASES[name] ?? name;
+}
+
+/**
+ * Land colour, which depends on what the visitor is looking at.
+ *
+ * At world view it answers "where do you have resorts?". Once a country is
+ * selected it answers "which one am I in?" instead: the chosen country holds
+ * the bright blue and everything else drops back, so the shape the camera
+ * just flew to is unmistakable even before the pins load. Recessive land is
+ * dimmed rather than hidden — a country floating alone in a black sea reads
+ * as a rendering failure, not as focus.
+ */
+function hexColorFor(feature: object, selected: string | null): string {
+  const ours = countryOf(feature);
+  if (selected) return ours === selected ? LAND_SELECTED : LAND_RECEDED;
   return COUNTRIES_WITH_RESORTS.has(ours) ? LAND_ACTIVE : LAND_IDLE;
 }
 
@@ -238,6 +303,11 @@ const PIN_DARK = new Color(0xb45309);
 function createMountain(d: object): Object3D {
   const marker = d as MountainMarker;
   const group = new Group();
+  /* ⚠️ Scaled down for the country view. These were sized when the only way
+     to see them was flying in close enough that one country filled the
+     frame; framed on the whole country instead, 17 full-size pins merged
+     into a single amber blob over the Alps and hid the shape underneath. */
+  group.scale.setScalar(0.62);
 
   const pinMat = new MeshLambertMaterial({
     color: PIN_COLOR,
@@ -398,7 +468,13 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         const features = (data as { features?: object[] } | null)?.features;
-        if (!cancelled && Array.isArray(features)) setLandFeatures(features);
+        if (cancelled || !Array.isArray(features)) return;
+        // Frame every country from its outline now the geometry is here.
+        for (const name of COUNTRIES_WITH_RESORTS) {
+          const view = viewForOutline(features, name, countryOf);
+          if (view) OUTLINE_VIEWS[name] = view;
+        }
+        setLandFeatures(features);
       })
       .catch(() => {});
     return () => {
@@ -593,7 +669,10 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     // chunky blocks close up — so the camera is stopped before the viewer
     // can get close enough to see the seams. If the resolution ever goes up,
     // this can come back down.
-    controls.minDistance = 185;
+    // ⚠️ Must stay at or below 100 * (1 + MIN_ALTITUDE) = 185, or the flight
+    // to a small country stops short of where framing.ts aimed it and every
+    // one-resort country arrives at the wrong distance.
+    controls.minDistance = 180;
     controls.maxDistance = 600;
   }, []);
 
@@ -619,7 +698,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
 
       setActiveRegion(cluster.id);
       globeRef.current.pointOfView(
-        { lat: cluster.lat, lng: cluster.lng, altitude: 1.05 },
+        viewFor(cluster),
         800
       );
     },
@@ -769,6 +848,57 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   }, []);
 
   const clusterHtmlAltitude = useCallback(() => 0.04, []);
+
+  /** Land colour, rebound whenever the selected country changes. */
+  const selectedCountryName = activeRegion ? SLUG_TO_COUNTRY.get(activeRegion) ?? null : null;
+
+  /**
+   * What the panel shows. Deliberately NOT derived straight from
+   * activeRegion: on the way out that goes null first, and a panel that
+   * empties itself before it has finished sliding away is the opposite of
+   * seamless. Holding the last country means the exit animates intact.
+   */
+  const [panelCountry, setPanelCountry] = useState<{
+    name: string;
+    resortCount: number;
+    copy: (typeof COUNTRIES)[number] | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectedCountryName) return;
+    setPanelCountry({
+      name: selectedCountryName,
+      resortCount: RESORT_COUNT[selectedCountryName] ?? 0,
+      copy: COUNTRY_COPY.get(selectedCountryName) ?? null,
+    });
+  }, [selectedCountryName]);
+  const hexColor = useCallback(
+    (f: object) => hexColorFor(f, selectedCountryName),
+    [selectedCountryName],
+  );
+  /**
+   * The selected country as an actual filled outline, laid over the hexes.
+   *
+   * ⚠️ THE HEX GRID CANNOT DRAW ONE COUNTRY'S SHAPE. At the resolution that
+   * keeps 177 countries affordable, Italy is about eight hexagons across and
+   * reads as a trail of dots rather than a boot — raising the resolution far
+   * enough to fix that is what takes h3's browser build down. A polygon has
+   * the real border in it, costs one shape, and is the thing that was
+   * actually being asked for: the country, recognisably.
+   */
+  const selectedFeatures = useMemo(
+    () =>
+      selectedCountryName
+        ? landFeatures.filter((f) => countryOf(f) === selectedCountryName)
+        : [],
+    [landFeatures, selectedCountryName],
+  );
+
+  /** Detail for the country in focus, coarse everywhere else. */
+  const hexResolution = useCallback(
+    (f: object) => (selectedCountryName && countryOf(f) === selectedCountryName ? 3 : 2),
+    [selectedCountryName],
+  );
 
   /**
    * Decide which country labels are readable, and hide the rest.
@@ -976,7 +1106,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         globeRef.current.controls().autoRotate = false;
         setActiveRegion(cluster.id);
         globeRef.current.pointOfView(
-          { lat: cluster.lat, lng: cluster.lng, altitude: 1.05 },
+          viewFor(cluster),
           800
         );
       }
@@ -1031,18 +1161,79 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
     >
-      {/* Back button when zoomed into a country */}
-      {activeRegion && (
-        <button
-          onClick={handleBackToOverview}
-          className="absolute left-4 top-4 z-10 flex items-center gap-1.5 rounded-full border border-highlight/30 bg-primary/70 px-3.5 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md transition-colors hover:border-highlight/60 hover:bg-primary/85"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          All Countries
-        </button>
-      )}
+      {/*
+        The country panel, which doubles as the way back out.
+        ⚠️ IT STAYS MOUNTED. Rendering it only while a country is selected
+        would make it pop in and jump out with no transition, and the whole
+        point of this interaction is that flying in and out feels continuous.
+        It is hidden from assistive tech and from the pointer while closed,
+        so an invisible panel cannot be tabbed into or clicked through.
+        Every figure in it is real: the copy is the same per-country content
+        the /ski-resort-jobs pages publish, and the resort count is counted
+        from resorts.ts rather than written down.
+      */}
+      <div
+        aria-hidden={!activeRegion}
+        className={`pointer-events-none absolute left-0 top-0 z-10 h-full w-full max-w-[21rem] p-4 transition-[opacity,transform] duration-500 ease-out ${
+          activeRegion ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0"
+        }`}
+      >
+        <div className="pointer-events-auto flex max-h-full flex-col overflow-y-auto rounded-2xl border border-highlight/20 bg-primary/80 p-4 shadow-2xl backdrop-blur-md">
+          <button
+            onClick={handleBackToOverview}
+            tabIndex={activeRegion ? 0 : -1}
+            className="mb-3 flex w-fit items-center gap-1.5 rounded-full border border-highlight/25 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:border-highlight/60 hover:text-white"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            All countries
+          </button>
+
+          {panelCountry && (
+            <>
+              <h3 className="text-xl font-bold leading-tight text-white">{panelCountry.name}</h3>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="rounded-full bg-highlight/15 px-2.5 py-1 text-[11px] font-semibold text-highlight">
+                  {panelCountry.resortCount} {panelCountry.resortCount === 1 ? "resort" : "resorts"}
+                </span>
+                {panelCountry.copy && (
+                  <>
+                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75">
+                      {panelCountry.copy.season}
+                    </span>
+                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75">
+                      {panelCountry.copy.hemisphere} hemisphere
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {panelCountry.copy && (
+                <>
+                  <p className="mt-3 text-[13px] leading-relaxed text-white/75">
+                    {panelCountry.copy.intro}
+                  </p>
+                  <p className="mt-3 border-l-2 border-highlight/40 pl-3 text-[12px] leading-relaxed text-white/60">
+                    {panelCountry.copy.visaNote}
+                  </p>
+                  <a
+                    href={`/ski-resort-jobs/${panelCountry.copy.slug}`}
+                    tabIndex={activeRegion ? 0 : -1}
+                    className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-secondary/85"
+                  >
+                    Ski resort jobs in {panelCountry.name}
+                    <span aria-hidden>→</span>
+                  </a>
+                </>
+              )}
+              <p className="mt-3 text-[11px] text-white/40">
+                Tap a mountain to open that resort.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
 
       <GlobeGL
         ref={globeRef}
@@ -1061,11 +1252,28 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
            useDots stays false: hexagons tile without gaps, so coastlines read
            as edges rather than as stippling. */
         hexPolygonsData={landFeatures}
-        hexPolygonResolution={2}
+        /* ⚠️ RESOLUTION IS PER COUNTRY, AND RAISING IT GLOBALLY CRASHES THE
+           LAYER. Resolution 2 is bold and right for a 360px world, but flown
+           in close it is the resolution the seams show at — so the selected
+           country, and only it, is rebuilt at 3. Setting 3 for all 177
+           features throws "operation failed (code: 1)" out of h3's BROWSER
+           build inside polygonToCells, which takes the whole hex layer down
+           with it; the same geometry at the same resolution is fine in h3's
+           node build, so it is the browser build's limits rather than bad
+           polygons. One country's worth of extra cells stays well clear.
+           The rebuild hides behind the camera flight. */
+        hexPolygonResolution={hexResolution}
         hexPolygonMargin={0.22}
         hexPolygonUseDots={false}
         hexPolygonAltitude={0.008}
-        hexPolygonColor={hexColorFor}
+        hexPolygonColor={hexColor}
+        /* The selected country's true border, sitting just above the hexes. */
+        polygonsData={selectedFeatures}
+        polygonCapColor={() => "rgba(127, 212, 245, 0.55)"}
+        polygonSideColor={() => "rgba(34, 211, 238, 0.25)"}
+        polygonStrokeColor={() => GLOW}
+        polygonAltitude={0.012}
+        polygonsTransitionDuration={400}
         animateIn={true}
         onGlobeReady={onGlobeReady}
         onZoom={handleZoom}
