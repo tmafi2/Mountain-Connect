@@ -22,7 +22,7 @@ import {
 } from "three";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
-import { countryViews, viewForOutline } from "@/lib/globe/framing";
+import { countryViews, viewForOutline, neighbourFeatures } from "@/lib/globe/framing";
 import { COUNTRIES } from "@/lib/data/countries";
 
 /* ─── Types ──────────────────────────────────────────────── */
@@ -894,6 +894,31 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     [landFeatures, selectedCountryName],
   );
 
+  /**
+   * The selected country plus the countries around it, all drawn as real
+   * borders.
+   *
+   * ⚠️ WITHOUT THE NEIGHBOURS THERE IS NO GEOGRAPHY. Outlining only the
+   * chosen country left it floating in an undifferentiated field of hexagons:
+   * the shape was right but nothing around it was, so Italy could have been
+   * anywhere. Bordering what surrounds it is what turns "a shape" into "the
+   * Alps, with France on one side and Slovenia on the other".
+   */
+  const outlineFeatures = useMemo(() => {
+    if (!selectedCountryName || landFeatures.length === 0) return [];
+    const view = OUTLINE_VIEWS[selectedCountryName] ?? COUNTRY_VIEWS[selectedCountryName];
+    if (!view) return selectedFeatures;
+    return [
+      ...selectedFeatures,
+      ...neighbourFeatures(landFeatures, view, countryOf, selectedCountryName),
+    ];
+  }, [landFeatures, selectedCountryName, selectedFeatures]);
+
+  const isSelectedFeature = useCallback(
+    (f: object) => countryOf(f) === selectedCountryName,
+    [selectedCountryName],
+  );
+
   /** Detail for the country in focus, coarse everywhere else. */
   const hexResolution = useCallback(
     (f: object) => (selectedCountryName && countryOf(f) === selectedCountryName ? 3 : 2),
@@ -1268,11 +1293,17 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         hexPolygonAltitude={0.008}
         hexPolygonColor={hexColor}
         /* The selected country's true border, sitting just above the hexes. */
-        polygonsData={selectedFeatures}
-        polygonCapColor={() => "rgba(127, 212, 245, 0.55)"}
-        polygonSideColor={() => "rgba(34, 211, 238, 0.25)"}
-        polygonStrokeColor={() => GLOW}
-        polygonAltitude={0.012}
+        polygonsData={outlineFeatures}
+        /* The selected country is filled; its neighbours are outline only, so
+           they give position without competing for attention. */
+        polygonCapColor={(f: object) =>
+          isSelectedFeature(f) ? "rgba(127, 212, 245, 0.55)" : "rgba(0, 0, 0, 0)"
+        }
+        polygonSideColor={() => "rgba(34, 211, 238, 0.14)"}
+        polygonStrokeColor={(f: object) =>
+          isSelectedFeature(f) ? GLOW : "rgba(127, 212, 245, 0.42)"
+        }
+        polygonAltitude={(f: object) => (isSelectedFeature(f) ? 0.012 : 0.009)}
         polygonsTransitionDuration={400}
         animateIn={true}
         onGlobeReady={onGlobeReady}

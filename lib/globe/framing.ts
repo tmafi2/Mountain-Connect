@@ -147,6 +147,73 @@ export function viewForOutline(
   };
 }
 
+/** Centre of a feature's largest ring, or null if it has no usable geometry. */
+function featureCentre(feature: object): { lat: number; lng: number } | null {
+  const geom = (feature as { geometry?: { type?: string; coordinates?: unknown } }).geometry;
+  if (!geom?.coordinates) return null;
+  const polys = (geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates) as Ring[][];
+  let best: Ring | null = null;
+  let bestArea = 0;
+  for (const poly of polys) {
+    const outer = poly[0];
+    if (!outer || outer.length < 4) continue;
+    const area = ringArea(outer);
+    if (area > bestArea) {
+      bestArea = area;
+      best = outer;
+    }
+  }
+  if (!best) return null;
+  const lngs = best.map((c) => c[0]);
+  const lats = best.map((c) => c[1]);
+  return {
+    lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+    lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+  };
+}
+
+/** Great-circle separation in degrees. */
+function angularDistance(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const r = Math.PI / 180;
+  const cos =
+    Math.sin(aLat * r) * Math.sin(bLat * r) +
+    Math.cos(aLat * r) * Math.cos(bLat * r) * Math.cos((bLng - aLng) * r);
+  return (Math.acos(Math.min(1, Math.max(-1, cos))) * 180) / Math.PI;
+}
+
+/**
+ * The countries worth outlining around a selected one.
+ *
+ * ⚠️ NOT EVERY COUNTRY, deliberately. Outlining all 177 means building 177
+ * extruded polygons for a view that can only ever show a fraction of them,
+ * most of them on the far side of the planet. The radius grows with
+ * altitude, because a camera pulled back to fit Canada genuinely has more
+ * countries on screen than one framing Switzerland, and the result is capped
+ * so a crowded region cannot quietly become a hundred polygons.
+ *
+ * The selected country is excluded — it is drawn separately, filled.
+ */
+export function neighbourFeatures(
+  features: object[],
+  view: CountryView,
+  nameOf: (feature: object) => string,
+  selected: string,
+  max = 28,
+): object[] {
+  const radius = 22 + view.altitude * 28;
+  const scored: { feature: object; d: number }[] = [];
+
+  for (const f of features) {
+    if (nameOf(f) === selected) continue;
+    const c = featureCentre(f);
+    if (!c) continue;
+    const d = angularDistance(view.lat, view.lng, c.lat, c.lng);
+    if (d <= radius) scored.push({ feature: f, d });
+  }
+  scored.sort((a, b) => a.d - b.d);
+  return scored.slice(0, max).map((s) => s.feature);
+}
+
 /** Every country's framing, computed once. */
 export function countryViews(points: FramingPoint[]): Record<string, CountryView> {
   const out: Record<string, CountryView> = {};

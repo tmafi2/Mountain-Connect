@@ -1,6 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { viewForCountry, countryViews, MIN_ALTITUDE, MAX_ALTITUDE } from "./framing";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  viewForCountry,
+  countryViews,
+  viewForOutline,
+  neighbourFeatures,
+  MIN_ALTITUDE,
+  MAX_ALTITUDE,
+} from "./framing";
 import { resorts } from "../data/resorts";
 
 const points = resorts.map((r) => ({
@@ -77,4 +86,42 @@ test("longitude span is corrected for latitude", () => {
 
 test("a country with no resorts returns null rather than a guess", () => {
   assert.equal(viewForCountry("Narnia", points), null);
+});
+
+/**
+ * Borders around the selected country are what turn a highlighted shape into
+ * a place. These guard the two ways that goes wrong: drawing none, and
+ * drawing all 177.
+ */
+test("neighbours are the countries actually around the selection", () => {
+  const features = JSON.parse(
+    readFileSync(join(process.cwd(), "public", "globe", "countries.geojson"), "utf8"),
+  ).features as object[];
+  const nameOf = (f: object) => {
+    const n = (f as { properties?: { name?: string } }).properties?.name ?? "";
+    return n === "United States of America" ? "USA" : n;
+  };
+
+  const italy = viewForOutline(features, "Italy", nameOf)!;
+  const near = neighbourFeatures(features, italy, nameOf, "Italy").map(nameOf);
+
+  assert.ok(near.includes("Switzerland"), "Switzerland borders Italy");
+  assert.ok(near.includes("Austria"), "Austria borders Italy");
+  assert.ok(!near.includes("Italy"), "the selected country is drawn separately");
+  assert.ok(!near.includes("Japan"), "Japan is not around Italy");
+  assert.ok(!near.includes("Chile"), "Chile is not around Italy");
+});
+
+test("the neighbour set is capped, however crowded the region", () => {
+  const features = JSON.parse(
+    readFileSync(join(process.cwd(), "public", "globe", "countries.geojson"), "utf8"),
+  ).features as object[];
+  const nameOf = (f: object) => (f as { properties?: { name?: string } }).properties?.name ?? "";
+
+  for (const country of ["Italy", "Austria", "Georgia", "Sweden"]) {
+    const view = viewForOutline(features, country, nameOf)!;
+    const n = neighbourFeatures(features, view, nameOf, country);
+    assert.ok(n.length <= 28, `${country} returned ${n.length} neighbours`);
+    assert.ok(n.length > 0, `${country} returned none`);
+  }
 });
