@@ -67,7 +67,19 @@ function effectiveLngSpan(spanDeg: number, atLatitude: number): number {
  * to leave the camera alone rather than fly somewhere arbitrary.
  */
 export function viewForCountry(country: string, points: FramingPoint[]): CountryView | null {
-  const mine = points.filter((p) => p.country === country);
+  return viewForPoints(points.filter((p) => p.country === country));
+}
+
+/**
+ * The camera position that frames any set of points.
+ *
+ * ⚠️ THE SAME MATHS, WITHOUT THE COUNTRY FILTER, so that a REGION can be
+ * framed by exactly the rule its country already is. A separate calculation
+ * for regions would be a second thing to keep in step with
+ * DEGREES_PER_ALTITUDE and the altitude floor, and the day they drifted
+ * apart a province would be framed by a rule its own country no longer used.
+ */
+export function viewForPoints(mine: { latitude: number; longitude: number }[]): CountryView | null {
   if (mine.length === 0) return null;
 
   const lats = mine.map((p) => p.latitude);
@@ -226,4 +238,38 @@ export function countryViews(points: FramingPoint[]): Record<string, CountryView
     if (view) out[country] = view;
   }
   return out;
+}
+
+/**
+ * How much closer a region has to be than its country before flying to it is
+ * worth offering.
+ *
+ * ⚠️ MEASURED, NOT CHOSEN. Framed on each country and then on each of its
+ * regions, the gain is wildly uneven: Canada goes from altitude 1.35 to
+ * 0.33–0.48, which is three to four times closer and transforms a panel of
+ * twenty-four names crammed into one corner. France goes from 0.36 to 0.34 —
+ * a six percent camera move, which reads as a glitch rather than as a zoom.
+ * Switzerland, Chile and Italy are the same story, and five of the fourteen
+ * countries have only one region so there is nothing to fly to at all.
+ */
+export const REGION_ZOOM_RATIO = 1.4;
+
+/**
+ * Whether a country's region headings should offer to fly the camera.
+ *
+ * ⚠️ IT IS ALL OR NOTHING PER COUNTRY, on purpose. Judging each region on its
+ * own leaves Italy with one heading that is a button and five that are not,
+ * which reads as a rendering fault rather than as a considered difference —
+ * so the worst region in the country decides for all of them. At 1.4 that
+ * gives Canada, the USA, Japan and Australia a working button and spares
+ * France, Switzerland, Italy, Chile and New Zealand a flight that would
+ * barely move.
+ */
+export function worthFlyingToRegions(
+  countryAltitude: number,
+  regionAltitudes: number[],
+): boolean {
+  if (regionAltitudes.length < 2) return false;
+  const worst = Math.max(...regionAltitudes);
+  return countryAltitude / worst >= REGION_ZOOM_RATIO;
 }

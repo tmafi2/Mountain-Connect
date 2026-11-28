@@ -16,12 +16,16 @@ export default function CtaButtons({ userRole, variant }: CtaButtonsProps) {
   const dashboardHref =
     userRole === "business_owner" ? "/business/dashboard" : "/dashboard";
 
+  // ⚠️ INVERTED FOR THE DARK PAGE. These were bg-primary on white and
+  // border-primary/10 with primary text — on the particle background that is
+  // a navy button on navy, and a second button that had vanished completely.
+  // The closing call to action was effectively invisible.
   if (variant === "bottom") {
     return (
       <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
         <Link
           href={userRole ? dashboardHref : "/signup"}
-          className="group relative overflow-hidden rounded-xl bg-primary px-10 py-4 text-sm font-bold text-white shadow-xl shadow-primary/20 transition-all hover:shadow-2xl hover:shadow-primary/30"
+          className="group relative overflow-hidden rounded-xl bg-white px-10 py-4 text-sm font-bold text-primary shadow-xl shadow-black/30 transition-all hover:shadow-2xl"
         >
           <span className="relative z-10">
             {userRole ? "Go to Dashboard" : "Create Free Account"}
@@ -30,7 +34,7 @@ export default function CtaButtons({ userRole, variant }: CtaButtonsProps) {
         </Link>
         <Link
           href="/jobs"
-          className="rounded-xl border-2 border-primary/10 px-10 py-4 text-sm font-bold text-primary transition-all hover:border-primary/30 hover:bg-primary/5"
+          className="rounded-xl border-2 border-white/25 px-10 py-4 text-sm font-bold text-white transition-all hover:border-white/50 hover:bg-white/10"
         >
           Browse Jobs
         </Link>

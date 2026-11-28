@@ -100,3 +100,29 @@ export const jobExpirySendsEmail = (m: JobExpiryMode = JOB_EXPIRY_MODE): boolean
 
 /** Posts are actually paused, and auto-renewed, only at "live". */
 export const jobExpiryWrites = (m: JobExpiryMode = JOB_EXPIRY_MODE): boolean => m === "live";
+
+/**
+ * What the explore globe's land is made of.
+ *
+ *   "particles" — the same point-cloud Earth the homepage backdrop is built
+ *                 from, drawn as a layer inside three-globe. Coastlines as
+ *                 particles; the sphere underneath stays, dark, so the far
+ *                 side is still hidden.
+ *   "hexes"     — the H3 hexagon layer this shipped with, rebuilt at a higher
+ *                 resolution for whichever country you have flown into.
+ *
+ * ⚠️ ONLY THE LAND CHANGES. Everything that makes the globe a tool is in
+ * other layers and is untouched either way: the clickable resort cones, the
+ * cluster dots, the HTML labels, the selected country's outline and its
+ * neighbours', the camera flights, the atmosphere. Switching this does not
+ * put any of that at risk, which is the whole reason it is a switch rather
+ * than a rewrite.
+ *
+ * ⚠️ THE HEX PATH IS NOT DEAD CODE WHILE THIS SAYS "particles". Its
+ * per-country resolution rebuild carries a hard-won note about h3's browser
+ * build throwing inside polygonToCells, and the `minDistance = 128` on the
+ * controls exists because hexes go blocky close up. Both stay.
+ */
+export type GlobeSurface = "particles" | "hexes";
+
+export const GLOBE_SURFACE: GlobeSurface = "particles";

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+
 interface HeroSectionProps {
   userRole?: string | null;
 }
@@ -23,8 +24,18 @@ export default function HeroSection({ userRole }: HeroSectionProps) {
 
   return (
     <section className="relative h-screen min-h-[700px] overflow-hidden">
-      {/* Video background */}
-      <div className="absolute inset-0">
+      {/*
+        ⚠️ NO BACKGROUND OF ITS OWN ON DESKTOP ANY MORE. The particle globe is
+        fixed behind the entire page, so a background here would simply cover
+        it. All that is left is a scrim dark enough to keep the headline
+        readable where it crosses the brightest part of the cloud.
+      */}
+      <div className="absolute inset-0 hidden md:block">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/45 to-transparent" />
+      </div>
+
+      {/* Video background — mobile */}
+      <div className="absolute inset-0 md:hidden">
         <video
           autoPlay
           muted
@@ -47,7 +58,7 @@ export default function HeroSection({ userRole }: HeroSectionProps) {
       </div>
 
       {/* Hero content */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
+      <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col items-center justify-center px-6 text-center md:items-start md:px-10 md:text-left">
         <div
           className={`transition-all duration-[1500ms] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
         >
@@ -61,7 +72,7 @@ export default function HeroSection({ userRole }: HeroSectionProps) {
         </div>
 
         <h1
-          className={`max-w-4xl text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-7xl lg:text-8xl transition-all duration-[1500ms] delay-200 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+          className={`max-w-4xl md:max-w-2xl text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-7xl lg:text-8xl transition-all duration-[1500ms] delay-200 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
         >
           Find Your Season
           <br />
@@ -69,13 +80,13 @@ export default function HeroSection({ userRole }: HeroSectionProps) {
         </h1>
 
         <p
-          className={`mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/70 md:text-xl transition-all duration-[1500ms] delay-400 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+          className={`mx-auto md:mx-0 mt-6 max-w-2xl md:max-w-lg text-lg leading-relaxed text-white/70 md:text-xl transition-all duration-[1500ms] delay-400 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
         >
           The premium platform connecting seasonal workers with ski resorts and mountain businesses worldwide.
         </p>
 
         <div
-          className={`mt-10 flex flex-wrap items-center justify-center gap-4 transition-all duration-[1500ms] delay-600 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+          className={`mt-10 flex flex-wrap items-center justify-center md:justify-start gap-4 transition-all duration-[1500ms] delay-600 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
         >
           <Link
             href={userRole ? dashboardHref : "/signup"}

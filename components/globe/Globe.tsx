@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Group,
   Mesh,
-  ConeGeometry,
-  CylinderGeometry,
-  TorusGeometry,
-  MeshLambertMaterial,
+  CircleGeometry,
   MeshBasicMaterial,
   MeshPhongMaterial,
   RingGeometry,
@@ -22,9 +19,40 @@ import {
 } from "three";
 import { resorts } from "@/lib/data/resorts";
 import { regionHierarchy } from "@/lib/data/region-hierarchy";
-import { countryViews, viewForOutline, neighbourFeatures } from "@/lib/globe/framing";
+import {
+  countryViews,
+  viewForOutline,
+  viewForPoints,
+  worthFlyingToRegions,
+  neighbourFeatures,
+  type CountryView,
+} from "@/lib/globe/framing";
 import { COUNTRIES } from "@/lib/data/countries";
-import CountryMap from "./CountryMap";
+import { GLOBE_SURFACE } from "@/lib/config/features";
+import { createParticleSurface, type ParticleSurface } from "@/lib/globe/particle-surface";
+import {
+  COUNTRY_FILL_ALTITUDE,
+  COUNTRY_OUTLINE_ALTITUDE,
+  DOT_ALTITUDE,
+  DOT_RIM,
+  LEADER_MIN_PX,
+  dotWorldRadius,
+  labelSlots,
+} from "@/lib/globe/marker-layout";
+import { countryAt } from "@/lib/globe/point-in-country";
+import {
+  latLngFromCartesian,
+  pointerZoomsGlobe,
+  raySphereHit,
+  rayThroughPixel,
+} from "@/lib/globe/screen-geometry";
+import { groupResorts } from "@/lib/globe/resort-grouping";
+
+/** Scratch for the pointer probe, so a 25Hz hover test allocates nothing. */
+const PROBE_DIR = new Vector3();
+
+/** A stable empty array: a fresh [] every render makes three-globe rebuild. */
+const EMPTY_FEATURES: object[] = [];
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -68,7 +96,10 @@ interface GlobeMethods {
     lng: number,
     altitude?: number
   ) => { x: number; y: number; z: number };
-  camera: () => Camera;
+  /** react-globe.gl's camera is perspective; fov is what sizes a dot in px. */
+  camera: () => Camera & { fov?: number };
+  /** Screen position → the lat/lng under it, or null for a miss. */
+  toGlobeCoords: (x: number, y: number) => { lat: number; lng: number } | null;
   scene: () => Scene;
 }
 
@@ -129,6 +160,9 @@ const COUNTRY_VIEWS = countryViews(
 
 /** Country copy for the detail panel, by the country name the resorts use. */
 const COUNTRY_COPY = new Map(COUNTRIES.map((c) => [c.country, c]));
+
+/** Country name → its cluster, for picking a country by clicking its land. */
+const CLUSTER_BY_COUNTRY = new Map(COUNTRY_CLUSTERS.map((c) => [c.name, c]));
 
 /** activeRegion is a slug; the hex layer needs the country name. */
 const SLUG_TO_COUNTRY = new Map(COUNTRY_CLUSTERS.map((c) => [c.id, c.name]));
@@ -299,54 +333,45 @@ const globeMaterial = new MeshPhongMaterial({
 /* ─── 3D object builders ──────────────────────────────────── */
 
 const PIN_COLOR = new Color(GLOW_WARM);
-const PIN_DARK = new Color(0xb45309);
+const PIN_RIM = new Color(SEA);
 
-function createMountain(d: object): Object3D {
+/**
+ * A resort, drawn the way the flat country map drew it: an amber disc with a
+ * dark rim, lying flat on the surface.
+ *
+ * ⚠️ FLAT ON PURPOSE, AND UNLIT ON PURPOSE. The pin this replaces was a lit
+ * sphere on a cone with a torus through it — a little piece of furniture
+ * standing up off the globe, which is exactly what stops working when you
+ * stand nineteen of them in a row and look down the line. A disc lying on
+ * the ground has no height to overlap with, reads as the same dot from any
+ * angle a country-sized frame can reach, and is the thing the eye already
+ * accepts as "a place" on a map.
+ *
+ * MeshBasicMaterial rather than Lambert because a map dot is a flat colour;
+ * letting the globe's lights model it would dim exactly the resorts on the
+ * side of the country the sun is not on, which is not information.
+ */
+function createResortDot(d: object): Object3D {
   const marker = d as MountainMarker;
   const group = new Group();
-  /* ⚠️ Scaled down for the country view. These were sized when the only way
-     to see them was flying in close enough that one country filled the
-     frame; framed on the whole country instead, 17 full-size pins merged
-     into a single amber blob over the Alps and hid the shape underneath. */
-  group.scale.setScalar(0.62);
 
-  const pinMat = new MeshLambertMaterial({
-    color: PIN_COLOR,
-    emissive: PIN_DARK,
-    emissiveIntensity: 0.2,
-  });
+  // ⚠️ Rotated to face outward. three-globe's update orients this group so
+  // +Y is the surface normal (lookAt the centre, then a quarter turn about
+  // X); a CircleGeometry faces +Z, so without this the dot is edge-on and
+  // disappears entirely.
+  const rim = new Mesh(
+    new RingGeometry(1, DOT_RIM, 24),
+    new MeshBasicMaterial({ color: PIN_RIM, side: DoubleSide }),
+  );
+  rim.rotation.x = -Math.PI / 2;
+  group.add(rim);
 
-  // Rounded head (top sphere)
-  const headGeo = new SphereGeometry(1.8, 16, 16);
-  const head = new Mesh(headGeo, pinMat);
-  head.position.y = 4.5;
-  group.add(head);
-
-  // Pointed bottom (cone tapering down)
-  const pointGeo = new ConeGeometry(1.8, 3.5, 16);
-  const point = new Mesh(pointGeo, pinMat);
-  point.position.y = 1.5;
-  point.rotation.x = Math.PI; // flip cone to point downward
-  group.add(point);
-
-  // Inner circle/ring (the hole in the pin)
-  const ringGeo = new TorusGeometry(0.85, 0.25, 8, 16);
-  const ringMat = new MeshBasicMaterial({ color: 0xffffff });
-  const ring = new Mesh(ringGeo, ringMat);
-  ring.position.y = 4.5;
-  ring.rotation.x = Math.PI / 2;
-  group.add(ring);
-
-  // Dark circle fill inside the ring
-  const innerGeo = new CylinderGeometry(0.6, 0.6, 0.15, 12);
-  const innerMat = new MeshLambertMaterial({
-    color: PIN_DARK,
-    emissive: PIN_DARK,
-    emissiveIntensity: 0.3,
-  });
-  const inner = new Mesh(innerGeo, innerMat);
-  inner.position.y = 4.5;
-  group.add(inner);
+  const disc = new Mesh(
+    new CircleGeometry(1, 24),
+    new MeshBasicMaterial({ color: PIN_COLOR, side: DoubleSide }),
+  );
+  disc.rotation.x = -Math.PI / 2;
+  group.add(disc);
 
   group.userData = { marker, currentRise: 0 };
   return group;
@@ -406,23 +431,13 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const targetScalesRef = useRef<Map<string, number>>(new Map());
   const animFrameRef = useRef<number>(0);
-  const mountainObjectsRef = useRef<Map<string, Object3D>>(new Map());
+  const resortDotsRef = useRef<Map<string, Object3D>>(new Map());
   const clusterObjectsRef = useRef<Map<string, Object3D>>(new Map());
   const isMouseOverRef = useRef(false);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const shouldAutoRotateRef = useRef(true);
   /** Country label elements by cluster id, for the visibility pass. */
   const labelElsRef = useRef<Map<string, HTMLElement>>(new Map());
-  /**
-   * Whether the flat country view has taken over from the globe.
-   *
-   * ⚠️ IT WAITS FOR THE SPIN. The globe turning the country to face you is
-   * the thing that explains where you have arrived; cutting to a flat map
-   * immediately would throw that away and feel like a page change rather
-   * than a move. So the camera flies first and the country takes the frame
-   * once it lands.
-   */
-  const [countryMapIn, setCountryMapIn] = useState(false);
   /** Mirrors activeRegion for callbacks that must keep a stable identity. */
   const activeRegionRef = useRef<string | null>(null);
   /** Latest camera sub-point, so a re-render can re-run the pass without one. */
@@ -437,9 +452,39 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const [landFeatures, setLandFeatures] = useState<object[]>([]);
   /** The library-positioned wrapper of each label, measured but never written. */
   const labelOuterRef = useRef<Map<string, HTMLElement>>(new Map());
-  /** Vertical nudge currently applied to each label, so writes stay idempotent. */
-  const labelDyRef = useRef<Map<string, number>>(new Map());
+  /** The nudge currently applied to each label, so writes stay idempotent. */
+  const labelOffsetRef = useRef<Map<string, { dx: number; dy: number }>>(new Map());
+  /** Each resort label's leader line back to its own dot. */
+  const leaderElsRef = useRef<Map<string, HTMLElement>>(new Map());
   const lastLabelPassRef = useRef(0);
+  /** Throttle for the point-in-country probe, which runs on every mousemove. */
+  const lastCountryProbeRef = useRef(0);
+  /** The cluster id of the country under the pointer, or null. */
+  const hoveredCountryRef = useRef<string | null>(null);
+  /** The particle Earth, so hover can light one country's coastline. */
+  const surfaceRef = useRef<ParticleSurface | null>(null);
+  /** Which region of the selected country the camera has been flown to. */
+  const [flownRegion, setFlownRegion] = useState<string | null>(null);
+  /**
+   * The resort ids of the region the camera has been flown to.
+   *
+   * ⚠️ FLYING TO A REGION HAS TO MAKE IT THE SUBJECT, not just move the
+   * camera. Framed on British Columbia, Quebec's and Ontario's resorts are
+   * still inside the 74° horizon, so their labels stay at full strength
+   * pinned to the edge of the frame with leader lines running off it —
+   * which reads as "these are also in British Columbia". Dimming them keeps
+   * them as context without letting them claim the region.
+   */
+  const focusIdsRef = useRef<Set<string> | null>(null);
+  /**
+   * The canvas size, for the animation loop.
+   *
+   * It mirrors `dimensions` because that loop is created once, on `ready`,
+   * and a captured state value would stay at the size the globe happened to
+   * have when it first rendered — which is the 800x600 fallback on a slow
+   * first paint, not the size the resort dots are being measured against.
+   */
+  const sizeRef = useRef({ width: 800, height: 600 });
   /**
    * Whatever the HTML layer is currently showing — country pills at world
    * view, resort pills once a country is selected. Read by refreshLabels,
@@ -560,6 +605,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       if (containerRef.current) {
         const width = containerRef.current.clientWidth;
         const height = Math.min(700, Math.max(500, width * 0.6));
+        sizeRef.current = { width, height };
         setDimensions({ width, height });
       }
     };
@@ -585,19 +631,51 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       const radius = globe.getGlobeRadius();
       const camDist = cameraPos.length();
       // Scale pins relative to camera distance — smaller when zoomed in
-      const distRatio = Math.min(camDist / (radius * 3.5), 1.0);
-      const pinScale = 0.005 + distRatio * 0.007; // ranges from 0.005 (close) to 0.012 (far)
+      // ⚠️ THE DOT IS SIZED IN PIXELS, THEN CONVERTED. At a vertical field of
+      // view f and a canvas h pixels tall, one CSS pixel spans
+      // 2*d*tan(f/2)/h world units at depth d — so a marker that should read
+      // as DOT_RADIUS_PX across has a world radius that grows with distance
+      // rather than shrinking. Depth is taken at the near surface of the
+      // globe, which is where a country being looked at sits; the floor
+      // keeps the maths finite if the camera is ever driven inside the
+      // sphere.
+      const dotWorld = dotWorldRadius({
+        cameraDistance: camDist,
+        globeRadius: radius,
+        fovDeg: cam.fov ?? 50,
+        canvasHeight: sizeRef.current.height || 600,
+      });
 
-      // Animate individual pins
-      mountainObjectsRef.current.forEach((obj) => {
+      /**
+       * ⚠️ EVERYTHING EXCEPT THE SCALE IS CONSTANT, AND USED TO BE RECOMPUTED
+       * SIXTY TIMES A SECOND. A marker's lat/lng never change and neither
+       * does the globe's radius, so its world position, its orientation and
+       * its outward normal are fixed the moment it is registered — yet this
+       * loop called getCoords (two sines, two cosines and a fresh object),
+       * built a Vector3, normalised it, cloned the camera position,
+       * normalised that too, and then re-set position, lookAt and rotateX on
+       * every object on every frame. With 24 markers that is about 120
+       * throwaway objects a frame — 7,000 a second — plus two matrix
+       * rebuilds each, for values that cannot change.
+       *
+       * What genuinely varies per frame is the camera direction, which is
+       * ONE normalisation for the whole loop rather than one per marker, and
+       * the scale, which is the only thing written below. Position and
+       * orientation are stamped once, in the update callbacks.
+       */
+      const invLen = camDist > 0 ? 1 / camDist : 0;
+      const camX = cameraPos.x * invLen;
+      const camY = cameraPos.y * invLen;
+      const camZ = cameraPos.z * invLen;
+
+      resortDotsRef.current.forEach((obj) => {
         const ud = obj.userData;
         const marker = ud.marker as MountainMarker;
-        if (!marker) return;
+        // nx is stamped by resortDotUpdate; until that has run there is
+        // nothing to face and nothing to scale.
+        if (!marker || ud.nx === undefined) return;
 
-        const coords = globe.getCoords(marker.lat, marker.lng, 0.01);
-        const markerDir = new Vector3(coords.x, coords.y, coords.z).normalize();
-        const cameraDir = cameraPos.clone().normalize();
-        const dot = markerDir.dot(cameraDir);
+        const dot = (ud.nx as number) * camX + (ud.ny as number) * camY + (ud.nz as number) * camZ;
 
         let target = 0;
         if (dot > 0.55) target = 1;
@@ -608,28 +686,20 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         ud.currentRise = lerped;
 
         const isHovered = hoveredIdRef.current === marker.id;
-        const targetScale = radius * pinScale * (isHovered ? 1.3 : 1.0);
+        const targetScale = dotWorld * (isHovered ? 1.45 : 1.0);
         const currentScale = targetScalesRef.current.get(marker.id) ?? targetScale;
         const smoothedScale = currentScale + (targetScale - currentScale) * 0.12;
         targetScalesRef.current.set(marker.id, smoothedScale);
-        const s = smoothedScale * Math.max(lerped, 0.01);
-        obj.scale.set(s, s, s);
-
-        obj.position.set(coords.x, coords.y, coords.z);
-        obj.lookAt(0, 0, 0);
-        obj.rotateX(-Math.PI / 2);
+        const sc = smoothedScale * Math.max(lerped, 0.01);
+        obj.scale.set(sc, sc, sc);
       });
 
-      // Animate cluster dots
       clusterObjectsRef.current.forEach((obj) => {
         const ud = obj.userData;
         const cluster = ud.cluster as CountryCluster;
-        if (!cluster) return;
+        if (!cluster || ud.nx === undefined) return;
 
-        const coords = globe.getCoords(cluster.lat, cluster.lng, 0.015);
-        const markerDir = new Vector3(coords.x, coords.y, coords.z).normalize();
-        const cameraDir = cameraPos.clone().normalize();
-        const dot = markerDir.dot(cameraDir);
+        const dot = (ud.nx as number) * camX + (ud.ny as number) * camY + (ud.nz as number) * camZ;
 
         let target = 0;
         if (dot > 0.4) target = 1;
@@ -646,10 +716,6 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         targetScalesRef.current.set(cluster.id, smoothedCs);
         const cs = smoothedCs * Math.max(lerped, 0.01);
         obj.scale.set(cs, cs, cs);
-
-        obj.position.set(coords.x, coords.y, coords.z);
-        obj.lookAt(0, 0, 0);
-        obj.rotateX(-Math.PI / 2);
       });
 
       animFrameRef.current = requestAnimationFrame(animate);
@@ -660,6 +726,28 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   }, [ready]);
 
   // Stop/resume auto-rotate on mouse enter/leave
+  /**
+   * Lift a label, whether the pointer is on the label or on the thing it
+   * names.
+   *
+   * ⚠️ THE PILL'S TRANSFORM BELONGS TO THE LAYOUT PASS, so hover cannot
+   * simply write one. The de-collision pass owns where a label sits and
+   * rewrites `transform` whenever the camera moves; a hover that set
+   * `scale(1.1)` would be erased on the next frame, or would erase the
+   * placement. So the pill's transform is composed once, at creation, out of
+   * custom properties — the pass sets --lx and --ly, hover sets --ls — and
+   * neither can clobber the other.
+   */
+  const setLabelHover = useCallback((id: string | null, on: boolean) => {
+    if (!id) return;
+    const el = labelElsRef.current.get(id);
+    if (!el) return;
+    el.style.setProperty("--ls", on ? "1.12" : "1");
+    el.style.zIndex = on ? "2" : "";
+    const leader = leaderElsRef.current.get(id);
+    if (leader) leader.style.opacity = on ? "0.85" : leader.dataset.rest ?? "0";
+  }, []);
+
   const handleMouseEnter = useCallback(() => {
     isMouseOverRef.current = true;
     if (globeRef.current) {
@@ -670,16 +758,195 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const handleMouseLeave = useCallback(() => {
     isMouseOverRef.current = false;
     setTooltip(null);
-    if (globeRef.current && shouldAutoRotateRef.current) {
-      globeRef.current.controls().autoRotate = true;
+    setLabelHover(hoveredCountryRef.current, false);
+    hoveredCountryRef.current = null;
+    surfaceRef.current?.highlight(null);
+    if (containerRef.current) containerRef.current.style.cursor = "default";
+    if (globeRef.current) {
+      if (shouldAutoRotateRef.current) globeRef.current.controls().autoRotate = true;
+      // ⚠️ Hand the wheel back on the way out. enableZoom is driven by the
+      // pointer's last position, and a pointer that left over empty space
+      // would otherwise leave zoom switched off — including for a touch
+      // device that never fires mousemove to switch it on again.
+      globeRef.current.controls().enableZoom = true;
     }
+  }, [setLabelHover]);
+
+  /** Lift every label in one region at once, from its heading in the panel. */
+  const setGroupHover = useCallback(
+    (group: { id: string }[], on: boolean) => {
+      for (const r of group) setLabelHover(r.id, on);
+    },
+    [setLabelHover],
+  );
+
+  /**
+   * Fly to one region of the country already selected — and back out again.
+   *
+   * ⚠️ IT IS NOT A THIRD LEVEL OF NAVIGATION, which is the whole reason it
+   * is acceptable. `activeRegion` does not change, so the panel stays, the
+   * country's other labels stay on screen as context at the edges of the
+   * frame, and "All countries" still gets you home in ONE click. A real
+   * third level would need its own way back and would make the one control
+   * that means "out" mean "out a bit".
+   */
+  const flyToRegion = useCallback(
+    (label: string, view: CountryView | null, ids: string[]) => {
+      const globe = globeRef.current;
+      if (!globe || !view) return;
+      const back = flownRegion === label;
+      setFlownRegion(back ? null : label);
+      focusIdsRef.current = back ? null : new Set(ids);
+      const cluster = activeRegionRef.current
+        ? COUNTRY_CLUSTERS.find((c) => c.id === activeRegionRef.current)
+        : null;
+      globe.pointOfView(back && cluster ? viewFor(cluster) : view, 800);
+    },
+    [flownRegion],
+  );
+
+  /**
+   * Select a country, from wherever the request came: its cluster dot, its
+   * landmass, or the search box.
+   */
+  const flyToCountry = useCallback((cluster: CountryCluster) => {
+    if (!globeRef.current) return;
+    shouldAutoRotateRef.current = false;
+    globeRef.current.controls().autoRotate = false;
+    setActiveRegion(cluster.id);
+    setFlownRegion(null);
+    focusIdsRef.current = null;
+    // The selected country has its own treatment; a coastline still lit from
+    // the hover that selected it reads as a hover that never ended.
+    hoveredCountryRef.current = null;
+    surfaceRef.current?.highlight(null);
+    globeRef.current.pointOfView(viewFor(cluster), 800);
   }, []);
 
-  // Track mouse position for tooltip
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    mousePosRef.current = { x: e.clientX, y: e.clientY };
-    setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
-  }, []);
+  /** The cluster for a country name, if we carry resorts there. */
+  const clusterForCountry = useCallback(
+    (name: string | null) => (name ? CLUSTER_BY_COUNTRY.get(name) ?? null : null),
+    [],
+  );
+
+  /**
+   * Pick a country by clicking its land.
+   *
+   * ⚠️ THE CLUSTER DOT WAS THE ONLY TARGET, AND IT IS 5 PIXELS ACROSS. It
+   * also has to be on the side of the globe facing you, and in Europe there
+   * are seven of them inside a few degrees — so selecting France meant
+   * hitting a dot the size of a full stop next to six others. The country
+   * itself is the thing a visitor is pointing at and is a hundred times the
+   * area. The dots still work; this is in addition to them.
+   *
+   * ⚠️ IT DOES NOT FIRE WHEN A MARKER WAS CLICKED. globe.gl raises
+   * onGlobeClick only when the ray hit the sphere rather than an object in
+   * a layer, so a resort dot and the land under it cannot both act.
+   */
+  const handleGlobeClick = useCallback(
+    ({ lat, lng }: { lat: number; lng: number }) => {
+      const cluster = clusterForCountry(countryAt(landFeatures, lat, lng, countryOf));
+      // The sea, Antarctica, and every country we have no resorts in are all
+      // "nothing here" — quietly, because a click that explains itself with
+      // an error is worse than one that does nothing.
+      if (cluster && cluster.id !== activeRegionRef.current) flyToCountry(cluster);
+    },
+    [landFeatures, clusterForCountry, flyToCountry],
+  );
+
+  /**
+   * Track the pointer: for the tooltip, for whether the wheel zooms, and for
+   * which country is under it.
+   */
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      mousePosRef.current = { x: e.clientX, y: e.clientY };
+      setTooltip((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
+
+      const globe = globeRef.current;
+      const container = containerRef.current;
+      if (!globe || !container) return;
+      const rect = container.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+
+      /**
+       * ⚠️ THE WHEEL ONLY ZOOMS WHEN THE POINTER IS ON THE GLOBE. OrbitControls
+       * listens on the whole canvas, and the canvas is a wide rectangle with a
+       * disc in the middle of it — so a wheel over the empty space either side
+       * was swallowed and the page could not be scrolled past the globe
+       * without first finding the narrow strip outside it.
+       *
+       * ⚠️ enableZoom = false IS THE WHOLE MECHANISM, and it works because
+       * OrbitControls' wheel handler returns BEFORE preventDefault when zoom
+       * is off (three 0.183, OrbitControls.js onMouseWheel). The event then
+       * reaches the page and scrolls it normally. Anything that made the
+       * handler run first and decide later would have to re-implement
+       * scrolling.
+       *
+       * ⚠️ TOUCH IS NOT TOUCHED. A phone never fires mousemove, so this never
+       * runs there and pinch-to-zoom keeps working; the one case that could
+       * strand it is a stale position after the pointer leaves, which
+       * handleMouseLeave clears.
+       */
+      const cam = globe.camera();
+      const zone = {
+        cameraDistance: cam.position.length(),
+        globeRadius: globe.getGlobeRadius(),
+        fovDeg: cam.fov ?? 50,
+        canvasWidth: rect.width,
+        canvasHeight: rect.height,
+      };
+      globe.controls().enableZoom = pointerZoomsGlobe({ ...zone, pointerX: px, pointerY: py });
+
+      // Which country the pointer is over, for the cursor and the highlight.
+      // ⚠️ Throttled: mousemove fires at the display's refresh rate, and this
+      // walks every ring in the 110m dataset. It is about a tenth of a
+      // millisecond, which is cheap once and not cheap 120 times a second.
+      const now = performance.now();
+      if (now - lastCountryProbeRef.current < 40) return;
+      lastCountryProbeRef.current = now;
+
+      /**
+       * ⚠️ NOT globe.toGlobeCoords, WHICH COSTS 2.1ms A CALL. Measured: this
+       * probe ran at 2.6ms median and 2.1 of it was that one call, because
+       * globe.gl answers it by building a Raycaster and walking the whole
+       * scene — the sphere, the hex layer, the polygons, the markers and the
+       * eighteen-thousand-point cloud. The globe is a sphere of known radius
+       * on the origin, so the same answer is a ray and a quadratic.
+       */
+      const dir = rayThroughPixel(px, py, rect.width, rect.height, cam.fov ?? 50);
+      PROBE_DIR.set(dir.x, dir.y, dir.z).applyQuaternion(cam.quaternion);
+      const hit = raySphereHit(cam.position, PROBE_DIR, globe.getGlobeRadius());
+      const coords = hit ? latLngFromCartesian(hit) : null;
+      const name = coords ? countryAt(landFeatures, coords.lat, coords.lng, countryOf) : null;
+      const cluster = clusterForCountry(name);
+      const id = cluster && cluster.id !== activeRegionRef.current ? cluster.id : null;
+      if (id !== hoveredCountryRef.current) {
+        setLabelHover(hoveredCountryRef.current, false);
+        hoveredCountryRef.current = id;
+        setLabelHover(id, true);
+        /**
+         * ⚠️ THE COUNTRY'S OWN COASTLINE TURNS AMBER. The globe is already
+         * made of dots that trace every border; lighting the ones that
+         * belong to the country under the pointer answers "which one is
+         * Canada?" with the marks that are there, rather than adding a
+         * second outline above them — which would be drawn from the same
+         * geometry at a different generalisation and visibly fail to follow
+         * the dots it sits on.
+         */
+        surfaceRef.current?.highlight(
+          id === null ? null : landFeatures.findIndex((f) => countryOf(f) === name),
+        );
+        // Only claim the cursor when nothing else has: a resort marker under
+        // the pointer owns it, and its own handler has already set it.
+        if (!hoveredIdRef.current) {
+          container.style.cursor = id ? "pointer" : "default";
+        }
+      }
+    },
+    [landFeatures, clusterForCountry, setLabelHover],
+  );
 
   const onGlobeReady = useCallback(() => {
     if (!globeRef.current) return;
@@ -704,6 +971,42 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     controls.maxDistance = 600;
   }, []);
 
+  /**
+   * The particle Earth, as a layer inside three-globe's own scene.
+   *
+   * ⚠️ IT GOES IN THE SCENE, NOT ON THE GLOBE, and that is correct rather
+   * than lazy. three-globe puts its world at the origin and OrbitControls
+   * move the CAMERA, so every lat/lng layer — the resort cones, the cluster
+   * dots, the country outlines — is at a fixed world position. A point cloud
+   * added at the origin with the same radius is registered with all of them
+   * for free, and stays registered through every flight and zoom.
+   *
+   * ⚠️ IT WAITS FOR BOTH `ready` AND THE LAND DATA. The geojson is fetched
+   * separately from the library, so whichever arrives second is the one that
+   * matters; keying the effect on both is what stops a globe that renders
+   * with no continents on a slow connection.
+   */
+  useEffect(() => {
+    if (GLOBE_SURFACE !== "particles") return;
+    if (!ready || landFeatures.length === 0) return;
+    const globe = globeRef.current;
+    if (!globe) return;
+
+    const scene = globe.scene();
+    const surface = createParticleSurface(landFeatures, {
+      radius: globe.getGlobeRadius(),
+      pixelRatio: typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2),
+    });
+    scene.add(surface.points);
+    surfaceRef.current = surface;
+
+    return () => {
+      scene.remove(surface.points);
+      surface.dispose();
+      surfaceRef.current = null;
+    };
+  }, [ready, landFeatures]);
+
   // Click individual mountain — go to resort page
   const handleMarkerClick = useCallback(
     (obj: object) => {
@@ -717,20 +1020,10 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   const handleClusterClick = useCallback(
     (obj: object) => {
       const cluster = obj as CountryCluster;
-      if (!globeRef.current || !cluster.id) return;
-
-      shouldAutoRotateRef.current = false;
-      if (globeRef.current) {
-        globeRef.current.controls().autoRotate = false;
-      }
-
-      setActiveRegion(cluster.id);
-      globeRef.current.pointOfView(
-        viewFor(cluster),
-        800
-      );
+      if (!cluster.id) return;
+      flyToCountry(cluster);
     },
-    []
+    [flyToCountry],
   );
 
   // Hover handlers — debounced to prevent flickering
@@ -778,6 +1071,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   // Back to clusters view
   const handleBackToOverview = useCallback(() => {
     setActiveRegion(null);
+    setFlownRegion(null);
+    focusIdsRef.current = null;
     setTooltip(null);
     shouldAutoRotateRef.current = true;
     if (globeRef.current) {
@@ -787,20 +1082,29 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
   }, []);
 
   // Register mountain objects for animation
-  const customMountainUpdate = useCallback(
+  const resortDotUpdate = useCallback(
     (obj: Object3D, d: object) => {
       if (!globeRef.current) return;
       const marker = d as MountainMarker;
-      mountainObjectsRef.current.set(marker.id, obj);
+      resortDotsRef.current.set(marker.id, obj);
 
-      const coords = globeRef.current.getCoords(marker.lat, marker.lng, 0.01);
+      // ⚠️ Position, orientation and the outward normal are stamped HERE and
+      // never again: none of them depends on the camera, so the render loop
+      // has no business recomputing them. It writes the scale and nothing else.
+      const coords = globeRef.current.getCoords(marker.lat, marker.lng, DOT_ALTITUDE);
       obj.position.set(coords.x, coords.y, coords.z);
       obj.lookAt(0, 0, 0);
       obj.rotateX(-Math.PI / 2);
+      const len = Math.hypot(coords.x, coords.y, coords.z) || 1;
+      obj.userData.nx = coords.x / len;
+      obj.userData.ny = coords.y / len;
+      obj.userData.nz = coords.z / len;
 
-      const radius = globeRef.current.getGlobeRadius();
-      const s = radius * 0.005 * 0.01;
-      obj.scale.set(s, s, s);
+      // ⚠️ Deliberately next to nothing, not a real size. The animation loop
+      // owns the scale and grows each dot in from its `currentRise`; a dot
+      // that arrives at the geometry's own scale of 1 is a 20px disc for the
+      // single frame before the loop corrects it, which reads as a flash.
+      obj.scale.setScalar(0.001);
     },
     []
   );
@@ -812,10 +1116,17 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       const cluster = d as CountryCluster;
       clusterObjectsRef.current.set(cluster.id, obj);
 
+      // ⚠️ Position, orientation and the outward normal are stamped HERE and
+      // never again: none of them depends on the camera, so the render loop
+      // has no business recomputing them. It writes the scale and nothing else.
       const coords = globeRef.current.getCoords(cluster.lat, cluster.lng, 0.015);
       obj.position.set(coords.x, coords.y, coords.z);
       obj.lookAt(0, 0, 0);
       obj.rotateX(-Math.PI / 2);
+      const len = Math.hypot(coords.x, coords.y, coords.z) || 1;
+      obj.userData.nx = coords.x / len;
+      obj.userData.ny = coords.y / len;
+      obj.userData.nz = coords.z / len;
 
       const radius = globeRef.current.getGlobeRadius();
       const cs = radius * 0.032 * 0.01;
@@ -842,9 +1153,46 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       const outer = document.createElement("div");
       outer.style.cssText = "pointer-events:none;";
 
+      /**
+       * The line from the dot to the label, for when the label has had to
+       * move to find room.
+       *
+       * ⚠️ IT IS A CHILD OF THE LABEL, NOT AN OVERLAY, and that is what makes
+       * it free. three-globe centres `outer` on the resort's own screen
+       * position every frame, so 50%/50% of this element IS the dot — the
+       * line needs no projection of its own, cannot drift out of sync with
+       * the label it belongs to, and sits under the pill in paint order
+       * without anyone having to reason about z-index against the canvas.
+       * It is added before the pill so the pill covers the end of it.
+       */
+      const leader = document.createElement("span");
+      leader.style.cssText = `
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        height: 1px;
+        width: 0;
+        background: ${GLOW_WARM};
+        opacity: 0;
+        transform-origin: 0 50%;
+        pointer-events: none;
+        transition: opacity 180ms ease-out;
+      `;
+      outer.appendChild(leader);
+      leaderElsRef.current.set(marker.id, leader);
+
       const pill = document.createElement("button");
       pill.type = "button";
       pill.textContent = marker.name;
+      /**
+       * ⚠️ THE TRANSFORM IS COMPOSED FROM CUSTOM PROPERTIES, and it has to
+       * be. Two things want to move this element: the de-collision pass,
+       * which decides where it sits and rewrites it whenever the camera
+       * moves, and hover, which lifts it. Either writing `transform`
+       * directly erases the other — the pass runs about sixteen times a
+       * second, so hover would flicker and die. Splitting them into --lx /
+       * --ly and --ls lets both own their own half.
+       */
       pill.style.cssText = `
         color: #0d1f33;
         font-size: 10.5px;
@@ -858,9 +1206,30 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         pointer-events: auto;
         white-space: nowrap;
         box-shadow: 0 1px 8px rgba(0,0,0,0.5);
-        transition: opacity 180ms ease-out, transform 180ms ease-out;
+        transform: translate(var(--lx, 0px), var(--ly, 0px)) scale(var(--ls, 1));
+        transition: opacity 180ms ease-out, transform 160ms cubic-bezier(0.34, 1.6, 0.64, 1),
+          background-color 160ms ease-out, box-shadow 160ms ease-out;
         will-change: opacity, transform;
       `;
+      /**
+       * ⚠️ HOVERING THE LABEL ALSO GROWS ITS DOT, through the same ref the
+       * 3D markers use. Without it the two halves of one resort behave like
+       * two things: the pill lifts, and the dot forty pixels away — the part
+       * that says WHERE the resort is — does nothing. The animation loop
+       * already scales a hovered marker, so this is a matter of telling it.
+       */
+      pill.addEventListener("mouseenter", () => {
+        hoveredIdRef.current = marker.id;
+        pill.style.background = "rgba(252, 180, 44, 1)";
+        pill.style.boxShadow = "0 3px 14px rgba(0,0,0,0.55)";
+        setLabelHover(marker.id, true);
+      });
+      pill.addEventListener("mouseleave", () => {
+        if (hoveredIdRef.current === marker.id) hoveredIdRef.current = null;
+        pill.style.background = "rgba(245, 158, 11, 0.95)";
+        pill.style.boxShadow = "0 1px 8px rgba(0,0,0,0.5)";
+        setLabelHover(marker.id, false);
+      });
       pill.addEventListener("click", (e) => {
         e.stopPropagation();
         router.push(`/resorts/${marker.id}`);
@@ -870,7 +1239,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       labelOuterRef.current.set(marker.id, outer);
       return outer;
     },
-    [router],
+    [router, setLabelHover],
   );
 
   /**
@@ -910,7 +1279,8 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       white-space: nowrap;
       box-shadow: 0 1px 10px rgba(0,0,0,0.45);
       border: 1px solid rgba(34, 211, 238, 0.28);
-      transition: opacity 180ms ease-out, transform 180ms ease-out;
+      transform: translate(var(--lx, 0px), var(--ly, 0px)) scale(var(--ls, 1));
+      transition: opacity 180ms ease-out, transform 160ms cubic-bezier(0.34, 1.6, 0.64, 1);
       will-change: opacity, transform;
     `;
     outer.appendChild(pill);
@@ -938,18 +1308,53 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     name: string;
     resortCount: number;
     copy: (typeof COUNTRIES)[number] | null;
-    resorts: { id: string; name: string }[];
+    groups: {
+      label: string;
+      resorts: { id: string; name: string }[];
+      /** Where the camera goes for this region, if flying there is worth it. */
+      view: CountryView | null;
+    }[];
   } | null>(null);
 
-  useEffect(() => {
-    if (!selectedCountryName) {
-      setCountryMapIn(false);
-      return;
-    }
-    // The flight is 800ms; hand over just after it settles.
-    const t = setTimeout(() => setCountryMapIn(true), 880);
-    return () => clearTimeout(t);
-  }, [selectedCountryName]);
+  /**
+   * A country's resorts, grouped by region, each with the camera position
+   * that frames it — or null where flying there would barely move.
+   *
+   * ⚠️ WHETHER THE HEADINGS FLY IS DECIDED PER COUNTRY AND IS MEASURED. See
+   * worthFlyingToRegions: Canada's regions are three to four times closer
+   * than the whole country and transform a panel of twenty-four names
+   * crammed into one corner; France's are six percent closer, which is a
+   * camera move that reads as a glitch. So Canada, the USA, Japan and
+   * Australia get a button and the rest do not — all of a country's headings
+   * or none of them, because one heading in six behaving differently reads
+   * as a fault rather than as a judgement.
+   */
+  const regionGroups = useCallback((country: string) => {
+    const mine = resorts.filter((r) => r.country === country);
+    const byId = new Map(mine.map((r) => [r.id, r]));
+    const groups = groupResorts(
+      mine.map((r) => ({
+        id: r.id,
+        name: r.name,
+        country: r.country,
+        state_province: r.state_province,
+      })),
+    );
+    const views = groups.map((g) =>
+      viewForPoints(
+        g.resorts
+          .map((r) => byId.get(r.id))
+          .filter((r): r is (typeof mine)[number] => !!r)
+          .map((r) => ({ latitude: r.latitude, longitude: r.longitude })),
+      ),
+    );
+    const whole = viewForPoints(mine.map((r) => ({ latitude: r.latitude, longitude: r.longitude })));
+    const fly =
+      !!whole &&
+      views.every((v) => !!v) &&
+      worthFlyingToRegions(whole.altitude, views.map((v) => v!.altitude));
+    return groups.map((g, i) => ({ ...g, view: fly ? views[i] : null }));
+  }, []);
 
   useEffect(() => {
     if (!selectedCountryName) return;
@@ -957,12 +1362,16 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       name: selectedCountryName,
       resortCount: RESORT_COUNT[selectedCountryName] ?? 0,
       copy: COUNTRY_COPY.get(selectedCountryName) ?? null,
-      resorts: resorts
-        .filter((r) => r.country === selectedCountryName)
-        .map((r) => ({ id: r.id, name: r.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      /**
+       * ⚠️ GROUPED BY REGION, BECAUSE A FLAT LIST OF TWENTY-FOUR IS NOT A
+       * LIST ANYONE READS. The thing a seasonal worker is deciding is
+       * WHERE, and the alphabet actively hides it — Banff's three resorts
+       * land in the Bs, Ls and Ss with Quebec in between. New Zealand
+       * groups by island rather than region; see resort-grouping.ts.
+       */
+      groups: regionGroups(selectedCountryName),
     });
-  }, [selectedCountryName]);
+  }, [selectedCountryName, regionGroups]);
   const hexColor = useCallback(
     (f: object) => hexColorFor(f, selectedCountryName),
     [selectedCountryName],
@@ -1048,7 +1457,18 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
 
     const toRad = Math.PI / 180;
     // Most resorts first — that is the label worth keeping in a collision.
-    const clusters = [...labelDataRef.current].sort((a, b) => b.weight - a.weight);
+    const focus = focusIdsRef.current;
+    const clusters = [...labelDataRef.current].sort((a, b) => {
+      // The flown-to region is seated before anything else, so a label from
+      // the other side of the country can never take the slot of one the
+      // camera was moved here for.
+      if (focus) {
+        const fa = focus.has(a.id) ? 1 : 0;
+        const fb = focus.has(b.id) ? 1 : 0;
+        if (fa !== fb) return fb - fa;
+      }
+      return b.weight - a.weight;
+    });
 
     // ⚠️ MEASURE EVERYTHING BEFORE MOVING ANYTHING. Writing a transform
     // invalidates layout, so interleaving reads and writes would both thrash
@@ -1060,7 +1480,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     type LabelDatum = { id: string; lat: number; lng: number; weight: number };
     type Measured = { c: LabelDatum; el: HTMLElement; x: number; y: number; w: number; h: number };
     const measured: Measured[] = [];
-    const offscreen: HTMLElement[] = [];
+    const offscreen: { id: string; el: HTMLElement }[] = [];
 
     for (const c of clusters) {
       const el = labelElsRef.current.get(c.id);
@@ -1074,7 +1494,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
           Math.cos(c.lat * toRad) *
           Math.cos((c.lng - centre.lng) * toRad);
       if (Math.acos(Math.min(1, Math.max(-1, cosAngle))) > 74 * toRad) {
-        offscreen.push(el);
+        offscreen.push({ id: c.id, el });
         continue;
       }
 
@@ -1086,73 +1506,153 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
     }
 
     const placed: { left: number; right: number; top: number; bottom: number }[] = [];
-    const writes: { el: HTMLElement; id: string; opacity: string; dy: number }[] = [];
+    const writes: { id: string; el: HTMLElement; opacity: string; dx: number; dy: number }[] = [];
+    // ⚠️ SIDEWAYS ONLY WHERE A LEADER LINE EXPLAINS IT. The resort pills have
+    // one; the country pills do not, and a country name that has quietly slid
+    // 90px east is a worse lie than one stacked above its own dot. So the
+    // world view keeps exactly the column-of-pills behaviour it had.
+    const canGoSideways = activeRegionRef.current !== null;
+
+    /**
+     * The rectangle a label is allowed to sit in.
+     *
+     * ⚠️ THE PANEL IS NOT PART OF THE CANVAS AND THE LAYOUT PASS CANNOT SEE
+     * IT. The country panel covers the left 352px, and without this a label
+     * nudged west goes straight under it: of Canada's 24, two came out
+     * clipped in half by the panel's edge and another three sat behind it
+     * entirely — readable to the layout pass, invisible and unclickable to
+     * the visitor, which is the worst of both outcomes. The flat country map
+     * had exactly this inset for exactly this reason.
+     *
+     * The edges matter too. A label pushed off the canvas is as gone as one
+     * that was hidden, except that it also drags a leader line off the side
+     * of the globe on its way out.
+     */
+    const rect = containerRef.current?.getBoundingClientRect();
+    const PANEL_W = 352;
+    const EDGE = 8;
+    const bounds = rect
+      ? {
+          left:
+            rect.left +
+            (activeRegionRef.current && rect.width > 760 ? PANEL_W : EDGE),
+          right: rect.right - EDGE,
+          top: rect.top + EDGE,
+          bottom: rect.bottom - EDGE,
+        }
+      : null;
 
     for (const m of measured) {
-      // Try the natural spot, then nudge up/down before giving up. Hiding a
+      // Try the natural spot, then nearby ones, before giving up. Hiding a
       // label outright is the last resort: in the Alps, Italy, France,
       // Switzerland and Austria sit within a few degrees, and "biggest wins"
       // alone would leave the other three invisible at the default zoom —
       // a reader would fairly conclude we have no French resorts. Offsetting
-      // keeps all four readable and merely stacks them.
-      const fits = (dy: number) => {
+      // keeps all four readable and merely moves them.
+      const fits = (dx: number, dy: number) => {
         const box = {
-          left: m.x - m.w / 2 - 2,
-          right: m.x + m.w / 2 + 2,
+          left: m.x + dx - m.w / 2 - 2,
+          right: m.x + dx + m.w / 2 + 2,
           top: m.y + dy - m.h / 2 - 2,
           bottom: m.y + dy + m.h / 2 + 2,
         };
+        if (
+          bounds &&
+          (box.left < bounds.left ||
+            box.right > bounds.right ||
+            box.top < bounds.top ||
+            box.bottom > bounds.bottom)
+        ) {
+          return null;
+        }
         const clash = placed.some(
           (p) => box.left < p.right && box.right > p.left && box.top < p.bottom && box.bottom > p.top,
         );
         return clash ? null : box;
       };
 
-      const step = m.h + 3;
-      // ⚠️ Enough slots to seat a whole country's resorts. Three steps either
-      // way was fine for fourteen country pills spread over a planet; Italy
-      // packs seventeen resorts into a couple of degrees of Alps, and a
-      // label that finds no slot is HIDDEN — which, now that the label is the
-      // click target, means that resort cannot be reached at all. Hiding is
-      // acceptable for a duplicate-looking country name and not for a resort
-      // somebody is trying to pick.
-      // ⚠️ Bounded on purpose. Enough slots to seat most of a country's
-      // resorts, but not so many that a label ends up nowhere near its
-      // mountain — stacked nine deep, Madonna di Campiglio floated down to
-      // central Italy and read as a location rather than a queue position.
-      // Whatever still does not fit is reachable from the list in the panel,
-      // which is always complete, so no resort depends on winning a slot.
-      const slots: number[] = [0];
-      for (let k = 1; k <= 4; k++) slots.push(-step * k, step * k);
+      const stepY = m.h + 3;
+      const stepX = m.w / 2 + 16;
+      const slots = labelSlots(stepX, stepY, canGoSideways);
 
       let chosen: { left: number; right: number; top: number; bottom: number } | null = null;
+      let chosenDx = 0;
       let chosenDy = 0;
-      for (const dy of slots) {
-        const box = fits(dy);
+      for (const [dx, dy] of slots) {
+        const box = fits(dx, dy);
         if (box) {
           chosen = box;
+          chosenDx = dx;
           chosenDy = dy;
           break;
         }
       }
 
       if (!chosen) {
-        writes.push({ el: m.el, id: m.c.id, opacity: "0", dy: labelDyRef.current.get(m.c.id) ?? 0 });
+        // Whatever still does not fit is reachable from the list in the
+        // panel, which is always complete, so no resort depends on winning
+        // a slot. Its dot stays on the globe either way.
+        const last = labelOffsetRef.current.get(m.c.id) ?? { dx: 0, dy: 0 };
+        writes.push({ id: m.c.id, el: m.el, opacity: "0", dx: last.dx, dy: last.dy });
         continue;
       }
       placed.push(chosen);
-      writes.push({ el: m.el, id: m.c.id, opacity: "1", dy: chosenDy });
+      writes.push({
+        id: m.c.id,
+        el: m.el,
+        opacity: focus && !focus.has(m.c.id) ? "0.4" : "1",
+        dx: chosenDx,
+        dy: chosenDy,
+      });
     }
 
-    for (const el of offscreen) el.style.opacity = "0";
+    for (const o of offscreen) {
+      o.el.style.opacity = "0";
+      const leader = leaderElsRef.current.get(o.id);
+      if (leader) leader.style.opacity = "0";
+    }
     for (const w of writes) {
-      // Safe to own this transform outright: w.el is the inner pill, and the
-      // library only ever writes to its parent.
-      if ((labelDyRef.current.get(w.id) ?? 0) !== w.dy) {
-        w.el.style.transform = w.dy === 0 ? "" : `translateY(${w.dy}px)`;
-        labelDyRef.current.set(w.id, w.dy);
+      // Safe to own these outright: w.el is the inner pill, and the library
+      // only ever writes to its parent.
+      const prev = labelOffsetRef.current.get(w.id);
+      if (!prev || prev.dx !== w.dx || prev.dy !== w.dy) {
+        // ⚠️ Custom properties, not `transform`. The pill's transform is
+        // composed from --lx/--ly and hover's --ls; writing the whole
+        // property here would drop whatever hover had set, sixteen times a
+        // second.
+        w.el.style.setProperty("--lx", `${w.dx}px`);
+        w.el.style.setProperty("--ly", `${w.dy}px`);
+        labelOffsetRef.current.set(w.id, { dx: w.dx, dy: w.dy });
+
+        const leader = leaderElsRef.current.get(w.id);
+        if (leader) {
+          // The line runs from the dot to the CENTRE of the pill and is
+          // covered by it from the edge inwards, so there is nothing to
+          // trim: the visible part is exactly dot-to-label.
+          const len = Math.hypot(w.dx, w.dy);
+          leader.style.width = `${len}px`;
+          leader.style.transform = `rotate(${Math.atan2(w.dy, w.dx)}rad)`;
+        }
       }
       if (w.el.style.opacity !== w.opacity) w.el.style.opacity = w.opacity;
+      const leader = leaderElsRef.current.get(w.id);
+      if (leader) {
+        // A line shorter than the pill is entirely underneath it, so showing
+        // it would only put a stub out of one end.
+        const want =
+          w.opacity !== "0" && Math.hypot(w.dx, w.dy) > LEADER_MIN_PX
+            ? w.opacity === "1"
+              ? "0.5"
+              : "0.2"
+            : "0";
+        // Remembered so setLabelHover can put it back: hover brightens the
+        // line, and "back to normal" is not a constant — a label that found
+        // its natural spot has no line at all.
+        leader.dataset.rest = want;
+        if (hoveredIdRef.current !== w.id && leader.style.opacity !== want) {
+          leader.style.opacity = want;
+        }
+      }
     }
   }, []);
 
@@ -1325,36 +1825,6 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
       onMouseMove={handleMouseMove}
     >
       {/*
-        The country itself, once the globe has spun it into view. It covers
-        the globe rather than replacing it, so going back is a fade rather
-        than a remount and the globe is still behind, already in position.
-      */}
-      {panelCountry && dimensions.width > 0 && dimensions.height > 0 && (
-        <div
-          aria-hidden={!countryMapIn}
-          /* z-[5] puts it over the canvas and under the panel (z-10). Without
-             it this sits earlier in the DOM than <GlobeGL> and the canvas
-             simply paints on top — the map was rendering correctly and
-             invisibly. */
-          className={`absolute inset-0 z-[5] transition-opacity duration-500 ease-out ${
-            countryMapIn ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-          style={{ background: countryMapIn ? "#0a1e33" : "transparent" }}
-        >
-          <CountryMap
-            country={panelCountry.name}
-            features={landFeatures}
-            nameOf={countryOf}
-            resorts={resorts.filter((r) => r.country === panelCountry.name)}
-            width={dimensions.width}
-            height={dimensions.height}
-            /* The panel is max-w-[21rem] in a p-4 wrapper. */
-            insetLeft={dimensions.width > 760 ? 352 : 0}
-          />
-        </div>
-      )}
-
-      {/*
         The country panel, which doubles as the way back out.
         ⚠️ IT STAYS MOUNTED. Rendering it only while a country is selected
         would make it pop in and jump out with no transition, and the whole
@@ -1431,21 +1901,88 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
                   the close animation, so a shape change can meet an object
                   set by the previous one — which threw here during a Fast
                   Refresh and took the whole globe down with it. */}
-              {(panelCountry.resorts ?? []).length > 0 && (
+              {(panelCountry.groups ?? []).some((g) => g.resorts.length > 0) && (
                 <div className="mt-4 border-t border-white/10 pt-3">
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                    All {(panelCountry.resorts ?? []).length} resorts
+                    All{" "}
+                    {(panelCountry.groups ?? []).reduce((n, g) => n + g.resorts.length, 0)}{" "}
+                    resorts
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(panelCountry.resorts ?? []).map((r) => (
-                      <a
-                        key={r.id}
-                        href={`/resorts/${r.id}`}
-                        tabIndex={activeRegion ? 0 : -1}
-                        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/75 transition-colors hover:border-warm/50 hover:bg-warm/15 hover:text-white"
-                      >
-                        {r.name}
-                      </a>
+                  <div className="flex flex-col gap-3">
+                    {panelCountry.groups.map((group) => (
+                      <div key={group.label || "all"}>
+                        {/* An empty label is a country with one region, where
+                            a heading would repeat the panel's own title. */}
+                        {group.label &&
+                          /**
+                           * ⚠️ A HEADING IS A BUTTON ONLY WHERE PRESSING IT
+                           * DOES SOMETHING. Hovering always works and always
+                           * helps — it lifts that region's labels out on the
+                           * globe, which answers "where is British Columbia?"
+                           * with no camera move at all. Flying is offered
+                           * only where the measurement says the camera
+                           * actually travels.
+                           */
+                          (group.view ? (
+                            <button
+                              type="button"
+                              tabIndex={activeRegion ? 0 : -1}
+                              onClick={() =>
+                                flyToRegion(
+                                  group.label,
+                                  group.view,
+                                  group.resorts.map((r) => r.id),
+                                )
+                              }
+                              onMouseEnter={() => setGroupHover(group.resorts, true)}
+                              onMouseLeave={() => setGroupHover(group.resorts, false)}
+                              className={`mb-1.5 flex w-full items-baseline gap-1.5 rounded px-1 py-0.5 text-left text-[11px] font-semibold transition-colors ${
+                                flownRegion === group.label
+                                  ? "bg-highlight/15 text-highlight"
+                                  : "text-highlight/80 hover:bg-white/5 hover:text-highlight"
+                              }`}
+                            >
+                              {group.label}
+                              <span className="text-[10px] font-normal text-white/35">
+                                {group.resorts.length}
+                              </span>
+                              <span className="ml-auto text-[10px] font-normal text-white/30">
+                                {flownRegion === group.label ? "whole country" : "zoom"}
+                              </span>
+                            </button>
+                          ) : (
+                            <p
+                              onMouseEnter={() => setGroupHover(group.resorts, true)}
+                              onMouseLeave={() => setGroupHover(group.resorts, false)}
+                              className="mb-1.5 flex items-baseline gap-1.5 px-1 py-0.5 text-[11px] font-semibold text-highlight/80"
+                            >
+                              {group.label}
+                              <span className="text-[10px] font-normal text-white/35">
+                                {group.resorts.length}
+                              </span>
+                            </p>
+                          ))}
+                        <div className="flex flex-wrap gap-1.5">
+                          {group.resorts.map((r) => (
+                            <a
+                              key={r.id}
+                              href={`/resorts/${r.id}`}
+                              tabIndex={activeRegion ? 0 : -1}
+                              onMouseEnter={() => {
+                                hoveredIdRef.current = r.id;
+                                setLabelHover(r.id, true);
+                              }}
+                              onMouseLeave={() => {
+                                if (hoveredIdRef.current === r.id) hoveredIdRef.current = null;
+                                setLabelHover(r.id, false);
+                              }}
+                              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/75 transition-colors hover:border-warm/50 hover:bg-warm/15 hover:text-white"
+                            >
+                              {r.name}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1474,7 +2011,10 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
            count roughly quadruples for detail a 360px sphere cannot show.
            useDots stays false: hexagons tile without gaps, so coastlines read
            as edges rather than as stippling. */
-        hexPolygonsData={landFeatures}
+        /* Empty while GLOBE_SURFACE is "particles": the land is the point
+           cloud added to the scene above. The layer and all of its tuning
+           stay in place — passing it no features is the whole switch. */
+        hexPolygonsData={GLOBE_SURFACE === "particles" ? EMPTY_FEATURES : landFeatures}
         /* ⚠️ RESOLUTION IS PER COUNTRY, AND RAISING IT GLOBALLY CRASHES THE
            LAYER. Resolution 2 is bold and right for a 360px world, but flown
            in close it is the resolution the seams show at — so the selected
@@ -1501,15 +2041,19 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         polygonStrokeColor={(f: object) =>
           isSelectedFeature(f) ? GLOW : "rgba(127, 212, 245, 0.42)"
         }
-        polygonAltitude={(f: object) => (isSelectedFeature(f) ? 0.012 : 0.009)}
+        polygonAltitude={(f: object) =>
+          isSelectedFeature(f) ? COUNTRY_FILL_ALTITUDE : COUNTRY_OUTLINE_ALTITUDE
+        }
         polygonsTransitionDuration={400}
         animateIn={true}
         onGlobeReady={onGlobeReady}
+        /* Clicking a country's land selects it — see handleGlobeClick. */
+        onGlobeClick={handleGlobeClick}
         onZoom={handleZoom}
         // Individual mountains (zoomed in)
         customLayerData={ready ? visibleMarkers : []}
-        customThreeObject={createMountain}
-        customThreeObjectUpdate={customMountainUpdate}
+        customThreeObject={createResortDot}
+        customThreeObjectUpdate={resortDotUpdate}
         onCustomLayerClick={handleMarkerClick}
         onCustomLayerHover={handleMarkerHover}
         // Cluster dots (zoomed out)
@@ -1519,9 +2063,7 @@ export default function Globe({ continentFilter, selectedCountry }: GlobeProps) 
         onObjectClick={handleClusterClick}
         onObjectHover={handleClusterHover}
         // Cluster HTML labels (zoomed out only)
-        htmlElementsData={
-          ready ? (activeRegion ? (countryMapIn ? [] : visibleMarkers) : visibleClusters) : []
-        }
+        htmlElementsData={ready ? (activeRegion ? visibleMarkers : visibleClusters) : []}
         htmlLat="lat"
         htmlLng="lng"
         htmlAltitude={clusterHtmlAltitude}

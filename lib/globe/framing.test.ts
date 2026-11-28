@@ -2,11 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { groupLabelFor } from "./resort-grouping";
 import {
   viewForCountry,
   countryViews,
   viewForOutline,
   neighbourFeatures,
+  viewForPoints,
+  worthFlyingToRegions,
   MIN_ALTITUDE,
   MAX_ALTITUDE,
 } from "./framing";
@@ -124,4 +127,52 @@ test("the neighbour set is capped, however crowded the region", () => {
     assert.ok(n.length <= 28, `${country} returned ${n.length} neighbours`);
     assert.ok(n.length > 0, `${country} returned none`);
   }
+});
+
+/**
+ * ⚠️ THE REGION-ZOOM RULE IS MEASURED, NOT CHOSEN, and these numbers are the
+ * measurement. Framed on each country and then on each of its regions, the
+ * gain is wildly uneven — Canada goes 1.35 → 0.48 at worst, France goes
+ * 0.36 → 0.34. Offering a flight in both cases would give France a button
+ * that moves the camera six percent, which reads as a glitch.
+ */
+test("flying to a region is offered for Canada and refused for France", () => {
+  const all = resorts;
+
+  const verdict = (country: string) => {
+    const mine = all.filter((r) => r.country === country);
+    const whole = viewForPoints(mine)!;
+    const byRegion = new Map<string, typeof mine>();
+    for (const r of mine) {
+      const g = groupLabelFor({ id: "", name: "", country: r.country, state_province: r.state_province })!;
+      byRegion.set(g, [...(byRegion.get(g) ?? []), r]);
+    }
+    const alts = [...byRegion.values()].map((rs) => viewForPoints(rs)!.altitude);
+    return worthFlyingToRegions(whole.altitude, alts);
+  };
+
+  for (const country of ["Canada", "USA", "Japan", "Australia"]) {
+    assert.equal(verdict(country), true, `${country} should offer a region flight`);
+  }
+  for (const country of ["France", "Switzerland", "Italy", "Chile", "New Zealand"]) {
+    assert.equal(verdict(country), false, `${country} should not offer a region flight`);
+  }
+});
+
+test("a country with one region never offers a flight", () => {
+  assert.equal(worthFlyingToRegions(1.5, [0.33]), false);
+  assert.equal(worthFlyingToRegions(1.5, []), false);
+});
+
+test("viewForCountry and viewForPoints agree", () => {
+  const pts = [
+    { country: "X", latitude: 50, longitude: -120 },
+    { country: "X", latitude: 51, longitude: -118 },
+    { country: "Y", latitude: 10, longitude: 10 },
+  ];
+  assert.deepEqual(
+    viewForCountry("X", pts),
+    viewForPoints(pts.filter((p) => p.country === "X")),
+  );
+  assert.equal(viewForPoints([]), null);
 });
